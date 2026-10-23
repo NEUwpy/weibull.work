@@ -127,7 +127,7 @@ def main():
         layout='One n per row (50/20/15/10/7); columns MLE/MMLE/MDM(0)/MDM(.1).',
         purpose='Gamma selection only; Bias and SD in separate figures.',
         selection='Endpoint MLE state and MDM0 zero/interior strata, proportional quotas with >=1/stratum; robust L1 medoids within strata, retaining shared-center670. Ten examples do not replace statistics from all120.',
-        examples=outputs,combined_figure=draw_combined(outputs))
+        examples=outputs,combined_figure=draw_combined(outputs),overlay_figure=draw_overlay(outputs))
     dump(HERE/'3.1十组定位判据选例.json',record)
     print(json.dumps(dict(status='complete',selected=[q['source_id'] for q in outputs]),ensure_ascii=False),flush=True)
 
@@ -188,10 +188,77 @@ def draw_combined(items):
     return output
 
 
+def draw_overlay(items):
+    """Ten sample curves per axes; n varies by row, method by column."""
+    from matplotlib.lines import Line2D
+    colors=['#0072B2','#D55E00','#009E73','#CC79A7','#A67C00',
+            '#56B4E9','#8C564B','#7A5195','#444444','#E06B91']
+    records=[]
+    for item in items:
+        p=OUT/f'十组分行/样本{item["source_id"]}.json'
+        records.append(dict(item=item,path=p,rows=json.loads(p.read_text(encoding='utf-8'))['rows']))
+    xmax=max(row['observations'][0] for record in records for row in record['rows'])
+    ymin=min(0.,min(min(row['mle_relative_per_observation_loss']) for record in records for row in record['rows']))
+    ymax=max(max(row['mle_relative_per_observation_loss']) for record in records for row in record['rows'])
+    mle_ylim=[ymin-.015,ymax*1.05]
+    fig,axs=plt.subplots(5,4,figsize=(18,16))
+    fig.subplots_adjust(left=.09,right=.985,bottom=.055,top=.905,hspace=.29,wspace=.34)
+    counts=[]
+    for i,n in enumerate(NS):
+        axs[i,0].text(-.30,.5,rf'$n={n}$',transform=axs[i,0].transAxes,ha='right',va='center',fontsize=14)
+        for k,record in enumerate(records):
+            row=record['rows'][i];assert row['n']==n
+            color=colors[k];grid=np.asarray(row['gamma_grid']);grad=np.asarray(row['mdm_gradient'])
+            line_style='--' if k>=5 else '-'
+            axs[i,0].plot(grid,row['mle_relative_per_observation_loss'],color=color,ls=line_style,lw=1.35,alpha=.88)
+            if row['states']['MLE']=='success':
+                axs[i,0].scatter(row['estimates']['MLE']['gamma'],0,color=color,s=18,zorder=5,clip_on=False)
+            # MMLE has no gamma criterion: only the ten actual selected minima.
+            gamma=row['estimates']['MMLE']['gamma']
+            assert gamma==row['observations'][0]
+            axs[i,1].plot([gamma,gamma],[-.22,.22],color=color,lw=1.5,ls=line_style,alpha=.9)
+            axs[i,1].scatter(gamma,0,color=color,s=24,zorder=5)
+            for j,method,marker in [(2,'MDM-0','o'),(3,'MDM-0.1','s')]:
+                axs[i,j].plot(grid,grad,color=color,ls=line_style,lw=1.35,alpha=.88)
+                if row['states'][method]=='success':
+                    gamma=row['estimates'][method]['gamma'];hit=np.flatnonzero(np.isclose(grid,gamma,rtol=0,atol=1e-9))
+                    assert len(hit)==1
+                    axs[i,j].scatter(gamma,grad[hit[0]],marker=marker,s=24,
+                        facecolors='white' if j==2 else color,edgecolors=color,zorder=5,clip_on=False)
+        for j in range(4):axs[i,j].set_xlim(0,xmax);axs[i,j].tick_params(labelsize=10)
+        axs[i,0].set(ylim=mle_ylim,ylabel=r'$-\Delta\bar{\ell}_p(\gamma)$')
+        axs[i,1].set(ylim=(-.6,.6),yticks=[])
+        for j,target in [(2,0.),(3,.1)]:
+            assert len(axs[i,j].lines)==10
+            axs[i,j].axhline(target,color='#777',ls=':',lw=1)
+            axs[i,j].set(ylim=(-.12,.25),yticks=[-.1,0,.1,.2],ylabel=r'$g_n(\gamma)$')
+        assert len(axs[i,0].lines)==10
+        counts.append(dict(n=n,mle_profile_curves=10,mmle_minimum_positions=10,mdm0_profile_curves=10,mdm01_profile_curves=10,
+            mle_return_markers=sum(record['rows'][i]['states']['MLE']=='success' for record in records)))
+    for j,title in enumerate(['MLE',r'MMLE: $\hat\gamma=x_{(1)}$','MDM(0)','MDM(0.1)']):axs[0,j].set_title(title,pad=12,fontsize=14)
+    for ax in axs[-1]:ax.set_xlabel(r'$\gamma$',fontsize=13)
+    fig.legend(handles=[Line2D([],[],color=c,lw=1.7,ls='--' if k>=5 else '-',label=str(item['source_id']))
+        for k,(c,item) in enumerate(zip(colors,items))],ncol=10,loc='upper center',bbox_to_anchor=(.535,.985),frameon=False,fontsize=12)
+    output={}
+    for ext in ['png','svg']:
+        p=ASSETS/f'31T_十组叠加定位判据.{ext}';fig.savefig(p,dpi=220,facecolor='white')
+        if ext=='svg':p.write_text('\n'.join(x.rstrip() for x in p.read_text(encoding='utf-8').splitlines())+'\n',encoding='utf-8',newline='\n')
+        output[ext]=dict(path=p.relative_to(STUDY).as_posix(),sha256=sha(p))
+    plt.close(fig)
+    output.update(layout='5 n rows x4 method columns; ten sample curves overlaid per profile axes; ten actual minima for MMLE.',
+        aspect_ratio=18/16,total_panels=20,counts=counts,mle_ylim=mle_ylim,gamma_xlim=[0,xmax],mdm_ylim=[-.12,.25],
+        samples=[dict(source_id=r['item']['source_id'],source_sha256=sha(r['path']),color=colors[k]) for k,r in enumerate(records)])
+    return output
+
+
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('--combined-only',action='store_true');args=parser.parse_args()
-    if args.combined_only:
+    parser=argparse.ArgumentParser();parser.add_argument('--combined-only',action='store_true');parser.add_argument('--overlay-only',action='store_true');args=parser.parse_args()
+    if args.overlay_only:
+        p=HERE/'3.1十组定位判据选例.json';record=json.loads(p.read_text(encoding='utf-8'))
+        record['overlay_figure']=draw_overlay(record['examples']);dump(p,record)
+        print(json.dumps(dict(status='overlay',panels=20,curves_per_profile_axes=10,figures={k:v for k,v in record['overlay_figure'].items() if k in ['png','svg']}),ensure_ascii=False))
+    elif args.combined_only:
         p=HERE/'3.1十组定位判据选例.json';record=json.loads(p.read_text(encoding='utf-8'))
         record['combined_figure']=draw_combined(record['examples']);dump(p,record)
         print(json.dumps(dict(status='combined',panels=200,figures={k:v for k,v in record['combined_figure'].items() if k in ['png','svg']}),ensure_ascii=False))

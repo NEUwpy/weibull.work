@@ -905,19 +905,138 @@
         }
       ],
       "total_panels": 200
+    },
+    "overlay_figure": {
+      "png": {
+        "path": "reviewbyhtml/方法对比-v1.0/assets/31T_十组叠加定位判据.png",
+        "sha256": "f7d3b500db346bfde958fd13df9047ec41a633d6a1808c1de47ea3f7c831abe9"
+      },
+      "svg": {
+        "path": "reviewbyhtml/方法对比-v1.0/assets/31T_十组叠加定位判据.svg",
+        "sha256": "ce961d7a5a80e31b1bed9c8152bde8f6ef5cf4ce79742bcc6169ad11b42f4d8d"
+      },
+      "layout": "5 n rows x4 method columns; ten sample curves overlaid per profile axes; ten actual minima for MMLE.",
+      "aspect_ratio": 1.125,
+      "total_panels": 20,
+      "counts": [
+        {
+          "n": 50,
+          "mle_profile_curves": 10,
+          "mmle_minimum_positions": 10,
+          "mdm0_profile_curves": 10,
+          "mdm01_profile_curves": 10,
+          "mle_return_markers": 10
+        },
+        {
+          "n": 20,
+          "mle_profile_curves": 10,
+          "mmle_minimum_positions": 10,
+          "mdm0_profile_curves": 10,
+          "mdm01_profile_curves": 10,
+          "mle_return_markers": 10
+        },
+        {
+          "n": 15,
+          "mle_profile_curves": 10,
+          "mmle_minimum_positions": 10,
+          "mdm0_profile_curves": 10,
+          "mdm01_profile_curves": 10,
+          "mle_return_markers": 9
+        },
+        {
+          "n": 10,
+          "mle_profile_curves": 10,
+          "mmle_minimum_positions": 10,
+          "mdm0_profile_curves": 10,
+          "mdm01_profile_curves": 10,
+          "mle_return_markers": 7
+        },
+        {
+          "n": 7,
+          "mle_profile_curves": 10,
+          "mmle_minimum_positions": 10,
+          "mdm0_profile_curves": 10,
+          "mdm01_profile_curves": 10,
+          "mle_return_markers": 7
+        }
+      ],
+      "mle_ylim": [
+        -0.015,
+        0.4145786342601758
+      ],
+      "gamma_xlim": [
+        0,
+        1317.5782298582583
+      ],
+      "mdm_ylim": [
+        -0.12,
+        0.25
+      ],
+      "samples": [
+        {
+          "source_id": 670,
+          "source_sha256": "8708214806ed8a327ea6556dce85d3cd60491f84f775187228e93c8b84df3a77",
+          "color": "#0072B2"
+        },
+        {
+          "source_id": 630,
+          "source_sha256": "82000d06674cb23f4b34bc1fb5baaec402a8a85194e6ef9152ed828c6b732c6a",
+          "color": "#D55E00"
+        },
+        {
+          "source_id": 190,
+          "source_sha256": "ec0beb32538d1909ab84148bd58b3187a521522f16096eacc8f1ac24e1887cc5",
+          "color": "#009E73"
+        },
+        {
+          "source_id": 920,
+          "source_sha256": "99adffcbfba68fa946d46afefd77d2d280838aff7bf8ea36d332cd7114f2368b",
+          "color": "#CC79A7"
+        },
+        {
+          "source_id": 70,
+          "source_sha256": "e4e1c859465291e5c380f80ff99d4b7abe6585d25091a9a62dddd086c91400e7",
+          "color": "#A67C00"
+        },
+        {
+          "source_id": 280,
+          "source_sha256": "34614acd9eb30e3fec1b8de345932d599c1bd2e625ad16b5af0adf24ef71793d",
+          "color": "#56B4E9"
+        },
+        {
+          "source_id": 90,
+          "source_sha256": "4b92e714d31a8391924b590c6913bed48dce6073371896768b27f6232b3ba1c8",
+          "color": "#8C564B"
+        },
+        {
+          "source_id": 350,
+          "source_sha256": "df69163ae9570fd08ddfa9c395b44072e4c01b8092184cf7ac4c775d24c3979d",
+          "color": "#7A5195"
+        },
+        {
+          "source_id": 170,
+          "source_sha256": "3a6ff04ba17de1e3ae2f49191fe3bacb03ba9039da27dfa01112e0274d3c33f8",
+          "color": "#444444"
+        },
+        {
+          "source_id": 700,
+          "source_sha256": "cf9a5abe3ab00354724589df7dacc5244cab14e44a54165b6904f964592e6ba9",
+          "color": "#E06B91"
+        }
+      ]
     }
   },
   "final_presentation": {
-    "revision": 56,
+    "revision": 57,
     "decomposition_record": "3.1误差增长分解.json",
     "mse_identities": 840,
     "growth_identities": 168,
     "gamma_gallery_groups": 0,
-    "layout": "Single vector figure containing 10 groups, arranged 5x2; each group 5 n rows x4 methods.",
+    "layout": "5 n rows x4 methods;10 sample curves overlaid per MLE/MDM axes,10 actual minima in MMLE.",
     "acceptance": "Awaiting user review; original formal v2.0 remains unchanged.",
     "gamma_groups_in_one_image": 10,
     "stack_location": "Section3.1 standalone stack figure; section2.1 original gap figure restored.",
     "previous_revision_independent_review": "APPROVE: layout, raw-statistic crosscheck, narrative chain and board/source correspondence.",
-    "current_layout_check": "PASS:200 vector axes,10 original curve caches, one composite SVG, stack in3.1, no criterion gallery; numerical data unchanged."
+    "current_layout_check": "PASS:20 axes;10 curves each in15 profile axes; unchanged cached numbers; sample colors consistent; MMLE not assigned a fictitious profile."
   }
 }

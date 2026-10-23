@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 56,
+  "revision": 57,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "fe5849e4a9da6bfb68f6d818fed56155c31809d48fbc42650acf0e379dc23a32",
+  "source_sha256": "078fe8b629a600b788494cfd9ef9ffafca99e51c45196461bd28c21aa0b538b3",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -519,29 +519,29 @@
               "html": "<a id=\"ten-gamma-paths\"></a>"
             },
             {
-              "id": "n56-e3d0d157306c",
+              "id": "n57-e07ad89511cf",
               "kind": "image",
-              "src": "assets/31T_十组定位判据_合图.svg",
-              "alt": "十组样本的四法定位判据合图",
-              "markdown": "![十组样本的四法定位判据合图](reviewbyhtml/方法对比-v1.0/assets/31T_十组定位判据_合图.svg)"
+              "src": "assets/31T_十组叠加定位判据.svg",
+              "alt": "每个n与方法坐标系内叠加十组样本的定位判据",
+              "markdown": "![每个n与方法坐标系内叠加十组样本的定位判据](reviewbyhtml/方法对比-v1.0/assets/31T_十组叠加定位判据.svg)"
             },
             {
-              "id": "n56-8448e6bf34de",
+              "id": "n57-b76903fecc9f",
               "kind": "text",
-              "html": "<p><em>十组样本在同一张图中按两列五排排列，组别按行从左到右阅读。每组五行，自上而下为n=50、20、15、10、7；四列依次为MLE、MMLE、MDM(0)、MDM(0.1)。同列跨行固定坐标范围，两MDM列还共用横纵坐标。MLE纵轴是相对每观测负对数似然<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo>−</mo><mi mathvariant=\"normal\">Δ</mi><msub><mover accent=\"true\"><mi mathvariant=\"normal\">ℓ</mi><mo>ˉ</mo></mover><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mo stretchy=\"false\">[</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo><mi mathvariant=\"normal\">/</mi><mi>n</mi></mrow></semantics></math></span>；圆点为实际返回位置。MMLE以彩色最左观测直接确定<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span>，灰短线为其余观测。两MDM横轴为原始单位γ，纵轴为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，分别以虚线目标0和0.1定位；两列曲线本来相同，区别在阈值和选中点。</em></p>",
-              "markdown": "*十组样本在同一张图中按两列五排排列，组别按行从左到右阅读。每组五行，自上而下为n=50、20、15、10、7；四列依次为MLE、MMLE、MDM(0)、MDM(0.1)。同列跨行固定坐标范围，两MDM列还共用横纵坐标。MLE纵轴是相对每观测负对数似然$-\\Delta\\bar\\ell_p(\\gamma)=[\\ell_p(\\hat\\gamma)-\\ell_p(\\gamma)]/n$；圆点为实际返回位置。MMLE以彩色最左观测直接确定$\\hat\\gamma=x_{(1)}$，灰短线为其余观测。两MDM横轴为原始单位γ，纵轴为$g_n(\\gamma)$，分别以虚线目标0和0.1定位；两列曲线本来相同，区别在阈值和选中点。*"
+              "html": "<p><em>五行自上而下为n=50、20、15、10、7，四列为MLE、MMLE、MDM(0)、MDM(0.1)。每个MLE、MDM坐标系叠加十组样本的曲线；图例编号为样本号，同一样本跨行跨列颜色、线型一致。全部面板使用相同原始γ横轴，每列跨n固定纵轴，两MDM列共用纵轴。MLE纵轴为相对每观测负对数似然<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo>−</mo><mi mathvariant=\"normal\">Δ</mi><msub><mover accent=\"true\"><mi mathvariant=\"normal\">ℓ</mi><mo>ˉ</mo></mover><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mo stretchy=\"false\">[</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo><mi mathvariant=\"normal\">/</mi><mi>n</mi></mrow></semantics></math></span>，圆点为实际返回位置；MMLE没有位置优化廓线，仅以十个彩点和短竖线标出各组<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span>。MDM纵轴为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，参考线分别为目标0和0.1。</em></p>",
+              "markdown": "*五行自上而下为n=50、20、15、10、7，四列为MLE、MMLE、MDM(0)、MDM(0.1)。每个MLE、MDM坐标系叠加十组样本的曲线；图例编号为样本号，同一样本跨行跨列颜色、线型一致。全部面板使用相同原始γ横轴，每列跨n固定纵轴，两MDM列共用纵轴。MLE纵轴为相对每观测负对数似然$-\\Delta\\bar\\ell_p(\\gamma)=[\\ell_p(\\hat\\gamma)-\\ell_p(\\gamma)]/n$，圆点为实际返回位置；MMLE没有位置优化廓线，仅以十个彩点和短竖线标出各组$\\hat\\gamma=x_{(1)}$。MDM纵轴为$g_n(\\gamma)$，参考线分别为目标0和0.1。*"
             },
             {
-              "id": "n56-2e132a44aea2",
+              "id": "n57-82412dbe51cc",
               "kind": "text",
-              "html": "<p>先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。左上670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。</p>",
-              "markdown": "先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。左上670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。"
+              "html": "<p>先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。蓝色670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。</p>",
+              "markdown": "先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。蓝色670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。"
             },
             {
-              "id": "n56-22febf53675b",
+              "id": "n57-dcf4e0a8ce44",
               "kind": "text",
-              "html": "<p>这里将<a href=\"#ten-gamma-paths\">十组定位判据</a>全部放在同一张矢量图中，便于连续观察并放大比较。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在<a href=\"#population-supplement\">补充选例表</a>。各组保留自身固定坐标，不比较不同组的视觉曲线高低。</p>",
-              "markdown": "这里将[十组定位判据](结果呈现/比较探索/3.1十组定位判据.md)全部放在同一张矢量图中，便于连续观察并放大比较。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在[补充选例表](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。各组保留自身固定坐标，不比较不同组的视觉曲线高低。"
+              "html": "<p>这里将<a href=\"#ten-gamma-paths\">十组定位判据</a>按相同n、相同方法叠加到同一坐标系，既看样本间的差异，也可沿同色曲线向下追踪减点响应。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在<a href=\"#population-supplement\">补充选例表</a>。MLE各曲线减去自身参照似然后再除以n，比较的是相对定位形状，不能把曲线的高低解释为不同样本的绝对似然优劣。</p>",
+              "markdown": "这里将[十组定位判据](结果呈现/比较探索/3.1十组定位判据.md)按相同n、相同方法叠加到同一坐标系，既看样本间的差异，也可沿同色曲线向下追踪减点响应。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在[补充选例表](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。MLE各曲线减去自身参照似然后再除以n，比较的是相对定位形状，不能把曲线的高低解释为不同样本的绝对似然优劣。"
             },
             {
               "id": "n55-1b4ba995ce92",
@@ -1371,10 +1371,10 @@
               "markdown": "## 分行观察十组定位过程"
             },
             {
-              "id": "n56-05212c23d342",
+              "id": "n57-7bf11a54793b",
               "kind": "text",
-              "html": "<p>新布局以<a href=\"#ten-gamma-paths\">十组定位判据</a>为准：十组样本合为一张矢量图，按两列五排排列，每组五行四列，n不叠画。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。</p>",
-              "markdown": "新布局以[十组定位判据](3.1十组定位判据.md)为准：十组样本合为一张矢量图，按两列五排排列，每组五行四列，n不叠画。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。"
+              "html": "<p>新布局以<a href=\"#ten-gamma-paths\">十组定位判据</a>为准：图按五行n、四列方法排列，每个剖面坐标系叠加十组样本曲线；n仍各占一行，MMLE列仅标最小值定位。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。</p>",
+              "markdown": "新布局以[十组定位判据](3.1十组定位判据.md)为准：图按五行n、四列方法排列，每个剖面坐标系叠加十组样本曲线；n仍各占一行，MMLE列仅标最小值定位。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。"
             },
             {
               "id": "n56-571b52ffb50b",
@@ -1781,13 +1781,13 @@
   "manuscript_date": "2026-10-24",
   "section_3_1_evidence": {
     "source": "结果呈现/比较探索/3.1群体核验摘要.json",
-    "sha256": "f3316f380ba97467f206329feacdd26806b2cdfbf4bc754182ed1cf03e5e8e8a",
+    "sha256": "b5b842548bb7c7ef203170b5251c44c342ecaf9431f0d432a5460599c88dfa83",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
       "31S",
       "31H",
       "31K",
-      "31T-combined",
+      "31T-overlay",
       "31N"
     ],
     "supplement_unit": "mechanism-n-supplement",
@@ -1807,7 +1807,7 @@
       "source": "结果呈现/比较探索/3.1机制链核验.json",
       "sha256": "68bbf2f689c309944618747b36da118d1340c791b35a287ef5f6013737ae2eb2"
     },
-    "gamma_presentation": "One SVG figure, 10 groups in5x2, each group5 n rows x4 methods; no gallery.",
+    "gamma_presentation": "5 n rows x4 methods,10 sample profile curves overlaid per MLE/MDM axes;MMLE actual minimum markers.",
     "stack_presentation": "Standalone stack in3.1;2.1 restored original method gap figure."
   }
 }
