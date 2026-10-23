@@ -13,6 +13,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from scipy.special import gamma as gamma_function
+from scipy.stats import weibull_min
+from scipy.integrate import trapezoid
 
 HERE=Path(__file__).resolve().parent
 STUDY=HERE.parents[1]
@@ -97,6 +100,62 @@ def recover(x,g,m):
     z=log_weibull_order_stat_means(n);y=np.log(x-g)
     b=float(np.dot(z-z.mean(),y-y.mean())/np.dot(z-z.mean(),z-z.mean()));a=float(y.mean()-b*z.mean())
     return dict(beta=1/b,eta=float(np.exp(a)),gamma=float(g),slope=b,intercept=a)
+
+
+def coverage():
+    """Reuse R00 figure 2's observations/minima/gap grammar with Study04 data.
+
+    Three columns use archived samples, not a newly generated experiment. The
+    last column uses the same analytic minimum density as R00's figure script.
+    """
+    fig,axs=plt.subplots(1,4,figsize=(16,7),gridspec_kw={"width_ratios":[1,1,1,1.06]})
+    fig.subplots_adjust(left=.055,right=.99,bottom=.16,top=.84,wspace=.25)
+    meta=json.loads((STUDY/"结果/数据说明.json").read_text(encoding="utf-8"))
+    records=[];all_max=[]
+    grid=np.linspace(500,3000,5001)
+    for j,n in enumerate([50,20,7]):
+        source=STUDY/f"结果/W5,1000,500/估计结果/n{n}.csv"
+        digest=sha(source);assert digest==meta["file_sha256"][source.relative_to(STUDY/"结果").as_posix()]
+        frame=pd.read_csv(source,float_precision="round_trip").sort_values("样本编号")
+        x=np.sort(frame[[f"观测值{i}" for i in range(1,n+1)]].to_numpy(float),axis=1)
+        assert x.shape==(1200,n) and np.isfinite(x).all() and (x>500).all()
+        assert np.array_equal(frame["MMLE(KR)_位置估计"].to_numpy(float),x[:,0])
+        shown=x[:50];order=np.argsort(shown[:,0],kind="stable");shown=shown[order]
+        ax=axs[j];ranks=np.arange(1,51);xx=shown[:,1:].ravel();yy=np.repeat(ranks,n-1)
+        ax.hlines(ranks,500,shown[:,0],color="#cbd4da",lw=.9,zorder=1)
+        observations=ax.scatter(xx,yy,s=8,c="#426981",linewidths=0,zorder=3)
+        minima=ax.scatter(shown[:,0],ranks,s=19,c="#C27F45",linewidths=0,zorder=4)
+        assert np.array_equal(observations.get_offsets(),np.column_stack([xx,yy]))
+        assert np.array_equal(minima.get_offsets()[:,0],shown[:,0])
+        ax.set(ylim=(51,0),yticks=[1,25,50],title=f"({chr(97+j)}) $n={n}$",xlabel="寿命")
+        ax.tick_params(labelleft=j==0);all_max.append(shown.max())
+        # Same expression as Research00/报告1/20261010-导入样本起点图.py.
+        d=np.maximum((grid-500)/1000,0)
+        density=n*5/1000*d**4*np.exp(-n*d**5)
+        assert np.allclose(density,weibull_min.pdf(grid,5,loc=500,scale=1000*n**(-.2)),atol=1e-14)
+        assert abs(trapezoid(density,grid)-1)<1e-7
+        axs[3].plot(grid,density,c=NC[n],ls={50:"-",20:"--",7:":"}[n],lw=2,label=f"$n={n}$")
+        records.append(dict(n=n,source=source.relative_to(STUDY).as_posix(),source_sha256=digest,
+                            shown_sample_ids=frame.iloc[:50].iloc[order]["样本编号"].astype(int).tolist(),
+                            shown_observations_sha256=hashlib.sha256(shown.tobytes()).hexdigest(),
+                            groups_shown=50,observations_shown=50*n,
+                            theoretical_mean_minimum_distance=float(1000*n**(-.2)*gamma_function(1.2)),
+                            theoretical_probability_no_observation_in_500_1000=float(np.exp(-n*.5**5)),
+                            empirical_probability_no_observation_in_500_1000=float(np.mean(x[:,0]>1000)),
+                            empirical_mean_minimum_distance=float(np.mean(x[:,0]-500)),
+                            empirical_cdf_sd_at_population_median=float(np.sqrt(.25/n)),
+                            mmle_gamma_is_minimum_all_1200=True))
+        assert sha(source)==digest
+    right=max(2200,float(np.ceil(max(all_max)/100)*100))
+    for ax in axs[:3]:ax.set(xlim=(450,right),xticks=[500,1000,1500,2000]);ax.axvline(500,c="#555",ls="--",lw=1)
+    axs[0].set_ylabel("样本组（按最小值排序）")
+    axs[3].axvline(500,c="#555",ls="--",lw=1)
+    axs[3].set(xlim=(450,1700),ylim=(0,None),xticks=[500,1000,1500],title="(d)",xlabel=r"$x_{(1)}$",ylabel="概率密度")
+    axs[3].ticklabel_format(axis="y",style="sci",scilimits=(0,0),useMathText=True);axs[3].legend(frameon=False,loc="upper right",fontsize=11)
+    handles=[Line2D([],[],marker="o",ls="",c="#426981",ms=4,label="观测"),Line2D([],[],marker="o",ls="",c="#C27F45",ms=5,label="最小观测"),Line2D([],[],c="#cbd4da",lw=2,label="起点至最小观测"),Line2D([],[],c="#555",ls="--",label=r"$\gamma_{\mathrm{true}}=500$")]
+    fig.legend(handles=handles,loc="upper center",bbox_to_anchor=(.5,.965),ncol=4,frameon=False)
+    assert all(records[i]["theoretical_mean_minimum_distance"]<records[i+1]["theoretical_mean_minimum_distance"] for i in [0,1])
+    return save(fig,"31H_n减小与下端覆盖.png"),records
 
 
 def information(xs):
@@ -200,14 +259,14 @@ def conditional(xs,est):
 def main():
     source,rows,xs,est,identity=load();before=sha(source)
     plt.rcParams.update({"font.family":["Times New Roman","Microsoft YaHei"],"font.size":13,"mathtext.fontset":"custom","mathtext.rm":"Times New Roman","mathtext.it":"Times New Roman:italic","mathtext.bf":"Times New Roman:bold","axes.spines.top":False,"axes.spines.right":False,"axes.unicode_minus":False})
-    f1,features=information(xs);f5,inputs=information_inputs(xs);f2,criterion=criteria(xs,est);f3,errs=errors(est);f4,cond=conditional(xs,est)
+    f0,population_coverage=coverage();f1,features=information(xs);f5,inputs=information_inputs(xs);f2,criterion=criteria(xs,est);f3,errs=errors(est);f4,cond=conditional(xs,est)
     nested_gallery(rows,source_id=SID,source_path=LOCAL/"路径估计.csv")
-    images=[f1,f5,f2,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
+    images=[f0,f1,f5,f2,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
     assert sha(source)==before
-    result=dict(identity=identity,features=features,input_coordinates_at_true_parameters=inputs,estimates=[dict(n=n,method=m,**est[n,m]) for n in NS for _,m,_,_ in METHODS],actual_criteria=criterion,signed_errors=errs,conditional_seven_point_recovery=cond,
+    result=dict(identity=identity,population_coverage=population_coverage,coverage_figure_grammar_source="Research/00-方法对比/交付/程序/报告1/20261010-导入样本起点图.py; adapted to Study04 n=50,20,7, with the same analytic minimum density; source not executed or changed.",features=features,input_coordinates_at_true_parameters=inputs,estimates=[dict(n=n,method=m,**est[n,m]) for n in NS for _,m,_,_ in METHODS],actual_criteria=criterion,signed_errors=errs,conditional_seven_point_recovery=cond,
         conditional_scope="Same seven observations and n=7 reference coordinates; gamma alone changes. Old-gamma conditional results are NOT original n50 estimates.",
-        checks=dict(nested_subsets=True,same_observations_across_methods=True,formal_n50_estimates_match=True,shared_observation_reference_changes=True,mmle_positive_distance_likelihood=True,profile_gradient_target=True,lse_F_r2_identity=True,conditional_support=True,conditional_recovery_matches_n7=True,formal_source_unchanged=True),
-        scope="One existing path, beta=5; typical process, not all methods or total RMSE differences; no independent Monte Carlo added.",program_sha256=sha(Path(__file__)),images={p.relative_to(STUDY).as_posix():sha(p) for p in images})
+        checks=dict(archived_coverage_samples=True,minimum_density_matches_scipy_and_integrates_to_one=True,mmle_gamma_minimum_all_3600_records=True,nested_subsets=True,same_observations_across_methods=True,formal_n50_estimates_match=True,shared_observation_reference_changes=True,mmle_positive_distance_likelihood=True,profile_gradient_target=True,lse_F_r2_identity=True,conditional_support=True,conditional_recovery_matches_n7=True,formal_source_unchanged=True),
+        scope="Archived n=50/20/7 samples and analytic minimum distributions at beta=5; one nested path 474 and conditional recovery explain concrete responses, not all methods or total RMSE differences; no independent Monte Carlo added.",program_sha256=sha(Path(__file__)),images={p.relative_to(STUDY).as_posix():sha(p) for p in images})
     dump(HERE/"3.1机制链核验.json",result)
     print(json.dumps(dict(features=features,conditional=cond,checks=result["checks"]),ensure_ascii=False,indent=2),flush=True)
 
