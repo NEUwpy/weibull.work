@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>删点后，为什么同一个观测会上下移动？</title>
+<style>
+:root{color-scheme:light;--ink:#26343d;--muted:#596a74;--line:#dce2e6;--paper:#fff;--bg:#f4f6f7;--blue:#1675a7;--orange:#c45a16;--faint:#c7cfd4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1120px;margin:auto;padding:38px 30px 70px}h1{font-size:29px;line-height:1.4;margin:6px 0 17px}h2{font-size:21px;margin:0 0 14px}p{margin:10px 0}section{background:var(--paper);padding:26px 30px;margin:22px 0;border-radius:10px}.lead{font-size:18px}.muted,small{color:var(--muted)}.eyebrow{font-size:14px;color:var(--muted)}strong{font-weight:650}.key{border-left:3px solid var(--blue);padding:9px 18px;background:#f0f6f9;margin:18px 0}.controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:17px 0}button{font:inherit;font-size:14px;border:1px solid var(--line);background:#fff;padding:7px 12px;border-radius:5px;color:var(--ink);cursor:pointer}button:hover{border-color:var(--blue)}button[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}button:focus-visible,a:focus-visible{outline:3px solid #90bcdb;outline-offset:3px}.stages button{flex:1;min-width:160px}.stage-note{min-height:56px}.chart-wrap{width:100%;overflow:hidden}svg{display:block;width:100%;height:auto}svg text{font:14px system-ui,"Microsoft YaHei",sans-serif;fill:var(--ink)}svg .axis{stroke:#8e9ba4;stroke-width:1}svg .grid{stroke:#e8edef;stroke-width:1}svg .dot{transition:cy .65s ease,cx .65s ease,opacity .4s;cursor:pointer}svg .halo{fill:none;stroke:var(--orange);stroke-width:2;pointer-events:none;transition:cy .65s ease,cx .65s ease}svg .hit{fill:transparent;cursor:pointer}svg .truth{fill:none;stroke:#727e86;stroke-width:1.6;stroke-dasharray:6 5}.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:14px;color:var(--muted)}.swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;background:var(--blue)}.swatch.gray{background:var(--faint)}.swatch.orange{background:var(--orange)}.formula{display:inline-flex;align-items:center;gap:9px;font-size:20px;margin:14px 0}.fraction{display:inline-flex;flex-direction:column;text-align:center;line-height:1.4;vertical-align:middle}.fraction span:first-child{border-bottom:1px solid;padding:0 8px 3px}.fraction span:last-child{padding-top:3px}.readout{padding:15px 18px;background:#f6f8f9;border-radius:5px;font-variant-numeric:tabular-nums}.readout p{margin:4px 0}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:15px}th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}th{font-weight:600}.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}.slotrow{display:flex;height:26px;gap:2px;margin:8px 0 16px}.slot{flex:1;background:#e8edf0;position:relative}.slot.selected{background:var(--orange)}.slot:after{content:"";position:absolute;width:2px;height:10px;background:var(--ink);left:50%;top:8px}.caption{font-size:14px;color:var(--muted)}a{color:var(--blue)}details{margin-top:18px}summary{cursor:pointer;color:var(--muted)}footer{font-size:14px;color:var(--muted);padding:8px 3px}.point-pick button{min-width:48px}.point-pick{margin-top:8px}.question{margin:22px 0 5px;font-weight:650}.list p{padding-left:15px;border-left:2px solid var(--line)}
+@media(max-width:700px){main{padding:20px 12px 40px}section{padding:20px 16px}h1{font-size:24px}.pair{grid-template-columns:1fr}.stages button{min-width:42%;font-size:13px}svg text{font-size:16px}}
+@media(prefers-reduced-motion:reduce){svg .dot,svg .halo{transition:none}}
+</style>
+</head>
+<body><main>
+<header><div class="eyebrow">Study04 · 教学素材 · 不属于报告正文</div><h1>删点后，为什么同一个观测会上下移动？</h1>
+<p class="lead">寿命观测本来只有一个数 <i>t</i>。图上的纵坐标，是我们根据它在当前样本中的排序，另外计算出来的。</p></header>
+<section>
+<h2>1　一个点的两个坐标，来源不同</h2>
+<p>假设记录了10个寿命值：10、20、30、……、100。选中寿命为50的观测，它的<strong>横坐标就是50</strong>。但只知道“50”，还不知道它应该画在多高的位置。</p>
+<p>为了把这些观测与分布的累计概率曲线放在一起，我们给排序后的每个观测安排一个<strong>绘图位置</strong>。当前报告的这幅展示图使用：</p>
+<div class="formula" aria-label="p i 等于 i 减零点五，除以 n"><i>p</i><sub>i</sub> = <span class="fraction"><span><i>i</i> − 0.5</span><span><i>n</i></span></span></div>
+<p><i>i</i> 是该观测从小到大的名次，<i>n</i> 是当前样本总数。它表示依据样本排序安排的累计概率位置，<strong>不是这个寿命观测自带的第二个测量值</strong>。</p>
+<div class="key">因此，一个观测的寿命没变，并不意味着它在这张图里的纵坐标也不变。</div>
+</section>
+<section id="explore">
+<h2>2　一步一步看：观测没有变，排序背景变了</h2>
+<div class="controls" role="group" aria-label="示例数据"><button type="button" id="toy" aria-pressed="true">简单例子：10点 → 5点</button><button type="button" id="actual" aria-pressed="false">报告案例：50点 → 7点</button></div>
+<div class="controls stages" role="group" aria-label="演示步骤">
+<button type="button" data-step="0" aria-pressed="true">① 原始样本</button><button type="button" data-step="1" aria-pressed="false">② 标记保留的点</button><button type="button" data-step="2" aria-pressed="false">③ 删除其余点</button><button type="button" data-step="3" aria-pressed="false">④ 按新样本重新计算</button>
+</div>
+<p id="stage-note" class="stage-note" aria-live="polite"></p>
+<div class="legend"><span><i class="swatch"></i>保留的观测</span><span><i class="swatch gray"></i>其他观测</span><span><i class="swatch orange"></i>当前选中的观测</span></div>
+<div class="chart-wrap"><svg id="plot" viewBox="0 0 960 500" role="img" aria-label="上方为按排序计算的绘图位置，下方为同一寿命横轴上的原始观测位置。切换步骤可比较删点前后。"></svg></div>
+<p class="caption">下方刻线只表示原始寿命值，竖直位置没有统计含义。上方散点才使用计算出的绘图位置。虚线在报告案例中表示真实总体的CDF。</p>
+<p>选一个保留的观测，追踪它的计算：</p><div id="point-pick" class="controls point-pick" role="group" aria-label="选择追踪的观测"></div>
+<div id="readout" class="readout" aria-live="polite"></div>
+<div class="table-wrap"><table aria-label="同一观测删点前后的坐标计算"><thead><tr><th>同一个观测</th><th>寿命值 t</th><th>名次 i</th><th>样本量 n</th><th>绘图位置 (i−0.5)/n</th></tr></thead><tbody id="comparison"></tbody></table></div>
+<details><summary>查看全部保留点的前后对应</summary><div class="table-wrap"><table><thead><tr><th>编号</th><th>寿命值</th><th>原名次</th><th>新名次</th><th>原纵坐标</th><th>新纵坐标</th></tr></thead><tbody id="all-points"></tbody></table></div></details>
+</section>
+<section>
+<h2>3　为什么公式里要减0.5？</h2>
+<p>可以把0到1均分成 <i>n</i> 个概率段，每段宽度为1/<i>n</i>。第 <i>i</i> 个观测放在第 <i>i</i> 段的中点，坐标就是 (<i>i</i>−0.5)/<i>n</i>。这是这一种绘图位置公式的直观理解，不是说每个观测在总体中恰好占有这么大的真实概率。</p>
+<div class="pair"><div><p id="slots-before-title"></p><div class="slotrow" id="slots-before" aria-hidden="true"></div></div><div><p id="slots-after-title"></p><div class="slotrow" id="slots-after" aria-hidden="true"></div></div></div>
+<p>删点后，概率段的数量和宽度改变了；同一个观测所属的名次也可能改变。所以它的绘图位置需要根据新的 <i>i</i> 和 <i>n</i> 计算，可能升高，也可能降低。</p>
+<p class="caption">上面的概率段随当前所选观测更新；橙色为它所属的那一段，中间刻线为该段中点。</p>
+</section>
+<section>
+<h2>4　有三件事需要分清</h2>
+<div class="list"><p><strong>原始观测 t：</strong>保留下来的寿命记录没有改变。</p><p><strong>样本绘图位置 p：</strong>由当前样本的名次和数量计算，删点后会重新安排。</p><p><strong>真实总体的 F(t)：</strong>总体不变时，同一个 t 对应的真实累计概率不变。样本绘图位置是用有限数据安排的概率坐标，并不等于已知的真实 F(t)。</p></div>
+<p class="question">那么，是否可以一直沿用删点前的纵坐标？</p>
+<p>可以这样画来追踪“原来那些点去了哪里”，相当于演示的第③步。但这张图保留的是原样本的概率坐标，不能把它当作剩余样本按同一规则重新得到的绘图位置。要展示7点样本自己的概率位置，就应使用7点的名次和样本量。</p>
+<p class="question">这是否意味着估计方法都因为“点上下移动”而改变结果？</p>
+<p>不能这样概括。这里的公式只是当前展示图统一采用的绘图规则。MDM、LSE等方法各有自己的参考坐标与计算步骤；MLE则直接利用寿命观测构造似然。删点改变了输入样本，各方法怎样响应还要看其原理。<strong>本页只解释图上的点为何移动。</strong></p>
+<details><summary>与经验分布函数有什么区别？</summary><p>对于没有重复值的完整样本，经验分布函数在第 <i>i</i> 个观测处的值为 <i>i</i>/<i>n</i>，也就是“不超过该寿命的观测占比”。本页使用的 (<i>i</i>−0.5)/<i>n</i> 把点放在每个概率段的中点；两者相关，但不是同一个公式。另有 i/(n+1)、(i−0.3)/(n+0.4) 等绘图位置公式。无论选用哪一种，都应根据当前样本重新确定名次和样本量。</p></details>
+</section>
+<footer><p>依据：<a href="https://www.itl.nist.gov/div898/handbook/apr/section2/apr221.htm" target="_blank" rel="noopener">NIST：Probability plotting</a>介绍了依据寿命数据安排绘图位置及(i−0.5)/n等修正。页面演示使用完整、无删失且无重复值的观测。</p><p id="provenance"></p></footer>
+</main>
+<script>
+'use strict';
+const actualData = {"original": [930.6313855567805, 977.3913267093512, 1011.2966529383855, 1045.1160015373903, 1118.602002154209, 1149.1862368124894, 1194.1749275833786, 1222.2723881005993, 1226.8800146458543, 1229.4950059269663, 1236.1938111481309, 1250.2172670057798, 1251.5062658715353, 1254.8400840000909, 1256.0770994734403, 1289.2176890034402, 1334.0594215998349, 1339.0180412774012, 1353.1625815620746, 1372.0597800078708, 1374.7645278682253, 1395.1879299959303, 1409.3218363185072, 1412.5255753221063, 1422.2458603557, 1439.134160624119, 1455.3861120557713, 1473.7005031883186, 1474.357414388869, 1496.4438740933547, 1496.5449009132271, 1519.0346296354396, 1543.4150545968682, 1545.2743115797675, 1569.005427693237, 1570.9688347992096, 1573.0444707135607, 1581.9588863019833, 1594.3083365127995, 1600.0819364772785, 1606.9887137835508, 1641.9020003083624, 1661.0841040926525, 1665.954854223941, 1711.8263662151753, 1744.6719015695173, 1776.6495435381105, 1798.648793679196, 1903.457069622321, 1936.1071119126411], "retained": [1226.8800146458543, 1372.0597800078708, 1374.7645278682253, 1395.1879299959303, 1409.3218363185072, 1569.005427693237, 1903.457069622321], "provenance": "2026-10-23核对；输入表SHA256：100be4967f00baedea881625b0a5cf1071b47841e002165b3b83b69543c53a3c"};
+const dataSets={toy:{original:[10,20,30,40,50,60,70,80,90,100],retained:[20,40,50,80,100],defaultPoint:2},actual:{original:actualData.original,retained:actualData.retained,defaultPoint:0}};
+let mode='toy',step=0,chosen=2;
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('plot');
+const fmt=(v,d=2)=>Number(v).toLocaleString('zh-CN',{maximumFractionDigits:d});
+const prob=(i,n)=>(i-.5)/n;
+const node=(tag,attrs={},text)=>{const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e};
+function createPlot(){
+ svg.replaceChildren();
+ const d=dataSets[mode],low=Math.min(...d.original),high=Math.max(...d.original),pad=(high-low)*.085,xmin=low-pad,xmax=high+pad;
+ const sx=t=>78+(t-xmin)/(xmax-xmin)*835,sy=p=>342-285*p;
+ for(let j=0;j<=5;j++){const p=j/5;svg.append(node('line',{x1:78,x2:913,y1:sy(p),y2:sy(p),class:'grid'}));svg.append(node('text',{x:65,y:sy(p)+5,'text-anchor':'end'},fmt(p,1)));}
+ svg.append(node('line',{x1:78,x2:913,y1:342,y2:342,class:'axis'}));svg.append(node('line',{x1:78,x2:78,y1:57,y2:342,class:'axis'}));
+ svg.append(node('text',{x:78,y:24},'上图：寿命值 + 计算出的绘图位置'));
+ svg.append(node('text',{x:18,y:200,transform:'rotate(-90 18 200)','text-anchor':'middle'},'绘图位置 p'));
+ for(let j=0;j<=5;j++){const t=low+(high-low)*j/5;svg.append(node('line',{x1:sx(t),x2:sx(t),y1:342,y2:348,class:'axis'}));svg.append(node('text',{x:sx(t),y:369,'text-anchor':'middle'},fmt(t,0)));}
+ svg.append(node('text',{x:495,y:398,'text-anchor':'middle'},'寿命 t'));
+ svg.append(node('text',{x:78,y:435},'原始观测：只看横向位置'));
+ svg.append(node('line',{x1:78,x2:913,y1:461,y2:461,class:'axis'}));
+ if(mode==='actual'){
+  let path='';for(let j=0;j<=240;j++){const t=xmin+(xmax-xmin)*j/240,p=t<=500?0:-Math.expm1(-(((t-500)/1000)**5));path+=(j?'L':'M')+sx(t)+','+sy(p);}
+  svg.append(node('path',{d:path,class:'truth'}));
+ }
+ for(let i=0;i<d.original.length;i++){
+  const t=d.original[i],j=d.retained.indexOf(t),kept=j>=0;
+  const base=prob(i+1,d.original.length),after=kept?prob(j+1,d.retained.length):base;
+  const p=step===3&&kept?after:base;
+  const group=node('g',{'data-t':t});
+  const circle=node('circle',{cx:sx(t),cy:sy(p),r:kept&&j===chosen?6.5:4.5,class:'dot',fill:kept&&j===chosen?'var(--orange)':(kept||step===0?'var(--blue)':'var(--faint)'),opacity:step>=2&&!kept?0:1,'data-base-y':sy(base),'data-new-y':sy(after),'data-kept':kept,'data-index':j});
+  group.append(circle);
+  const rug=node('line',{x1:sx(t),x2:sx(t),y1:451,y2:471,stroke:kept&&j===chosen?'var(--orange)':(kept||step===0?'var(--blue)':'var(--faint)'),'stroke-width':kept&&j===chosen?3:1.5,opacity:step>=2&&!kept?0:1});group.append(rug);
+  if(kept){const hit=node('circle',{cx:sx(t),cy:sy(p),r:14,class:'hit',tabindex:0,role:'button','aria-label':'选择观测'+String.fromCharCode(65+j)+'，寿命'+fmt(t)});hit.addEventListener('click',()=>selectPoint(j));hit.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectPoint(j)}});group.append(hit);if(j===chosen)group.append(node('circle',{cx:sx(t),cy:sy(p),r:11,class:'halo'}));}
+  svg.append(group);
+ }
+ svg.append(node('text',{x:913,y:488,'text-anchor':'end'},'横向位置始终相同'));
+}
+function updatePlot(){
+ const d=dataSets[mode],low=Math.min(...d.original),high=Math.max(...d.original),pad=(high-low)*.085;
+ const sx=t=>78+(t-low+pad)/(high-low+2*pad)*835,sy=p=>342-285*p;
+ for(const g of svg.querySelectorAll('g[data-t]')){
+  const t=Number(g.dataset.t),i=d.original.indexOf(t),j=d.retained.indexOf(t),kept=j>=0;
+  const p=step===3&&kept?prob(j+1,d.retained.length):prob(i+1,d.original.length);
+  const c=g.querySelector('.dot');c.setAttribute('cy',sy(p));c.setAttribute('opacity',step>=2&&!kept?0:1);c.setAttribute('fill',kept&&j===chosen?'var(--orange)':(kept||step===0?'var(--blue)':'var(--faint)'));c.setAttribute('r',kept&&j===chosen?6.5:4.5);
+  const rug=g.querySelector('line');rug.setAttribute('opacity',step>=2&&!kept?0:1);rug.setAttribute('stroke',kept&&j===chosen?'var(--orange)':(kept||step===0?'var(--blue)':'var(--faint)'));rug.setAttribute('stroke-width',kept&&j===chosen?3:1.5);
+  const hit=g.querySelector('.hit');if(hit)hit.setAttribute('cy',sy(p));
+  let halo=g.querySelector('.halo');if(kept&&j===chosen){if(!halo){halo=node('circle',{cx:sx(t),cy:sy(p),r:11,class:'halo'});g.append(halo)}halo.setAttribute('cy',sy(p))}else if(halo)halo.remove();
+ }
+}
+function selectPoint(j){chosen=j;updatePlot();updateText()}
+function slots(id,n,i){const el=document.getElementById(id);el.replaceChildren();for(let k=1;k<=n;k++){const x=document.createElement('span');x.className='slot'+(k===i?' selected':'');el.append(x)}}
+function updateText(){
+ const d=dataSets[mode],n=d.original.length,m=d.retained.length,t=d.retained[chosen],i=d.original.indexOf(t)+1,j=chosen+1,a=prob(i,n),b=prob(j,m),label=String.fromCharCode(65+chosen);
+ document.querySelectorAll('[data-step]').forEach(btn=>btn.setAttribute('aria-pressed',String(Number(btn.dataset.step)===step)));
+ const notes=[`原始样本有${n}个观测。上图每个点的纵坐标，按它在这${n}个数中的名次计算。`,`蓝色是之后保留的${m}个观测，灰色是要删掉的${n-m}个。此时还没有删除，也没有重算纵坐标。`,`其余观测已隐藏。此步暂时沿用旧纵坐标，专门帮助你认出原来的点；它还不是剩余样本重新计算后的图。`,`现在只用剩余${m}个观测重新排序，并按新名次、新样本量计算纵坐标。横坐标没有变化。`];
+ document.getElementById('stage-note').textContent=notes[step];
+ const pick=document.getElementById('point-pick');pick.replaceChildren();d.retained.forEach((t,k)=>{const button=document.createElement('button');button.type='button';button.textContent=String.fromCharCode(65+k)+' · '+fmt(t,mode==='toy'?0:1);button.setAttribute('aria-pressed',String(k===chosen));button.addEventListener('click',()=>selectPoint(k));pick.append(button)});
+ const direction=b>a?'升高':b<a?'降低':'保持不变';
+ document.getElementById('readout').innerHTML='<p><strong>观测'+label+'：寿命一直是 '+fmt(t)+'。</strong></p><p>它从原来的第'+i+'名，变为剩余样本中的第'+j+'名；绘图位置从 '+fmt(a,4)+' 变为 '+fmt(b,4)+'，'+direction+'。</p>'+(mode==='actual'?'<p>同一个寿命对应的真实CDF约为 '+fmt(-Math.expm1(-(((t-500)/1000)**5)),4)+'，删点前后不变。</p>':'');
+ document.getElementById('comparison').innerHTML='<tr><td>删点前</td><td>'+fmt(t)+'</td><td>'+i+'</td><td>'+n+'</td><td>('+i+'−0.5)/'+n+' = '+fmt(a,4)+'</td></tr><tr><td>删点后</td><td>'+fmt(t)+'</td><td>'+j+'</td><td>'+m+'</td><td>('+j+'−0.5)/'+m+' = '+fmt(b,4)+'</td></tr>';
+ document.getElementById('all-points').innerHTML=d.retained.map((v,k)=>{const rank=d.original.indexOf(v)+1;return '<tr><td>'+String.fromCharCode(65+k)+'</td><td>'+fmt(v)+'</td><td>'+rank+'</td><td>'+(k+1)+'</td><td>'+fmt(prob(rank,n),4)+'</td><td>'+fmt(prob(k+1,m),4)+'</td></tr>'}).join('');
+ document.getElementById('slots-before-title').textContent='删点前：'+n+'段，选中第'+i+'段';document.getElementById('slots-after-title').textContent='删点后：'+m+'段，选中第'+j+'段';slots('slots-before',n,i);slots('slots-after',m,j);
+}
+function setMode(next){mode=next;step=0;chosen=dataSets[mode].defaultPoint;document.getElementById('toy').setAttribute('aria-pressed',String(mode==='toy'));document.getElementById('actual').setAttribute('aria-pressed',String(mode==='actual'));createPlot();updateText()}
+document.getElementById('toy').addEventListener('click',()=>setMode('toy'));document.getElementById('actual').addEventListener('click',()=>setMode('actual'));
+document.querySelectorAll('[data-step]').forEach(btn=>btn.addEventListener('click',()=>{step=Number(btn.dataset.step);updatePlot();updateText()}));
+document.getElementById('provenance').textContent='报告案例：Study04已保存的随机删点路径474，n=50与n=7；数据来自“结果呈现/分析数据/嵌套样本拟合.csv”。'+actualData.provenance;
+setMode('toy');
+</script>
+</body></html>

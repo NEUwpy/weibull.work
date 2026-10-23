@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>看懂报告：样本、Weibull、PDF与CDF</title>
+<style>
+:root{color-scheme:light;--ink:#23343e;--muted:#566974;--blue:#147bac;--orange:#bf571b;--line:#dce4e8;--gray:#adb9c1;--paper:#fff;--bg:#f4f6f7}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font:16px/1.75 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1090px;margin:auto;padding:30px 26px 55px}h1{font-size:27px;line-height:1.4;margin:8px 0 14px}h2{font-size:21px;margin:0 0 12px}p{margin:10px 0}.small,small{font-size:14px;color:var(--muted)}.lead{font-size:18px}nav{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 18px}button{font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 13px;cursor:pointer}button:hover{border-color:var(--blue)}button[aria-selected=true],button[aria-pressed=true]{color:#fff;background:var(--ink);border-color:var(--ink)}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #8dbbd4;outline-offset:3px}nav button{flex:1;min-width:150px}section{background:var(--paper);padding:25px 28px;border-radius:10px}section[hidden]{display:none}.takeaway{border-left:3px solid var(--blue);background:#eef5f8;padding:10px 16px;margin:18px 0}.takeaway strong{font-weight:650}.controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:12px 0}.chart{width:100%}.chart svg{display:block;width:100%;height:auto}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.legend{display:flex;gap:20px;font-size:14px;color:var(--muted);flex-wrap:wrap}.legend i{display:inline-block;width:22px;border-top:3px solid var(--blue);margin-right:7px;vertical-align:middle}.legend i.true{border-top:2px dashed #737f86}.controls label{display:flex;gap:10px;align-items:center}input[type=range]{accent-color:var(--blue);width:230px;max-width:100%}output{font-variant-numeric:tabular-nums}.parameter-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.parameter-controls label{display:block}.parameter-controls input{width:100%}.parameter-controls small{display:block}.flow{display:flex;gap:12px;align-items:stretch;margin:18px 0}.flow div{background:#f3f6f8;padding:13px 18px;flex:1;border-radius:5px}.flow>span{align-self:center;color:var(--muted)}.value{font-size:20px;font-variant-numeric:tabular-nums}.paragraph-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px}.paragraph-grid p{margin:0}details{margin:15px 0;color:var(--muted)}summary{cursor:pointer;font-size:14px}details p{font-size:15px}.formula{overflow:auto;font-size:17px}math{font-size:1.12em}a{color:var(--blue)}footer{font-size:13px;color:var(--muted);padding:20px 3px 0}footer details{margin:0}footer p{font-size:13px}.page-foot{display:flex;justify-content:space-between;gap:20px;align-items:center;margin:20px 0 0}.page-foot button:disabled{opacity:.3;cursor:default}.page-foot span{color:var(--muted);font-size:14px}.current-value{min-height:28px}.note{font-size:14px;color:var(--muted)}
+@media(max-width:700px){main{padding:18px 12px 35px}section{padding:20px 16px}h1{font-size:23px}.two,.paragraph-grid,.parameter-controls{grid-template-columns:1fr}.flow{flex-direction:column}.flow>span{transform:rotate(90deg)}nav button{min-width:40%}.parameter-controls{gap:10px}input[type=range]{width:190px}}
+</style></head>
+<body><main>
+<header><div class="small">Study04 · 个人学习用 · 与报告正文分开</div><h1>看懂报告：样本、Weibull、PDF与CDF</h1><p class="lead">先记住一条关系：<strong>样本是记录，分布是模型；PDF和CDF是同一模型的两种表达。</strong></p></header>
+<nav role="tablist" aria-label="学习顺序">
+<button id="tab-0" role="tab" aria-selected="true" aria-controls="panel-0" tabindex="0">1　样本与模型</button><button id="tab-1" role="tab" aria-selected="false" aria-controls="panel-1" tabindex="-1">2　PDF与CDF</button><button id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2" tabindex="-1">3　三个参数</button><button id="tab-3" role="tab" aria-selected="false" aria-controls="panel-3" tabindex="-1">4　回到报告图</button>
+</nav>
+<section id="panel-0" role="tabpanel" aria-labelledby="tab-0">
+<h2>样本是有限的观测，分布描述寿命出现的规律</h2>
+<p>做一次寿命试验，记录50个失效时间，这50个数就是一组样本。图上每根刻线代表一个寿命值。</p>
+<div class="controls" role="group" aria-label="显示样本量"><button data-sample="50" aria-pressed="true">50个观测</button><button data-sample="7" aria-pressed="false">保留其中7个</button></div>
+<div id="sample-chart" class="chart"></div>
+<div class="flow"><div><strong>总体寿命模型</strong><br><span class="small">模拟中设定一个Weibull分布</span></div><span>→ 抽样 →</span><div><strong>一组寿命样本</strong><br><span class="small">实际拿到的有限个观测</span></div></div>
+<div class="takeaway">同一个总体可以产生许多不同样本。<strong>样本少了，看到的只是总体的一小部分，并不表示总体变了。</strong></div>
+<details><summary>那么，参数估计在做什么？</summary><p>实际应用通常只有样本，没有已知的总体曲线。参数估计就是反过来：从样本出发，推断一个合适的Weibull模型。模拟实验先知道真参数，才能检验推断误差。</p></details>
+</section>
+<section id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden>
+<h2>PDF看哪里更集中，CDF看累计有多少</h2>
+<div class="paragraph-grid"><p><strong>PDF：概率密度 f(t)</strong><br>某一小段寿命区间内出现观测的可能性，用曲线下的<strong>面积</strong>表示；单个位置的曲线高度不是概率。</p><p><strong>CDF：累积分布 F(t)</strong><br>寿命不超过t的概率。它等于PDF从左侧累计到t的面积。</p></div>
+<div class="controls"><label for="threshold">观察到寿命 <output id="threshold-value">1500</output><input id="threshold" type="range" min="500" max="2200" step="10" value="1500"></label></div>
+<div class="two"><div id="pdf-chart" class="chart"></div><div id="cdf-chart" class="chart"></div></div>
+<div id="probability-readout" class="takeaway current-value" aria-live="polite"></div>
+<p class="note">CDF上升较快的区间，PDF也较高。两图是同一个Weibull分布的两种表达。这里固定β=5、η=1000、γ=500。</p>
+<details><summary>它与可靠度、PDF高度有什么关系？</summary><p>可靠度R(t)=1−F(t)，表示寿命超过t的概率。连续寿命模型中，恰好等于某个精确数值的概率为0；讨论概率需要一个区间。PDF的单位是“寿命单位的倒数”，也不要求高度必须小于1。</p></details>
+</section>
+<section id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden>
+<h2>选定三个参数，就确定了一个Weibull分布</h2>
+<p>拖动时一次只改一个，比较实线与原始虚线。</p>
+<div class="parameter-controls">
+<label for="beta"><strong>形状 β = <output id="beta-value">5.0</output></strong><input id="beta" type="range" min="1.5" max="5" step="0.1" value="5"><small>改变分布形态；本范围内，固定η、γ时，β较大通常更集中。</small></label>
+<label for="eta"><strong>尺度 η = <output id="eta-value">1000</output></strong><input id="eta" type="range" min="600" max="1400" step="20" value="1000"><small>把相对起点的寿命距离拉伸或压缩，不是简单平移。</small></label>
+<label for="gamma"><strong>位置 γ = <output id="gamma-value">500</output></strong><input id="gamma" type="range" min="0" max="800" step="20" value="500"><small>整体左右平移；是模型下界，不等于样本最小值。</small></label>
+</div>
+<div class="controls"><button id="reset-parameters">恢复原始参数</button><span class="legend"><span><i></i>当前参数</span><span><i class="true"></i>原始参数</span></span></div>
+<div class="two"><div id="parameter-pdf" class="chart"></div><div id="parameter-cdf" class="chart"></div></div>
+<div id="parameter-readout" class="takeaway"></div>
+<details><summary>展开看公式，不必先记住</summary><p>用本报告记号，对t&gt;γ：</p>
+<p class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>F</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mn>1</mn><mo>−</mo><mi>exp</mi><mo>[</mo><mo>−</mo><msup><mrow><mo>(</mo><mfrac><mrow><mi>t</mi><mo>−</mo><mi>γ</mi></mrow><mi>η</mi></mfrac><mo>)</mo></mrow><mi>β</mi></msup><mo>]</mo></math></p>
+<p class="formula"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>f</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mfrac><mi>β</mi><mi>η</mi></mfrac><msup><mrow><mo>(</mo><mfrac><mrow><mi>t</mi><mo>−</mo><mi>γ</mi></mrow><mi>η</mi></mfrac><mo>)</mo></mrow><mrow><mi>β</mi><mo>−</mo><mn>1</mn></mrow></msup><mi>exp</mi><mo>[</mo><mo>−</mo><msup><mrow><mo>(</mo><mfrac><mrow><mi>t</mi><mo>−</mo><mi>γ</mi></mrow><mi>η</mi></mfrac><mo>)</mo></mrow><mi>β</mi></msup><mo>]</mo></math></p><p>t&lt;γ时CDF为0。这里展示的β均大于1，PDF在起点也为0。η&gt;0、β&gt;0；η不是平均寿命，γ也不是试验中必然能观测到的最早失效时间。</p></details>
+<p class="note"><strong>与报告的联系：</strong>β增大时，总体寿命可能更集中；这与“估计出的参数是否更稳定”是两个问题。寿命数据集中，不代表更容易辨别三个未知参数。</p>
+</section>
+<section id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden>
+<h2>报告里的曲线和散点，分别从哪里来？</h2>
+<p><strong>方法：</strong>同一组寿命观测 → 按各自原理估计β、η、γ → 代入公式得到拟合CDF。<br><strong>散点：</strong>寿命值作为横坐标，排序计算的绘图位置作为纵坐标。</p>
+<div class="controls" role="group" aria-label="报告案例样本量"><button data-fit-n="50" aria-pressed="true">删点前 n=50</button><button data-fit-n="7" aria-pressed="false">删点后 n=7</button></div>
+<div class="controls" role="group" aria-label="估计方法"><button data-method="MDM" aria-pressed="true">MDM</button><button data-method="LSE" aria-pressed="false">LSE</button><button data-method="K–R" aria-pressed="false">K–R</button></div>
+<div class="legend"><span><i></i>所选方法的拟合CDF</span><span><i class="true"></i>真实总体CDF</span><span>● 样本绘图位置</span></div>
+<div id="fit-chart" class="chart"></div>
+<div id="fit-readout" class="takeaway" aria-live="polite"></div>
+<p>散点的纵坐标使用p=(i−0.5)/n。删点后，保留观测的寿命值没有改变；名次i和样本总数n改变，因此绘图位置会重新安排。</p>
+<p><a href="绘图位置为何随样本量变化.html">还不清楚点为什么上下移动？打开逐步演示 →</a></p>
+<details><summary>曲线是把这些散点连起来得到的吗？</summary><p>不是。平滑曲线由估计出的三个参数决定。图中统一的绘图位置只是展示规则，不意味着所有方法都直接对这些散点拟合；每种方法实际使用的信息和准则，需要分别看其构造。</p></details>
+<details><summary>报告里的“估计分布”也是寿命PDF吗？</summary><p>不是。这里的PDF横轴是寿命t；报告里重复1200次抽样后画出的参数估计分布，横轴则是β̂、η̂或γ̂。前者描述“寿命怎样变化”，后者描述“同一方法的估计结果怎样波动”。估计分布偏离真值体现偏差，展宽体现波动；RMSE同时受两者影响。</p></details>
+</section>
+<div class="page-foot"><button id="previous" disabled>← 上一个</button><span id="page-number">1 / 4</span><button id="next">下一个 →</button></div>
+<footer><details><summary>资料与数据来源</summary><p>基础定义核对：<a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm" target="_blank" rel="noopener">NIST Weibull分布</a>；<a href="https://www.itl.nist.gov/div898/handbook/apr/section2/apr221.htm" target="_blank" rel="noopener">NIST概率绘图</a>。本页采用报告中的β形状、η尺度、γ位置记号。</p><p>演示样本与估计均复用Study04随机删点路径474；7点是原50点的子集。此单个案例用于理解概念，不确定方法总体优劣。页面离线可用，无需加载外部脚本。</p><p id="source-hash"></p></details></footer>
+<script>
+'use strict';
+const DATA={"original": [930.6313855567805, 977.3913267093512, 1011.2966529383855, 1045.1160015373903, 1118.602002154209, 1149.1862368124894, 1194.1749275833786, 1222.2723881005993, 1226.8800146458543, 1229.4950059269663, 1236.1938111481309, 1250.2172670057798, 1251.5062658715353, 1254.8400840000909, 1256.0770994734403, 1289.2176890034402, 1334.0594215998349, 1339.0180412774012, 1353.1625815620746, 1372.0597800078708, 1374.7645278682253, 1395.1879299959303, 1409.3218363185072, 1412.5255753221063, 1422.2458603557, 1439.134160624119, 1455.3861120557713, 1473.7005031883186, 1474.357414388869, 1496.4438740933547, 1496.5449009132271, 1519.0346296354396, 1543.4150545968682, 1545.2743115797675, 1569.005427693237, 1570.9688347992096, 1573.0444707135607, 1581.9588863019833, 1594.3083365127995, 1600.0819364772785, 1606.9887137835508, 1641.9020003083624, 1661.0841040926525, 1665.954854223941, 1711.8263662151753, 1744.6719015695173, 1776.6495435381105, 1798.648793679196, 1903.457069622321, 1936.1071119126411], "retained": [1226.8800146458543, 1372.0597800078708, 1374.7645278682253, 1395.1879299959303, 1409.3218363185072, 1569.005427693237, 1903.457069622321], "source_hash": "100be4967f00baedea881625b0a5cf1071b47841e002165b3b83b69543c53a3c", "estimates": {"50": {"MDM": {"beta": 3.1750514822258644, "eta": 777.2389016999206, "gamma": 733.673226901283}, "LSE": {"beta": 3.6710333960009196, "eta": 851.2378220195257, "gamma": 662.5353387936273}, "K–R": {"beta": 2.4397973624352582, "eta": 570.9545832396608, "gamma": 930.6313855567805}}, "7": {"MDM": {"beta": 1.758403644428845, "eta": 363.1990632333483, "gamma": 1143.8089170716676}, "LSE": {"beta": 1.5166803683303616, "eta": 332.9406733136792, "gamma": 1173.956540899823}, "K–R": {"beta": 1.618701139306828, "eta": 313.21398583126427, "gamma": 1226.8800146458543}}}};
+const NS='http://www.w3.org/2000/svg',TRUE={beta:5,eta:1000,gamma:500};
+let active=0,sampleN=50,fitN=50,method='MDM';
+const fmt=(v,k=2)=>Number(v).toLocaleString('zh-CN',{maximumFractionDigits:k});
+const cdf=(t,p)=>t<=p.gamma?0:-Math.expm1(-Math.pow((t-p.gamma)/p.eta,p.beta));
+const pdf=(t,p)=>t<=p.gamma?0:p.beta/p.eta*Math.pow((t-p.gamma)/p.eta,p.beta-1)*Math.exp(-Math.pow((t-p.gamma)/p.eta,p.beta));
+function el(tag,a={},txt){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(a))e.setAttribute(k,v);if(txt!==undefined)e.textContent=txt;return e;}
+function axisSVG(id,{kind='cdf',params=TRUE,reference=false,threshold=null,points=null,wide=false}={}){
+ const target=document.getElementById(id),W=wide?940:480,H=wide?340:285,L=72,R=W-22,T=33,B=H-56;
+ const xmax=3200,x=t=>L+t/xmax*(R-L),values=Array.from({length:501},(_,i)=>i*xmax/500);
+ const fun=kind==='pdf'?pdf:cdf,baseMax=kind==='pdf'?Math.max(...values.map(t=>pdf(t,TRUE))):1;
+ const ymax=kind==='pdf'?1.12*Math.max(baseMax,...values.map(t=>pdf(t,params))):1;
+ const y=v=>B-v/ymax*(B-T),svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':kind==='pdf'?'Weibull寿命概率密度曲线':'Weibull累计概率曲线'});
+ const label=(a,txt)=>svg.append(el('text',{...a,fill:'var(--ink)','font-size':13},txt));
+ for(let j=0;j<=4;j++){const v=ymax*j/4;svg.append(el('line',{x1:L,x2:R,y1:y(v),y2:y(v),stroke:'#e7ecef'}));label({x:L-9,y:y(v)+4,'text-anchor':'end'},kind==='pdf'?v.toFixed(4):fmt(v,2));}
+ svg.append(el('line',{x1:L,x2:R,y1:B,y2:B,stroke:'#8999a3'}));svg.append(el('line',{x1:L,x2:L,y1:T,y2:B,stroke:'#8999a3'}));
+ for(let t=0;t<=3000;t+=1000)label({x:x(t),y:B+22,'text-anchor':'middle'},fmt(t,0));
+ label({x:(L+R)/2,y:H-8,'text-anchor':'middle'},'寿命 t');label({x:L,y:20},kind==='pdf'?'PDF · 概率密度 f(t)':'CDF · 累计概率 F(t)');
+ const path=p=>values.map((t,i)=>(i?'L':'M')+x(t)+','+y(fun(t,p))).join('');
+ if(reference)svg.append(el('path',{d:path(TRUE),fill:'none',stroke:'#737f86','stroke-width':1.8,'stroke-dasharray':'6 5'}));
+ if(kind==='pdf'&&threshold!==null){const stop=Math.max(0,Math.min(threshold,xmax)),v=Array.from({length:241},(_,i)=>i*stop/240);const area=`M${x(0)},${B}`+v.map(t=>`L${x(t)},${y(pdf(t,params))}`).join('')+`L${x(stop)},${B}Z`;svg.append(el('path',{d:area,fill:'var(--orange)','fill-opacity':.22}));}
+ svg.append(el('path',{d:path(params),fill:'none',stroke:'var(--blue)','stroke-width':2.5}));
+ if(threshold!==null){const v=fun(threshold,params);svg.append(el('line',{x1:x(threshold),x2:x(threshold),y1:B,y2:y(v),stroke:'var(--orange)','stroke-width':1.6}));if(kind==='cdf'){svg.append(el('line',{x1:L,x2:x(threshold),y1:y(v),y2:y(v),stroke:'var(--orange)','stroke-dasharray':'4 4'}));svg.append(el('circle',{cx:x(threshold),cy:y(v),r:5,fill:'var(--orange)'}));}}
+ if(points)points.forEach((t,i)=>svg.append(el('circle',{cx:x(t),cy:y((i+.5)/points.length),r:3.6,fill:'var(--ink)'})));
+ target.replaceChildren(svg);
+}
+function drawSample(){const target=document.getElementById('sample-chart'),a=sampleN===50?DATA.original:DATA.retained,svg=el('svg',{viewBox:'0 0 940 150',role:'img','aria-label':`${sampleN}个实际寿命观测的刻线图，不使用概率纵坐标`}),x=t=>60+t/2300*850;svg.append(el('line',{x1:60,x2:910,y1:82,y2:82,stroke:'#b0bec6'}));for(let t=0;t<=2000;t+=500)svg.append(el('text',{x:x(t),y:113,'text-anchor':'middle',fill:'var(--muted)','font-size':14},fmt(t,0)));a.forEach(t=>svg.append(el('line',{x1:x(t),x2:x(t),y1:60,y2:83,stroke:'var(--blue)','stroke-width':2})));svg.append(el('text',{x:60,y:29,fill:'var(--ink)','font-size':15},`n=${sampleN} · 每根刻线是一条寿命记录`));svg.append(el('text',{x:485,y:144,'text-anchor':'middle',fill:'var(--muted)','font-size':14},'寿命 t'));target.replaceChildren(svg);document.querySelectorAll('[data-sample]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.sample)===sampleN)));}
+function drawProbability(){const t=Number(document.getElementById('threshold').value);document.getElementById('threshold-value').textContent=fmt(t,0);axisSVG('pdf-chart',{kind:'pdf',threshold:t});axisSVG('cdf-chart',{threshold:t});document.getElementById('probability-readout').innerHTML=`到t=${fmt(t,0)}为止，左图橙色面积 = 右图CDF高度 = <strong>${fmt(cdf(t,TRUE)*100,1)}%</strong>。`;}
+function drawParameters(){const p={beta:Number(document.getElementById('beta').value),eta:Number(document.getElementById('eta').value),gamma:Number(document.getElementById('gamma').value)};for(const k of ['beta','eta','gamma'])document.getElementById(k+'-value').textContent=k==='beta'?p[k].toFixed(1):fmt(p[k],0);axisSVG('parameter-pdf',{kind:'pdf',params:p,reference:true});axisSVG('parameter-cdf',{params:p,reference:true});document.getElementById('parameter-readout').innerHTML=`位置起点为 <strong>${fmt(p.gamma,0)}</strong>；在t=γ+η=<strong>${fmt(p.gamma+p.eta,0)}</strong>时，累计概率始终约为<strong>63.2%</strong>。`;}
+function drawFit(){const p=DATA.estimates[String(fitN)][method],points=fitN===50?DATA.original:DATA.retained;axisSVG('fit-chart',{params:p,reference:true,points,wide:true});document.querySelectorAll('[data-fit-n]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.fitN)===fitN)));document.querySelectorAll('[data-method]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.method===method)));document.getElementById('fit-readout').innerHTML=`${method}用${fitN}个寿命观测估计出：β̂=${fmt(p.beta)}、η̂=${fmt(p.eta,1)}、γ̂=${fmt(p.gamma,1)}。<br><strong>蓝线由这三个数确定，黑点则来自样本排序。</strong>`;}
+function show(i){active=Math.max(0,Math.min(3,i));for(let j=0;j<4;j++){document.getElementById('panel-'+j).hidden=j!==active;const tab=document.getElementById('tab-'+j);tab.setAttribute('aria-selected',String(j===active));tab.tabIndex=j===active?0:-1;}document.getElementById('page-number').textContent=(active+1)+' / 4';document.getElementById('previous').disabled=active===0;document.getElementById('next').disabled=active===3;}
+document.querySelectorAll('[role=tab]').forEach((tab,i)=>{tab.addEventListener('click',()=>show(i));tab.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();show((active+(e.key==='ArrowRight'?1:3))%4);document.getElementById('tab-'+active).focus();}})});
+document.getElementById('previous').addEventListener('click',()=>show(active-1));document.getElementById('next').addEventListener('click',()=>show(active+1));
+document.querySelectorAll('[data-sample]').forEach(b=>b.addEventListener('click',()=>{sampleN=Number(b.dataset.sample);drawSample()}));document.getElementById('threshold').addEventListener('input',drawProbability);
+for(const k of ['beta','eta','gamma'])document.getElementById(k).addEventListener('input',drawParameters);
+document.getElementById('reset-parameters').addEventListener('click',()=>{for(const k of ['beta','eta','gamma'])document.getElementById(k).value=TRUE[k];drawParameters()});
+document.querySelectorAll('[data-fit-n]').forEach(b=>b.addEventListener('click',()=>{fitN=Number(b.dataset.fitN);drawFit()}));document.querySelectorAll('[data-method]').forEach(b=>b.addEventListener('click',()=>{method=b.dataset.method;drawFit()}));
+document.getElementById('source-hash').textContent='数据来源指纹 SHA256：'+DATA.source_hash;
+drawSample();drawProbability();drawParameters();drawFit();show(0);
+</script></main></body></html>
