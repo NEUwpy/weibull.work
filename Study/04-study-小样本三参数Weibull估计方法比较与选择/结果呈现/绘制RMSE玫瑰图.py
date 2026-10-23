@@ -21,7 +21,7 @@ STUDY = HERE.parent
 NS = [50, 20, 15, 10, 7]
 METHODS = ["MDM-0.1", "WMLE", "LSE", "LRE(Park)", "MLE", "MMLE(KR)", "MM"]
 LABELS = {"MDM-0.1": "MDM-0.1", "LRE(Park)": "LRE (Park)",
-          "MMLE(KR)": "MMLE (K–R)"}
+          "MMLE(KR)": "MMLE"}
 PARAMS = [("beta", "形状估计", 5., 5.),
           ("eta", "尺度估计", 1000., 1000.),
           ("gamma", "位置估计", 500., 1000.)]

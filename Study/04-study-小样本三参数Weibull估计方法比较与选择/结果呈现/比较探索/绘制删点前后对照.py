@@ -13,10 +13,17 @@ from matplotlib.lines import Line2D
 ROOT=Path(__file__).resolve().parents[2]
 ASSETS=ROOT/"reviewbyhtml/方法对比-v1.0/assets"
 DATA=ROOT/"结果呈现/分析数据/嵌套样本拟合.csv"
-METHODS=[("K–R","#CC79A7"),("MDM","#0072B2"),("LSE","#009E73")]
+METHODS=[("MMLE","#CC79A7"),("MDM","#0072B2"),("LSE","#009E73")]
 plt.rcParams.update({"font.family":"Microsoft YaHei","font.size":11,"axes.spines.top":False,"axes.spines.right":False,"axes.unicode_minus":False})
 
 def cdf(t,b,e,g):return -np.expm1(-np.maximum((t-g)/e,0)**b)
+
+
+def read_rows():
+    rows = pd.read_csv(DATA, float_precision="round_trip")
+    rows["method"] = rows["method"].replace({"K–R": "MMLE"})
+    return rows
+
 
 
 def nested_gallery(rows, source_id=474):
@@ -155,7 +162,7 @@ def recovery_figures(rows):
 
 
 def main():
-    rows=pd.read_csv(DATA,float_precision="round_trip")
+    rows=read_rows()
     recovery_figures(rows)
     t=np.linspace(400,2100,1000)
     changes=[]
@@ -206,6 +213,6 @@ if __name__=="__main__":
     parser.add_argument("--nested-gallery", action="store_true", help="仅生成按n切换的三法CDF与参数偏差组图")
     args = parser.parse_args()
     if args.nested_gallery:
-        nested_gallery(pd.read_csv(DATA, float_precision="round_trip"))
+        nested_gallery(read_rows())
     else:
         main()

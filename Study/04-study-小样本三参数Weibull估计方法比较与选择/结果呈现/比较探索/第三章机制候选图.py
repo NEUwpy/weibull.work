@@ -39,10 +39,10 @@ def lse_values(x,gammas):
     rho2=(yc@z)**2/((z@z)*np.sum(yc**2,axis=1))
     return 1/slope,1-rho2
 
-def criterion_figures():
+def criterion_figures(source_ids=(1055,474)):
     rows=pd.read_csv(DATA/"嵌套样本拟合.csv")
     records=[]
-    for sid in [1055,474]:
+    for sid in source_ids:
         fig,axs=plt.subplots(1,3,figsize=(13,4.6),gridspec_kw={"width_ratios":[.9,1.2,1.2]})
         fig.subplots_adjust(left=.075,right=.985,bottom=.17,top=.80,wspace=.38)
         for j,n in enumerate([50,20,7]):
@@ -63,7 +63,7 @@ def criterion_figures():
             ax.axvline(500,c="#666666",ls="--",lw=1)
             ax.set_xlabel("位置 γ")
             ax.set_xlim(0, max(float(json.loads(rows[(rows.source_id==sid)&(rows.n==n)].iloc[0].observations)[0]) for n in [50,20,7]) * 1.02)
-        axs[0].set(yticks=[0,1,2],yticklabels=["n = 50","n = 20","n = 7"],ylim=(2.5,-.5),title="K–R：位置 = 最小观测")
+        axs[0].set(yticks=[0,1,2],yticklabels=["n = 50","n = 20","n = 7"],ylim=(2.5,-.5),title="MMLE：位置 = 最小观测")
         axs[1].axhline(.1,c="#777777",ls=":",lw=1.5)
         axs[1].set(ylim=(-.3,.5),ylabel="伪尺度标准差梯度",title="MDM：梯度与0.1的交点")
         axs[2].set(ylabel="1 − R²（越低越好）",title="LSE：匹配误差的最低点")
@@ -125,7 +125,7 @@ def arrow(ax,start,end):ax.annotate("",xy=end,xytext=start,arrowprops=dict(arrow
 def route_figure():
     fig,ax=plt.subplots(figsize=(12,5.5));ax.set(xlim=(0,1),ylim=(0,1));ax.axis("off")
     box(ax,.04,.76,.9,.15,"n 减小 → 观测覆盖与局部间距更容易受少数点影响",fontsize=14)
-    rows=[(.53,"K–R","最小值直接定位","下端空缺直接进入位置误差"),(.30,"MDM","伪尺度梯度与固定阈值相交","间距改变 → 交点改变 → 参数联动"),(.07,"LSE","移动位置，比较线性匹配","间距改变 → 最优位置改变 → 斜率改变")]
+    rows=[(.53,"MMLE","最小值直接定位","下端空缺直接进入位置误差"),(.30,"MDM","伪尺度梯度与固定阈值相交","间距改变 → 交点改变 → 参数联动"),(.07,"LSE","移动位置，比较线性匹配","间距改变 → 最优位置改变 → 斜率改变")]
     for y,m,rule,consequence in rows:
         box(ax,.04,y,.15,.14,m);box(ax,.25,y,.32,.14,rule);box(ax,.64,y,.30,.14,consequence,fontsize=11)
         arrow(ax,(.19,y+.07),(.25,y+.07));arrow(ax,(.57,y+.07),(.64,y+.07))

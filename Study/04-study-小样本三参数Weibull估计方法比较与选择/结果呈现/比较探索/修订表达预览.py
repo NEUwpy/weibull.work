@@ -21,7 +21,7 @@ STUDY = HERE.parent.parent
 ROOT = STUDY / 'reviewbyhtml/方法对比'
 ASSETS = ROOT / 'assets'
 METHODS = ['MDM-0.1', 'LSE', 'LRE(Park)', 'WMLE', 'MLE', 'MMLE(KR)', 'MM']
-LABELS = ['MDM', 'LSE', 'LRE', 'WMLE', 'MLE', 'K–R', 'MM']
+LABELS = ['MDM', 'LSE', 'LRE', 'WMLE', 'MLE', 'MMLE', 'MM']
 COLORS = ['#0072B2', '#009E73', '#CC79A7', '#D55E00', '#444444', '#56B4E9', '#E69F00']
 NS = [50, 20, 15, 10, 7]
 BETAS = [1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
@@ -265,10 +265,10 @@ def focus_six():
         pos=next(i for i,b in enumerate(a['blocks']) if b['id']=='what')
         a['blocks'][pos:pos]=[
             dict(id='abnormal-process',kind='image',src='assets/'+target.name,
-                 alt='Research00报告2图19：K–R正常与明显异常的参数估计过程'),
+                 alt='Research00报告2图19：MMLE正常与明显异常的参数估计过程'),
             dict(id='abnormal-caption',kind='text',html='<p>同一过程形式再看明显异常：复用报告2图19，W(5,100,500)、n=7，上排正常第10组，下排异常第11组。异常样本先以575.95定位，保留距离更分散，形状峰落在1.54，低于5/3；尺度随之得到28.69。三列依次读“怎样定位—形状怎样确定—尺度怎样恢复”。</p>')]
     for b in a['blocks']:
-        if b['id']=='scope':b['html']='<p>先保留报告1第2.6节、图15，作为系统偏移的过程例：K–R由最小值定位，再拟合保留距离；高β例呈现位置偏高、形状和尺度偏低。这幅50组历史图展示有规律的偏移。</p>'
+        if b['id']=='scope':b['html']='<p>先保留报告1第2.6节、图15，作为系统偏移的过程例：MMLE由最小值定位，再拟合保留距离；高β例呈现位置偏高、形状和尺度偏低。这幅50组历史图展示有规律的偏移。</p>'
         elif b['id']=='what':b['html']='<p><strong>能讲清：</strong>沿方法实际步骤追踪，看到位置选择怎样带动形状和尺度；用同一形式分别讲系统偏移与明显异常。正式讲述可只展开其中一例。</p>'
         elif b['id']=='tradeoff':b['html']='<p><strong>会省略／还要补：</strong>两幅都是Research00原案例，不并入本轮频率。报告1图15用于有规律的偏移，报告2图19中的第11组达到明显异常判据；选定后再精简面板。</p>'
     e=next(o for o in mechanism['options'] if o['id']=='E')
@@ -286,12 +286,13 @@ def focus_six():
     print(json.dumps(result,ensure_ascii=False))
 
 
-def distribution_sequence():
-    """同布局、同范围的八个β，供HTML单槽位切换与顺序演示。"""
-    board_path=ROOT/'board.json'
-    board=json.loads(board_path.read_text(encoding='utf-8'))
-    assert board['revision']==9 and not board.get('processing')
-    before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
+def distribution_sequence(render_only=False):
+    """重绘已有图组；render_only不改动任何审阅内容。"""
+    if not render_only:
+        board_path=ROOT/'board.json'
+        board=json.loads(board_path.read_text(encoding='utf-8'))
+        assert board['revision']==9 and not board.get('processing')
+        before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
     model=json.loads((HERE.parent/'分析数据/比较论证-v0.4.json').read_text(encoding='utf-8'))
     for rel,digest in model['sources'].items():
         assert hashlib.sha256((STUDY/rel).read_bytes()).hexdigest()==digest
@@ -304,6 +305,8 @@ def distribution_sequence():
                            alt=f'β={beta:g}，n=50与7的七法三参数估计分布'))
         audit.extend(records)
         print(f'已生成 β={beta:g}',flush=True)
+    if render_only:
+        return images
     unit=next(u for u in board['units'] if u['id']=='figure-error')
     unit['title']='偏移与波动：随β切换的估计值分布'
     option=unit['options'][0]
@@ -328,12 +331,13 @@ def distribution_sequence():
     print(json.dumps(dict(revision=10,images=len(images),metrics_verified=len(audit),new_estimates=0),ensure_ascii=False))
 
 
-def rose_n_sequence():
-    """每张并列八个β，按n递减切换；全部面板保持同一线性半径。"""
-    board_path=ROOT/'board.json'
-    board=json.loads(board_path.read_text(encoding='utf-8'))
-    assert board['revision']==10 and not board.get('processing')
-    before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
+def rose_n_sequence(render_only=False):
+    """重绘已有图组；render_only不改动任何审阅内容。"""
+    if not render_only:
+        board_path=ROOT/'board.json'
+        board=json.loads(board_path.read_text(encoding='utf-8'))
+        assert board['revision']==10 and not board.get('processing')
+        before={u['id']:json.dumps(u,ensure_ascii=False,sort_keys=True) for u in board['units']}
     model=json.loads((HERE.parent/'分析数据/比较论证-v0.4.json').read_text(encoding='utf-8'))
     for rel,digest in model['sources'].items():
         assert hashlib.sha256((STUDY/rel).read_bytes()).hexdigest()==digest
@@ -385,6 +389,8 @@ def rose_n_sequence():
         images.append(dict(id=f'n-{n}',label=f'n = {n}',src='assets/'+path.name,
                            alt=f'n={n}，β=1.5至5的八组RMSE玫瑰图与MM数值'))
         print(f'已生成 n={n}',flush=True)
+    if render_only:
+        return images
     unit=next(u for u in board['units'] if u['id']=='figure-change')
     unit['title']='差距变化：按n切换，各β并列'
     for block in unit['options'][0]['blocks']:

@@ -19,7 +19,7 @@ VERSION = 'study04-article-v04-20261020'
 DATA = HERE.parent/'分析数据/比较论证-v0.4.json'
 ARTICLE = STUDY/'其他/历史尝试/报告下（方法对比）-v0.4.md'
 METHODS = ['MDM-0.1','LSE','LRE(Park)','WMLE','MLE','MMLE(KR)','MM']
-LABELS = ['MDM','LSE','LRE','WMLE','MLE','K–R','MM']
+LABELS = ['MDM','LSE','LRE','WMLE','MLE','MMLE','MM']
 COLORS = ['#0072B2','#009E73','#CC79A7','#D55E00','#444444','#56B4E9','#E69F00']
 BETAS = [1.5,2.,2.5,3.,3.5,4.,4.5,5.]
 NS = [50,20,15,10,7]
@@ -208,8 +208,8 @@ def plots(model,cells):
     for b,color in [(1.5,'#0072B2'),(5.,'#d55e00')]:
         ax.plot(ngrid,1000*math.gamma(1+1/b)*ngrid**(-1/b),color=color,label=f'β={b:g} · theory')
         ax.scatter(NS,[np.array(model['stats']['own']['bias'])[2,i,BETAS.index(b),5] for i in range(5)],color=color,marker='o')
-    ax.set_xlabel('n');ax.set_ylabel('K–R location Bias');ax.legend(frameon=False);ax.grid(alpha=.15)
-    groups['mechanism']=[option(save(fig,'v04_05_最小值定位偏移'),'理论与实测','K–R位置估计取样本最小值。曲线为未筛选总体的理论Bias，点为各条件全部1200次的实测Bias；取β域两端作对照。')]
+    ax.set_xlabel('n');ax.set_ylabel('MMLE location Bias');ax.legend(frameon=False);ax.grid(alpha=.15)
+    groups['mechanism']=[option(save(fig,'v04_05_最小值定位偏移'),'理论与实测','MMLE位置估计取样本最小值。曲线为未筛选总体的理论Bias，点为各条件全部1200次的实测Bias；取β域两端作对照。')]
     fig,axs=plt.subplots(1,2,figsize=(13,4.2),layout='constrained')
     for p,ax in zip([3,4],axs):
         a=r[p];order=np.argsort(a,axis=-1);w=order[:,:,0];second=np.take_along_axis(a,order[:,:,1,None],axis=-1)[:,:,0]
