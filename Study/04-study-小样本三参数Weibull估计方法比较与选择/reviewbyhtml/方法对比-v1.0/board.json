@@ -2,12 +2,12 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 52,
+  "revision": 53,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.2.md\n更新引用，保留审阅记录，提交本地Git。",
   "source_document": "../../报告下（方法对比）-v2.2.md",
   "source_sha256": "65b72f52506927c7cdae879875f46c7ee27037d1dfd17967715c3257ad539e11",
-  "review_phase": "v2.3-anomaly-criterion-profile-review",
+  "review_phase": "v2.3-anomaly-criterion-profile-accepted",
   "content_fill_authorized": true,
   "units": [
     {
@@ -565,40 +565,7 @@
               "id": "anomaly-solver-reading",
               "kind": "text",
               "html": "<p>旧MLE的第37组在近零位置停止，优化器标记收敛；其他起点的返回结果又因形状不满足接受条件被剔除，最终只剩这个候选。但图中向右仍可提高似然，说明搜索停止及候选接受没有实现预期的最优选择。近零位置进一步压缩对数跨度，形成较大的形状估计。</p><p><em>报告2图17，W(2,1000,3000)、n=7第37、38组，采用旧MLE。Study04已更新求解器，此例用于区分计算来源，不认定新版仍有同一缺陷。</em></p>"
-            }
-          ]
-        }
-      ],
-      "selected_ids": [
-        "mechanism-boundary"
-      ]
-    },
-    {
-      "id": "anomaly-profile-explanation-review",
-      "title": "3.3 判据剖面解释：修改前与修改后",
-      "mode": "choices",
-      "inline": true,
-      "outline_level": 3,
-      "selection_mode": "single",
-      "state": "open",
-      "selected": null,
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "profile-explanation-before",
-          "label": "修改前",
-          "blocks": [
-            {
-              "id": "profile-summary-original",
-              "kind": "text",
-              "html": "<p>前两例应研究估计准则对样本结构的响应；后一例应改进求解与候选检查。异常表现相近，形成环节不同，改进方向也不同。</p>"
-            }
-          ]
-        },
-        {
-          "id": "profile-explanation-after",
-          "label": "修改后",
-          "blocks": [
+            },
             {
               "id": "profile-summary-opening",
               "kind": "text",
@@ -657,6 +624,9 @@
             }
           ]
         }
+      ],
+      "selected_ids": [
+        "mechanism-boundary"
       ]
     },
     {
@@ -796,8 +766,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "d1fed138-7367-402c-85ca-bd6b2e6e745d",
-  "last_rendered_submission_id": "d1fed138-7367-402c-85ca-bd6b2e6e745d",
+  "last_applied_submission_id": "d725ff9d-9d4e-4aa2-8ab4-2966d850f288",
+  "last_rendered_submission_id": "d725ff9d-9d4e-4aa2-8ab4-2966d850f288",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
@@ -937,7 +907,8 @@
         "Research/00-方法对比/交付/结果/报告2/配对情形_MDM_low.png": "d3838968ce3de264eb7fcd0ff13c4bcd98a9a06733e48fcb9a42e3499aafa6f1",
         "Research/00-方法对比/交付/结果/报告2/配对情形_MLE_high.png": "e5b53cd8f7ef8aa847cdf44c66ca0d3ae35e75b10399387007c7d88480dd43eb",
         "Research/00-方法对比/交付/结果/报告2/配对情形_MMLE_high_deletion.png": "1bb4e8b15dd914819ae8298bdd2159e851e3b65e94909c9955b0819a1134da93"
-      }
+      },
+      "accepted_submission_id": "d725ff9d-9d4e-4aa2-8ab4-2966d850f288"
     }
   },
   "manuscript_version": "2.3",
