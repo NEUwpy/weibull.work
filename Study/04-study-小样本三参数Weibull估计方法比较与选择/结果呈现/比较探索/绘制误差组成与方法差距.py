@@ -42,11 +42,12 @@ def statistics():
     return pd.DataFrame(rows),sources
 
 
-def draw(data,beta,include_mm=False):
+def draw(data,beta,include_mm=False,stack_only=False):
     methods=METHODS if include_mm else DISPLAY
     d=data[data.beta.eq(beta)]
-    fig,axs=plt.subplots(2,3,figsize=(16,9.2))
-    fig.subplots_adjust(left=.075,right=.985,bottom=.085,top=.87,hspace=.80,wspace=.28)
+    fig,axs=plt.subplots(1 if stack_only else 2,3,figsize=(16,7) if stack_only else (16,9.2),squeeze=False)
+    fig.subplots_adjust(left=.075,right=.985,bottom=.12 if stack_only else .085,
+        top=.83 if stack_only else .87,hspace=.80,wspace=.28)
     width=.80/len(methods)
     pc=['#0072B2','#D55E00','#009E73','#CC79A7','#A97500']
     for j,par in enumerate(PARS):
@@ -62,6 +63,7 @@ def draw(data,beta,include_mm=False):
         ax.set(xticks=range(5),xticklabels=NS,xlabel=r'$n$',ylim=(0,None),
             title=[r'$\beta$',r'$\eta$',r'$\gamma$'][j],ylabel=r'$\mathrm{RMSE}^2/s_0^2$')
         ax.grid(axis='y',color='#e1e6e9',lw=.6,zorder=0);ax.set_axisbelow(True)
+        if stack_only:continue
         for k,(a,b) in enumerate(PAIRS):
             qa=v[v.method.eq(DISPLAY[a])].set_index('n').loc[NS]
             qb=v[v.method.eq(DISPLAY[b])].set_index('n').loc[NS]
@@ -76,9 +78,11 @@ def draw(data,beta,include_mm=False):
     handles.extend([Patch(facecolor='#eee',edgecolor='#555',hatch='///',label=r'$\mathrm{Bias}^2$'),
         Patch(facecolor='#666',label=r'$\mathrm{Var}$')])
     fig.legend(handles=handles,loc='upper center',bbox_to_anchor=(.53,.99),ncol=len(handles),frameon=False,fontsize=10.5)
-    fig.legend(*axs[1,0].get_legend_handles_labels(),loc='upper center',
-        bbox_to_anchor=(.53,.52),ncol=5,frameon=False,fontsize=9.5)
-    path=ASSETS/f'误差组成与方法差距_β{beta:g}{"_含MM" if include_mm else ""}.png'
+    if not stack_only:
+        fig.legend(*axs[1,0].get_legend_handles_labels(),loc='upper center',
+            bbox_to_anchor=(.53,.52),ncol=5,frameon=False,fontsize=9.5)
+    name=f'31S_误差平方组成_β{beta:g}.png' if stack_only else f'误差组成与方法差距_β{beta:g}{"_含MM" if include_mm else ""}.png'
+    path=ASSETS/name
     fig.savefig(path,dpi=240,facecolor='white');plt.close(fig)
     return dict(beta=beta,include_mm=include_mm,path=path.relative_to(STUDY).as_posix(),sha256=sha(path))
 
@@ -103,7 +107,8 @@ def main():
         identity='MSE = Bias^2 + (R-1)/R * SD_ddof1^2; growth uses n7 minus n50.',
         stack='Each n has method-colored bars; hatched pale base Bias^2, solid top empirical variance.',
         units='beta / true_beta; eta and gamma /1000; all squared for MSE.',
-        data=data.to_dict(orient='records'),growth=growth,figures=figures)
+        data=data.to_dict(orient='records'),growth=growth,figures=figures,
+        main_stack_figure=draw(data,5.,stack_only=True))
     dump(HERE/'3.1误差增长分解.json',record)
     text='# 3.1补充：误差平方及其增长的组成\n\n'
     text+='对应[报告下v2.1](../../报告下（方法对比）-v2.1.md)。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。\n\n'
@@ -119,4 +124,11 @@ def main():
     print(json.dumps(dict(status='complete',conditions=40,metrics=len(data),identities_checked=len(data),figures=figures),ensure_ascii=False))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--stack-only',action='store_true');args=parser.parse_args()
+    if args.stack_only:
+        p=HERE/'3.1误差增长分解.json';record=json.loads(p.read_text(encoding='utf-8'))
+        record['main_stack_figure']=draw(pd.DataFrame(record['data']),5.,stack_only=True)
+        dump(p,record);print(json.dumps(record['main_stack_figure'],ensure_ascii=False))
+    else:main()

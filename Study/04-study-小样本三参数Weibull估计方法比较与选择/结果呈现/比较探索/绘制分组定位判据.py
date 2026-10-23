@@ -127,9 +127,72 @@ def main():
         layout='One n per row (50/20/15/10/7); columns MLE/MMLE/MDM(0)/MDM(.1).',
         purpose='Gamma selection only; Bias and SD in separate figures.',
         selection='Endpoint MLE state and MDM0 zero/interior strata, proportional quotas with >=1/stratum; robust L1 medoids within strata, retaining shared-center670. Ten examples do not replace statistics from all120.',
-        examples=outputs)
+        examples=outputs,combined_figure=draw_combined(outputs))
     dump(HERE/'3.1十组定位判据选例.json',record)
     print(json.dumps(dict(status='complete',selected=[q['source_id'] for q in outputs]),ensure_ascii=False),flush=True)
 
 
-if __name__=='__main__':main()
+def draw_combined(items):
+    """One vector figure containing all ten paths, using archived plotted numbers."""
+    fig=plt.figure(figsize=(31,78))
+    outer=fig.add_gridspec(5,2,left=.055,right=.99,bottom=.025,top=.985,hspace=.19,wspace=.18)
+    axes_records=[]
+    for k,item in enumerate(items):
+        sid=item['source_id'];p=OUT/f'十组分行/样本{sid}.json'
+        record=json.loads(p.read_text(encoding='utf-8'));rows=record['rows']
+        assert [v['n'] for v in rows]==NS
+        inner=outer[k//2,k%2].subgridspec(5,4,hspace=.26,wspace=.34)
+        axs=np.array([[fig.add_subplot(inner[i,j]) for j in range(4)] for i in range(5)])
+        gamma_max=max(row['observations'][0] for row in rows)
+        low=min(0.,min(min(row['mle_relative_per_observation_loss']) for row in rows))
+        high=max(0.,max(max(row['mle_relative_per_observation_loss']) for row in rows))
+        ylim=(low-.02*max(high,1),high*1.05+.01)
+        for i,row in enumerate(rows):
+            n=row['n'];grid=np.asarray(row['gamma_grid']);grads=np.asarray(row['mdm_gradient'])
+            axs[i,0].plot(grid,row['mle_relative_per_observation_loss'],color='#8064A2',lw=1.7)
+            if row['states']['MLE']=='success':
+                axs[i,0].scatter(row['estimates']['MLE']['gamma'],0,color='#8064A2',s=27,zorder=4,clip_on=False)
+            axs[i,0].set(xlim=(0,gamma_max),ylim=ylim,ylabel=r'$-\Delta\bar{\ell}_p(\gamma)$')
+            axs[i,0].text(-.30,.5,rf'$n={n}$',transform=axs[i,0].transAxes,ha='right',va='center',fontsize=13)
+            x=row['observations'];axs[i,1].scatter(x[1:],np.zeros(n-1),marker='|',s=100,color='#b7c0c7',lw=1.2)
+            axs[i,1].scatter(x[0],0,s=45,color='#CC79A7')
+            axs[i,1].set(xlim=(rows[0]['observations'][0]*.9,rows[0]['observations'][-1]*1.03),ylim=(-.6,.6),yticks=[])
+            for j,method,target,marker,color in [(2,'MDM-0',0.,'o','#6B7780'),(3,'MDM-0.1',.1,'s','#0072B2')]:
+                ax=axs[i,j];ax.plot(grid,grads,color=color,lw=1.7);ax.axhline(target,color='#777',ls='--',lw=1)
+                if row['states'][method]=='success':
+                    gamma=row['estimates'][method]['gamma'];hit=np.flatnonzero(np.isclose(grid,gamma,rtol=0,atol=1e-9))
+                    assert len(hit)==1
+                    ax.scatter(gamma,grads[hit[0]],marker=marker,s=32,facecolors='white' if j==2 else color,
+                        edgecolors=color,zorder=4,clip_on=False)
+                ax.set(xlim=(0,gamma_max),ylim=(-.12,.25),yticks=[-.1,0,.1,.2],ylabel=r'$g_n(\gamma)$')
+            for ax in axs[i]:ax.tick_params(labelsize=9)
+        for j,title in enumerate(['MLE',r'MMLE: $\hat\gamma=x_{(1)}$','MDM(0)','MDM(0.1)']):
+            axs[0,j].set_title(title,pad=9,fontsize=13)
+        for j in [0,2,3]:axs[-1,j].set_xlabel(r'$\gamma$',fontsize=12)
+        axs[-1,1].set_xlabel(r'$x,\ \hat\gamma$',fontsize=12)
+        bounds=outer[k//2,k%2].get_position(fig)
+        fig.text((bounds.x0+bounds.x1)/2,bounds.y1+.006,rf'Sample ${sid}$',ha='center',va='bottom',fontsize=18)
+        axes_records.append(dict(source_id=sid,source_sha256=sha(p),mle_ylim=list(ylim),gamma_xlim=[0,gamma_max],
+            mdm_ylim=[-.12,.25],rows=NS,methods=['MLE','MMLE','MDM-0','MDM-0.1']))
+    output={}
+    for ext in ['png','svg']:
+        p=ASSETS/f'31T_十组定位判据_合图.{ext}'
+        fig.savefig(p,dpi=180,facecolor='white')
+        if ext=='svg':
+            p.write_text('\n'.join(line.rstrip() for line in p.read_text(encoding='utf-8').splitlines())+'\n',
+                encoding='utf-8',newline='\n')
+        output[ext]=dict(path=p.relative_to(STUDY).as_posix(),sha256=sha(p))
+    plt.close(fig)
+    output.update(layout='Single figure, 5 rows x 2 columns of sample groups; each group has 5 n rows x 4 methods.',
+        aspect_ratio=31/78,axes=axes_records,total_panels=200)
+    return output
+
+
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--combined-only',action='store_true');args=parser.parse_args()
+    if args.combined_only:
+        p=HERE/'3.1十组定位判据选例.json';record=json.loads(p.read_text(encoding='utf-8'))
+        record['combined_figure']=draw_combined(record['examples']);dump(p,record)
+        print(json.dumps(dict(status='combined',panels=200,figures={k:v for k,v in record['combined_figure'].items() if k in ['png','svg']}),ensure_ascii=False))
+    else:main()
