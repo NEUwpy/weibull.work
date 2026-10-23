@@ -1,5 +1,7 @@
 """将删点前后的观测、拟合和实际参数移动放在同一幅图中；复用已保存的嵌套路径。"""
 from pathlib import Path
+import argparse
+import hashlib
 import json
 import numpy as np
 import pandas as pd
@@ -15,6 +17,99 @@ METHODS=[("K–R","#CC79A7"),("MDM","#0072B2"),("LSE","#009E73")]
 plt.rcParams.update({"font.family":"Microsoft YaHei","font.size":11,"axes.spines.top":False,"axes.spines.right":False,"axes.unicode_minus":False})
 
 def cdf(t,b,e,g):return -np.expm1(-np.maximum((t-g)/e,0)**b)
+
+
+def nested_gallery(rows, source_id=474):
+    """同一嵌套样本下，比较三法的CDF拟合和单次带符号参数误差。
+
+    每个n一张2×3定量组图：上排每法独占一列，下排每参数独占一列。
+    读取既有估计，不再抽样或求解；跨n固定坐标，仅输出PNG。
+    """
+    sizes = [50, 20, 15, 10, 7]
+    parameters = [("beta", "形状 β", 5.), ("eta", "尺度 η", 1000.), ("gamma", "位置 γ", 500.)]
+    selected = rows[rows.source_id.eq(source_id)]
+    samples, estimates = {}, {}
+    previous = None
+    for n in sizes:
+        part = selected[selected.n.eq(n)]
+        sample_rows = [np.array(json.loads(v), dtype=float) for v in part.observations]
+        x = sample_rows[0]
+        assert all(np.array_equal(x, v) for v in sample_rows)
+        assert len(x) == n and np.all(np.diff(x) >= 0)
+        assert previous is None or np.isin(x, previous).all()
+        samples[n] = x
+        previous = x
+        for method, _ in METHODS:
+            record = part[part.method.eq(method)]
+            assert len(record) == 1 and bool(record.iloc[0].converged)
+            estimates[n, method] = record.iloc[0]
+
+    limits = {}
+    for parameter, _, truth in parameters:
+        errors = [float(estimates[n, method][parameter]) - truth
+                  for n in sizes for method, _ in METHODS]
+        low, high = min(0., min(errors)), max(0., max(errors))
+        span = high - low
+        limits[parameter] = (low - .18 * span, high + .22 * span)
+
+    t = np.linspace(400., 2100., 1000)
+    assert all(x.min() > t.min() and x.max() < t.max() for x in samples.values())
+    records = []
+    for n in sizes:
+        fig, axes = plt.subplots(2, 3, figsize=(13, 7.8))
+        fig.subplots_adjust(left=.075, right=.98, top=.87, bottom=.10,
+                            hspace=.50, wspace=.36)
+        x = samples[n]
+        positions = (np.arange(1, n + 1) - .5) / n
+        for j, (method, color) in enumerate(METHODS):
+            ax = axes[0, j]
+            row = estimates[n, method]
+            ax.plot(t, cdf(t, 5., 1000., 500.), ls="--", c="#6d7277", lw=1.4)
+            ax.plot(t, cdf(t, row.beta, row.eta, row.gamma), c=color, lw=2.0)
+            ax.scatter(x, positions, c="#252a2d", s=24, zorder=4)
+            ax.plot(x, np.full(n, -.025), "|", c="#62666a", ms=6)
+            ax.set(xlim=(400, 2100), ylim=(-.06, 1.04), xticks=[500, 1000, 1500, 2000],
+                   yticks=[0, .25, .5, .75, 1], xlabel="寿命 t", ylabel="累计概率",
+                   title=f"({chr(97+j)}) {method}")
+            ax.grid(axis="y", color="#ededed", lw=.7)
+
+        for j, (parameter, title, truth) in enumerate(parameters):
+            ax = axes[1, j]
+            errors = [float(estimates[n, method][parameter]) - truth for method, _ in METHODS]
+            ax.bar(range(3), errors, width=.52, color=[color for _, color in METHODS], zorder=3)
+            ax.axhline(0, c="#62666a", lw=1.0)
+            ax.set(xticks=range(3), xticklabels=[method for method, _ in METHODS],
+                   xlim=(-.65, 2.65), ylim=limits[parameter], ylabel="估计值 − 真值",
+                   title=f"({chr(100+j)}) {title}")
+            ax.grid(axis="y", color="#ededed", lw=.7)
+            for k, ((method, _), error) in enumerate(zip(METHODS, errors)):
+                label = f"{error:+.2f}" if parameter == "beta" else f"{error:+.1f}"
+                ax.annotate(label, (k, error), xytext=(0, -6 if error < 0 else 5),
+                            textcoords="offset points", ha="center",
+                            va="top" if error < 0 else "bottom", fontsize=10)
+                records.append({"n": n, "method": method, "parameter": parameter,
+                                "estimate": float(estimates[n, method][parameter]),
+                                "truth": truth, "signed_error": error})
+
+        handles = [Line2D([], [], color=color, lw=2, label=method) for method, color in METHODS]
+        handles += [Line2D([], [], color="#6d7277", ls="--", label="真实分布"),
+                    Line2D([], [], color="#252a2d", ls="", marker="o", ms=5, label="本组观测")]
+        fig.legend(handles=handles, ncol=5, loc="upper center", frameon=False, fontsize=10.5)
+        fig.text(.975, .975, f"n = {n}", ha="right", va="top", fontsize=12)
+        fig.savefig(ASSETS/f"31_嵌套删点_样本{source_id}_n{n}.png", dpi=200, facecolor="white")
+        plt.close(fig)
+
+    qa = {"source_id": source_id, "sizes": sizes,
+          "source_sha256": hashlib.sha256(DATA.read_bytes()).hexdigest(),
+          "nested_subsets_checked": True, "same_observations_across_methods_checked": True,
+          "statistic": "single-sample signed error: estimate minus truth",
+          "cdf_limits": {"x": [400, 2100], "y": [-.06, 1.04]},
+          "parameter_limits": limits, "values": records}
+    (DATA.parent/"嵌套删点组图核验.json").write_text(
+        json.dumps(qa, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+    print(json.dumps({"source_id": source_id, "sizes": sizes,
+                      "panels": 30, "parameter_values": len(records),
+                      "nested_subsets_checked": True}, ensure_ascii=False))
 
 def recovery_figures(rows):
     import sys
@@ -106,4 +201,11 @@ def main():
     (DATA.parent/"删点前后参数移动.json").write_text(json.dumps(changes,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(changes,ensure_ascii=False))
 
-if __name__=="__main__":main()
+if __name__=="__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--nested-gallery", action="store_true", help="仅生成按n切换的三法CDF与参数偏差组图")
+    args = parser.parse_args()
+    if args.nested_gallery:
+        nested_gallery(pd.read_csv(DATA, float_precision="round_trip"))
+    else:
+        main()
