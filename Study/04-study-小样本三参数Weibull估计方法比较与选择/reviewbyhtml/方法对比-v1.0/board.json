@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 53,
+  "revision": 54,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "b574204afcd2d290dd5ba496a047721266ab2d34cf083e965c20c40b9d78c1a3",
+  "source_sha256": "03ca4a3bbbd9355c28b9bdc20f08662445cf28fcd210e991309c4e7c210245a5",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -373,6 +373,62 @@
               "markdown": "2.1显示，样本量由大变小时，各方法的RMSE总体增大，但增长速度不同，部分方法只缓慢劣化。样本量减少是共同条件，误差增幅的差别则需要从方法原理解释：不同方法利用样本信息的方式不同，处理三参数耦合的路径不同，对数据扰动、极端样本和参数约束的敏感程度也不同。"
             },
             {
+              "id": "n52-795b16c7a92b",
+              "kind": "text",
+              "html": "<h4>样本减少怎样放宽对参数组合的限制</h4>",
+              "markdown": "#### 样本减少怎样放宽对参数组合的限制"
+            },
+            {
+              "id": "n-population-coverage",
+              "kind": "image",
+              "src": "assets/31H_n减小与下端覆盖.png",
+              "alt": "固定形状时三档样本的观测、最小值、起点空白及最小值理论密度",
+              "markdown": "![固定形状时三档样本的观测、最小值、起点空白及最小值理论密度](reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png)"
+            },
+            {
+              "id": "n52-bd70076f73ef",
+              "kind": "text",
+              "html": "<p><em>固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近。</em></p>",
+              "markdown": "*固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近。*"
+            },
+            {
+              "id": "n52-bdb18003e8e0",
+              "kind": "text",
+              "html": "<p>低寿命下端在总体中占比很小，抽取次数减少，更容易一个也没抽到。因此，n减小时，最小观测通常离真实起点更远，起点与最小观测之间的空白更大。以500—1000这段区间为例，整组没有观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。</p>",
+              "markdown": "低寿命下端在总体中占比很小，抽取次数减少，更容易一个也没抽到。因此，n减小时，最小观测通常离真实起点更远，起点与最小观测之间的空白更大。以500—1000这段区间为例，整组没有观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。"
+            },
+            {
+              "id": "n52-e27e83b1a1e2",
+              "kind": "text",
+              "html": "<p>这段空白首先放宽了候选起点的支持限制。对于以全部观测为支持检查对象的三参数Weibull候选，起点必须低于最小观测。当最小观测右移时，原来因起点过高而不可能解释全部数据的一些组合，便不再被这条支持条件直接排除。与此同时，较小n下没有抽到下端观测，也仍可容许候选分布在那里保留一定概率。方法需要区分的候选因而可能增多，参数仍需由全部观测及具体判据进一步确定。</p>",
+              "markdown": "这段空白首先放宽了候选起点的支持限制。对于以全部观测为支持检查对象的三参数Weibull候选，起点必须低于最小观测。当最小观测右移时，原来因起点过高而不可能解释全部数据的一些组合，便不再被这条支持条件直接排除。与此同时，较小n下没有抽到下端观测，也仍可容许候选分布在那里保留一定概率。方法需要区分的候选因而可能增多，参数仍需由全部观测及具体判据进一步确定。"
+            },
+            {
+              "id": "n52-442a1aa4cacb",
+              "kind": "image",
+              "src": "assets/31K_下端观测与参数组合.png",
+              "alt": "同一既有路径的50点与7点，对固定真实分布和另一参数组合的支持区分",
+              "markdown": "![同一既有路径的50点与7点，对固定真实分布和另一参数组合的支持区分](reviewbyhtml/方法对比-v1.0/assets/31K_下端观测与参数组合.png)"
+            },
+            {
+              "id": "n52-486e2ac5c70c",
+              "kind": "text",
+              "html": "<p><em>沿用474号路径的50点与7点。蓝线为真实W(5,1000,500)，橙虚线为预先固定的候选W(2,500,1000)，不是任何方法的估计结果。底部短线为观测位置，不表示密度；橙叉表示落在候选支持范围之外的观测，浅色区域为500—1000。两图使用同一坐标和同两条理论PDF。</em></p>",
+              "markdown": "*沿用474号路径的50点与7点。蓝线为真实W(5,1000,500)，橙虚线为预先固定的候选W(2,500,1000)，不是任何方法的估计结果。底部短线为观测位置，不表示密度；橙叉表示落在候选支持范围之外的观测，浅色区域为500—1000。两图使用同一坐标和同两条理论PDF。*"
+            },
+            {
+              "id": "n52-26a7ca704707",
+              "kind": "text",
+              "html": "<p>50点中有小于1000的观测，最小值为930.6，因而候选起点1000与数据直接矛盾；保留的7点最小值为1226.9，这一矛盾消失。候选将位置从500提高到1000，同时将形状从5改为2、尺度从1000改为500，在观测集中的区间内仍能形成接近的密度。这就是参数补偿：起点的改变，可以由形状和尺度的改变部分抵消。</p>",
+              "markdown": "50点中有小于1000的观测，最小值为930.6，因而候选起点1000与数据直接矛盾；保留的7点最小值为1226.9，这一矛盾消失。候选将位置从500提高到1000，同时将形状从5改为2、尺度从1000改为500，在观测集中的区间内仍能形成接近的密度。这就是参数补偿：起点的改变，可以由形状和尺度的改变部分抵消。"
+            },
+            {
+              "id": "n52-f43170f29942",
+              "kind": "text",
+              "html": "<p>下端覆盖不足因而可能削弱候选之间的区分。当具体判据沿某条参数补偿方向变化很小时，会形成较平缓的候选区域，样本的偶然差异就可能让选参位置发生较大变化。这一变化要通过各方法的判据传递到最终估计；平缓区域是否出现，仍需看该方法的实际准则。</p>",
+              "markdown": "下端覆盖不足因而可能削弱候选之间的区分。当具体判据沿某条参数补偿方向变化很小时，会形成较平缓的候选区域，样本的偶然差异就可能让选参位置发生较大变化。这一变化要通过各方法的判据传递到最终估计；平缓区域是否出现，仍需看该方法的实际准则。"
+            },
+            {
               "id": "n52-5de6deb24251",
               "kind": "text",
               "html": "<h4>样本信息利用方式不同</h4>",
@@ -445,35 +501,95 @@
               "markdown": "因此，RMSE增幅不同可以从三方面理解：样本信息以何种方式进入估计；参数耦合怎样传递这些变化；构造与约束又怎样放大或抑制扰动。在当前条件下，若构造对偶然点列的响应较平缓、参数补偿没有显著放大误差，就可能只缓慢劣化；若少数观测改变了定位、矩关系或回归恢复，并触发较强的参数联动，则可能产生更大的偏移、分散或极端误差，使RMSE增长更快。具体方法的增长幅度由第二章的重复估计结果判断。"
             },
             {
-              "id": "n52-cec7fa79d669",
+              "id": "n52-4cd02d473aa2",
               "kind": "text",
-              "html": "<h4>共同样本下的过程对照</h4>",
-              "markdown": "#### 共同样本下的过程对照"
+              "html": "<h4>MDM：改变选参规则，形成偏差与波动的取舍</h4>",
+              "markdown": "#### MDM：改变选参规则，形成偏差与波动的取舍"
             },
             {
-              "id": "info31-98d6083e6aa0",
+              "id": "n52-87a19b27579e",
+              "kind": "text",
+              "html": "<p>MDM先在每个候选位置下调整形状，使各点反算的伪尺度尽量一致，得到条件最小标准差</p>",
+              "markdown": "MDM先在每个候选位置下调整形状，使各点反算的伪尺度尽量一致，得到条件最小标准差"
+            },
+            {
+              "id": "n52-d7db5f562f41",
+              "kind": "text",
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>β</mi></munder><msub><mi>s</mi><mi>η</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\nS_n(\\gamma)=\\min_\\beta s_\\eta(\\beta,\\gamma).\n$$"
+            },
+            {
+              "id": "n52-79195d66adfd",
+              "kind": "text",
+              "html": "<p>若仅寻找这条曲线的最低点，局部曲率很小时，曲线的轻微变化就可能使极小点明显移动。MDM的正偏移版本将内部解的位置判据由导数等于零改为</p>",
+              "markdown": "若仅寻找这条曲线的最低点，局部曲率很小时，曲线的轻微变化就可能使极小点明显移动。MDM的正偏移版本将内部解的位置判据由导数等于零改为"
+            },
+            {
+              "id": "n52-c845ab86b695",
+              "kind": "text",
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><mi mathvariant=\"normal\">d</mi><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow><mrow><mi mathvariant=\"normal\">d</mi><mi>γ</mi></mrow></mfrac><msub><mo fence=\"false\" stretchy=\"true\" minsize=\"2.4em\" maxsize=\"2.4em\">∣</mo><mrow><mi>γ</mi><mo>=</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover></mrow></msub><mo>=</mo><mi>δ</mi><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi>δ</mi><mo>=</mo><mn>0.1</mn><mo separator=\"true\">,</mo></mrow></semantics></math></span></p>",
+              "markdown": "$$\ng_n(\\hat\\gamma)=\\frac{\\mathrm{d}S_n(\\gamma)}{\\mathrm{d}\\gamma}\\bigg|_{\\gamma=\\hat\\gamma}\n=\\delta,\\qquad \\delta=0.1,\n$$"
+            },
+            {
+              "id": "n52-364a59922e62",
+              "kind": "text",
+              "html": "<p>再回代该位置下的形状，并以伪尺度均值恢复尺度。这个规则允许选参离开经验最低点；当交点处的梯度变化更清楚时，定位可能对曲线扰动更不敏感。δ非零本身不保证稳定，交点的敏感程度仍取决于梯度曲线的局部斜率。<a href=\"https://cjournal.hep.com.cn/1005-3026/CN/1190581232397218100\">谢里阳等（2025）</a>以偏移判据改善精度和稳健性，本轮采用其核心结构及项目固定实现。</p>",
+              "markdown": "再回代该位置下的形状，并以伪尺度均值恢复尺度。这个规则允许选参离开经验最低点；当交点处的梯度变化更清楚时，定位可能对曲线扰动更不敏感。δ非零本身不保证稳定，交点的敏感程度仍取决于梯度曲线的局部斜率。[谢里阳等（2025）](https://cjournal.hep.com.cn/1005-3026/CN/1190581232397218100)以偏移判据改善精度和稳健性，本轮采用其核心结构及项目固定实现。"
+            },
+            {
+              "id": "n52-9b9e1f3df053",
               "kind": "image",
-              "src": "assets/31E_单次误差响应_样本474.png",
-              "alt": "同一474号嵌套删点路径上三种方法的五档三参数误差响应",
-              "markdown": "![同一474号嵌套删点路径上三种方法的五档三参数误差响应](reviewbyhtml/方法对比-v1.0/assets/31E_单次误差响应_样本474.png)"
+              "src": "assets/31L_MDM条件廓线与偏移判据.png",
+              "alt": "既有七点样本下MDM条件最小标准差、零梯度参考点与0.1梯度交点",
+              "markdown": "![既有七点样本下MDM条件最小标准差、零梯度参考点与0.1梯度交点](reviewbyhtml/方法对比-v1.0/assets/31L_MDM条件廓线与偏移判据.png)"
             },
             {
-              "id": "n52-4ec0b7600c43",
+              "id": "n52-11d10810d26b",
               "kind": "text",
-              "html": "<p><em>固定W(5,1000,500)，从同一份正式50点样本按既有随机排列保留50、20、15、10、7点；每一档三种方法使用相同观测。纵轴为本次估计减真值，虚线为零误差。这条路径用于观察上述构造怎样响应共同输入变化，不是重复抽样的Bias或RMSE。</em></p>",
-              "markdown": "*固定W(5,1000,500)，从同一份正式50点样本按既有随机排列保留50、20、15、10、7点；每一档三种方法使用相同观测。纵轴为本次估计减真值，虚线为零误差。这条路径用于观察上述构造怎样响应共同输入变化，不是重复抽样的Bias或RMSE。*"
+              "html": "<p><em>474号路径的同一组7点。左图为条件最小标准差，右图为其梯度；灰点是零梯度参考点，橙点是原MDM返回位置1143.8，虚线对应δ=0.1，竖点线为真实位置500。灰点仅用于比较定位规则，不作为新增的正式δ=0估计。这幅单样本图说明“怎样选”，其重复波动由下表判断。</em></p>",
+              "markdown": "*474号路径的同一组7点。左图为条件最小标准差，右图为其梯度；灰点是零梯度参考点，橙点是原MDM返回位置1143.8，虚线对应δ=0.1，竖点线为真实位置500。灰点仅用于比较定位规则，不作为新增的正式δ=0估计。这幅单样本图说明“怎样选”，其重复波动由下表判断。*"
             },
             {
-              "id": "n52-e4cb386038b4",
+              "id": "n52-df1691bdd5d3",
               "kind": "text",
-              "html": "<p>50→20点时最小观测仍为930.6，MMLE位置保持930.6；MDM位置从733.7变为683.7，LSE从662.5变为550.5。这个例子对应信息利用方式的差别：直接以极值定位的一步不变，依赖整组统计关系与n相关参考量的定位则可以改变。20→15点时最小值升至1222.3，三法的位置及后续恢复参数都发生明显变化。该例说明构造与参数传递的具体过程，不用于决定各机制对总体RMSE差距的贡献。</p>",
-              "markdown": "50→20点时最小观测仍为930.6，MMLE位置保持930.6；MDM位置从733.7变为683.7，LSE从662.5变为550.5。这个例子对应信息利用方式的差别：直接以极值定位的一步不变，依赖整组统计关系与n相关参考量的定位则可以改变。20→15点时最小值升至1222.3，三法的位置及后续恢复参数都发生明显变化。该例说明构造与参数传递的具体过程，不用于决定各机制对总体RMSE差距的贡献。"
+              "html": "<p>偏移判据并不要求每次都更接近真实参数；评价要同时看偏差和重复波动。<a href=\"https://online.stat.psu.edu/stat415/Lesson02\">理论上</a>，对任一参数有</p>",
+              "markdown": "偏移判据并不要求每次都更接近真实参数；评价要同时看偏差和重复波动。[理论上](https://online.stat.psu.edu/stat415/Lesson02)，对任一参数有"
             },
             {
-              "id": "n52-0722b281edc4",
+              "id": "n52-9aae0e4a13af",
               "kind": "text",
-              "html": "<p><a href=\"#n-supplement\">补充核对：保留观测、构造输入、判据及逐档拟合</a>。方法定义以<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E8%AE%A1%E7%AE%97%E5%AE%9E%E7%8E%B0-20261016/methods\">本轮固定实现</a>为准，原路径15条诊断估计及图像指纹见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E6%9C%BA%E5%88%B6%E9%93%BE%E6%A0%B8%E9%AA%8C.json\">机制链核验</a>。删点、扰动与廓线是检验上述解释的手段，不作为本节的研究视角。</p>",
-              "markdown": "[补充核对：保留观测、构造输入、判据及逐档拟合](结果呈现/比较探索/3.1逐档拟合与误差.md)。方法定义以[本轮固定实现](程序/计算实现-20261016/methods/)为准，原路径15条诊断估计及图像指纹见[机制链核验](结果呈现/比较探索/3.1机制链核验.json)。删点、扰动与廓线是检验上述解释的手段，不作为本节的研究视角。"
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>+</mo><mi mathvariant=\"normal\">Var</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\n\\operatorname{RMSE}^{2}(\\hat\\theta)\n=\\operatorname{Bias}^{2}(\\hat\\theta)+\\operatorname{Var}(\\hat\\theta).\n$$"
+            },
+            {
+              "id": "n52-b1879ee09922",
+              "kind": "text",
+              "html": "<p>因此，只要方差减少超过偏差平方的增加，有偏但更稳定的估计也可以有更小RMSE。本轮固定β=5，MDM与LSE的形状估计呈现了这种取舍：</p>",
+              "markdown": "因此，只要方差减少超过偏差平方的增加，有偏但更稳定的估计也可以有更小RMSE。本轮固定β=5，MDM与LSE的形状估计呈现了这种取舍："
+            },
+            {
+              "id": "n52-5575e1a86bee",
+              "kind": "visual",
+              "html": "<table><thead><tr><th style=\"text-align:right\">样本量n</th><th>方法</th><th style=\"text-align:right\">形状Bias</th><th style=\"text-align:right\">形状SD</th><th style=\"text-align:right\">形状RMSE</th></tr></thead><tbody><tr><td style=\"text-align:right\">50</td><td>MDM</td><td style=\"text-align:right\">−1.45</td><td style=\"text-align:right\">0.76</td><td style=\"text-align:right\">1.63</td></tr><tr><td style=\"text-align:right\">50</td><td>LSE</td><td style=\"text-align:right\">+0.28</td><td style=\"text-align:right\">2.04</td><td style=\"text-align:right\">2.06</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM</td><td style=\"text-align:right\">−2.62</td><td style=\"text-align:right\">1.14</td><td style=\"text-align:right\">2.86</td></tr><tr><td style=\"text-align:right\">7</td><td>LSE</td><td style=\"text-align:right\">−0.58</td><td style=\"text-align:right\">3.54</td><td style=\"text-align:right\">3.58</td></tr></tbody></table>",
+              "markdown": "| 样本量n | 方法 | 形状Bias | 形状SD | 形状RMSE |\n|---:|---|---:|---:|---:|\n| 50 | MDM | −1.45 | 0.76 | 1.63 |\n| 50 | LSE | +0.28 | 2.04 | 2.06 |\n| 7 | MDM | −2.62 | 1.14 | 2.86 |\n| 7 | LSE | −0.58 | 3.54 | 3.58 |"
+            },
+            {
+              "id": "n52-de9832934e39",
+              "kind": "text",
+              "html": "<p><em>均来自本轮各条件的同一1200组样本，两法全部有效，读取原条件汇总。SD沿用共享指标的样本标准差口径；有限重复数<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>R</mi></mrow></semantics></math></span>下，精确关系为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>=</mo><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>+</mo><mo stretchy=\"false\">(</mo><mi>R</mi><mo>−</mo><mn>1</mn><mo stretchy=\"false\">)</mo><msup><mrow><mi mathvariant=\"normal\">SD</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">/</mi><mi>R</mi></mrow></semantics></math></span>。</em></p>",
+              "markdown": "*均来自本轮各条件的同一1200组样本，两法全部有效，读取原条件汇总。SD沿用共享指标的样本标准差口径；有限重复数$R$下，精确关系为$\\operatorname{RMSE}^2=\\operatorname{Bias}^2+(R-1)\\operatorname{SD}^2/R$。*"
+            },
+            {
+              "id": "n52-66702f86c60a",
+              "kind": "text",
+              "html": "<p>n从50减到7，两法RMSE都增大，但组成不同：MDM的SD增长较少，形状低估则加重；LSE的波动增长更明显。到n=7，MDM虽有更大绝对偏差，较低的SD仍使其RMSE小于LSE。这组对照将方法构造接到了偏差、波动和总体误差，也说明小样本性能不能只看是否无偏。比较对象是两个完整方法；δ本身贡献多少，需要同一方法的偏移量对照。</p>",
+              "markdown": "n从50减到7，两法RMSE都增大，但组成不同：MDM的SD增长较少，形状低估则加重；LSE的波动增长更明显。到n=7，MDM虽有更大绝对偏差，较低的SD仍使其RMSE小于LSE。这组对照将方法构造接到了偏差、波动和总体误差，也说明小样本性能不能只看是否无偏。比较对象是两个完整方法；δ本身贡献多少，需要同一方法的偏移量对照。"
+            },
+            {
+              "id": "n52-f16587a8e6ac",
+              "kind": "text",
+              "html": "<p><a href=\"#n-supplement\">补充核对：共同路径、构造输入、判据及逐档拟合</a>保留31E等过程图。方法定义以<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E8%AE%A1%E7%AE%97%E5%AE%9E%E7%8E%B0-20261016/methods\">本轮固定实现</a>为准。新增两图及表格的来源、判据和指标核对见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E8%80%A6%E5%90%88%E4%B8%8EMDM%E6%A0%B8%E5%AF%B9.json\">耦合与MDM记录</a>；原路径15条诊断估计见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E6%9C%BA%E5%88%B6%E9%93%BE%E6%A0%B8%E9%AA%8C.json\">机制链核验</a>。删点、扰动与廓线用于检验解释，具体总体差距以第二章的重复估计判断。</p>",
+              "markdown": "[补充核对：共同路径、构造输入、判据及逐档拟合](结果呈现/比较探索/3.1逐档拟合与误差.md)保留31E等过程图。方法定义以[本轮固定实现](程序/计算实现-20261016/methods/)为准。新增两图及表格的来源、判据和指标核对见[耦合与MDM记录](结果呈现/比较探索/3.1耦合与MDM核对.json)；原路径15条诊断估计见[机制链核验](结果呈现/比较探索/3.1机制链核验.json)。删点、扰动与廓线用于检验解释，具体总体差距以第二章的重复估计判断。"
             }
           ]
         }
@@ -517,35 +633,10 @@
               "markdown": "*复用Research00报告1图2：η=1000、γ=500，β=2、5，n=7、15、30。橙点为每组样本的最小观测，灰线为其到真实起点的距离；下排为最小观测的理论密度。历史样本仅用于解释，不并入本轮1200次统计。*"
             },
             {
-              "id": "n52-3fa6a4fecbdb",
+              "id": "n52-89cf58f38afd",
               "kind": "text",
-              "html": "<h4>固定β时，n对最小观测的影响</h4>",
-              "markdown": "#### 固定β时，n对最小观测的影响"
-            },
-            {
-              "id": "n-population-coverage",
-              "kind": "image",
-              "src": "assets/31H_n减小与下端覆盖.png",
-              "alt": "固定形状时三档样本的观测、最小值、起点空白及最小值理论密度",
-              "markdown": "![固定形状时三档样本的观测、最小值、起点空白及最小值理论密度](reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png)"
-            },
-            {
-              "id": "info31-4623beff34c1",
-              "kind": "text",
-              "html": "<p><em>固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近；它与3.2采用同一画法，这里固定β、只改变n。</em></p>",
-              "markdown": "*固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近；它与3.2采用同一画法，这里固定β、只改变n。*"
-            },
-            {
-              "id": "info31-e1fe938af3f8",
-              "kind": "text",
-              "html": "<p>低寿命下端在总体中占比很小，抽取次数减少，就更容易一个也没抽到。图中最小观测通常离500更远，灰线变长，右侧最小值分布向右移动、变宽。以500—1000这段区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。总体起点始终是500，扩大的是起点与最小观测之间的空白。</p>",
-              "markdown": "低寿命下端在总体中占比很小，抽取次数减少，就更容易一个也没抽到。图中最小观测通常离500更远，灰线变长，右侧最小值分布向右移动、变宽。以500—1000这段区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。总体起点始终是500，扩大的是起点与最小观测之间的空白。"
-            },
-            {
-              "id": "n52-2715af5bab4e",
-              "kind": "text",
-              "html": "<p>两幅样本图共同说明n与β怎样改变最小观测及其到真实起点的距离。这个距离描述样本空白和起点的支持上界；它本身不决定估计会向哪侧偏，也不能单独解释不同方法的RMSE增幅。</p>",
-              "markdown": "两幅样本图共同说明n与β怎样改变最小观测及其到真实起点的距离。这个距离描述样本空白和起点的支持上界；它本身不决定估计会向哪侧偏，也不能单独解释不同方法的RMSE增幅。"
+              "html": "<p>结合3.1的固定β图，这里展示了n与β对最小观测的共同影响。最小值提供起点的支持上界；不同方法怎样选中具体参数，仍要沿各自的估计构造追踪。</p>",
+              "markdown": "结合3.1的固定β图，这里展示了n与β对最小观测的共同影响。最小值提供起点的支持上界；不同方法怎样选中具体参数，仍要沿各自的估计构造追踪。"
             },
             {
               "id": "n52-5f8b9da5427d",
@@ -844,16 +935,41 @@
           "label": "补充核对",
           "blocks": [
             {
-              "id": "n52-cb8ca0da9f67",
+              "id": "n52-19b51b3430e6",
               "kind": "text",
-              "html": "<a id=\"n-supplement\"></a><p>本页补充<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E6%8A%A5%E5%91%8A%E4%B8%8B%EF%BC%88%E6%96%B9%E6%B3%95%E5%AF%B9%E6%AF%94%EF%BC%89-v2.1.md\">报告下v2.1第3.1节</a>，沿同一条474号嵌套路径逐档浏览结果。正文先从信息利用、参数耦合及估计机制的敏感程度解释方法差别，共同删点只作例证；此处保留样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。</p>",
-              "markdown": "本页补充[报告下v2.1第3.1节](../../报告下（方法对比）-v2.1.md)，沿同一条474号嵌套路径逐档浏览结果。正文先从信息利用、参数耦合及估计机制的敏感程度解释方法差别，共同删点只作例证；此处保留样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。"
+              "html": "<a id=\"n-supplement\"></a><p>本页补充<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E6%8A%A5%E5%91%8A%E4%B8%8B%EF%BC%88%E6%96%B9%E6%B3%95%E5%AF%B9%E6%AF%94%EF%BC%89-v2.1.md\">报告下v2.1第3.1节</a>，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。</p>",
+              "markdown": "本页补充[报告下v2.1第3.1节](../../报告下（方法对比）-v2.1.md)，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。"
             },
             {
               "id": "info31-796fe968bde1",
               "kind": "text",
               "html": "<p>五档CDF共用坐标，同一参数的误差也共用纵轴范围。上排每列只画一种方法及真实CDF；黑点寿命坐标是真实观测，纵坐标按各自n计算(i−0.5)/n，仅作展示。下排为估计值减真值，不是重复抽样的平均Bias。每档都是前一档子集；这里的n=7子集不等于正式n=7表中同编号样本。</p>",
               "markdown": "五档CDF共用坐标，同一参数的误差也共用纵轴范围。上排每列只画一种方法及真实CDF；黑点寿命坐标是真实观测，纵坐标按各自n计算(i−0.5)/n，仅作展示。下排为估计值减真值，不是重复抽样的平均Bias。每档都是前一档子集；这里的n=7子集不等于正式n=7表中同编号样本。"
+            },
+            {
+              "id": "n52-5ece25d3f4a4",
+              "kind": "text",
+              "html": "<h2>同一共同输入下的误差响应</h2>",
+              "markdown": "## 同一共同输入下的误差响应"
+            },
+            {
+              "id": "info31-98d6083e6aa0",
+              "kind": "image",
+              "src": "assets/31E_单次误差响应_样本474.png",
+              "alt": "同一474号嵌套删点路径上三种方法的五档三参数误差响应",
+              "markdown": "![同一474号嵌套删点路径上三种方法的五档三参数误差响应](../../reviewbyhtml/方法对比-v1.0/assets/31E_单次误差响应_样本474.png)"
+            },
+            {
+              "id": "n52-4ec0b7600c43",
+              "kind": "text",
+              "html": "<p><em>固定W(5,1000,500)，从同一份正式50点样本按既有随机排列保留50、20、15、10、7点；每一档三种方法使用相同观测。纵轴为本次估计减真值，虚线为零误差。这条路径用于观察上述构造怎样响应共同输入变化，不是重复抽样的Bias或RMSE。</em></p>",
+              "markdown": "*固定W(5,1000,500)，从同一份正式50点样本按既有随机排列保留50、20、15、10、7点；每一档三种方法使用相同观测。纵轴为本次估计减真值，虚线为零误差。这条路径用于观察上述构造怎样响应共同输入变化，不是重复抽样的Bias或RMSE。*"
+            },
+            {
+              "id": "n52-e4cb386038b4",
+              "kind": "text",
+              "html": "<p>50→20点时最小观测仍为930.6，MMLE位置保持930.6；MDM位置从733.7变为683.7，LSE从662.5变为550.5。这个例子对应信息利用方式的差别：直接以极值定位的一步不变，依赖整组统计关系与n相关参考量的定位则可以改变。20→15点时最小值升至1222.3，三法的位置及后续恢复参数都发生明显变化。该例说明构造与参数传递的具体过程，不用于决定各机制对总体RMSE差距的贡献。</p>",
+              "markdown": "50→20点时最小观测仍为930.6，MMLE位置保持930.6；MDM位置从733.7变为683.7，LSE从662.5变为550.5。这个例子对应信息利用方式的差别：直接以极值定位的一步不变，依赖整组统计关系与n相关参考量的定位则可以改变。20→15点时最小值升至1222.3，三法的位置及后续恢复参数都发生明显变化。该例说明构造与参数传递的具体过程，不用于决定各机制对总体RMSE差距的贡献。"
             },
             {
               "id": "info31-885f8e1ef627",
@@ -869,10 +985,10 @@
               "markdown": "![474号嵌套路径的观测与下端空缺](../../reviewbyhtml/方法对比-v1.0/assets/31C_样本信息变化_样本474.png)"
             },
             {
-              "id": "n52-784efdcfa348",
+              "id": "n52-3bcf8635a29f",
               "kind": "text",
-              "html": "<p>深色为当前观测，浅灰为原50点中已删观测，蓝点为当前最小值，橙段为最大相邻间隔。本图追踪一条路径；31H现移至正文3.2，与不同β的最小观测图一起讨论；本图只追踪一条路径。</p>",
-              "markdown": "深色为当前观测，浅灰为原50点中已删观测，蓝点为当前最小值，橙段为最大相邻间隔。本图追踪一条路径；31H现移至正文3.2，与不同β的最小观测图一起讨论；本图只追踪一条路径。"
+              "html": "<p>深色为当前观测，浅灰为原50点中已删观测，蓝点为当前最小值，橙段为最大相邻间隔。本图只追踪一条路径；正文3.1的31H另用正式各档样本展示最小值分布，3.2保留不同β的共同影响。</p>",
+              "markdown": "深色为当前观测，浅灰为原50点中已删观测，蓝点为当前最小值，橙段为最大相邻间隔。本图只追踪一条路径；正文3.1的31H另用正式各档样本展示最小值分布，3.2保留不同β的共同影响。"
             },
             {
               "id": "info31-a6781a92e9c6",
@@ -1288,12 +1404,15 @@
     "sha256": "68bbf2f689c309944618747b36da118d1340c791b35a287ef5f6013737ae2eb2",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
-      "31E"
+      "31H",
+      "31K",
+      "31L"
     ],
     "supplement_unit": "mechanism-n-supplement",
-    "scope": "Section 3.1 is organized by method principles: sample-information use, parameter coupling and compensation, and sensitivity to perturbations, extreme samples and parameter constraints. The seven frozen constructions are distinguished; one paired deletion path is an auxiliary illustration. Minimum distributions stay in 3.2. No new estimates or quantitative attribution of total RMSE differences.",
-    "minimum_figure_moved_to": "3.2",
+    "scope": "Section 3.1 links sample size, lower coverage and support constraints to parameter compensation, then explains seven methods and MDM selection/bias-variance tradeoff. Fixed candidate is illustrative; nonzero delta does not guarantee stability; between-method comparison does not isolate delta. 31E is supplemental. No sampling or method calls.",
+    "minimum_figure_moved_to": "3.1",
     "minimum_figure": "31H",
-    "expression_proposal": "结果呈现/比较探索/3.1样本信息变化与方法响应-表达方案.md"
+    "expression_proposal": "结果呈现/比较探索/3.1样本信息变化与方法响应-表达方案.md",
+    "coupling_mdm_check": "结果呈现/比较探索/3.1耦合与MDM核对.json"
   }
 }
