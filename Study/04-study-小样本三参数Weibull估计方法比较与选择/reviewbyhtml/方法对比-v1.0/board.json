@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 54,
+  "revision": 55,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "03ca4a3bbbd9355c28b9bdc20f08662445cf28fcd210e991309c4e7c210245a5",
+  "source_sha256": "ccec875a4a18ee5c6d69b5ad23a8fe09cbbf85caf5739e35e65507227cf5099f",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -103,9 +103,10 @@
           "label": "当前内容",
           "blocks": [
             {
-              "id": "n-comparison-purpose",
+              "id": "n55-c44b03c3e339",
               "kind": "text",
-              "html": "<p><strong>展示目的：</strong>按 β 分层，在固定形状条件下考察样本量减少带来的误差变化；再比较这一现象在不同形状条件下的共性与差异。</p>"
+              "html": "<p><strong>展示目的：</strong>按 β 分层，在固定形状条件下考察样本量减少带来的误差变化；再比较这一现象在不同形状条件下的共性与差异。</p>",
+              "markdown": "**展示目的：**按 β 分层，在固定形状条件下考察样本量减少带来的误差变化；再比较这一现象在不同形状条件下的共性与差异。"
             },
             {
               "id": "preview",
@@ -145,30 +146,95 @@
               "aspect_ratio": 1.411764705882353
             },
             {
-              "id": "report-96bac28ad30a",
+              "id": "n55-19ff30c4df3d",
               "kind": "text",
-              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>"
+              "html": "<p><em>图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。</em></p>",
+              "markdown": "*图注：五张图共用线性半径；扇区越长，标准化RMSE越大。MM的数值另列。*"
             },
             {
-              "id": "report-481785e3f263",
+              "id": "n55-8a60948e310d",
               "kind": "text",
-              "html": "<p>在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。有的方法对样本量减少较敏感，误差上升较快；有的方法增幅相对较小。</p>"
+              "html": "<p>在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。有的方法对样本量减少较敏感，误差上升较快；有的方法增幅相对较小。</p>",
+              "markdown": "在本次考察范围内，样本量减少时估计误差总体增大，但增长幅度因方法而异。有的方法对样本量减少较敏感，误差上升较快；有的方法增幅相对较小。"
             },
             {
               "id": "distance-joint-image",
-              "kind": "image",
-              "src": "assets/方法差距变化_按形状分层轨迹.png",
-              "alt": "按形状条件分层的六法两两RMSE差距随样本量减少的变化，两行三列"
+              "kind": "gallery",
+              "aspect_ratio": 1.7391304347826089,
+              "images": [
+                {
+                  "id": "growth-beta-5",
+                  "label": "β = 5",
+                  "src": "assets/误差组成与方法差距_β5.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-1.5",
+                  "label": "β = 1.5",
+                  "src": "assets/误差组成与方法差距_β1.5.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-2",
+                  "label": "β = 2",
+                  "src": "assets/误差组成与方法差距_β2.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-2.5",
+                  "label": "β = 2.5",
+                  "src": "assets/误差组成与方法差距_β2.5.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-3",
+                  "label": "β = 3",
+                  "src": "assets/误差组成与方法差距_β3.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-3.5",
+                  "label": "β = 3.5",
+                  "src": "assets/误差组成与方法差距_β3.5.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-4",
+                  "label": "β = 4",
+                  "src": "assets/误差组成与方法差距_β4.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                },
+                {
+                  "id": "growth-beta-4.5",
+                  "label": "β = 4.5",
+                  "src": "assets/误差组成与方法差距_β4.5.png",
+                  "alt": "上排误差平方组成，下排方法间RMSE差距"
+                }
+              ]
             },
             {
-              "id": "distance-joint-caption",
+              "id": "n55-cc55943d3d55",
               "kind": "text",
-              "html": "<p><em>两行分别为β=1.5、5的固定形状条件，三列分别对应形状、尺度、位置参数。横轴按n=50→20→15→10→7排列；同一参数两行共用纵轴。图中展示MDM、LSE、LRE、WMLE、MLE、MMLE六法的全部15个方法对，MM在玫瑰图中另列。</em></p><p><em>差距为两种方法标准化RMSE之差的绝对值，表示相隔多远；各法误差水平结合前面的玫瑰图观察。仍使用七法共同有效样本；形状RMSE除以真β，尺度和位置RMSE除以真η。</em></p>"
+              "html": "<p><em>两行三列，当前为β=5；HTML图组可切换八档β。上排每档n依次排列MDM(0.1)、LSE、LRE、WMLE、MLE、MMLE，浅色斜线为偏差平方，实色为经验方差，整根柱为标准化RMSE²。下排仍为六法全部15对的标准化RMSE差距。三列分别对应β、η、γ，形状以真β、其余以1000标准化。每张图固定一个β，各图坐标按自身范围显示。</em></p>",
+              "markdown": "*两行三列，当前为β=5；HTML图组可切换八档β。上排每档n依次排列MDM(0.1)、LSE、LRE、WMLE、MLE、MMLE，浅色斜线为偏差平方，实色为经验方差，整根柱为标准化RMSE²。下排仍为六法全部15对的标准化RMSE差距。三列分别对应β、η、γ，形状以真β、其余以1000标准化。每张图固定一个β，各图坐标按自身范围显示。*"
             },
             {
-              "id": "distance-joint-phenomena",
+              "id": "n55-119e58b0d276",
               "kind": "text",
-              "html": "<p>不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。</p><p>这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。</p>"
+              "html": "<p><em>共同有效样本与前图相同。SD按样本标准差计算，故经验方差为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo stretchy=\"false\">(</mo><mi>R</mi><mo>−</mo><mn>1</mn><mo stretchy=\"false\">)</mo><msup><mrow><mi mathvariant=\"normal\">S</mi><mi mathvariant=\"normal\">D</mi></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">/</mi><mi>R</mi></mrow></semantics></math></span>；不能将Bias与SD直接相加成RMSE。八档β、含MM的完整量级及数值见<a href=\"#growth-supplement\">误差增长分解</a>。</em></p>",
+              "markdown": "*共同有效样本与前图相同。SD按样本标准差计算，故经验方差为$(R-1)\\mathrm{SD}^2/R$；不能将Bias与SD直接相加成RMSE。八档β、含MM的完整量级及数值见[误差增长分解](结果呈现/比较探索/3.1误差增长分解.md)。*"
+            },
+            {
+              "id": "n55-3eb854c801a0",
+              "kind": "text",
+              "html": "<p>不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。</p>",
+              "markdown": "不同方法的误差增长并不同步，方法间的精度差距也随样本量改变：一些方法对的差距扩大，另一些逐渐接近，部分还出现转折。误差总体增大，并不意味着方法间的差距始终扩大。"
+            },
+            {
+              "id": "n55-5aecff584164",
+              "kind": "text",
+              "html": "<p>这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。</p>",
+              "markdown": "这种方法间的性能差异及其随样本量变化的关系，也会随形状条件改变。各方法对样本量减少的敏感程度需要在固定形状条件下比较，并结合不同分层考察其共性与差异。"
             }
           ]
         }
@@ -367,10 +433,70 @@
           "label": "当前正文",
           "blocks": [
             {
-              "id": "n52-5a56b394e0a1",
+              "id": "n55-ffa00198b21f",
               "kind": "text",
-              "html": "<p>2.1显示，样本量由大变小时，各方法的RMSE总体增大，但增长速度不同，部分方法只缓慢劣化。样本量减少是共同条件，误差增幅的差别则需要从方法原理解释：不同方法利用样本信息的方式不同，处理三参数耦合的路径不同，对数据扰动、极端样本和参数约束的敏感程度也不同。</p>",
-              "markdown": "2.1显示，样本量由大变小时，各方法的RMSE总体增大，但增长速度不同，部分方法只缓慢劣化。样本量减少是共同条件，误差增幅的差别则需要从方法原理解释：不同方法利用样本信息的方式不同，处理三参数耦合的路径不同，对数据扰动、极端样本和参数约束的敏感程度也不同。"
+              "html": "<a id=\"mechanism-current\"></a><p>2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节先确定增长来自偏移还是波动，再沿“样本信息变化→参数组合的约束与补偿→各方法定位和恢复参数→重复估计的偏移与波动”解释这些差别。以β=5贯穿具体核验，其他形状条件的现象由2.1分层图对照。</p>",
+              "markdown": "2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节先确定增长来自偏移还是波动，再沿“样本信息变化→参数组合的约束与补偿→各方法定位和恢复参数→重复估计的偏移与波动”解释这些差别。以β=5贯穿具体核验，其他形状条件的现象由2.1分层图对照。"
+            },
+            {
+              "id": "n55-597332758fe9",
+              "kind": "text",
+              "html": "<h4>误差增长中，偏差和波动各贡献多少</h4>",
+              "markdown": "#### 误差增长中，偏差和波动各贡献多少"
+            },
+            {
+              "id": "n55-1016ff465ea8",
+              "kind": "text",
+              "html": "<p>2.1第二幅图的上排已经将误差平方拆开：</p>",
+              "markdown": "2.1第二幅图的上排已经将误差平方拆开："
+            },
+            {
+              "id": "n55-1ef6b19655c2",
+              "kind": "text",
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>=</mo><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>+</mo><msub><mi>V</mi><mi>R</mi></msub><mo separator=\"true\">,</mo><mspace width=\"2em\"/><msub><mi>V</mi><mi>R</mi></msub><mo>=</mo><mfrac><mrow><mi>R</mi><mo>−</mo><mn>1</mn></mrow><mi>R</mi></mfrac><msup><mrow><mi mathvariant=\"normal\">SD</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\n\\operatorname{RMSE}^2=\\operatorname{Bias}^2+V_R,\\qquad\nV_R=\\frac{R-1}{R}\\operatorname{SD}^2.\n$$"
+            },
+            {
+              "id": "n55-ffdffc2c221b",
+              "kind": "text",
+              "html": "<p>这里R为有效重复次数，SD采用样本标准差。比较n=50与n=7时，增长也能逐项相减：</p>",
+              "markdown": "这里R为有效重复次数，SD采用样本标准差。比较n=50与n=7时，增长也能逐项相减："
+            },
+            {
+              "id": "n55-093cad5a9e83",
+              "kind": "text",
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi mathvariant=\"normal\">Δ</mi><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>=</mo><mi mathvariant=\"normal\">Δ</mi><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>+</mo><mi mathvariant=\"normal\">Δ</mi><msub><mi>V</mi><mi>R</mi></msub><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\n\\Delta\\operatorname{RMSE}^2=\\Delta\\operatorname{Bias}^2+\\Delta V_R.\n$$"
+            },
+            {
+              "id": "n55-e857be63efc0",
+              "kind": "text",
+              "html": "<p>Δ取“n=7减n=50”。正项推动误差平方增长，负项抵消增长；RMSE增大并不要求Bias的绝对值与SD同时增大。</p>",
+              "markdown": "Δ取“n=7减n=50”。正项推动误差平方增长，负项抵消增长；RMSE增大并不要求Bias的绝对值与SD同时增大。"
+            },
+            {
+              "id": "n55-69ddaf3abee4",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>方法（β=5，形状估计）</th><th style=\"text-align:right\">ΔRMSE²</th><th style=\"text-align:right\">ΔBias²</th><th style=\"text-align:right\">Δ方差</th></tr></thead><tbody><tr><td>MDM(0.1)</td><td style=\"text-align:right\">+0.1357</td><td style=\"text-align:right\">+0.1461</td><td style=\"text-align:right\">-0.0103</td></tr><tr><td>LSE</td><td style=\"text-align:right\">+0.2315</td><td style=\"text-align:right\">-0.0005</td><td style=\"text-align:right\">+0.2320</td></tr><tr><td>LRE</td><td style=\"text-align:right\">+0.1958</td><td style=\"text-align:right\">+0.0000</td><td style=\"text-align:right\">+0.1958</td></tr><tr><td>WMLE</td><td style=\"text-align:right\">+0.2228</td><td style=\"text-align:right\">+0.2399</td><td style=\"text-align:right\">-0.0171</td></tr><tr><td>MLE</td><td style=\"text-align:right\">+0.4687</td><td style=\"text-align:right\">+0.0160</td><td style=\"text-align:right\">+0.4527</td></tr><tr><td>MMLE</td><td style=\"text-align:right\">+0.0267</td><td style=\"text-align:right\">+0.0216</td><td style=\"text-align:right\">+0.0051</td></tr></tbody></table>",
+              "markdown": "| 方法（β=5，形状估计） | ΔRMSE² | ΔBias² | Δ方差 |\n|---|---:|---:|---:|\n| MDM(0.1) | +0.1357 | +0.1461 | -0.0103 |\n| LSE | +0.2315 | -0.0005 | +0.2320 |\n| LRE | +0.1958 | +0.0000 | +0.1958 |\n| WMLE | +0.2228 | +0.2399 | -0.0171 |\n| MLE | +0.4687 | +0.0160 | +0.4527 |\n| MMLE | +0.0267 | +0.0216 | +0.0051 |"
+            },
+            {
+              "id": "n55-e4c48b64f955",
+              "kind": "text",
+              "html": "<p><em>表中为标准化误差平方，形状除以真β=5后再平方。各n使用七法共同有效集合，n=50、20、15、10、7分别保留1182、1100、1025、880、644组，集合随n变化；数值是相应条件下有效结果的分解。尺度、位置及含MM的完整表见<a href=\"#growth-supplement\">补充</a>。</em></p>",
+              "markdown": "*表中为标准化误差平方，形状除以真β=5后再平方。各n使用七法共同有效集合，n=50、20、15、10、7分别保留1182、1100、1025、880、644组，集合随n变化；数值是相应条件下有效结果的分解。尺度、位置及含MM的完整表见[补充](结果呈现/比较探索/3.1误差增长分解.md)。*"
+            },
+            {
+              "id": "n55-4ba7d4578386",
+              "kind": "text",
+              "html": "<p>在这套比较口径下，MLE、LSE和LRE的形状误差增长主要来自方差；MDM(0.1)和WMLE主要来自偏差平方增加，方差项反而下降。MMLE的形状误差增量较小，也主要由偏差平方组成。以MDM(0.1)为例，Bias由−1.46变为−2.41，SD由0.75降为0.55，RMSE仍由1.64增至2.47；LSE的Bias约由+0.24变为+0.21，SD由2.03增至3.15，RMSE由2.04增至3.16。</p>",
+              "markdown": "在这套比较口径下，MLE、LSE和LRE的形状误差增长主要来自方差；MDM(0.1)和WMLE主要来自偏差平方增加，方差项反而下降。MMLE的形状误差增量较小，也主要由偏差平方组成。以MDM(0.1)为例，Bias由−1.46变为−2.41，SD由0.75降为0.55，RMSE仍由1.64增至2.47；LSE的Bias约由+0.24变为+0.21，SD由2.03增至3.15，RMSE由2.04增至3.16。"
+            },
+            {
+              "id": "n55-9368fc85b7f1",
+              "kind": "text",
+              "html": "<p>这些分解先说明“增长在哪里”，接着才解释“为什么不同”。共同有效集合收缩也会影响条件SD，不能把上表直接当作全部1200次抽样的波动；后面的两δ对照使用每档完整1200组共同样本，单独核对规则改变后的分布。</p>",
+              "markdown": "这些分解先说明“增长在哪里”，接着才解释“为什么不同”。共同有效集合收缩也会影响条件SD，不能把上表直接当作全部1200次抽样的波动；后面的两δ对照使用每档完整1200组共同样本，单独核对规则改变后的分布。"
             },
             {
               "id": "n52-795b16c7a92b",
@@ -429,16 +555,130 @@
               "markdown": "下端覆盖不足因而可能削弱候选之间的区分。当具体判据沿某条参数补偿方向变化很小时，会形成较平缓的候选区域，样本的偶然差异就可能让选参位置发生较大变化。这一变化要通过各方法的判据传递到最终估计；平缓区域是否出现，仍需看该方法的实际准则。"
             },
             {
-              "id": "n52-5de6deb24251",
+              "id": "n55-98f690afafda",
               "kind": "text",
-              "html": "<h4>样本信息利用方式不同</h4>",
-              "markdown": "#### 样本信息利用方式不同"
+              "html": "<h4>用共同样本看四种规则怎样确定位置</h4>",
+              "markdown": "#### 用共同样本看四种规则怎样确定位置"
             },
             {
-              "id": "n52-9187e24b5533",
+              "id": "n55-a75b92ec2382",
               "kind": "text",
-              "html": "<p>样本减少后，估计所依据的统计关系更容易受当前这组观测的偶然性影响。但相同的观测进入不同方法后，会被转化为不同的构造量：似然中的距离及其幂次、回归中的排序与对数距离、矩关系中的间距加权和，或由样本点反算的伪尺度。因而，相同的样本变化并不会以相同方式传递到参数估计。</p>",
-              "markdown": "样本减少后，估计所依据的统计关系更容易受当前这组观测的偶然性影响。但相同的观测进入不同方法后，会被转化为不同的构造量：似然中的距离及其幂次、回归中的排序与对数距离、矩关系中的间距加权和，或由样本点反算的伪尺度。因而，相同的样本变化并不会以相同方式传递到参数估计。"
+              "html": "<p>减点诊断固定使用MLE、MMLE、MDM(0)和MDM(0.1)。从1200份正式50点样本预先每10个编号取一份，共120条路径；按固定随机排列依次保留50、20、15、10、7点，四法在每档使用完全相同的观测。</p>",
+              "markdown": "减点诊断固定使用MLE、MMLE、MDM(0)和MDM(0.1)。从1200份正式50点样本预先每10个编号取一份，共120条路径；按固定随机排列依次保留50、20、15、10、7点，四法在每档使用完全相同的观测。"
+            },
+            {
+              "id": "ten-gamma-paths-anchor",
+              "kind": "text",
+              "html": "<a id=\"ten-gamma-paths\"></a>"
+            },
+            {
+              "id": "n55-ten-gamma-paths",
+              "kind": "gallery",
+              "aspect_ratio": 1,
+              "images": [
+                {
+                  "id": "gamma-path-670",
+                  "label": "第1/10组 · 样本670 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本670.png",
+                  "alt": "样本670：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-630",
+                  "label": "第2/10组 · 样本630 · MLE失败n=10,7",
+                  "src": "assets/31T_分行定位判据_样本630.png",
+                  "alt": "样本630：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-190",
+                  "label": "第3/10组 · 样本190 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本190.png",
+                  "alt": "样本190：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-920",
+                  "label": "第4/10组 · 样本920 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本920.png",
+                  "alt": "样本920：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-70",
+                  "label": "第5/10组 · 样本70 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本70.png",
+                  "alt": "样本70：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-280",
+                  "label": "第6/10组 · 样本280 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本280.png",
+                  "alt": "样本280：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-90",
+                  "label": "第7/10组 · 样本90 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本90.png",
+                  "alt": "样本90：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-350",
+                  "label": "第8/10组 · 样本350 · MLE失败n=15,10,7",
+                  "src": "assets/31T_分行定位判据_样本350.png",
+                  "alt": "样本350：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-170",
+                  "label": "第9/10组 · 样本170 · MLE各档均返回",
+                  "src": "assets/31T_分行定位判据_样本170.png",
+                  "alt": "样本170：5行样本量与4列方法定位判据"
+                },
+                {
+                  "id": "gamma-path-700",
+                  "label": "第10/10组 · 样本700 · MLE失败n=10,7",
+                  "src": "assets/31T_分行定位判据_样本700.png",
+                  "alt": "样本700：5行样本量与4列方法定位判据"
+                }
+              ]
+            },
+            {
+              "id": "n55-1a4e63b0859f",
+              "kind": "text",
+              "html": "<p><em>每组五行，自上而下为n=50、20、15、10、7；四列依次为MLE、MMLE、MDM(0)、MDM(0.1)。同列跨行固定坐标范围，两MDM列还共用横纵坐标。MLE纵轴是相对每观测负对数似然<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo>−</mo><mi mathvariant=\"normal\">Δ</mi><msub><mover accent=\"true\"><mi mathvariant=\"normal\">ℓ</mi><mo>ˉ</mo></mover><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mo stretchy=\"false\">[</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo><mi mathvariant=\"normal\">/</mi><mi>n</mi></mrow></semantics></math></span>；圆点为实际返回位置。MMLE以彩色最左观测直接确定<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span>，灰短线为其余观测。两MDM横轴为原始单位γ，纵轴为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，分别以虚线目标0和0.1定位；两列曲线本来相同，区别在阈值和选中点。</em></p>",
+              "markdown": "*每组五行，自上而下为n=50、20、15、10、7；四列依次为MLE、MMLE、MDM(0)、MDM(0.1)。同列跨行固定坐标范围，两MDM列还共用横纵坐标。MLE纵轴是相对每观测负对数似然$-\\Delta\\bar\\ell_p(\\gamma)=[\\ell_p(\\hat\\gamma)-\\ell_p(\\gamma)]/n$；圆点为实际返回位置。MMLE以彩色最左观测直接确定$\\hat\\gamma=x_{(1)}$，灰短线为其余观测。两MDM横轴为原始单位γ，纵轴为$g_n(\\gamma)$，分别以虚线目标0和0.1定位；两列曲线本来相同，区别在阈值和选中点。*"
+            },
+            {
+              "id": "n55-0a711424b6ee",
+              "kind": "text",
+              "html": "<p>先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。图中670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。</p>",
+              "markdown": "先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。图中670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。"
+            },
+            {
+              "id": "n55-2c229b21c4a1",
+              "kind": "text",
+              "html": "<p>这里共制作了<a href=\"#ten-gamma-paths\">十组分行图</a>，HTML在同一图组中逐组切换。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；具体失败档数列在图组标签和补充表。各组保留自身固定坐标，不比较不同组的视觉曲线高低。</p>",
+              "markdown": "这里共制作了[十组分行图](结果呈现/比较探索/3.1十组定位判据.md)，HTML在同一图组中逐组切换。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；具体失败档数列在图组标签和补充表。各组保留自身固定坐标，不比较不同组的视觉曲线高低。"
+            },
+            {
+              "id": "n55-1b4ba995ce92",
+              "kind": "text",
+              "html": "<p>十组图用于观察不同过程，120条路径的完整统计用于判断趋势。670号是88/120条共同端点有效路径中的综合中心例，不代表所有单项变化都恰好居中；曲率中心例640、反方向例330和全部选例规则另见<a href=\"#population-supplement\">群体核对</a>。</p>",
+              "markdown": "十组图用于观察不同过程，120条路径的完整统计用于判断趋势。670号是88/120条共同端点有效路径中的综合中心例，不代表所有单项变化都恰好居中；曲率中心例640、反方向例330和全部选例规则另见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。"
+            },
+            {
+              "id": "n55-572088823cdd",
+              "kind": "text",
+              "html": "<p>不同路径给出了不同定位响应。120条完整诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，MLE失败由0增至32/120。可靠内部解的曲率既有降低也有升高；MLE总似然曲率的下降还包含观测项减少的加和效应，除以n后的结果不同。因此，单条路径上的位置跳变、边界转换和判据变平分别反映选参过程，不能直接当作SD或其增长的测量。曲率定义、完整群体图及正反方向例见<a href=\"#population-supplement\">群体核对</a>。</p>",
+              "markdown": "不同路径给出了不同定位响应。120条完整诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，MLE失败由0增至32/120。可靠内部解的曲率既有降低也有升高；MLE总似然曲率的下降还包含观测项减少的加和效应，除以n后的结果不同。因此，单条路径上的位置跳变、边界转换和判据变平分别反映选参过程，不能直接当作SD或其增长的测量。曲率定义、完整群体图及正反方向例见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。"
+            },
+            {
+              "id": "n55-39618b93ac31",
+              "kind": "text",
+              "html": "<h4>不同构造怎样处理这些信息与参数耦合</h4>",
+              "markdown": "#### 不同构造怎样处理这些信息与参数耦合"
+            },
+            {
+              "id": "n55-0219aa33c985",
+              "kind": "text",
+              "html": "<p>相同观测进入不同方法，会成为不同的估计依据；位置变化又会改变全部观测到起点的距离，进而牵动形状和尺度。这就是从样本信息转向方法视角的连接：各法利用的信息、处理三参数耦合的步骤和选参规则不同。</p>",
+              "markdown": "相同观测进入不同方法，会成为不同的估计依据；位置变化又会改变全部观测到起点的距离，进而牵动形状和尺度。这就是从样本信息转向方法视角的连接：各法利用的信息、处理三参数耦合的步骤和选参规则不同。"
             },
             {
               "id": "n52-22c438a8b71a",
@@ -447,149 +687,77 @@
               "markdown": "| 方法 | 怎样利用样本信息 | 与样本量变化有关的响应环节 |\n|---|---|---|\n| MLE | 用各观测到候选起点的距离构造似然，联合确定三参数。 | 对数距离和幂次距离共同影响候选组合的似然高低。 |\n| WMLE | 将距离、对数距离、幂加权距离和倒数距离放入带有样本量校准权重的估计方程。 | 样本统计关系与n相关权重共同改变形状、位置方程的交点。 |\n| MMLE | 以最小观测确定位置，再对删除该点后的正距离估计形状、尺度。 | 位置直接受单个极值影响，其误差随后进入其余观测到起点的距离。 |\n| LSE | 将排序观测的对数距离与按n确定的理论参考坐标回归，再以相对匹配定位。 | 点列、参考坐标及回归斜率共同影响三参数恢复。 |\n| LRE | 用绘图位置形成概率图参考坐标，以相关性定位，再由另一方向的回归恢复参数。 | 绘图位置、对数间距和回归方向决定其对点列变化的响应。 |\n| MDM | 每个位置下使各点反算的伪尺度尽量一致，再以最小标准差的梯度阈值定位。 | 伪尺度离散程度、条件形状和梯度交点共同响应样本变化。 |\n| MM | 用排序间距的加权和计算Cran的样本Weibull矩，再由矩差关系反演参数。 | 间距和n相关权重改变矩组合，非线性反演可能放大矩差的变化。 |"
             },
             {
-              "id": "n52-e5ba1a3bccf8",
+              "id": "n55-da4b5d6c5062",
               "kind": "text",
-              "html": "<p>使用全部样本并不意味着各点作用相同，也不自动意味着稳健。某些变换会强调下端距离，某些关系对远端观测或局部间距更敏感；样本量减小时，这些作用能否由其余观测平衡，也随构造而异。</p>",
-              "markdown": "使用全部样本并不意味着各点作用相同，也不自动意味着稳健。某些变换会强调下端距离，某些关系对远端观测或局部间距更敏感；样本量减小时，这些作用能否由其余观测平衡，也随构造而异。"
+              "html": "<p>MMLE先用最小观测固定位置，再估计其余两参；MLE通过条件似然及位置搜索选择组合；MDM先逐位置优化形状，再按梯度阈值定位。回归与矩反演也有各自的放大环节，例如斜率取倒数和矩差反演。参数约束既可能限制极端值，也可能使多个不同样本返回同一边界值；这些作用不能用单一的“样本少了”概括。</p>",
+              "markdown": "MMLE先用最小观测固定位置，再估计其余两参；MLE通过条件似然及位置搜索选择组合；MDM先逐位置优化形状，再按梯度阈值定位。回归与矩反演也有各自的放大环节，例如斜率取倒数和矩差反演。参数约束既可能限制极端值，也可能使多个不同样本返回同一边界值；这些作用不能用单一的“样本少了”概括。"
             },
             {
-              "id": "n52-cfa141a2d23b",
+              "id": "n55-92f4c7a241a2",
               "kind": "text",
-              "html": "<h4>参数耦合使信息变化传递到多个参数</h4>",
-              "markdown": "#### 参数耦合使信息变化传递到多个参数"
+              "html": "<h4>MDM两种偏移量的重复分布与误差取舍</h4>",
+              "markdown": "#### MDM两种偏移量的重复分布与误差取舍"
             },
             {
-              "id": "n52-a85a53100ad0",
+              "id": "n55-c13cfa99acbc",
               "kind": "text",
-              "html": "<p>三参数共同决定分布的位置、尺度和形状。在有限的观测区间内，不同组合有时能够通过相互补偿取得相近的匹配。因此，样本中的变化不仅可能使某一个参数不稳定，还可能沿着参数补偿关系，带动另外两个参数偏离。分布曲线在观测区间仍较接近，并不保证三个参数都估得准确。</p>",
-              "markdown": "三参数共同决定分布的位置、尺度和形状。在有限的观测区间内，不同组合有时能够通过相互补偿取得相近的匹配。因此，样本中的变化不仅可能使某一个参数不稳定，还可能沿着参数补偿关系，带动另外两个参数偏离。分布曲线在观测区间仍较接近，并不保证三个参数都估得准确。"
+              "html": "<p>MDM内部位置由条件最小伪尺度标准差的梯度确定：</p>",
+              "markdown": "MDM内部位置由条件最小伪尺度标准差的梯度确定："
             },
             {
-              "id": "n52-67c5a7b3a80c",
+              "id": "n55-d4263efe56c0",
               "kind": "text",
-              "html": "<p>各方法处理这种耦合的路径不同。MMLE先固定位置，再估计形状、尺度，位置误差直接进入后续距离；LSE、LRE和MDM在不同候选位置下恢复其余参数，再按各自规则定位；MLE、WMLE通过联合似然或方程关系确定参数组合；MM通过矩关系显式反演。由此，同样的样本波动会经过不同的传递和放大过程。</p>",
-              "markdown": "各方法处理这种耦合的路径不同。MMLE先固定位置，再估计形状、尺度，位置误差直接进入后续距离；LSE、LRE和MDM在不同候选位置下恢复其余参数，再按各自规则定位；MLE、WMLE通过联合似然或方程关系确定参数组合；MM通过矩关系显式反演。由此，同样的样本波动会经过不同的传递和放大过程。"
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>β</mi></munder><msub><mi>s</mi><mi>η</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mi>δ</mi><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\nS_n(\\gamma)=\\min_\\beta s_\\eta(\\beta,\\gamma),\\qquad\ng_n(\\hat\\gamma)=\\delta.\n$$"
             },
             {
-              "id": "n52-9595eee262b6",
+              "id": "n55-aa2bade71004",
               "kind": "text",
-              "html": "<p>例如，位置右移时，小观测到起点的距离缩短比例更大，整组距离的相对关系发生改变。方法为继续匹配样本，会重新调整形状与尺度；这种调整可能使参数误差相互补偿，也可能同时扩大。方向和程度取决于具体构造与点列，不能统一概括为所有方法都向同一方向偏移。</p>",
-              "markdown": "例如，位置右移时，小观测到起点的距离缩短比例更大，整组距离的相对关系发生改变。方法为继续匹配样本，会重新调整形状与尺度；这种调整可能使参数误差相互补偿，也可能同时扩大。方向和程度取决于具体构造与点列，不能统一概括为所有方法都向同一方向偏移。"
+              "html": "<p>保持样本、秩、形状范围、位置约束和求解程序相同，只将δ由0改为0.1，就能直接检验偏移判据的影响。这里使用正式五档n各1200组原样本，补算MDM(0)，复用MDM(0.1)；两方案全部有效。它与上面的120条嵌套诊断分开统计。</p>",
+              "markdown": "保持样本、秩、形状范围、位置约束和求解程序相同，只将δ由0改为0.1，就能直接检验偏移判据的影响。这里使用正式五档n各1200组原样本，补算MDM(0)，复用MDM(0.1)；两方案全部有效。它与上面的120条嵌套诊断分开统计。"
             },
             {
-              "id": "n52-dd9b4f6d6d8e",
-              "kind": "text",
-              "html": "<h4>对扰动、极端样本和约束的敏感程度不同</h4>",
-              "markdown": "#### 对扰动、极端样本和约束的敏感程度不同"
-            },
-            {
-              "id": "n52-01a411a5198a",
-              "kind": "text",
-              "html": "<p>估计构造还决定了样本变化会被平缓传递，还是被非线性关系放大。LSE的形状取回归斜率的倒数，斜率已经较小时，进一步的小幅变化就可能造成很大的形状变化；Cran矩法通过矩差的对数之差反演形状，当反演分母接近零时，矩关系的变化也可能产生较大的参数响应。MMLE的位置则对最小观测具有直接依赖。这些是不同的敏感环节，不能用同一个判据曲线概括。</p>",
-              "markdown": "估计构造还决定了样本变化会被平缓传递，还是被非线性关系放大。LSE的形状取回归斜率的倒数，斜率已经较小时，进一步的小幅变化就可能造成很大的形状变化；Cran矩法通过矩差的对数之差反演形状，当反演分母接近零时，矩关系的变化也可能产生较大的参数响应。MMLE的位置则对最小观测具有直接依赖。这些是不同的敏感环节，不能用同一个判据曲线概括。"
-            },
-            {
-              "id": "n52-6974b9143625",
-              "kind": "text",
-              "html": "<p>参数约束和修正进一步改变这种传递。非负位置、形状范围、可采纳性修正、梯度阈值及样本量校准权重，会限制某些候选，也可能使估计聚集在边界或转入另一分支。约束可以抑制某个方向的极端值，也可能带来偏移；其影响应结合所用方法判断。数值搜索没有正确执行方法规则的情况，与这些统计响应分开讨论，见3.3。</p>",
-              "markdown": "参数约束和修正进一步改变这种传递。非负位置、形状范围、可采纳性修正、梯度阈值及样本量校准权重，会限制某些候选，也可能使估计聚集在边界或转入另一分支。约束可以抑制某个方向的极端值，也可能带来偏移；其影响应结合所用方法判断。数值搜索没有正确执行方法规则的情况，与这些统计响应分开讨论，见3.3。"
-            },
-            {
-              "id": "n52-165cb85a5985",
-              "kind": "text",
-              "html": "<p>因此，RMSE增幅不同可以从三方面理解：样本信息以何种方式进入估计；参数耦合怎样传递这些变化；构造与约束又怎样放大或抑制扰动。在当前条件下，若构造对偶然点列的响应较平缓、参数补偿没有显著放大误差，就可能只缓慢劣化；若少数观测改变了定位、矩关系或回归恢复，并触发较强的参数联动，则可能产生更大的偏移、分散或极端误差，使RMSE增长更快。具体方法的增长幅度由第二章的重复估计结果判断。</p>",
-              "markdown": "因此，RMSE增幅不同可以从三方面理解：样本信息以何种方式进入估计；参数耦合怎样传递这些变化；构造与约束又怎样放大或抑制扰动。在当前条件下，若构造对偶然点列的响应较平缓、参数补偿没有显著放大误差，就可能只缓慢劣化；若少数观测改变了定位、矩关系或回归恢复，并触发较强的参数联动，则可能产生更大的偏移、分散或极端误差，使RMSE增长更快。具体方法的增长幅度由第二章的重复估计结果判断。"
-            },
-            {
-              "id": "n52-4cd02d473aa2",
-              "kind": "text",
-              "html": "<h4>MDM：改变选参规则，形成偏差与波动的取舍</h4>",
-              "markdown": "#### MDM：改变选参规则，形成偏差与波动的取舍"
-            },
-            {
-              "id": "n52-87a19b27579e",
-              "kind": "text",
-              "html": "<p>MDM先在每个候选位置下调整形状，使各点反算的伪尺度尽量一致，得到条件最小标准差</p>",
-              "markdown": "MDM先在每个候选位置下调整形状，使各点反算的伪尺度尽量一致，得到条件最小标准差"
-            },
-            {
-              "id": "n52-d7db5f562f41",
-              "kind": "text",
-              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>β</mi></munder><msub><mi>s</mi><mi>η</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
-              "markdown": "$$\nS_n(\\gamma)=\\min_\\beta s_\\eta(\\beta,\\gamma).\n$$"
-            },
-            {
-              "id": "n52-79195d66adfd",
-              "kind": "text",
-              "html": "<p>若仅寻找这条曲线的最低点，局部曲率很小时，曲线的轻微变化就可能使极小点明显移动。MDM的正偏移版本将内部解的位置判据由导数等于零改为</p>",
-              "markdown": "若仅寻找这条曲线的最低点，局部曲率很小时，曲线的轻微变化就可能使极小点明显移动。MDM的正偏移版本将内部解的位置判据由导数等于零改为"
-            },
-            {
-              "id": "n52-c845ab86b695",
-              "kind": "text",
-              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><mi mathvariant=\"normal\">d</mi><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow><mrow><mi mathvariant=\"normal\">d</mi><mi>γ</mi></mrow></mfrac><msub><mo fence=\"false\" stretchy=\"true\" minsize=\"2.4em\" maxsize=\"2.4em\">∣</mo><mrow><mi>γ</mi><mo>=</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover></mrow></msub><mo>=</mo><mi>δ</mi><mo separator=\"true\">,</mo><mspace width=\"2em\"/><mi>δ</mi><mo>=</mo><mn>0.1</mn><mo separator=\"true\">,</mo></mrow></semantics></math></span></p>",
-              "markdown": "$$\ng_n(\\hat\\gamma)=\\frac{\\mathrm{d}S_n(\\gamma)}{\\mathrm{d}\\gamma}\\bigg|_{\\gamma=\\hat\\gamma}\n=\\delta,\\qquad \\delta=0.1,\n$$"
-            },
-            {
-              "id": "n52-364a59922e62",
-              "kind": "text",
-              "html": "<p>再回代该位置下的形状，并以伪尺度均值恢复尺度。这个规则允许选参离开经验最低点；当交点处的梯度变化更清楚时，定位可能对曲线扰动更不敏感。δ非零本身不保证稳定，交点的敏感程度仍取决于梯度曲线的局部斜率。<a href=\"https://cjournal.hep.com.cn/1005-3026/CN/1190581232397218100\">谢里阳等（2025）</a>以偏移判据改善精度和稳健性，本轮采用其核心结构及项目固定实现。</p>",
-              "markdown": "再回代该位置下的形状，并以伪尺度均值恢复尺度。这个规则允许选参离开经验最低点；当交点处的梯度变化更清楚时，定位可能对曲线扰动更不敏感。δ非零本身不保证稳定，交点的敏感程度仍取决于梯度曲线的局部斜率。[谢里阳等（2025）](https://cjournal.hep.com.cn/1005-3026/CN/1190581232397218100)以偏移判据改善精度和稳健性，本轮采用其核心结构及项目固定实现。"
-            },
-            {
-              "id": "n52-9b9e1f3df053",
+              "id": "n55-51dd06510c44",
               "kind": "image",
-              "src": "assets/31L_MDM条件廓线与偏移判据.png",
-              "alt": "既有七点样本下MDM条件最小标准差、零梯度参考点与0.1梯度交点",
-              "markdown": "![既有七点样本下MDM条件最小标准差、零梯度参考点与0.1梯度交点](reviewbyhtml/方法对比-v1.0/assets/31L_MDM条件廓线与偏移判据.png)"
+              "src": "assets/31N_MDM两偏移量估计分布.png",
+              "alt": "MDM零偏移和正偏移在1200组共同样本上的估计分布",
+              "markdown": "![MDM零偏移和正偏移在1200组共同样本上的估计分布](reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布.png)"
             },
             {
-              "id": "n52-11d10810d26b",
+              "id": "n55-836013af89fe",
               "kind": "text",
-              "html": "<p><em>474号路径的同一组7点。左图为条件最小标准差，右图为其梯度；灰点是零梯度参考点，橙点是原MDM返回位置1143.8，虚线对应δ=0.1，竖点线为真实位置500。灰点仅用于比较定位规则，不作为新增的正式δ=0估计。这幅单样本图说明“怎样选”，其重复波动由下表判断。</em></p>",
-              "markdown": "*474号路径的同一组7点。左图为条件最小标准差，右图为其梯度；灰点是零梯度参考点，橙点是原MDM返回位置1143.8，虚线对应δ=0.1，竖点线为真实位置500。灰点仅用于比较定位规则，不作为新增的正式δ=0估计。这幅单样本图说明“怎样选”，其重复波动由下表判断。*"
+              "html": "<p><em>上排n=50，下排n=7，每种方案各1200次。每列共用横轴、分箱和纵轴；纵轴为每箱所占比例，包含γ=0的集中质量，虚线为真实参数。完整五档指标及偏差平方/方差分解在补充区。</em></p>",
+              "markdown": "*上排n=50，下排n=7，每种方案各1200次。每列共用横轴、分箱和纵轴；纵轴为每箱所占比例，包含γ=0的集中质量，虚线为真实参数。完整五档指标及偏差平方/方差分解在补充区。*"
             },
             {
-              "id": "n52-df1691bdd5d3",
-              "kind": "text",
-              "html": "<p>偏移判据并不要求每次都更接近真实参数；评价要同时看偏差和重复波动。<a href=\"https://online.stat.psu.edu/stat415/Lesson02\">理论上</a>，对任一参数有</p>",
-              "markdown": "偏移判据并不要求每次都更接近真实参数；评价要同时看偏差和重复波动。[理论上](https://online.stat.psu.edu/stat415/Lesson02)，对任一参数有"
-            },
-            {
-              "id": "n52-9aae0e4a13af",
-              "kind": "text",
-              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>+</mo><mi mathvariant=\"normal\">Var</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>θ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
-              "markdown": "$$\n\\operatorname{RMSE}^{2}(\\hat\\theta)\n=\\operatorname{Bias}^{2}(\\hat\\theta)+\\operatorname{Var}(\\hat\\theta).\n$$"
-            },
-            {
-              "id": "n52-b1879ee09922",
-              "kind": "text",
-              "html": "<p>因此，只要方差减少超过偏差平方的增加，有偏但更稳定的估计也可以有更小RMSE。本轮固定β=5，MDM与LSE的形状估计呈现了这种取舍：</p>",
-              "markdown": "因此，只要方差减少超过偏差平方的增加，有偏但更稳定的估计也可以有更小RMSE。本轮固定β=5，MDM与LSE的形状估计呈现了这种取舍："
-            },
-            {
-              "id": "n52-5575e1a86bee",
+              "id": "n55-3edc5fedd787",
               "kind": "visual",
-              "html": "<table><thead><tr><th style=\"text-align:right\">样本量n</th><th>方法</th><th style=\"text-align:right\">形状Bias</th><th style=\"text-align:right\">形状SD</th><th style=\"text-align:right\">形状RMSE</th></tr></thead><tbody><tr><td style=\"text-align:right\">50</td><td>MDM</td><td style=\"text-align:right\">−1.45</td><td style=\"text-align:right\">0.76</td><td style=\"text-align:right\">1.63</td></tr><tr><td style=\"text-align:right\">50</td><td>LSE</td><td style=\"text-align:right\">+0.28</td><td style=\"text-align:right\">2.04</td><td style=\"text-align:right\">2.06</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM</td><td style=\"text-align:right\">−2.62</td><td style=\"text-align:right\">1.14</td><td style=\"text-align:right\">2.86</td></tr><tr><td style=\"text-align:right\">7</td><td>LSE</td><td style=\"text-align:right\">−0.58</td><td style=\"text-align:right\">3.54</td><td style=\"text-align:right\">3.58</td></tr></tbody></table>",
-              "markdown": "| 样本量n | 方法 | 形状Bias | 形状SD | 形状RMSE |\n|---:|---|---:|---:|---:|\n| 50 | MDM | −1.45 | 0.76 | 1.63 |\n| 50 | LSE | +0.28 | 2.04 | 2.06 |\n| 7 | MDM | −2.62 | 1.14 | 2.86 |\n| 7 | LSE | −0.58 | 3.54 | 3.58 |"
+              "html": "<table><thead><tr><th>参数（n=7）</th><th style=\"text-align:right\">δ</th><th style=\"text-align:right\">Bias</th><th style=\"text-align:right\">SD</th><th style=\"text-align:right\">RMSE</th></tr></thead><tbody><tr><td>形状β</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">+0.53</td><td style=\"text-align:right\">3.48</td><td style=\"text-align:right\">3.52</td></tr><tr><td>形状β</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">-2.62</td><td style=\"text-align:right\">1.14</td><td style=\"text-align:right\">2.86</td></tr><tr><td>尺度η</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">+66.97</td><td style=\"text-align:right\">527.44</td><td style=\"text-align:right\">531.45</td></tr><tr><td>尺度η</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">-448.64</td><td style=\"text-align:right\">256.93</td><td style=\"text-align:right\">516.95</td></tr><tr><td>位置γ</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">-79.04</td><td style=\"text-align:right\">503.51</td><td style=\"text-align:right\">509.47</td></tr><tr><td>位置γ</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">+426.11</td><td style=\"text-align:right\">248.67</td><td style=\"text-align:right\">493.31</td></tr></tbody></table>",
+              "markdown": "| 参数（n=7） | δ | Bias | SD | RMSE |\n|---|---:|---:|---:|---:|\n| 形状β | 0 | +0.53 | 3.48 | 3.52 |\n| 形状β | 0.1 | -2.62 | 1.14 | 2.86 |\n| 尺度η | 0 | +66.97 | 527.44 | 531.45 |\n| 尺度η | 0.1 | -448.64 | 256.93 | 516.95 |\n| 位置γ | 0 | -79.04 | 503.51 | 509.47 |\n| 位置γ | 0.1 | +426.11 | 248.67 | 493.31 |"
             },
             {
-              "id": "n52-de9832934e39",
+              "id": "n55-44bb55ddbaa7",
               "kind": "text",
-              "html": "<p><em>均来自本轮各条件的同一1200组样本，两法全部有效，读取原条件汇总。SD沿用共享指标的样本标准差口径；有限重复数<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>R</mi></mrow></semantics></math></span>下，精确关系为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">RMSE</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>=</mo><msup><mrow><mi mathvariant=\"normal\">Bias</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo>+</mo><mo stretchy=\"false\">(</mo><mi>R</mi><mo>−</mo><mn>1</mn><mo stretchy=\"false\">)</mo><msup><mrow><mi mathvariant=\"normal\">SD</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">/</mi><mi>R</mi></mrow></semantics></math></span>。</em></p>",
-              "markdown": "*均来自本轮各条件的同一1200组样本，两法全部有效，读取原条件汇总。SD沿用共享指标的样本标准差口径；有限重复数$R$下，精确关系为$\\operatorname{RMSE}^2=\\operatorname{Bias}^2+(R-1)\\operatorname{SD}^2/R$。*"
+              "html": "<p>在这组小样本对照中，δ=0.1使三个参数的绝对偏差更大，但SD更小，RMSE数值也更低，直接呈现了偏差与波动的取舍。以位置为例，δ=0的Bias由n=50时−144.9变为n=7时−79.0，偏差减轻，SD却由343.4增至503.5，RMSE仍上升；δ=0.1的Bias由+221.3增至+426.1，SD由151.1增至248.7，组成又不同。不能将误差增大统一写成偏差和SD同时增大。</p>",
+              "markdown": "在这组小样本对照中，δ=0.1使三个参数的绝对偏差更大，但SD更小，RMSE数值也更低，直接呈现了偏差与波动的取舍。以位置为例，δ=0的Bias由n=50时−144.9变为n=7时−79.0，偏差减轻，SD却由343.4增至503.5，RMSE仍上升；δ=0.1的Bias由+221.3增至+426.1，SD由151.1增至248.7，组成又不同。不能将误差增大统一写成偏差和SD同时增大。"
             },
             {
-              "id": "n52-66702f86c60a",
+              "id": "n55-2e7059483a35",
               "kind": "text",
-              "html": "<p>n从50减到7，两法RMSE都增大，但组成不同：MDM的SD增长较少，形状低估则加重；LSE的波动增长更明显。到n=7，MDM虽有更大绝对偏差，较低的SD仍使其RMSE小于LSE。这组对照将方法构造接到了偏差、波动和总体误差，也说明小样本性能不能只看是否无偏。比较对象是两个完整方法；δ本身贡献多少，需要同一方法的偏移量对照。</p>",
-              "markdown": "n从50减到7，两法RMSE都增大，但组成不同：MDM的SD增长较少，形状低估则加重；LSE的波动增长更明显。到n=7，MDM虽有更大绝对偏差，较低的SD仍使其RMSE小于LSE。这组对照将方法构造接到了偏差、波动和总体误差，也说明小样本性能不能只看是否无偏。比较对象是两个完整方法；δ本身贡献多少，需要同一方法的偏移量对照。"
+              "html": "<p>零位置聚集也是分布差别的一部分：δ=0的γ=0比例在正式1200组中由36.8%增至52.7%；δ=0.1在本条件五档样本中均无零位置。正偏移改变了位置选择及随后的三参数恢复，允许更大偏移而获得更集中分布；这不是由单条廓线推得，而是同一样本上改变δ后的重复比较。该结论限于当前W(5,1000,500)与固定实现，不据此认定δ=0.1对所有条件均最优。</p>",
+              "markdown": "零位置聚集也是分布差别的一部分：δ=0的γ=0比例在正式1200组中由36.8%增至52.7%；δ=0.1在本条件五档样本中均无零位置。正偏移改变了位置选择及随后的三参数恢复，允许更大偏移而获得更集中分布；这不是由单条廓线推得，而是同一样本上改变δ后的重复比较。该结论限于当前W(5,1000,500)与固定实现，不据此认定δ=0.1对所有条件均最优。"
             },
             {
-              "id": "n52-f16587a8e6ac",
+              "id": "n55-6b900161a282",
               "kind": "text",
-              "html": "<p><a href=\"#n-supplement\">补充核对：共同路径、构造输入、判据及逐档拟合</a>保留31E等过程图。方法定义以<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E8%AE%A1%E7%AE%97%E5%AE%9E%E7%8E%B0-20261016/methods\">本轮固定实现</a>为准。新增两图及表格的来源、判据和指标核对见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E8%80%A6%E5%90%88%E4%B8%8EMDM%E6%A0%B8%E5%AF%B9.json\">耦合与MDM记录</a>；原路径15条诊断估计见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E6%9C%BA%E5%88%B6%E9%93%BE%E6%A0%B8%E9%AA%8C.json\">机制链核验</a>。删点、扰动与廓线用于检验解释，具体总体差距以第二章的重复估计判断。</p>",
-              "markdown": "[补充核对：共同路径、构造输入、判据及逐档拟合](结果呈现/比较探索/3.1逐档拟合与误差.md)保留31E等过程图。方法定义以[本轮固定实现](程序/计算实现-20261016/methods/)为准。新增两图及表格的来源、判据和指标核对见[耦合与MDM记录](结果呈现/比较探索/3.1耦合与MDM核对.json)；原路径15条诊断估计见[机制链核验](结果呈现/比较探索/3.1机制链核验.json)。删点、扰动与廓线用于检验解释，具体总体差距以第二章的重复估计判断。"
+              "html": "<p>由此能连起本节的机制链：n减少使观测和下端覆盖变少，一些候选组合不再被支持条件排除；三参补偿又使观测区间内相近的分布对应不同参数。各方法将这些观测转成最小值、似然、回归或伪尺度一致性，并按不同规则处理参数耦合，于是同样的信息变化可以形成不同的位置选择、边界响应及误差组成。MDM两δ的同样本对照进一步表明，仅改变定位规则就能改变重复估计的偏移和波动。</p>",
+              "markdown": "由此能连起本节的机制链：n减少使观测和下端覆盖变少，一些候选组合不再被支持条件排除；三参补偿又使观测区间内相近的分布对应不同参数。各方法将这些观测转成最小值、似然、回归或伪尺度一致性，并按不同规则处理参数耦合，于是同样的信息变化可以形成不同的位置选择、边界响应及误差组成。MDM两δ的同样本对照进一步表明，仅改变定位规则就能改变重复估计的偏移和波动。"
+            },
+            {
+              "id": "n55-c2aa26e0563d",
+              "kind": "text",
+              "html": "<p>现在的证据支持这些构造与响应的差别，并用两δ对照验证了一个具体机制；尚未分离七法全部RMSE差距中每个环节的独立贡献。最小值图说明约束怎样变化，十组判据说明参数怎样选中，重复统计说明误差怎样增长。逐档四法参数、数值与选例记录见<a href=\"#population-supplement\">群体核对</a>；原474号过程材料保留在<a href=\"#n-supplement\">旧路径补充</a>。</p>",
+              "markdown": "现在的证据支持这些构造与响应的差别，并用两δ对照验证了一个具体机制；尚未分离七法全部RMSE差距中每个环节的独立贡献。最小值图说明约束怎样变化，十组判据说明参数怎样选中，重复统计说明误差怎样增长。逐档四法参数、数值与选例记录见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)；原474号过程材料保留在[旧路径补充](结果呈现/比较探索/3.1逐档拟合与误差.md)。"
             }
           ]
         }
@@ -1267,6 +1435,319 @@
           ]
         }
       ]
+    },
+    {
+      "id": "mechanism-n-population",
+      "title": "附：3.1群体结果与曲率核对",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "mechanism-n-population-content",
+          "label": "补充核对",
+          "blocks": [
+            {
+              "id": "n55-acf4d3317fe5",
+              "kind": "text",
+              "html": "<a id=\"population-supplement\"></a><p>对应<a href=\"#mechanism-current\">报告下v2.1</a>。计算前固定的<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E5%81%8F%E7%A7%BB%E9%87%8F%E4%B8%8E%E5%BB%93%E7%BA%BF%E7%BE%A4%E4%BD%93%E9%AA%8C%E8%AF%81-%E6%96%B9%E6%A1%88.md\">方案</a>及用户追加四法后的<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E5%87%8F%E7%82%B9%E5%9B%9B%E6%96%B9%E6%B3%95%E4%B8%8E%E4%BB%A3%E8%A1%A8%E4%BE%8B-%E8%A1%A5%E5%85%85%E7%BA%A6%E5%AE%9A.md\">补充约定</a>保留实验身份。</p>",
+              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v2.1.md)。计算前固定的[方案](3.1偏移量与廓线群体验证-方案.md)及用户追加四法后的[补充约定](3.1减点四方法与代表例-补充约定.md)保留实验身份。"
+            },
+            {
+              "id": "n55-84862763995e",
+              "kind": "text",
+              "html": "<h2>两种集合及方法身份</h2>",
+              "markdown": "## 两种集合及方法身份"
+            },
+            {
+              "id": "n55-c6f8e1dafb6e",
+              "kind": "text",
+              "html": "<p>正式对照：W(5,1000,500)，五档n各1200原样本，两δ同输入，共12000条，δ=0新增6000条、δ=0.1全部复用。两方案均全部有效，自身与两方案共同有效指标相同。</p>",
+              "markdown": "正式对照：W(5,1000,500)，五档n各1200原样本，两δ同输入，共12000条，δ=0新增6000条、δ=0.1全部复用。两方案均全部有效，自身与两方案共同有效指标相同。"
+            },
+            {
+              "id": "n55-d0720087f088",
+              "kind": "text",
+              "html": "<p>嵌套诊断：预先固定120条n50路径，编号0、10、…、1190，固定随机排列后逐档保留50、20、15、10、7点，四法共2400条。n50四法复用，其他档另算1920条；两集合共7920次新增完整估计，不计入原40条件七法排名，不抽取新Weibull样本。</p>",
+              "markdown": "嵌套诊断：预先固定120条n50路径，编号0、10、…、1190，固定随机排列后逐档保留50、20、15、10、7点，四法共2400条。n50四法复用，其他档另算1920条；两集合共7920次新增完整估计，不计入原40条件七法排名，不抽取新Weibull样本。"
+            },
+            {
+              "id": "n55-ab132c11042f",
+              "kind": "text",
+              "html": "<p>MLE是冻结的β≥1、γ≥0有限候选版本；MMLE以最小值定位、删除该点后估计；MDM两方案共用条件标准差及梯度。零位置截断和近端回退区别于真实内部根。判据图只展示γ怎样确定，Bias/SD由统计图展示。原正式估计及冻结源码不改。</p>",
+              "markdown": "MLE是冻结的β≥1、γ≥0有限候选版本；MMLE以最小值定位、删除该点后估计；MDM两方案共用条件标准差及梯度。零位置截断和近端回退区别于真实内部根。判据图只展示γ怎样确定，Bias/SD由统计图展示。原正式估计及冻结源码不改。"
+            },
+            {
+              "id": "n55-b3e3063dd932",
+              "kind": "text",
+              "html": "<h2>分行观察十组定位过程</h2>",
+              "markdown": "## 分行观察十组定位过程"
+            },
+            {
+              "id": "n55-f6af16eb64a9",
+              "kind": "text",
+              "html": "<p>新布局以<a href=\"#ten-gamma-paths\">十组定位判据</a>为准：每组五行四列，n不叠画；HTML用同一图组切换。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。</p>",
+              "markdown": "新布局以[十组定位判据](3.1十组定位判据.md)为准：每组五行四列，n不叠画；HTML用同一图组切换。选例覆盖六种端点分支，不按变平挑选；120条路径的统计口径不变。以下640、330叠线图保留为曲率选例的补充核对。"
+            },
+            {
+              "id": "n55-bcdd1db6b77f",
+              "kind": "text",
+              "html": "<h2>正式七法的Bias与SD</h2>",
+              "markdown": "## 正式七法的Bias与SD"
+            },
+            {
+              "id": "n55-5852cd8e2b9c",
+              "kind": "text",
+              "html": "<p><a href=\"#growth-supplement\">误差平方及其增长分解</a>是正文使用的组成证据。另保留带符号Bias及SD曲线便于核对。</p>",
+              "markdown": "[误差平方及其增长分解](3.1误差增长分解.md)是正文使用的组成证据。另保留带符号Bias及SD曲线便于核对。"
+            },
+            {
+              "id": "n55-347fa22d6fe7",
+              "kind": "image",
+              "src": "assets/31M_六法偏差与标准差.png",
+              "alt": "六法带符号Bias与SD",
+              "markdown": "![六法带符号Bias与SD](../../reviewbyhtml/方法对比-v1.0/assets/31M_六法偏差与标准差.png)"
+            },
+            {
+              "id": "n55-3a779b8067ef",
+              "kind": "image",
+              "src": "assets/31M_七法偏差与标准差.png",
+              "alt": "含MM完整范围的七法Bias及SD",
+              "markdown": "![含MM完整范围的七法Bias及SD](../../reviewbyhtml/方法对比-v1.0/assets/31M_七法偏差与标准差.png)"
+            },
+            {
+              "id": "n55-582fd084f51b",
+              "kind": "text",
+              "html": "<p>按七法共同有效集合，每档集合量不同；另核对各法自身有效指标，保存在分析CSV，不能把筛选后的SD变化直接当作全部1200次的变化。</p>",
+              "markdown": "按七法共同有效集合，每档集合量不同；另核对各法自身有效指标，保存在分析CSV，不能把筛选后的SD变化直接当作全部1200次的变化。"
+            },
+            {
+              "id": "n55-ea6af2402d84",
+              "kind": "text",
+              "html": "<h2>两δ误差分解</h2>",
+              "markdown": "## 两δ误差分解"
+            },
+            {
+              "id": "n55-615bfabe2666",
+              "kind": "image",
+              "src": "assets/31O_MDM两偏移量误差分解.png",
+              "alt": "两种MDM五档样本的标准化MSE分解",
+              "markdown": "![两种MDM五档样本的标准化MSE分解](../../reviewbyhtml/方法对比-v1.0/assets/31O_MDM两偏移量误差分解.png)"
+            },
+            {
+              "id": "n55-8a2bc8766020",
+              "kind": "text",
+              "html": "<p>每个n左柱δ=0、右柱δ=0.1，浅色为Bias平方，深色为估计方差。形状以5、其余以1000标准化；SD采用ddof=1，有限R下使用<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo stretchy=\"false\">(</mo><mi>R</mi><mo>−</mo><mn>1</mn><mo stretchy=\"false\">)</mo><msup><mrow><mi mathvariant=\"normal\">SD</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">/</mi><mi>R</mi></mrow></semantics></math></span>作为方差项，柱高严格等于RMSE平方。</p>",
+              "markdown": "每个n左柱δ=0、右柱δ=0.1，浅色为Bias平方，深色为估计方差。形状以5、其余以1000标准化；SD采用ddof=1，有限R下使用$(R-1)\\operatorname{SD}^2/R$作为方差项，柱高严格等于RMSE平方。"
+            },
+            {
+              "id": "n55-5c3d99326620",
+              "kind": "visual",
+              "html": "<table><thead><tr><th style=\"text-align:right\">n</th><th style=\"text-align:right\">δ</th><th>β Bias / SD / RMSE</th><th>η Bias / SD / RMSE</th><th>γ Bias / SD / RMSE</th></tr></thead><tbody><tr><td style=\"text-align:right\">50</td><td style=\"text-align:right\">0</td><td>0.84 / 2.02 / 2.19</td><td>143.85 / 354.27 / 382.22</td><td>-144.92 / 343.44 / 372.63</td></tr><tr><td style=\"text-align:right\">50</td><td style=\"text-align:right\">0.1</td><td>-1.45 / 0.76 / 1.63</td><td>-227.44 / 158.28 / 277.06</td><td>221.30 / 151.05 / 267.90</td></tr><tr><td style=\"text-align:right\">20</td><td style=\"text-align:right\">0</td><td>0.74 / 2.53 / 2.63</td><td>125.25 / 431.66 / 449.29</td><td>-128.62 / 416.53 / 435.77</td></tr><tr><td style=\"text-align:right\">20</td><td style=\"text-align:right\">0.1</td><td>-1.91 / 0.87 / 2.10</td><td>-310.07 / 210.13 / 374.51</td><td>299.64 / 203.75 / 362.30</td></tr><tr><td style=\"text-align:right\">15</td><td style=\"text-align:right\">0</td><td>0.60 / 2.68 / 2.75</td><td>105.18 / 464.38 / 475.96</td><td>-110.29 / 446.12 / 459.37</td></tr><tr><td style=\"text-align:right\">15</td><td style=\"text-align:right\">0.1</td><td>-2.13 / 0.91 / 2.31</td><td>-347.95 / 225.79 / 414.74</td><td>334.74 / 212.95 / 396.69</td></tr><tr><td style=\"text-align:right\">10</td><td style=\"text-align:right\">0</td><td>0.52 / 2.98 / 3.02</td><td>89.55 / 492.54 / 500.41</td><td>-97.54 / 473.53 / 483.28</td></tr><tr><td style=\"text-align:right\">10</td><td style=\"text-align:right\">0.1</td><td>-2.36 / 0.93 / 2.53</td><td>-390.00 / 238.66 / 457.18</td><td>372.93 / 230.50 / 438.37</td></tr><tr><td style=\"text-align:right\">7</td><td style=\"text-align:right\">0</td><td>0.53 / 3.48 / 3.52</td><td>66.97 / 527.44 / 531.45</td><td>-79.04 / 503.51 / 509.47</td></tr><tr><td style=\"text-align:right\">7</td><td style=\"text-align:right\">0.1</td><td>-2.62 / 1.14 / 2.86</td><td>-448.64 / 256.93 / 516.95</td><td>426.11 / 248.67 / 493.31</td></tr></tbody></table>",
+              "markdown": "| n | δ | β Bias / SD / RMSE | η Bias / SD / RMSE | γ Bias / SD / RMSE |\n|---:|---:|---|---|---|\n| 50 | 0 | 0.84 / 2.02 / 2.19 | 143.85 / 354.27 / 382.22 | -144.92 / 343.44 / 372.63 |\n| 50 | 0.1 | -1.45 / 0.76 / 1.63 | -227.44 / 158.28 / 277.06 | 221.30 / 151.05 / 267.90 |\n| 20 | 0 | 0.74 / 2.53 / 2.63 | 125.25 / 431.66 / 449.29 | -128.62 / 416.53 / 435.77 |\n| 20 | 0.1 | -1.91 / 0.87 / 2.10 | -310.07 / 210.13 / 374.51 | 299.64 / 203.75 / 362.30 |\n| 15 | 0 | 0.60 / 2.68 / 2.75 | 105.18 / 464.38 / 475.96 | -110.29 / 446.12 / 459.37 |\n| 15 | 0.1 | -2.13 / 0.91 / 2.31 | -347.95 / 225.79 / 414.74 | 334.74 / 212.95 / 396.69 |\n| 10 | 0 | 0.52 / 2.98 / 3.02 | 89.55 / 492.54 / 500.41 | -97.54 / 473.53 / 483.28 |\n| 10 | 0.1 | -2.36 / 0.93 / 2.53 | -390.00 / 238.66 / 457.18 | 372.93 / 230.50 / 438.37 |\n| 7 | 0 | 0.53 / 3.48 / 3.52 | 66.97 / 527.44 / 531.45 | -79.04 / 503.51 / 509.47 |\n| 7 | 0.1 | -2.62 / 1.14 / 2.86 | -448.64 / 256.93 / 516.95 | 426.11 / 248.67 / 493.31 |"
+            },
+            {
+              "id": "n55-2d96252abe4e",
+              "kind": "text",
+              "html": "<h2>判据是否随减点普遍变平</h2>",
+              "markdown": "## 判据是否随减点普遍变平"
+            },
+            {
+              "id": "n55-d0ad731bfcb7",
+              "kind": "text",
+              "html": "<p>这要用预先固定的多条路径检验。对可靠内部解，用局部曲率比较定位附近的变化速度；零位置、失败、近端回退和形状边界另列。MLE同时报告总似然曲率及除以n的每观测曲率，以区分观测项减少的加和效应与每观测准则形状变化。</p>",
+              "markdown": "这要用预先固定的多条路径检验。对可靠内部解，用局部曲率比较定位附近的变化速度；零位置、失败、近端回退和形状边界另列。MLE同时报告总似然曲率及除以n的每观测曲率，以区分观测项减少的加和效应与每观测准则形状变化。"
+            },
+            {
+              "id": "n55-5e4a6e29185f",
+              "kind": "image",
+              "src": "assets/31P_群体曲率与边界比例.png",
+              "alt": "120条嵌套路径的曲率变化及边界和失败比例",
+              "markdown": "![120条嵌套路径的曲率变化及边界和失败比例](../../reviewbyhtml/方法对比-v1.0/assets/31P_群体曲率与边界比例.png)"
+            },
+            {
+              "id": "n55-4cfaf3148461",
+              "kind": "text",
+              "html": "<p><em>左图每点为一条可靠配对路径的n=7曲率/n=50曲率，低于1表示该处更平；黑点和线为中位数及至少95%的区间。MLE两项和MDM(0)各为39/120条可靠内部配对，MDM(0.1)为120/120条。右图分母始终为120条路径，展示零位置与MLE失败；这些路径不混入内部曲率统计。κ的定义、两档差分及筛选记录见补充。</em></p>",
+              "markdown": "*左图每点为一条可靠配对路径的n=7曲率/n=50曲率，低于1表示该处更平；黑点和线为中位数及至少95%的区间。MLE两项和MDM(0)各为39/120条可靠内部配对，MDM(0.1)为120/120条。右图分母始终为120条路径，展示零位置与MLE失败；这些路径不混入内部曲率统计。κ的定义、两档差分及筛选记录见补充。*"
+            },
+            {
+              "id": "n55-a51f6f0eab53",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>判据</th><th style=\"text-align:right\">可靠配对/120</th><th style=\"text-align:right\">曲率比中位数</th><th style=\"text-align:right\">中位数区间</th></tr></thead><tbody><tr><td>MLE总似然</td><td style=\"text-align:right\">39</td><td style=\"text-align:right\">0.37</td><td style=\"text-align:right\">0.07—1.31</td></tr><tr><td>MLE每观测似然</td><td style=\"text-align:right\">39</td><td style=\"text-align:right\">2.64</td><td style=\"text-align:right\">0.51—9.36</td></tr><tr><td>MDM(0)</td><td style=\"text-align:right\">39</td><td style=\"text-align:right\">7.17</td><td style=\"text-align:right\">0.65—27.87</td></tr><tr><td>MDM(0.1)</td><td style=\"text-align:right\">120</td><td style=\"text-align:right\">1.22</td><td style=\"text-align:right\">0.85—1.57</td></tr></tbody></table>",
+              "markdown": "| 判据 | 可靠配对/120 | 曲率比中位数 | 中位数区间 |\n|---|---:|---:|---:|\n| MLE总似然 | 39 | 0.37 | 0.07—1.31 |\n| MLE每观测似然 | 39 | 2.64 | 0.51—9.36 |\n| MDM(0) | 39 | 7.17 | 0.65—27.87 |\n| MDM(0.1) | 120 | 1.22 | 0.85—1.57 |"
+            },
+            {
+              "id": "n55-8634f11a1e08",
+              "kind": "text",
+              "html": "<p>这些结果没有支持“减点后各方法的判据普遍越来越平”的统一解释。MLE总似然的曲率中位数降低，但每观测结果不同；两种MDM都同时存在变平和变陡路径。n减少还改变了选参位置与分支：本诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，并出现32/120次失败。因而，选参可能沿平缓区域移动，也可能转向新的内部区域或边界，不能只用一张变平的个例解释总体误差。</p>",
+              "markdown": "这些结果没有支持“减点后各方法的判据普遍越来越平”的统一解释。MLE总似然的曲率中位数降低，但每观测结果不同；两种MDM都同时存在变平和变陡路径。n减少还改变了选参位置与分支：本诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，并出现32/120次失败。因而，选参可能沿平缓区域移动，也可能转向新的内部区域或边界，不能只用一张变平的个例解释总体误差。"
+            },
+            {
+              "id": "n55-dd4f4878e306",
+              "kind": "text",
+              "html": "<h2>曲率定义与有效范围</h2>",
+              "markdown": "## 曲率定义与有效范围"
+            },
+            {
+              "id": "n55-d4e312315920",
+              "kind": "text",
+              "html": "<p>MDM用<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>κ</mi><mo>=</mo><msub><mi>η</mi><mn>0</mn></msub><msubsup><mi>S</mi><mi>n</mi><mrow><mo mathvariant=\"normal\">′</mo><mo mathvariant=\"normal\">′</mo></mrow></msubsup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，MLE用<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>κ</mi><mo>=</mo><msubsup><mi>η</mi><mn>0</mn><mn>2</mn></msubsup><mo stretchy=\"false\">[</mo><mo>−</mo><msubsup><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi><mrow><mo mathvariant=\"normal\">′</mo><mo mathvariant=\"normal\">′</mo></mrow></msubsup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo></mrow></semantics></math></span>，固定<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>η</mi><mn>0</mn></msub><mo>=</mo><mn>1000</mn></mrow></semantics></math></span>，另保存MLE的κ/n。不同准则的绝对数值不横向比较。</p>",
+              "markdown": "MDM用$\\kappa=\\eta_0S_n''(\\hat\\gamma)$，MLE用$\\kappa=\\eta_0^2[-\\ell_p''(\\hat\\gamma)]$，固定$\\eta_0=1000$，另保存MLE的κ/n。不同准则的绝对数值不横向比较。"
+            },
+            {
+              "id": "n55-9a6d2e9f7cf6",
+              "kind": "text",
+              "html": "<p>只对可靠内部解配对，失败、零位置、已知近端外推、形状活跃边界及无法可靠差分的位置另列。两档中心步长h和h/2检查收敛，正曲率、相对差异≤20%、梯度残差≤0.0001；h及支持距离规则见方案。MLE和MDM0各39/120对，MDM0.1为120/120对，不将缺失曲率填零。</p>",
+              "markdown": "只对可靠内部解配对，失败、零位置、已知近端外推、形状活跃边界及无法可靠差分的位置另列。两档中心步长h和h/2检查收敛，正曲率、相对差异≤20%、梯度残差≤0.0001；h及支持距离规则见方案。MLE和MDM0各39/120对，MDM0.1为120/120对，不将缺失曲率填零。"
+            },
+            {
+              "id": "n55-dd0f26fd6e2d",
+              "kind": "text",
+              "html": "<p>中位数区间用整条路径为单位的二项顺序统计量，覆盖至少95%；降低比例用Wilson区间。区间属于这些可靠子群，不代表全部120条路径。</p>",
+              "markdown": "中位数区间用整条路径为单位的二项顺序统计量，覆盖至少95%；降低比例用Wilson区间。区间属于这些可靠子群，不代表全部120条路径。"
+            },
+            {
+              "id": "n55-0b5eb756b931",
+              "kind": "text",
+              "html": "<h2>主例及代表范围</h2>",
+              "markdown": "## 主例及代表范围"
+            },
+            {
+              "id": "n55-b77ebfc3a73a",
+              "kind": "text",
+              "html": "<p>670号从50/7四法均有效的88/120条路径选出。24维向量为四法、两端n、三参数的标准化带符号误差，按中位数和MAD标准化，取平均绝对距离最小者。MAD为0依次退到IQR、标准差和1。没有按曲率方向或视觉好看筛选；端点综合中心不保证每项变化均为第50百分位。</p>",
+              "markdown": "670号从50/7四法均有效的88/120条路径选出。24维向量为四法、两端n、三参数的标准化带符号误差，按中位数和MAD标准化，取平均绝对距离最小者。MAD为0依次退到IQR、标准差和1。没有按曲率方向或视觉好看筛选；端点综合中心不保证每项变化均为第50百分位。"
+            },
+            {
+              "id": "n55-5837f418808a",
+              "kind": "image",
+              "src": "assets/31R_四方法参数响应_样本670.png",
+              "alt": "670号五档共同输入的四法三参数响应",
+              "markdown": "![670号五档共同输入的四法三参数响应](../../reviewbyhtml/方法对比-v1.0/assets/31R_四方法参数响应_样本670.png)"
+            },
+            {
+              "id": "n55-237b7f026993",
+              "kind": "text",
+              "html": "<p>这是单条路径估计减真值，不是Bias或SD。中间档若失败应保留缺口；670号五档四法均成功。</p>",
+              "markdown": "这是单条路径估计减真值，不是Bias或SD。中间档若失败应保留缺口；670号五档四法均成功。"
+            },
+            {
+              "id": "n55-38b2041f7882",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>方法</th><th style=\"text-align:right\">Δβ分位</th><th style=\"text-align:right\">Δη分位</th><th style=\"text-align:right\">Δγ分位</th></tr></thead><tbody><tr><td>MLE</td><td style=\"text-align:right\">75.6%</td><td style=\"text-align:right\">85.8%</td><td style=\"text-align:right\">17.6%</td></tr><tr><td>MMLE</td><td style=\"text-align:right\">55.1%</td><td style=\"text-align:right\">61.9%</td><td style=\"text-align:right\">55.1%</td></tr><tr><td>MDM-0</td><td style=\"text-align:right\">47.2%</td><td style=\"text-align:right\">68.8%</td><td style=\"text-align:right\">32.4%</td></tr><tr><td>MDM-0.1</td><td style=\"text-align:right\">40.3%</td><td style=\"text-align:right\">59.7%</td><td style=\"text-align:right\">52.8%</td></tr></tbody></table>",
+              "markdown": "| 方法 | Δβ分位 | Δη分位 | Δγ分位 |\n|---|---:|---:|---:|\n| MLE | 75.6% | 85.8% | 17.6% |\n| MMLE | 55.1% | 61.9% | 55.1% |\n| MDM-0 | 47.2% | 68.8% | 32.4% |\n| MDM-0.1 | 40.3% | 59.7% | 52.8% |"
+            },
+            {
+              "id": "n55-8303e4fc51de",
+              "kind": "text",
+              "html": "<p>上表在同一88条子群内计算。670号MDM0.1曲率比约在第42.1百分位；MLE和MDM0在n7为零位置，不能称为它们的内部几何中心例。</p>",
+              "markdown": "上表在同一88条子群内计算。670号MDM0.1曲率比约在第42.1百分位；MLE和MDM0在n7为零位置，不能称为它们的内部几何中心例。"
+            },
+            {
+              "id": "n55-b92f04fb3a55",
+              "kind": "text",
+              "html": "<h2>内部曲率子群的中心例与反方向例</h2>",
+              "markdown": "## 内部曲率子群的中心例与反方向例"
+            },
+            {
+              "id": "n55-30a9595992fe",
+              "kind": "image",
+              "src": "assets/31Q_四方法判据_曲率中心_样本640.png",
+              "alt": "MDM零偏移内部曲率子群的中心例640及四法定位",
+              "markdown": "![MDM零偏移内部曲率子群的中心例640及四法定位](../../reviewbyhtml/方法对比-v1.0/assets/31Q_四方法判据_曲率中心_样本640.png)"
+            },
+            {
+              "id": "n55-1a5c7f2707fa",
+              "kind": "image",
+              "src": "assets/31Q_四方法判据_反向变化_样本330.png",
+              "alt": "反方向变化的330号路径及四法定位",
+              "markdown": "![反方向变化的330号路径及四法定位](../../reviewbyhtml/方法对比-v1.0/assets/31Q_四方法判据_反向变化_样本330.png)"
+            },
+            {
+              "id": "n55-01ad9f81a036",
+              "kind": "text",
+              "html": "<p>MDM0可靠内部子群39条，15条曲率降低、24条增大。640号为按预定曲率特征选出的子群中心例，330号为下降子群中心例。保留相反方向，不仅挑变平路径解释总体。</p>",
+              "markdown": "MDM0可靠内部子群39条，15条曲率降低、24条增大。640号为按预定曲率特征选出的子群中心例，330号为下降子群中心例。保留相反方向，不仅挑变平路径解释总体。"
+            },
+            {
+              "id": "n55-2b7e5830ab69",
+              "kind": "text",
+              "html": "<p>三幅定位图中，MLE横轴γ、纵轴相对每观测负对数似然；MMLE展示样本最小值直接给出γ；MDM两图均为原始γ—梯度γ，目标分别0和0.1，共用坐标范围。失败时不画虚构返回标记。梯度图显示−0.12至0.25以看清目标附近，近支持边缘高梯度仍参与原计算。</p>",
+              "markdown": "三幅定位图中，MLE横轴γ、纵轴相对每观测负对数似然；MMLE展示样本最小值直接给出γ；MDM两图均为原始γ—梯度γ，目标分别0和0.1，共用坐标范围。失败时不画虚构返回标记。梯度图显示−0.12至0.25以看清目标附近，近支持边缘高梯度仍参与原计算。"
+            },
+            {
+              "id": "n55-33e99d973dc4",
+              "kind": "text",
+              "html": "<h2>数据与复现</h2>",
+              "markdown": "## 数据与复现"
+            },
+            {
+              "id": "n55-03fb264b784b",
+              "kind": "text",
+              "html": "<ul>\n<li><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E9%AA%8C%E8%AF%81MDM%E5%81%8F%E7%A7%BB%E9%87%8F%E4%B8%8E%E5%BB%93%E7%BA%BF%E7%BE%A4%E4%BD%93.py\">计算程序</a>：正式δ0及嵌套MDM。</li>\n<li><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E9%AA%8C%E8%AF%81%E5%87%8F%E7%82%B9MLE%E4%B8%8EMMLE.py\">四法追加</a>：同路径MLE/MMLE与样本指纹合并。</li>\n<li><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E7%BB%9F%E8%AE%A1%E5%81%8F%E7%A7%BB%E9%87%8F%E4%B8%8E%E5%BB%93%E7%BA%BF%E7%BE%A4%E4%BD%93.py\">统计程序</a>：共享指标、曲率、区间与选例。</li>\n<li><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E7%BB%98%E5%88%B6%E5%81%8F%E7%A7%BB%E9%87%8F%E4%B8%8E%E4%BB%A3%E8%A1%A8%E5%BB%93%E7%BA%BF.py\">绘图程序</a>：读取结果绘制，不修改估计。</li>\n<li><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E7%BE%A4%E4%BD%93%E6%A0%B8%E9%AA%8C%E6%91%98%E8%A6%81.json\">可携带核验摘要</a>：来源、群体数值、选例及图像SHA。</li>\n</ul>",
+              "markdown": "- [计算程序](验证MDM偏移量与廓线群体.py)：正式δ0及嵌套MDM。\n- [四法追加](验证减点MLE与MMLE.py)：同路径MLE/MMLE与样本指纹合并。\n- [统计程序](统计偏移量与廓线群体.py)：共享指标、曲率、区间与选例。\n- [绘图程序](绘制偏移量与代表廓线.py)：读取结果绘制，不修改估计。\n- [可携带核验摘要](3.1群体核验摘要.json)：来源、群体数值、选例及图像SHA。"
+            },
+            {
+              "id": "n55-aba48f715426",
+              "kind": "text",
+              "html": "<p>本地数据位于结果呈现/分析数据/3.1-MDM偏移量与廓线群体/；正式样本和嵌套四法各有results.csv、summary.json和manifest.json，另有指标、廓线几何、分类、群体结论及图像核对。原474号材料保留原身份，不与120条路径或1200次正式比较混算。</p>",
+              "markdown": "本地数据位于结果呈现/分析数据/3.1-MDM偏移量与廓线群体/；正式样本和嵌套四法各有results.csv、summary.json和manifest.json，另有指标、廓线几何、分类、群体结论及图像核对。原474号材料保留原身份，不与120条路径或1200次正式比较混算。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mechanism-n-growth",
+      "title": "附：误差平方增长分解",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "mechanism-n-growth-content",
+          "label": "补充核对",
+          "blocks": [
+            {
+              "id": "n55-0ea16e877b45",
+              "kind": "text",
+              "html": "<a id=\"growth-supplement\"></a><p>对应<a href=\"#mechanism-current\">报告下v2.1</a>。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。</p>",
+              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v2.1.md)。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。"
+            },
+            {
+              "id": "n55-6262324db3cf",
+              "kind": "text",
+              "html": "<p>每根柱高为标准化<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">R</mi><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">S</mi><mi mathvariant=\"normal\">E</mi></mrow><mn>2</mn></msup></mrow></semantics></math></span>；浅色斜线部分为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msup><mrow><mi mathvariant=\"normal\">B</mi><mi mathvariant=\"normal\">i</mi><mi mathvariant=\"normal\">a</mi><mi mathvariant=\"normal\">s</mi></mrow><mn>2</mn></msup></mrow></semantics></math></span>，实色为经验方差<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>V</mi><mi>R</mi></msub><mo>=</mo><mo stretchy=\"false\">(</mo><mi>R</mi><mo>−</mo><mn>1</mn><mo stretchy=\"false\">)</mo><msup><mrow><mi mathvariant=\"normal\">S</mi><mi mathvariant=\"normal\">D</mi></mrow><mn>2</mn></msup><mi mathvariant=\"normal\">/</mi><mi>R</mi></mrow></semantics></math></span>，SD采用ddof=1。增长分解为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Δ</mi><mrow><mi mathvariant=\"normal\">M</mi><mi mathvariant=\"normal\">S</mi><mi mathvariant=\"normal\">E</mi></mrow><mo>=</mo><mi mathvariant=\"normal\">Δ</mi><msup><mrow><mi mathvariant=\"normal\">B</mi><mi mathvariant=\"normal\">i</mi><mi mathvariant=\"normal\">a</mi><mi mathvariant=\"normal\">s</mi></mrow><mn>2</mn></msup><mo>+</mo><mi mathvariant=\"normal\">Δ</mi><msub><mi>V</mi><mi>R</mi></msub></mrow></semantics></math></span>，Δ为n=7减n=50；负项抵消增长，不截成零。</p>",
+              "markdown": "每根柱高为标准化$\\mathrm{RMSE}^2$；浅色斜线部分为$\\mathrm{Bias}^2$，实色为经验方差$V_R=(R-1)\\mathrm{SD}^2/R$，SD采用ddof=1。增长分解为$\\Delta\\mathrm{MSE}=\\Delta\\mathrm{Bias}^2+\\Delta V_R$，Δ为n=7减n=50；负项抵消增长，不截成零。"
+            },
+            {
+              "id": "n55-0ccd2ff8d1b0",
+              "kind": "text",
+              "html": "<h2>β=5的三参数增长分解</h2>",
+              "markdown": "## β=5的三参数增长分解"
+            },
+            {
+              "id": "n55-c4bf9165f39a",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>方法</th><th>参数</th><th style=\"text-align:right\">ΔMSE</th><th style=\"text-align:right\">ΔBias²</th><th style=\"text-align:right\">Δ方差</th></tr></thead><tbody><tr><td>MDM(0.1)</td><td>β</td><td style=\"text-align:right\">+0.13572</td><td style=\"text-align:right\">+0.14606</td><td style=\"text-align:right\">-0.01034</td></tr><tr><td>MDM(0.1)</td><td>η</td><td style=\"text-align:right\">+0.11486</td><td style=\"text-align:right\">+0.09347</td><td style=\"text-align:right\">+0.02139</td></tr><tr><td>MDM(0.1)</td><td>γ</td><td style=\"text-align:right\">+0.11248</td><td style=\"text-align:right\">+0.08707</td><td style=\"text-align:right\">+0.02541</td></tr><tr><td>LSE</td><td>β</td><td style=\"text-align:right\">+0.23149</td><td style=\"text-align:right\">-0.00049</td><td style=\"text-align:right\">+0.23198</td></tr><tr><td>LSE</td><td>η</td><td style=\"text-align:right\">+0.09397</td><td style=\"text-align:right\">-0.00106</td><td style=\"text-align:right\">+0.09503</td></tr><tr><td>LSE</td><td>γ</td><td style=\"text-align:right\">+0.09069</td><td style=\"text-align:right\">-0.00122</td><td style=\"text-align:right\">+0.09190</td></tr><tr><td>LRE</td><td>β</td><td style=\"text-align:right\">+0.19584</td><td style=\"text-align:right\">+0.00001</td><td style=\"text-align:right\">+0.19583</td></tr><tr><td>LRE</td><td>η</td><td style=\"text-align:right\">+0.09442</td><td style=\"text-align:right\">+0.00183</td><td style=\"text-align:right\">+0.09259</td></tr><tr><td>LRE</td><td>γ</td><td style=\"text-align:right\">+0.09116</td><td style=\"text-align:right\">+0.00205</td><td style=\"text-align:right\">+0.08911</td></tr><tr><td>WMLE</td><td>β</td><td style=\"text-align:right\">+0.22275</td><td style=\"text-align:right\">+0.23990</td><td style=\"text-align:right\">-0.01714</td></tr><tr><td>WMLE</td><td>η</td><td style=\"text-align:right\">+0.19759</td><td style=\"text-align:right\">+0.18948</td><td style=\"text-align:right\">+0.00811</td></tr><tr><td>WMLE</td><td>γ</td><td style=\"text-align:right\">+0.17966</td><td style=\"text-align:right\">+0.16581</td><td style=\"text-align:right\">+0.01385</td></tr><tr><td>MLE</td><td>β</td><td style=\"text-align:right\">+0.46873</td><td style=\"text-align:right\">+0.01603</td><td style=\"text-align:right\">+0.45270</td></tr><tr><td>MLE</td><td>η</td><td style=\"text-align:right\">+0.14445</td><td style=\"text-align:right\">+0.00551</td><td style=\"text-align:right\">+0.13894</td></tr><tr><td>MLE</td><td>γ</td><td style=\"text-align:right\">+0.13568</td><td style=\"text-align:right\">+0.00308</td><td style=\"text-align:right\">+0.13260</td></tr><tr><td>MMLE</td><td>β</td><td style=\"text-align:right\">+0.02671</td><td style=\"text-align:right\">+0.02162</td><td style=\"text-align:right\">+0.00509</td></tr><tr><td>MMLE</td><td>η</td><td style=\"text-align:right\">+0.16640</td><td style=\"text-align:right\">+0.15959</td><td style=\"text-align:right\">+0.00681</td></tr><tr><td>MMLE</td><td>γ</td><td style=\"text-align:right\">+0.19389</td><td style=\"text-align:right\">+0.18433</td><td style=\"text-align:right\">+0.00957</td></tr><tr><td>MM</td><td>β</td><td style=\"text-align:right\">+711.77013</td><td style=\"text-align:right\">+8.62647</td><td style=\"text-align:right\">+703.14365</td></tr><tr><td>MM</td><td>η</td><td style=\"text-align:right\">+0.07461</td><td style=\"text-align:right\">+0.00911</td><td style=\"text-align:right\">+0.06550</td></tr><tr><td>MM</td><td>γ</td><td style=\"text-align:right\">+0.07701</td><td style=\"text-align:right\">+0.00466</td><td style=\"text-align:right\">+0.07236</td></tr></tbody></table>",
+              "markdown": "| 方法 | 参数 | ΔMSE | ΔBias² | Δ方差 |\n|---|---|---:|---:|---:|\n| MDM(0.1) | β | +0.13572 | +0.14606 | -0.01034 |\n| MDM(0.1) | η | +0.11486 | +0.09347 | +0.02139 |\n| MDM(0.1) | γ | +0.11248 | +0.08707 | +0.02541 |\n| LSE | β | +0.23149 | -0.00049 | +0.23198 |\n| LSE | η | +0.09397 | -0.00106 | +0.09503 |\n| LSE | γ | +0.09069 | -0.00122 | +0.09190 |\n| LRE | β | +0.19584 | +0.00001 | +0.19583 |\n| LRE | η | +0.09442 | +0.00183 | +0.09259 |\n| LRE | γ | +0.09116 | +0.00205 | +0.08911 |\n| WMLE | β | +0.22275 | +0.23990 | -0.01714 |\n| WMLE | η | +0.19759 | +0.18948 | +0.00811 |\n| WMLE | γ | +0.17966 | +0.16581 | +0.01385 |\n| MLE | β | +0.46873 | +0.01603 | +0.45270 |\n| MLE | η | +0.14445 | +0.00551 | +0.13894 |\n| MLE | γ | +0.13568 | +0.00308 | +0.13260 |\n| MMLE | β | +0.02671 | +0.02162 | +0.00509 |\n| MMLE | η | +0.16640 | +0.15959 | +0.00681 |\n| MMLE | γ | +0.19389 | +0.18433 | +0.00957 |\n| MM | β | +711.77013 | +8.62647 | +703.14365 |\n| MM | η | +0.07461 | +0.00911 | +0.06550 |\n| MM | γ | +0.07701 | +0.00466 | +0.07236 |"
+            },
+            {
+              "id": "n55-3e54e12b8e65",
+              "kind": "text",
+              "html": "<p>所有值均为标准化误差平方单位，贡献不是三个可相加的RMSE值。原单位Bias、SD、RMSE及八档β的完整增长数值保存在<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E8%AF%AF%E5%B7%AE%E5%A2%9E%E9%95%BF%E5%88%86%E8%A7%A3.json\">核对记录</a>。</p>",
+              "markdown": "所有值均为标准化误差平方单位，贡献不是三个可相加的RMSE值。原单位Bias、SD、RMSE及八档β的完整增长数值保存在[核对记录](3.1误差增长分解.json)。"
+            },
+            {
+              "id": "growth-full-seven",
+              "kind": "image",
+              "src": "assets/误差组成与方法差距_β5_含MM.png",
+              "alt": "β=5含MM的完整量级误差平方组成"
+            }
+          ]
+        }
+      ]
     }
   ],
   "last_applied_submission_id": "d80e7b7e-0943-4068-a2fc-7fedb3825370",
@@ -1400,19 +1881,32 @@
   },
   "manuscript_date": "2026-10-24",
   "section_3_1_evidence": {
-    "source": "结果呈现/比较探索/3.1机制链核验.json",
-    "sha256": "68bbf2f689c309944618747b36da118d1340c791b35a287ef5f6013737ae2eb2",
+    "source": "结果呈现/比较探索/3.1群体核验摘要.json",
+    "sha256": "b2c033a84f5f55622fe13c205ae594dabd291aff5a1486752a27d6532a0a4235",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
+      "growth-composition",
       "31H",
       "31K",
-      "31L"
+      "31T",
+      "31N"
     ],
     "supplement_unit": "mechanism-n-supplement",
-    "scope": "Section 3.1 links sample size, lower coverage and support constraints to parameter compensation, then explains seven methods and MDM selection/bias-variance tradeoff. Fixed candidate is illustrative; nonzero delta does not guarantee stability; between-method comparison does not isolate delta. 31E is supplemental. No sampling or method calls.",
+    "scope": "MSE growth decomposition -> lower observations/support/parameter compensation -> ten 5x4 gamma-selection examples -> method information use -> paired MDM delta distributions. Bias/SD measured by repetitions, not individual profiles. Curvature not universally lower. Common-valid sets vary with n; paired MDM uses all1200 samples per n.",
     "minimum_figure_moved_to": "3.1",
     "minimum_figure": "31H",
     "expression_proposal": "结果呈现/比较探索/3.1样本信息变化与方法响应-表达方案.md",
-    "coupling_mdm_check": "结果呈现/比较探索/3.1耦合与MDM核对.json"
+    "coupling_mdm_check": "结果呈现/比较探索/3.1耦合与MDM核对.json",
+    "population_audit": "结果呈现/比较探索/3.1群体核验摘要.json",
+    "ten_group_audit": "结果呈现/比较探索/3.1十组定位判据选例.json",
+    "growth_audit": "结果呈现/比较探索/3.1误差增长分解.json",
+    "new_method_calls": 7920,
+    "new_weibull_samples": 0,
+    "primary_paired_rows": 12000,
+    "nested_four_method_rows": 2400,
+    "previous_mechanism_source": {
+      "source": "结果呈现/比较探索/3.1机制链核验.json",
+      "sha256": "68bbf2f689c309944618747b36da118d1340c791b35a287ef5f6013737ae2eb2"
+    }
   }
 }
