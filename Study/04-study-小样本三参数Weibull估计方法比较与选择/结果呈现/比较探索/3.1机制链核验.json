@@ -863,16 +863,18 @@
     "lse_F_r2_identity": true,
     "conditional_support": true,
     "conditional_recovery_matches_n7": true,
-    "formal_source_unchanged": true
+    "formal_source_unchanged": true,
+    "same_seven_relative_lse_mismatch_matches_standardized_display": true
   },
   "scope": "Archived n=50/20/7 samples and analytic minimum distributions at beta=5; one nested path 474 and conditional recovery explain concrete responses, not all methods or total RMSE differences; no independent Monte Carlo added.",
-  "program_sha256": "50920aab153086560ef929844a397290dc4054c4aa60f651f8ff57134789a8f4",
+  "program_sha256": "f52a65237f86fa0b6e15ef262b17f28b300ca3abafa0aa7d1066051d03ec01a0",
   "images": {
     "reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png": "e05d8743f1a41db992d7db750161f9828d589f6f22554e2eaab35dc5f7487e90",
     "reviewbyhtml/方法对比-v1.0/assets/31I_最小观测与整条分布.png": "fa8d343d5f31f2add6b1d23e38cf03b501d80e4c890be7910c0207c9d25f47df",
     "reviewbyhtml/方法对比-v1.0/assets/31C_样本信息变化_样本474.png": "bc25f57af04b756396c3a23c3f274db85fb6fe7e273b474c94080ababa165597",
     "reviewbyhtml/方法对比-v1.0/assets/31G_样本进入构造_样本474.png": "da2a17b36ea98f743f412b88c21fc6d9144a7187b2cae0b598446266a6935eda",
-    "reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png": "a09393f43c108c018cebbad37c45d213bc01136d3ae99645243a47a657a8eba0",
+    "reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png": "5a13e5521f850860a1108a04a4d0ab0bc72399c1385489506339ab926373604e",
+    "reviewbyhtml/方法对比-v1.0/assets/31J_三法定位判据_样本474.png": "a09393f43c108c018cebbad37c45d213bc01136d3ae99645243a47a657a8eba0",
     "reviewbyhtml/方法对比-v1.0/assets/31E_单次误差响应_样本474.png": "232962c1295fd9fdc816e236e0085769baacdded32d9c36b4a36693f397b1cfc",
     "reviewbyhtml/方法对比-v1.0/assets/31F_固定七点的位置条件对照_样本474.png": "74483a88662088eb4b878c5422a02517e228cb7d50f22c431b04801b5cd8cf1d",
     "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n50.png": "d36e52283aee3ba3130125119f1d8ed9d89d389a419a9c56dc82f8808dd63ac6",
@@ -880,5 +882,97 @@
     "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n15.png": "f6a029082510db87aff361ffb6c72a830a7210601aa8044d5c4356c80abfade8",
     "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n10.png": "f18450ac9f81892723a769c8714dd533cba10e7ff08329fac445d4b93e169edf",
     "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n7.png": "6686832c64bd9747383ac717bf560401fa28d8e59ac15685c7af02bb6df3c241"
+  },
+  "sample_structure_response": {
+    "n_fixed": 7,
+    "observations": [
+      1226.8800146458543,
+      1372.0597800078708,
+      1374.7645278682253,
+      1395.1879299959303,
+      1409.3218363185072,
+      1569.005427693237,
+      1903.457069622321
+    ],
+    "adjacent_gaps": [
+      145.1797653620165,
+      2.7047478603544732,
+      20.423402127705003,
+      14.133906322576877,
+      159.68359137472976,
+      334.45164192908396
+    ],
+    "ranks_2_to_5_span": 37.26205631063635,
+    "last_adjacent_gap": 334.45164192908396,
+    "standardized_reference": [
+      -1.6997784611248623,
+      -0.7572097416712275,
+      -0.24044937204833214,
+      0.1463328233165543,
+      0.4846352058666707,
+      0.8233086903897451,
+      1.2431608552714521
+    ],
+    "candidates": [
+      {
+        "beta": 6.289691415094596,
+        "eta": 1036.7446519636305,
+        "gamma": 500.0,
+        "slope": 0.15899031192533633,
+        "intercept": 6.943840940650326,
+        "one_minus_r2": 0.2275359509718563,
+        "r_squared": 0.7724640490281437,
+        "raw_residual_sum_squares": 0.058549777000131226,
+        "log_distance_total_sum_squares": 0.25732099367177874,
+        "standardized_log_distances": [
+          -1.2714572792472794,
+          -0.3921518723949639,
+          -0.377198266958618,
+          -0.26575501549362174,
+          -0.19011007875681785,
+          0.5911146899387241,
+          1.9055578229125854
+        ],
+        "standardized_fitted": [
+          -1.493934166831774,
+          -0.6655111418413322,
+          -0.21133079428393647,
+          0.12861182176463645,
+          0.42594556234972003,
+          0.7236054642137331,
+          1.092613254628953
+        ]
+      },
+      {
+        "beta": 1.5166803683303616,
+        "eta": 332.9406733136792,
+        "gamma": 1173.956540899823,
+        "slope": 0.6593347028687729,
+        "intercept": 5.807964315891204,
+        "one_minus_r2": 0.10643047130139927,
+        "r_squared": 0.8935695286986007,
+        "raw_residual_sum_squares": 0.4071567857326019,
+        "log_distance_total_sum_squares": 3.8255659375930016,
+        "standardized_log_distances": [
+          -1.826610000309424,
+          -0.1735736432212698,
+          -0.15659062178041055,
+          -0.03528742500875243,
+          0.04227046796130382,
+          0.6908289961054255,
+          1.458962226253126
+        ],
+        "standardized_fitted": [
+          -1.6067802950232009,
+          -0.7157813326518919,
+          -0.2272939219986868,
+          0.13832667162081375,
+          0.45811987671955623,
+          0.7782638800847967,
+          1.175145121248614
+        ]
+      }
+    ],
+    "scope": "Same seven archived observations and n=7 reference coordinates. Compare relative regression mismatch at true and returned location; not a causal attribution to one point, not an independent-n or all-method sensitivity experiment."
   }
 }

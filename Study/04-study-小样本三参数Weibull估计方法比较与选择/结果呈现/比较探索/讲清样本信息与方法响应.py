@@ -199,7 +199,7 @@ def information_inputs(xs):
     return save(fig,"31G_样本进入构造_样本474.png"),records
 
 
-def criteria(xs,est):
+def criterion_overview(xs,est):
     fig,axs=plt.subplots(1,3,figsize=(16,7),gridspec_kw={"width_ratios":[.85,1.25,1.25]});fig.subplots_adjust(left=.07,right=.985,bottom=.20,top=.88,wspace=.34);records=[]
     for j,n in enumerate([50,20,7]):
         x=xs[n];c=NC[n];axs[0].plot([500,x[0]],[j,j],c=c,lw=2);axs[0].scatter(x[0],j,c=c,s=50)
@@ -218,7 +218,68 @@ def criteria(xs,est):
     axs[1].axhline(.1,c="#777",ls=":",lw=1.2);axs[1].set(ylim=(-.15,.4),ylabel="最小伪尺度标准差的梯度",title="(b) MDM")
     axs[2].set(ylim=(0,.28),ylabel=r"$1-R^2$",title="(c) LSE")
     fig.legend(handles=[Line2D([],[],color=NC[n],ls={50:"-",20:"--",7:":"}[n],label=f"n = {n}") for n in [50,20,7]]+[Line2D([],[],ls="--",color="#777",label=r"$\gamma_{true}=500$")],loc="lower center",bbox_to_anchor=(.5,.02),ncol=4,frameon=False)
-    return save(fig,"31D_定位判据响应_样本474.png"),records
+    return save(fig,"31J_三法定位判据_样本474.png"),records
+
+
+def sample_structure(xs,est):
+    """Expose the original LSE relative-fit criterion on the SAME seven points.
+
+    Centering/scaling only serves the display: raw SSE is not comparable across
+    locations because log-distance variance changes. No new fit is optimized.
+    """
+    x=xs[7];z=log_weibull_order_stat_means(7);zs=(z-z.mean())/z.std(ddof=1)
+    candidates=[]
+    for g in [TRUTH["gamma"],est[7,"LSE"]["gamma"]]:
+        r=recover(x,g,"LSE");y=np.log(x-g);ys=(y-y.mean())/y.std(ddof=1)
+        fitted=(r["intercept"]+r["slope"]*z-y.mean())/y.std(ddof=1)
+        residual=y-r["intercept"]-r["slope"]*z
+        relative=float(np.sum((ys-fitted)**2)/np.sum(ys**2))
+        loss=float(lse_values(x,[g])[1][0]);assert np.isclose(relative,loss,rtol=1e-12)
+        candidates.append(dict(**r,one_minus_r2=loss,r_squared=1-loss,
+                               raw_residual_sum_squares=float(residual@residual),
+                               log_distance_total_sum_squares=float(np.sum((y-y.mean())**2)),
+                               standardized_log_distances=ys.tolist(),standardized_fitted=fitted.tolist()))
+    assert candidates[1]["one_minus_r2"]<candidates[0]["one_minus_r2"]
+    return dict(n_fixed=7,observations=x.tolist(),adjacent_gaps=np.diff(x).tolist(),
+                ranks_2_to_5_span=float(x[4]-x[1]),last_adjacent_gap=float(x[-1]-x[-2]),
+                standardized_reference=zs.tolist(),candidates=candidates,
+                scope="Same seven archived observations and n=7 reference coordinates. Compare relative regression mismatch at true and returned location; not a causal attribution to one point, not an independent-n or all-method sensitivity experiment.")
+
+
+def structure_criterion(xs,est,structure):
+    fig,axs=plt.subplots(1,3,figsize=(16,7),gridspec_kw={"width_ratios":[.95,1.1,1.1]})
+    fig.subplots_adjust(left=.07,right=.985,bottom=.20,top=.86,wspace=.36)
+    x=xs[7];groups=[(np.array([0]),"#777777","o"),(np.arange(1,5),"#0072B2","s"),(np.arange(5,7),"#CC79A7","^")]
+    # Vertical rank separates the clustered observations without displacing x.
+    for ids,c,marker in groups:
+        axs[0].scatter(x[ids],ids+1,c=c,marker=marker,s=47,zorder=4)
+    axs[0].plot(x,np.arange(1,8),c="#c6cbd0",lw=1,zorder=1)
+    axs[0].plot([x[1],x[4]],[.75,.75],c="#0072B2",lw=2)
+    axs[0].annotate(f"{structure['ranks_2_to_5_span']:.1f}",((x[1]+x[4])/2,.75),xytext=(0,-18),textcoords="offset points",ha="center",fontsize=11)
+    axs[0].annotate("",xy=(x[-1],7.5),xytext=(x[-2],7.5),arrowprops=dict(arrowstyle="|-|",color="#CC79A7",lw=1.5))
+    axs[0].annotate(f"{structure['last_adjacent_gap']:.1f}",((x[-1]+x[-2])/2,7.5),xytext=(0,7),textcoords="offset points",ha="center",fontsize=11)
+    axs[0].set(title="(a)",xlabel="寿命",ylabel="观测次序",xlim=(1180,1970),ylim=(0,8.3),yticks=range(1,8),xticks=[1200,1400,1600,1800])
+    zs=np.array(structure["standardized_reference"])
+    for j,r in enumerate(structure["candidates"]):
+        ys=np.array(r["standardized_log_distances"])
+        for ids,c,marker in groups:
+            axs[1].scatter(zs[ids],ys[ids],s=48,marker=marker,facecolors="none" if j==0 else c,edgecolors=c,zorder=4)
+        axs[1].plot(zs,r["standardized_fitted"],c="#666666" if j==0 else "#D55E00",ls="--" if j==0 else "-",lw=1.7,label=rf"$\gamma={r['gamma']:.1f}$")
+    axs[1].set(title="(b)",xlabel="标准化理论参考坐标",ylabel="标准化对数距离")
+    axs[1].legend(frameon=False,loc="upper left",fontsize=11)
+    for n in [50,20,7]:
+        grid=np.unique(np.r_[np.linspace(0,xs[n][0]*.995,360),500,est[n,"LSE"]["gamma"]])
+        loss=lse_values(xs[n],grid)[1];g=est[n,"LSE"]["gamma"];v=lse_values(xs[n],[g])[1][0]
+        axs[2].plot(grid,loss,c=NC[n],ls={50:"-",20:"--",7:":"}[n],lw=1.8,label=f"n = {n}")
+        axs[2].scatter(g,v,c=NC[n],s=42,zorder=4)
+    for j,r in enumerate(structure["candidates"]):
+        axs[2].scatter(r["gamma"],r["one_minus_r2"],c="#666666" if j==0 else NC[7],marker="x" if j==0 else "o",s=65,zorder=5)
+        axs[2].annotate(f"{r['one_minus_r2']:.3f}",(r["gamma"],r["one_minus_r2"]),xytext=(8,7) if j==0 else (-45,9),textcoords="offset points",fontsize=11)
+    axs[2].axvline(500,c="#777",ls="--",lw=1)
+    axs[2].set(title="(c)",xlabel=r"$\gamma$",ylabel=r"$1-R^2$",xlim=(0,1280),ylim=(0,.28))
+    axs[2].legend(frameon=False,loc="center left",fontsize=11)
+    fig.legend(handles=[Line2D([],[],marker=marker,c=c,ls="",label=t) for (_,c,marker),t in zip(groups,["第1点","第2—5点","第6—7点"])],loc="lower center",bbox_to_anchor=(.5,.025),ncol=3,frameon=False)
+    return save(fig,"31D_定位判据响应_样本474.png")
 
 
 def errors(est):
@@ -314,15 +375,19 @@ def minimum_distribution_link(xs,conditional_outputs):
 def main():
     source,rows,xs,est,identity=load();before=sha(source)
     plt.rcParams.update({"font.family":["Times New Roman","Microsoft YaHei"],"font.size":13,"mathtext.fontset":"custom","mathtext.rm":"Times New Roman","mathtext.it":"Times New Roman:italic","mathtext.bf":"Times New Roman:bold","axes.spines.top":False,"axes.spines.right":False,"axes.unicode_minus":False})
-    f0,population_coverage=coverage();f1,features=information(xs);f5,inputs=information_inputs(xs);f2,criterion=criteria(xs,est);f3,errs=errors(est);f4,cond=conditional(xs,est)
+    structure=sample_structure(xs,est)
+    f0,population_coverage=coverage();f1,features=information(xs);f5,inputs=information_inputs(xs);f7,criterion=criterion_overview(xs,est);f3,errs=errors(est);f4,cond=conditional(xs,est)
+    f2=structure_criterion(xs,est,structure)
     f6,distribution_link=minimum_distribution_link(xs,cond)
     nested_gallery(rows,source_id=SID,source_path=LOCAL/"路径估计.csv")
-    images=[f0,f6,f1,f5,f2,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
+    images=[f0,f6,f1,f5,f2,f7,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
     assert sha(source)==before
     result=dict(identity=identity,population_coverage=population_coverage,minimum_to_distribution=distribution_link,coverage_figure_grammar_source="Research/00-方法对比/交付/程序/报告1/20261010-导入样本起点图.py; adapted to Study04 n=50,20,7, with the same analytic minimum density; source not executed or changed.",features=features,input_coordinates_at_true_parameters=inputs,estimates=[dict(n=n,method=m,**est[n,m]) for n in NS for _,m,_,_ in METHODS],actual_criteria=criterion,signed_errors=errs,conditional_seven_point_recovery=cond,
         conditional_scope="Same seven observations and n=7 reference coordinates; gamma alone changes. Old-gamma conditional results are NOT original n50 estimates.",
         checks=dict(pdf_area_equals_cdf_at_minimum=True,no_hit_probability_matches_binomial=True,archived_coverage_samples=True,minimum_density_matches_scipy_and_integrates_to_one=True,mmle_gamma_minimum_all_3600_records=True,nested_subsets=True,same_observations_across_methods=True,formal_n50_estimates_match=True,shared_observation_reference_changes=True,mmle_positive_distance_likelihood=True,profile_gradient_target=True,lse_F_r2_identity=True,conditional_support=True,conditional_recovery_matches_n7=True,formal_source_unchanged=True),
         scope="Archived n=50/20/7 samples and analytic minimum distributions at beta=5; one nested path 474 and conditional recovery explain concrete responses, not all methods or total RMSE differences; no independent Monte Carlo added.",program_sha256=sha(Path(__file__)),images={p.relative_to(STUDY).as_posix():sha(p) for p in images})
+    result["sample_structure_response"]=structure
+    result["checks"]["same_seven_relative_lse_mismatch_matches_standardized_display"]=True
     dump(HERE/"3.1机制链核验.json",result)
     print(json.dumps(dict(features=features,conditional=cond,checks=result["checks"]),ensure_ascii=False,indent=2),flush=True)
 
