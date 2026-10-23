@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 49,
+  "revision": 50,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "1ace10e108c52d2739894228b5889be0b2bee986805c9acbf22c4668f4d7444c",
+  "source_sha256": "a0f1a72a38cbadf2e11723a74e9db7e2197e3ac24267465d7a08afb41090d9a3",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -369,137 +369,191 @@
             {
               "id": "n-a-opening",
               "kind": "text",
-              "html": "<p>2.1显示，n减小时各方法的误差增幅不同。这里先回答两个问题：样本变少后，它对总体的描绘发生了什么变化？这些变化为什么会通过不同方法，形成不同的估计响应？</p>",
-              "markdown": "2.1显示，n减小时各方法的误差增幅不同。这里先回答两个问题：样本变少后，它对总体的描绘发生了什么变化？这些变化为什么会通过不同方法，形成不同的估计响应？"
+              "html": "<p>2.1显示，n减小时各方法的误差增幅不同。这里依次追踪：样本变少后，下端覆盖发生什么变化；最小观测怎样约束候选分布；这种约束又怎样通过具体构造，影响三个参数及整条估计曲线。</p>",
+              "markdown": "2.1显示，n减小时各方法的误差增幅不同。这里依次追踪：样本变少后，下端覆盖发生什么变化；最小观测怎样约束候选分布；这种约束又怎样通过具体构造，影响三个参数及整条估计曲线。"
             },
             {
-              "id": "info31-30dba2cc5f25",
+              "id": "info31-d1abc8cd2875",
               "kind": "text",
-              "html": "<h4>样本变少，下端更容易留空，点列关系也更不稳定</h4>",
-              "markdown": "#### 样本变少，下端更容易留空，点列关系也更不稳定"
+              "html": "<h4>n减小，下端更容易留空</h4>",
+              "markdown": "#### n减小，下端更容易留空"
             },
             {
               "id": "n-population-coverage",
               "kind": "image",
               "src": "assets/31H_n减小与下端覆盖.png",
-              "alt": "固定形状时，三档样本的观测、最小值与真实起点间的空白，以及最小值的理论分布",
-              "markdown": "![固定形状时，三档样本的观测、最小值与真实起点间的空白，以及最小值的理论分布](reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png)"
+              "alt": "固定形状时三档样本的观测、最小值、起点空白及最小值理论密度",
+              "markdown": "![固定形状时三档样本的观测、最小值、起点空白及最小值理论密度](reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png)"
             },
             {
-              "id": "info31-d59ef2561f1e",
+              "id": "info31-4623beff34c1",
               "kind": "text",
-              "html": "<p><em>固定W(5,1000,500)。前三列分别取正式n=50、20、7存档的前50组样本，各列按自己的最小值排序；蓝点为观测，橙点为每组最小值，灰线连接真实起点500与最小值。右图是对应n的最小值理论密度，横坐标为最小观测。它延续3.2的画法，这里固定β、只改变n；前三列寿命轴相同，最小值密度图单独聚焦起点附近。</em></p>",
-              "markdown": "*固定W(5,1000,500)。前三列分别取正式n=50、20、7存档的前50组样本，各列按自己的最小值排序；蓝点为观测，橙点为每组最小值，灰线连接真实起点500与最小值。右图是对应n的最小值理论密度，横坐标为最小观测。它延续3.2的画法，这里固定β、只改变n；前三列寿命轴相同，最小值密度图单独聚焦起点附近。*"
+              "html": "<p><em>固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近；它与3.2采用同一画法，这里固定β、只改变n。</em></p>",
+              "markdown": "*固定W(5,1000,500)。前三列取正式n=50、20、7存档各自的前50组，按本列最小值排序；蓝点为观测，橙点为最小值，灰线连接真实起点500与最小值。右图为最小值的理论密度。前三列共用寿命轴，右图聚焦起点附近；它与3.2采用同一画法，这里固定β、只改变n。*"
             },
             {
-              "id": "info31-0ebc24f5d8dd",
+              "id": "info31-e1fe938af3f8",
               "kind": "text",
-              "html": "<p>先看灰线。<strong>n减小后，真实起点附近更容易没有观测</strong>。橙点通常离500更远，灰线更长；右图的最小值分布也向右移动、变宽。以500—1000这段固定下端区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。扩大的是最小观测与真实起点之间的空白，总体起点始终是500。</p>",
-              "markdown": "先看灰线。**n减小后，真实起点附近更容易没有观测**。橙点通常离500更远，灰线更长；右图的最小值分布也向右移动、变宽。以500—1000这段固定下端区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。扩大的是最小观测与真实起点之间的空白，总体起点始终是500。"
+              "html": "<p>低寿命下端在总体中占比很小，抽取次数减少，就更容易一个也没抽到。图中最小观测通常离500更远，灰线变长，右侧最小值分布向右移动、变宽。以500—1000这段区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。总体起点始终是500，扩大的是起点与最小观测之间的空白。</p>",
+              "markdown": "低寿命下端在总体中占比很小，抽取次数减少，就更容易一个也没抽到。图中最小观测通常离500更远，灰线变长，右侧最小值分布向右移动、变宽。以500—1000这段区间为例，整组没有任何观测落入其中的理论概率，随n=50→20→7约为21%→54%→80%；本轮1200组的实际比例约为20%→55%→80%。总体起点始终是500，扩大的是起点与最小观测之间的空白。"
             },
             {
-              "id": "info31-7f2a8e4ef001",
+              "id": "info31-96e33a061a24",
               "kind": "text",
-              "html": "<p><strong>这段空白越大，起点附近能提供的直接定位依据就越少</strong>。从观测支持条件看，起点不能高于最小值；最小值右移，就放宽了位置的支持上界。范围内哪个位置更符合整组样本，还要由方法判据决定。</p>",
-              "markdown": "**这段空白越大，起点附近能提供的直接定位依据就越少**。从观测支持条件看，起点不能高于最小值；最小值右移，就放宽了位置的支持上界。范围内哪个位置更符合整组样本，还要由方法判据决定。"
+              "html": "<p>同时，每组点数更少，观测比例、间距及点列关系对总体的近似也更粗、更易波动。这两类变化会分别进入不同方法的估计构造。</p>",
+              "markdown": "同时，每组点数更少，观测比例、间距及点列关系对总体的近似也更粗、更易波动。这两类变化会分别进入不同方法的估计构造。"
             },
             {
-              "id": "info31-85a0a8d90e7a",
+              "id": "info31-4b7aeec04871",
               "kind": "text",
-              "html": "<p>再看每行的蓝点。点数减少后，样本对总体分布的描绘更粗，一两个点的留失更容易改变观测比例、间距和点列的匹配关系。换一批小样本，这些关系的随机波动也更大。因此，n减少同时改变了两类估计依据：<strong>起点附近有没有数据，以及整组点列呈现出怎样的分布关系</strong>。</p>",
-              "markdown": "再看每行的蓝点。点数减少后，样本对总体分布的描绘更粗，一两个点的留失更容易改变观测比例、间距和点列的匹配关系。换一批小样本，这些关系的随机波动也更大。因此，n减少同时改变了两类估计依据：**起点附近有没有数据，以及整组点列呈现出怎样的分布关系**。"
+              "html": "<h4>最小观测约束的是起点，也是候选分布的下端概率</h4>",
+              "markdown": "#### 最小观测约束的是起点，也是候选分布的下端概率"
             },
             {
-              "id": "info31-b6cdbbf26be4",
+              "id": "info31-949acbaa14c8",
               "kind": "text",
-              "html": "<h4>不同方法怎样使用这些依据</h4>",
-              "markdown": "#### 不同方法怎样使用这些依据"
+              "html": "<p>记当前最小观测为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>。从支持范围看，候选起点不能高于<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>，否则就有观测落在模型允许范围之外。但起点即使低于<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>，也还要解释另一件事：<strong>模型认为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>左侧应该有多少数据，而我们实际一个也没看到？</strong></p>",
+              "markdown": "记当前最小观测为$m$。从支持范围看，候选起点不能高于$m$，否则就有观测落在模型允许范围之外。但起点即使低于$m$，也还要解释另一件事：**模型认为$m$左侧应该有多少数据，而我们实际一个也没看到？**"
             },
             {
-              "id": "info31-75bc6284ea0d",
+              "id": "info31-111087320b25",
               "kind": "text",
-              "html": "<p>MMLE直接以最小值确定位置。于是，图中从500到橙点的灰线长度，正好就是本法的位置估计误差。最小值整体离起点更远，便直接转化为更大的位置高估；这一步的联系可以由最小值分布直接推出。</p>",
-              "markdown": "MMLE直接以最小值确定位置。于是，图中从500到橙点的灰线长度，正好就是本法的位置估计误差。最小值整体离起点更远，便直接转化为更大的位置高估；这一步的联系可以由最小值分布直接推出。"
+              "html": "<p>设候选参数为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>θ</mi><mo>=</mo><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>η</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，它在<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>左侧安排的概率是</p>",
+              "markdown": "设候选参数为$\\theta=(\\beta,\\eta,\\gamma)$，它在$m$左侧安排的概率是"
             },
             {
-              "id": "info31-30406a258062",
+              "id": "info31-a78c28180f29",
               "kind": "text",
-              "html": "<p>MDM和LSE还要使用整个点列。MDM把有序观测与当前n的绘图位置配对，反算各点的伪尺度；它在每个候选位置下先让伪尺度尽量一致，再用最小标准差的梯度达到0.1来定位。点的删除、间距与参考配对改变，会改变这条梯度曲线。LSE则在每个候选位置下，将对数距离与当前n的理论参考坐标回归；点列关系改变，会改变线性匹配最好的位置。<strong>最小值右移会放宽位置的支持上界，点列关系则改变范围内的选择依据</strong>。</p>",
-              "markdown": "MDM和LSE还要使用整个点列。MDM把有序观测与当前n的绘图位置配对，反算各点的伪尺度；它在每个候选位置下先让伪尺度尽量一致，再用最小标准差的梯度达到0.1来定位。点的删除、间距与参考配对改变，会改变这条梯度曲线。LSE则在每个候选位置下，将对数距离与当前n的理论参考坐标回归；点列关系改变，会改变线性匹配最好的位置。**最小值右移会放宽位置的支持上界，点列关系则改变范围内的选择依据**。"
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mi>q</mi><mo>=</mo><msub><mi>F</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><mi>m</mi><mo stretchy=\"false\">)</mo><mo>=</mo><msubsup><mo>∫</mo><mi>γ</mi><mi>m</mi></msubsup><msub><mi>f</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><mi>t</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mi mathvariant=\"normal\">d</mi><mi>t</mi><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\nq=F_\\theta(m)=\\int_\\gamma^m f_\\theta(t)\\,\\mathrm{d}t.\n$$"
+            },
+            {
+              "id": "info31-e1e2f5ec7a9b",
+              "kind": "text",
+              "html": "<p>因此，<strong>PDF在<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>左侧的面积，与CDF在<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>处的高度，是同一份概率信息</strong>。最小观测并不单独确定形状参数；它与样本量一起，对三个参数共同决定的下端概率提供信息。</p>",
+              "markdown": "因此，**PDF在$m$左侧的面积，与CDF在$m$处的高度，是同一份概率信息**。最小观测并不单独确定形状参数；它与样本量一起，对三个参数共同决定的下端概率提供信息。"
+            },
+            {
+              "id": "n-distribution-link",
+              "kind": "image",
+              "src": "assets/31I_最小观测与整条分布.png",
+              "alt": "同一组七点上两种代入位置恢复出的PDF与CDF，以及固定蓝色候选分布的无下端观测概率",
+              "markdown": "![同一组七点上两种代入位置恢复出的PDF与CDF，以及固定蓝色候选分布的无下端观测概率](reviewbyhtml/方法对比-v1.0/assets/31I_最小观测与整条分布.png)"
+            },
+            {
+              "id": "info31-d5e1f0966382",
+              "kind": "text",
+              "html": "<p><em>前两图始终使用同一组7点及其LSE理论参考坐标，分别代入位置662.5、1174.0后恢复形状与尺度；两条曲线都是7点条件恢复，蓝线不是原50点拟合。底部刻线是这7个真实观测，竖线为最小值<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi><mo>=</mo><mn>1226.9</mn></mrow></semantics></math></span>。蓝色PDF阴影面积等于蓝色CDF圆点的高度<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>q</mi></mrow></semantics></math></span>。右图固定蓝色候选参数和同一阈值<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>，计算重新独立抽取n个观测时全部不小于<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>的模型概率。</em></p>",
+              "markdown": "*前两图始终使用同一组7点及其LSE理论参考坐标，分别代入位置662.5、1174.0后恢复形状与尺度；两条曲线都是7点条件恢复，蓝线不是原50点拟合。底部刻线是这7个真实观测，竖线为最小值$m=1226.9$。蓝色PDF阴影面积等于蓝色CDF圆点的高度$q$。右图固定蓝色候选参数和同一阈值$m$，计算重新独立抽取n个观测时全部不小于$m$的模型概率。*"
+            },
+            {
+              "id": "info31-c711d13be134",
+              "kind": "text",
+              "html": "<p>先只看蓝色候选分布。它在<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi>m</mi></mrow></semantics></math></span>左侧放了约9.83%的概率。若固定这个分布和阈值，重新独立抽取n个观测，全部避开这段区域的概率为</p>",
+              "markdown": "先只看蓝色候选分布。它在$m$左侧放了约9.83%的概率。若固定这个分布和阈值，重新独立抽取n个观测，全部避开这段区域的概率为"
+            },
+            {
+              "id": "info31-762ee72501f0",
+              "kind": "text",
+              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>P</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>X</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub><mo>≥</mo><mi>m</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mo stretchy=\"false\">[</mo><mn>1</mn><mo>−</mo><msub><mi>F</mi><mi>θ</mi></msub><mo stretchy=\"false\">(</mo><mi>m</mi><mo stretchy=\"false\">)</mo><msup><mo stretchy=\"false\">]</mo><mi>n</mi></msup><mo>=</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><mi>q</mi><msup><mo stretchy=\"false\">)</mo><mi>n</mi></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
+              "markdown": "$$\nP_\\theta(X_{(1)}\\geq m)=[1-F_\\theta(m)]^n=(1-q)^n.\n$$"
+            },
+            {
+              "id": "info31-28fa84e2549a",
+              "kind": "text",
+              "html": "<p>n=50时约为0.56%，n=7时约为48.4%。这说明，<strong>小样本中没有看到下端观测，仍可能容许总体在那里放有相当概率</strong>；样本CDF在最小值左侧为0，也不表示总体CDF在那里必须为0。上式用于说明空白区包含的抽样信息，具体选参仍要结合全部观测和各方法原有判据。</p>",
+              "markdown": "n=50时约为0.56%，n=7时约为48.4%。这说明，**小样本中没有看到下端观测，仍可能容许总体在那里放有相当概率**；样本CDF在最小值左侧为0，也不表示总体CDF在那里必须为0。上式用于说明空白区包含的抽样信息，具体选参仍要结合全部观测和各方法原有判据。"
+            },
+            {
+              "id": "info31-ab9ad46ebc02",
+              "kind": "text",
+              "html": "<h4>起点怎样牵动形状、尺度和整条曲线</h4>",
+              "markdown": "#### 起点怎样牵动形状、尺度和整条曲线"
+            },
+            {
+              "id": "info31-9ce9f7b386ce",
+              "kind": "text",
+              "html": "<p>单独改变位置参数、保持形状和尺度不变，只会平移分布。图中PDF外形之所以改变，是因为<strong>方法在新的起点下，为匹配同一批观测，重新估计了形状和尺度</strong>。</p>",
+              "markdown": "单独改变位置参数、保持形状和尺度不变，只会平移分布。图中PDF外形之所以改变，是因为**方法在新的起点下，为匹配同一批观测，重新估计了形状和尺度**。"
+            },
+            {
+              "id": "info31-aa03d6558901",
+              "kind": "text",
+              "html": "<p>仍看图中的同一组7点，最小值为1226.9，最大值为1903.5：</p>",
+              "markdown": "仍看图中的同一组7点，最小值为1226.9，最大值为1903.5："
+            },
+            {
+              "id": "info31-bd3b0fcfb97b",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>代入位置</th><th style=\"text-align:right\">最小观测到起点的距离</th><th style=\"text-align:right\">最大观测到起点的距离</th></tr></thead><tbody><tr><td>662.5</td><td style=\"text-align:right\">564.3</td><td style=\"text-align:right\">1240.9</td></tr><tr><td>1174.0</td><td style=\"text-align:right\">52.9</td><td style=\"text-align:right\">729.5</td></tr></tbody></table>",
+              "markdown": "| 代入位置 | 最小观测到起点的距离 | 最大观测到起点的距离 |\n|---|---:|---:|\n| 662.5 | 564.3 | 1240.9 |\n| 1174.0 | 52.9 | 729.5 |"
+            },
+            {
+              "id": "info31-69ffac3a9c3d",
+              "kind": "text",
+              "html": "<p>起点右移后，下端距离缩短的比例更大，最大与最小距离之比从约2.2增至13.8。LSE对这些距离取对数，再与固定的理论参考坐标回归；对数距离跨度增大，使本例的回归线变陡。形状取斜率倒数，因此从5.23降到1.52；尺度由截距恢复，从871.0降到332.9。本例中，起点向右移，PDF峰位却向左移：另外两参的重新匹配改变了整条曲线的外形，CDF也随之改变。</p>",
+              "markdown": "起点右移后，下端距离缩短的比例更大，最大与最小距离之比从约2.2增至13.8。LSE对这些距离取对数，再与固定的理论参考坐标回归；对数距离跨度增大，使本例的回归线变陡。形状取斜率倒数，因此从5.23降到1.52；尺度由截距恢复，从871.0降到332.9。本例中，起点向右移，PDF峰位却向左移：另外两参的重新匹配改变了整条曲线的外形，CDF也随之改变。"
+            },
+            {
+              "id": "info31-6e8daa43e7c8",
+              "kind": "text",
+              "html": "<p>这里的传递是“改变起点后重新匹配数据”，并不是最小值单独决定形状。MDM也通过观测到起点的距离恢复伪尺度，位置改变后，其一致关系和恢复参数也会改变；<a href=\"#n-supplement\">补充核对图</a>保留两法的具体恢复过程。</p>",
+              "markdown": "这里的传递是“改变起点后重新匹配数据”，并不是最小值单独决定形状。MDM也通过观测到起点的距离恢复伪尺度，位置改变后，其一致关系和恢复参数也会改变；[补充核对图](结果呈现/比较探索/3.1逐档拟合与误差.md)保留两法的具体恢复过程。"
+            },
+            {
+              "id": "info31-490f7a80a66c",
+              "kind": "text",
+              "html": "<h4>不同构造怎样选择参数，形成不同响应</h4>",
+              "markdown": "#### 不同构造怎样选择参数，形成不同响应"
+            },
+            {
+              "id": "info31-73529e640bdc",
+              "kind": "text",
+              "html": "<p>MMLE直接以最小值确定位置，再删除该最小观测，对其余正距离作形状和尺度估计。第一幅图中灰线的长度，正好就是本法的位置误差。n减小时最小值整体更远离真实起点，这种位置高估会在定位步骤直接形成。</p>",
+              "markdown": "MMLE直接以最小值确定位置，再删除该最小观测，对其余正距离作形状和尺度估计。第一幅图中灰线的长度，正好就是本法的位置误差。n减小时最小值整体更远离真实起点，这种位置高估会在定位步骤直接形成。"
+            },
+            {
+              "id": "info31-55afef5b64b1",
+              "kind": "text",
+              "html": "<p>MDM和LSE还要使用整组点列。MDM在每个候选位置下，先找使各点反算尺度值尽量一致的形状，再按最小标准差的梯度达到0.1定位；LSE则在每个候选位置下重新回归，选择线性匹配最好的位置。点的删除、间距及当前n的参考坐标改变，会改变它们的定位判据。判据仍可正常给出解，但这个解可能对应一组偏离真值的参数。</p>",
+              "markdown": "MDM和LSE还要使用整组点列。MDM在每个候选位置下，先找使各点反算尺度值尽量一致的形状，再按最小标准差的梯度达到0.1定位；LSE则在每个候选位置下重新回归，选择线性匹配最好的位置。点的删除、间距及当前n的参考坐标改变，会改变它们的定位判据。判据仍可正常给出解，但这个解可能对应一组偏离真值的参数。"
             },
             {
               "id": "n-a-criteria",
               "kind": "image",
               "src": "assets/31D_定位判据响应_样本474.png",
-              "alt": "同一删点路径中，MMLE最小值、MDM梯度阈值与LSE线性匹配准则的响应",
-              "markdown": "![同一删点路径中，MMLE最小值、MDM梯度阈值与LSE线性匹配准则的响应](reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png)"
+              "alt": "同一删点路径中MMLE极值定位、MDM梯度阈值及LSE回归匹配的响应",
+              "markdown": "![同一删点路径中MMLE极值定位、MDM梯度阈值及LSE回归匹配的响应](reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png)"
             },
             {
-              "id": "info31-592ceff9b84d",
+              "id": "info31-012fd7568a5f",
               "kind": "text",
-              "html": "<p><em>这里转到同一条474号配对删点路径：从正式50点样本按既有随机顺序保留20、15、10、7点，图中突出50、20、7三档。圆点为各方法选中的位置；MDM为每个位置先对形状优化后的实际梯度，LSE为每个位置重新回归后的1−R²，其最低点与同一n的F比最大点等价。虚线标出真实位置500；不同n的判据高度不用于比较估计精度。</em></p>",
-              "markdown": "*这里转到同一条474号配对删点路径：从正式50点样本按既有随机顺序保留20、15、10、7点，图中突出50、20、7三档。圆点为各方法选中的位置；MDM为每个位置先对形状优化后的实际梯度，LSE为每个位置重新回归后的1−R²，其最低点与同一n的F比最大点等价。虚线标出真实位置500；不同n的判据高度不用于比较估计精度。*"
+              "html": "<p><em>转到同一条474号配对删点路径：从正式50点样本按既有顺序保留20、15、10、7点，图中突出50、20、7三档。圆点为各方法选中的位置；MDM为每个位置先对形状优化后的实际梯度，LSE为每个位置重新回归后的<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mn>1</mn><mo>−</mo><msup><mi>R</mi><mn>2</mn></msup></mrow></semantics></math></span>，其最低点与同一n的F比最大点等价。虚线为真实位置500，不同n的判据高度不用于比较估计精度。</em></p>",
+              "markdown": "*转到同一条474号配对删点路径：从正式50点样本按既有顺序保留20、15、10、7点，图中突出50、20、7三档。圆点为各方法选中的位置；MDM为每个位置先对形状优化后的实际梯度，LSE为每个位置重新回归后的$1-R^2$，其最低点与同一n的F比最大点等价。虚线为真实位置500，不同n的判据高度不用于比较估计精度。*"
             },
             {
               "id": "n-a-reading",
               "kind": "text",
-              "html": "<p>50→20点时，最小值仍是930.6，所以MMLE的位置不变。但整组点列已变，MDM位置从733.7降至683.7，LSE从662.5降至550.5，反而更接近真实起点。这个阶段说明：即使下端极值保留，使用整个点列的方法也会重新定位。</p>",
-              "markdown": "50→20点时，最小值仍是930.6，所以MMLE的位置不变。但整组点列已变，MDM位置从733.7降至683.7，LSE从662.5降至550.5，反而更接近真实起点。这个阶段说明：即使下端极值保留，使用整个点列的方法也会重新定位。"
+              "html": "<p>50→20点时，最小值仍是930.6，MMLE的位置不变；但整组点列已变，MDM位置从733.7降至683.7，LSE从662.5降至550.5，反而更接近真值。20→7点时，下端观测也丢失，最小值升至1226.9；MMLE直接跟随它，MDM梯度交点移至1143.8，LSE匹配最低点移至1174.0。它们继而按各自的恢复规则，给出不同的形状、尺度和分布曲线。</p>",
+              "markdown": "50→20点时，最小值仍是930.6，MMLE的位置不变；但整组点列已变，MDM位置从733.7降至683.7，LSE从662.5降至550.5，反而更接近真值。20→7点时，下端观测也丢失，最小值升至1226.9；MMLE直接跟随它，MDM梯度交点移至1143.8，LSE匹配最低点移至1174.0。它们继而按各自的恢复规则，给出不同的形状、尺度和分布曲线。"
             },
             {
-              "id": "info31-a8ad60b195e9",
+              "id": "info31-d249293f208e",
               "kind": "text",
-              "html": "<p>20→7点时，下端观测也丢失了，最小值升至1226.9。MMLE直接跟随它；MDM的梯度交点移至1143.8，LSE的匹配最低点移至1174.0。<strong>同一次样本变化，经过极值定位、梯度阈值和回归匹配，形成了不同的位置响应</strong>。单条路径可以局部改善，并不要求每删一点误差都增大。</p>",
-              "markdown": "20→7点时，下端观测也丢失了，最小值升至1226.9。MMLE直接跟随它；MDM的梯度交点移至1143.8，LSE的匹配最低点移至1174.0。**同一次样本变化，经过极值定位、梯度阈值和回归匹配，形成了不同的位置响应**。单条路径可以局部改善，并不要求每删一点误差都增大。"
+              "html": "<p>因此，n减少带来的变化包含两个相连的环节：<strong>样本对候选分布的约束减弱，样本中的关系也更不稳定；不同构造利用这些信息的方式不同，因而会选中不同的参数组合及PDF、CDF，表现为不同的误差响应</strong>。单条路径可以局部改善；第二章的重复抽样比较负责判断总体误差增幅，本节不从一个案例分解全部方法的RMSE差距。</p>",
+              "markdown": "因此，n减少带来的变化包含两个相连的环节：**样本对候选分布的约束减弱，样本中的关系也更不稳定；不同构造利用这些信息的方式不同，因而会选中不同的参数组合及PDF、CDF，表现为不同的误差响应**。单条路径可以局部改善；第二章的重复抽样比较负责判断总体误差增幅，本节不从一个案例分解全部方法的RMSE差距。"
             },
             {
-              "id": "info31-41b483d452c4",
+              "id": "info31-cfc68255cfec",
               "kind": "text",
-              "html": "<h4>位置响应怎样传到形状、尺度误差</h4>",
-              "markdown": "#### 位置响应怎样传到形状、尺度误差"
+              "html": "<p><a href=\"#n-supplement\">补充核对：逐档拟合、单次误差及构造输入</a>。正文仍为三幅主图，具体恢复公式与逐档结果放在补充区。</p>",
+              "markdown": "[补充核对：逐档拟合、单次误差及构造输入](结果呈现/比较探索/3.1逐档拟合与误差.md)。正文仍为三幅主图，具体恢复公式与逐档结果放在补充区。"
             },
             {
-              "id": "n-recovery-intro",
+              "id": "info31-e5c9c64636c3",
               "kind": "text",
-              "html": "<p>位置决定了每个观测到估计起点的距离。位置提高后，所有距离缩短，靠近起点的观测缩短比例更大；方法据以恢复形状和尺度的关系也随之改变。下面固定最终的同一组7点及n=7参考坐标，只改变代入的位置，以检查这一步传递。</p>",
-              "markdown": "位置决定了每个观测到估计起点的距离。位置提高后，所有距离缩短，靠近起点的观测缩短比例更大；方法据以恢复形状和尺度的关系也随之改变。下面固定最终的同一组7点及n=7参考坐标，只改变代入的位置，以检查这一步传递。"
-            },
-            {
-              "id": "n-parameter-recovery",
-              "kind": "image",
-              "src": "assets/31F_固定七点的位置条件对照_样本474.png",
-              "alt": "固定同一组七点与参考坐标，只改变位置时的MDM与LSE条件参数恢复",
-              "markdown": "![固定同一组七点与参考坐标，只改变位置时的MDM与LSE条件参数恢复](reviewbyhtml/方法对比-v1.0/assets/31F_固定七点的位置条件对照_样本474.png)"
-            },
-            {
-              "id": "info31-65d2ae819c16",
-              "kind": "text",
-              "html": "<p><em>蓝色代入各法50点时的位置，橙色代入7点时的位置；两种颜色始终使用同一组7点。蓝色结果是条件恢复值，不是原50点估计。左图为MDM伪尺度标准差谷底，纵轴聚焦0—300；中图为LSE对数距离回归，右图为恢复的尺度。</em></p>",
-              "markdown": "*蓝色代入各法50点时的位置，橙色代入7点时的位置；两种颜色始终使用同一组7点。蓝色结果是条件恢复值，不是原50点估计。左图为MDM伪尺度标准差谷底，纵轴聚焦0—300；中图为LSE对数距离回归，右图为恢复的尺度。*"
-            },
-            {
-              "id": "n-recovery-reading",
-              "kind": "text",
-              "html": "<p>MDM代入位置从733.7提高到1143.8后，条件形状从4.34降至1.76，尺度从799.6降至363.2。LSE代入位置从662.5提高到1174.0后，下端对数距离下降更多，回归线变陡；形状取斜率倒数，从5.23降至1.52，尺度从871.0降至332.9。这里明确了本例的位置变化怎样继续传到另外两个参数；实际删点还包含观测与参考量同时改变的影响。</p>",
-              "markdown": "MDM代入位置从733.7提高到1143.8后，条件形状从4.34降至1.76，尺度从799.6降至363.2。LSE代入位置从662.5提高到1174.0后，下端对数距离下降更多，回归线变陡；形状取斜率倒数，从5.23降至1.52，尺度从871.0降至332.9。这里明确了本例的位置变化怎样继续传到另外两个参数；实际删点还包含观测与参考量同时改变的影响。"
-            },
-            {
-              "id": "info31-8e5457ae8aa0",
-              "kind": "text",
-              "html": "<p>本节的解释顺序是：<strong>n减小→下端更容易留空、点列关系更不稳定→不同规则作出不同的定位选择→形状和尺度恢复随之改变→表现为不同的参数误差</strong>。下端覆盖的总体变化由最小值分布说明，具体方法响应由同一删点路径及固定7点对照追踪；全部方法误差增幅的大小仍由第二章的重复抽样比较判断。</p>",
-              "markdown": "本节的解释顺序是：**n减小→下端更容易留空、点列关系更不稳定→不同规则作出不同的定位选择→形状和尺度恢复随之改变→表现为不同的参数误差**。下端覆盖的总体变化由最小值分布说明，具体方法响应由同一删点路径及固定7点对照追踪；全部方法误差增幅的大小仍由第二章的重复抽样比较判断。"
-            },
-            {
-              "id": "info31-757d8782a707",
-              "kind": "text",
-              "html": "<p><a href=\"#n-supplement\">补充核对：逐档拟合、单次误差及构造输入</a>。正文保留三幅主图，其他图用于需要时展开计算细节。</p>",
-              "markdown": "[补充核对：逐档拟合、单次误差及构造输入](结果呈现/比较探索/3.1逐档拟合与误差.md)。正文保留三幅主图，其他图用于需要时展开计算细节。"
-            },
-            {
-              "id": "n-a-source",
-              "kind": "text",
-              "html": "<p><em>数据、理论关系、15条既有路径估计、条件恢复与图像指纹见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E6%9C%BA%E5%88%B6%E9%93%BE%E6%A0%B8%E9%AA%8C.json\">3.1机制链核验</a>。观测图只读正式存档，最小值密度由Weibull分布解析计算，不新增抽样或改写正式结果。经验分布的波动依据见<a href=\"https://www.cs.cmu.edu/afs/cs/academic/class/15750-s16/Handouts/orderstats.pdf\">经验分布的抽样性质</a>，总体分布定义见<a href=\"https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm\">NIST Weibull分布</a>。</em></p>",
-              "markdown": "*数据、理论关系、15条既有路径估计、条件恢复与图像指纹见[3.1机制链核验](结果呈现/比较探索/3.1机制链核验.json)。观测图只读正式存档，最小值密度由Weibull分布解析计算，不新增抽样或改写正式结果。经验分布的波动依据见[经验分布的抽样性质](https://www.cs.cmu.edu/afs/cs/academic/class/15750-s16/Handouts/orderstats.pdf)，总体分布定义见[NIST Weibull分布](https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm)。*"
+              "html": "<p><em>来源与数值见<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E6%9C%BA%E5%88%B6%E9%93%BE%E6%A0%B8%E9%AA%8C.json\">3.1机制链核验</a>。无下端观测的事件概率是在固定候选参数、固定阈值下计算，不是原拟合的检验p值，也不替代最小值的完整密度或方法目标。分布关系见<a href=\"https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm\">NIST Weibull定义</a>，顺序统计量和经验分布性质见<a href=\"https://www.cs.cmu.edu/afs/cs/academic/class/15750-s16/Handouts/orderstats.pdf\">顺序统计量讲义</a>。未新增抽样或改写正式结果。</em></p>",
+              "markdown": "*来源与数值见[3.1机制链核验](结果呈现/比较探索/3.1机制链核验.json)。无下端观测的事件概率是在固定候选参数、固定阈值下计算，不是原拟合的检验p值，也不替代最小值的完整密度或方法目标。分布关系见[NIST Weibull定义](https://www.itl.nist.gov/div898/handbook/eda/section3/eda3668.htm)，顺序统计量和经验分布性质见[顺序统计量讲义](https://www.cs.cmu.edu/afs/cs/academic/class/15750-s16/Handouts/orderstats.pdf)。未新增抽样或改写正式结果。*"
             }
           ]
         }
@@ -826,6 +880,25 @@
               "markdown": "暂固定MDM的β=5、γ=500及LSE的γ=500，黑箭头追踪50→20点时同一个930.6观测。其MDM绘图位置从0.01389变为0.03431，伪尺度从1011.5变为842.4；LSE的对数距离相同，横坐标从−4.4892变为−3.5729。这是输入变换诊断，不是实际定位判据。"
             },
             {
+              "id": "info31-527bb3a6976f",
+              "kind": "text",
+              "html": "<h2>位置进入形状与尺度恢复的具体步骤</h2>",
+              "markdown": "## 位置进入形状与尺度恢复的具体步骤"
+            },
+            {
+              "id": "n-parameter-recovery",
+              "kind": "image",
+              "src": "assets/31F_固定七点的位置条件对照_样本474.png",
+              "alt": "固定同一七点下MDM谷底、LSE回归线及尺度恢复",
+              "markdown": "![固定同一七点下MDM谷底、LSE回归线及尺度恢复](../../reviewbyhtml/方法对比-v1.0/assets/31F_固定七点的位置条件对照_样本474.png)"
+            },
+            {
+              "id": "info31-7abdcd4046b3",
+              "kind": "text",
+              "html": "<p>两种颜色始终使用同一组7点及n=7参考坐标，蓝色代入各法50点时的位置，橙色代入7点时的位置。MDM条件形状4.34→1.76、尺度799.6→363.2；LSE条件形状5.23→1.52、尺度871.0→332.9。蓝色不是原50点估计。正文31I用LSE的同两组条件参数展示最终PDF/CDF；本图展开恢复计算。</p>",
+              "markdown": "两种颜色始终使用同一组7点及n=7参考坐标，蓝色代入各法50点时的位置，橙色代入7点时的位置。MDM条件形状4.34→1.76、尺度799.6→363.2；LSE条件形状5.23→1.52、尺度871.0→332.9。蓝色不是原50点估计。正文31I用LSE的同两组条件参数展示最终PDF/CDF；本图展开恢复计算。"
+            },
+            {
               "id": "info31-94a64610ead3",
               "kind": "text",
               "html": "<h2>五档单次误差</h2>",
@@ -1028,14 +1101,14 @@
   "manuscript_date": "2026-10-24",
   "section_3_1_evidence": {
     "source": "结果呈现/比较探索/3.1机制链核验.json",
-    "sha256": "16565f18309a6b5f2a1d24a29c03cb87a54848c9729ada024929778ae2f98e01",
+    "sha256": "68d8b903a8e847c0124aea8e828b7d43a6df3f5a788248109440d67511fdf4cc",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
       "31H",
-      "31D",
-      "31F"
+      "31I",
+      "31D"
     ],
     "supplement_unit": "mechanism-n-supplement",
-    "scope": "Archived samples and analytic minimum distributions explain n and lower coverage; path474 and fixed-seven conditional recovery trace method response; no independent Monte Carlo or full RMSE decomposition."
+    "scope": "Archived coverage, lower-tail probability and PDF/CDF equivalence, fixed-seven conditional LSE curves, and path474 trace response. No-hit curve is fixed-candidate fresh-draw probability, not a fitted-data p-value or method objective; no independent Monte Carlo or full RMSE decomposition."
   }
 }

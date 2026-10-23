@@ -234,6 +234,52 @@
       "mmle_gamma_is_minimum_all_1200": true
     }
   ],
+  "minimum_to_distribution": {
+    "fixed_observations_n": 7,
+    "minimum": 1226.8800146458543,
+    "maximum": 1903.457069622321,
+    "candidates": [
+      {
+        "location_source": "gamma_from_n50",
+        "gamma": 662.5353387936273,
+        "beta": 5.226054551525561,
+        "eta": 870.991539714292,
+        "cdf_at_minimum": 0.09834713135567344,
+        "pdf_area_below_minimum": 0.09834713135566676,
+        "minimum_distance": 564.344675852227,
+        "maximum_distance": 1240.9217308286936,
+        "maximum_to_minimum_distance_ratio": 2.1988720438529086
+      },
+      {
+        "location_source": "gamma_from_n7",
+        "gamma": 1173.956540899823,
+        "beta": 1.5166803683303616,
+        "eta": 332.9406733136792,
+        "cdf_at_minimum": 0.05961033880622796,
+        "pdf_area_below_minimum": 0.05961033880622795,
+        "minimum_distance": 52.92347374603128,
+        "maximum_distance": 729.5005287224978,
+        "maximum_to_minimum_distance_ratio": 13.784063612740518
+      }
+    ],
+    "fresh_draw_probabilities_under_fixed_blue_candidate": [
+      {
+        "n": 7,
+        "no_observation_below_m_probability": 0.4844796963202276
+      },
+      {
+        "n": 20,
+        "no_observation_below_m_probability": 0.12612099113327663
+      },
+      {
+        "n": 50,
+        "no_observation_below_m_probability": 0.0056489591942023385
+      }
+    ],
+    "zero_count_formula": "P_theta(min(X_1,...,X_n)>=m) = (1-F_theta(m))**n, for fixed theta and m",
+    "minimum_density_formula": "g_theta,n(m) = n*f_theta(m)*(1-F_theta(m))**(n-1)",
+    "scope": "Conditional curves on the same seven observations. The n-curve holds blue parameters and threshold fixed for hypothetical new iid draws; not a p-value for the fitted data, not the full minimum density or any method's objective."
+  },
   "coverage_figure_grammar_source": "Research/00-方法对比/交付/程序/报告1/20261010-导入样本起点图.py; adapted to Study04 n=50,20,7, with the same analytic minimum density; source not executed or changed.",
   "features": [
     {
@@ -803,6 +849,8 @@
   ],
   "conditional_scope": "Same seven observations and n=7 reference coordinates; gamma alone changes. Old-gamma conditional results are NOT original n50 estimates.",
   "checks": {
+    "pdf_area_equals_cdf_at_minimum": true,
+    "no_hit_probability_matches_binomial": true,
     "archived_coverage_samples": true,
     "minimum_density_matches_scipy_and_integrates_to_one": true,
     "mmle_gamma_minimum_all_3600_records": true,
@@ -818,9 +866,10 @@
     "formal_source_unchanged": true
   },
   "scope": "Archived n=50/20/7 samples and analytic minimum distributions at beta=5; one nested path 474 and conditional recovery explain concrete responses, not all methods or total RMSE differences; no independent Monte Carlo added.",
-  "program_sha256": "d0fe797b02fbc06014448ee7b0004c93c46001b3f79627a40086e13661c5c53b",
+  "program_sha256": "50920aab153086560ef929844a397290dc4054c4aa60f651f8ff57134789a8f4",
   "images": {
     "reviewbyhtml/方法对比-v1.0/assets/31H_n减小与下端覆盖.png": "e05d8743f1a41db992d7db750161f9828d589f6f22554e2eaab35dc5f7487e90",
+    "reviewbyhtml/方法对比-v1.0/assets/31I_最小观测与整条分布.png": "fa8d343d5f31f2add6b1d23e38cf03b501d80e4c890be7910c0207c9d25f47df",
     "reviewbyhtml/方法对比-v1.0/assets/31C_样本信息变化_样本474.png": "bc25f57af04b756396c3a23c3f274db85fb6fe7e273b474c94080ababa165597",
     "reviewbyhtml/方法对比-v1.0/assets/31G_样本进入构造_样本474.png": "da2a17b36ea98f743f412b88c21fc6d9144a7187b2cae0b598446266a6935eda",
     "reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png": "a09393f43c108c018cebbad37c45d213bc01136d3ae99645243a47a657a8eba0",

@@ -14,8 +14,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.special import gamma as gamma_function
-from scipy.stats import weibull_min
-from scipy.integrate import trapezoid
+from scipy.stats import weibull_min, binom
+from scipy.integrate import trapezoid, quad
 
 HERE=Path(__file__).resolve().parent
 STUDY=HERE.parents[1]
@@ -256,16 +256,72 @@ def conditional(xs,est):
     return save(fig,"31F_固定七点的位置条件对照_样本474.png"),outputs
 
 
+def minimum_distribution_link(xs,conditional_outputs):
+    """One figure joins lower-tail mass, conditional shape, and no-hit chance.
+
+    Both distributions are LSE conditional recoveries on the same seven points.
+    The n-curve is a fresh-draw probability under the FIXED blue candidate and
+    fixed threshold m, not a fitted-model p-value or an estimation objective.
+    """
+    x=xs[7];m=float(x[0]);grid=np.unique(np.r_[np.linspace(450,2200,2001),m])
+    selected=[r for r in conditional_outputs if r["method"]=="LSE"]
+    assert len(selected)==2
+    fig,axs=plt.subplots(1,3,figsize=(16,7),gridspec_kw={"width_ratios":[1.1,1.1,1]})
+    fig.subplots_adjust(left=.065,right=.985,bottom=.21,top=.87,wspace=.32)
+    records=[]
+    for r,c,ls in zip(selected,["#0072B2","#D55E00"],["-","--"]):
+        dist=weibull_min(r["beta"],loc=r["gamma"],scale=r["eta"])
+        pdf=dist.pdf(grid);cdf=dist.cdf(grid);q=float(dist.cdf(m))
+        area,error=quad(dist.pdf,r["gamma"],m,epsabs=1e-12)
+        assert abs(area-q)<1e-10 and error<1e-9
+        axs[0].plot(grid,pdf,c=c,ls=ls,lw=2)
+        axs[1].plot(grid,cdf,c=c,ls=ls,lw=2)
+        if not records:
+            low=np.linspace(r["gamma"],m,500)
+            axs[0].fill_between(low,0,dist.pdf(low),color=c,alpha=.23,linewidth=0)
+            axs[1].hlines(q,450,m,color=c,ls=":",lw=1.2)
+            axs[1].scatter(m,q,c=c,s=44,zorder=5)
+            axs[1].annotate(r"$q$",(m,q),xytext=(10,5),textcoords="offset points",color=c,fontsize=14)
+        records.append(dict(location_source=r["location_source"],gamma=r["gamma"],beta=r["beta"],eta=r["eta"],
+                            cdf_at_minimum=q,pdf_area_below_minimum=area,
+                            minimum_distance=float(m-r["gamma"]),maximum_distance=float(x[-1]-r["gamma"]),
+                            maximum_to_minimum_distance_ratio=float((x[-1]-r["gamma"])/(m-r["gamma"]))))
+    for ax in axs[:2]:
+        ax.axvline(m,c="#333",ls=":",lw=1.3)
+        ax.scatter(x,np.zeros(len(x)),marker="|",s=120,c="#222",clip_on=False,zorder=6)
+        ax.set(xlim=(450,2200),xticks=[500,1000,1500,2000],xlabel="寿命")
+    axs[0].set(title="(a) PDF",ylabel="概率密度",ylim=(0,None))
+    axs[0].ticklabel_format(axis="y",style="sci",scilimits=(0,0),useMathText=True)
+    axs[1].set(title="(b) CDF",ylabel="累计概率",ylim=(0,1))
+    q=records[0]["cdf_at_minimum"];ns=np.arange(1,51);prob=np.exp(ns*np.log1p(-q))
+    assert np.allclose(prob,binom.pmf(0,ns,q),rtol=1e-12,atol=1e-15)
+    axs[2].plot(ns,prob,c="#0072B2",lw=2)
+    probabilities=[]
+    for n in [7,20,50]:
+        p=float(np.exp(n*np.log1p(-q)));axs[2].scatter(n,p,c="#0072B2",s=43,zorder=4)
+        axs[2].annotate(f"{p*100:.2f}%",(n,p),xytext=(-40,12) if n==50 else (6,8),textcoords="offset points",fontsize=11)
+        probabilities.append(dict(n=n,no_observation_below_m_probability=p))
+    axs[2].set(title="(c)",xlabel=r"$n$",ylabel=r"$P_{\theta_A}(X_{(1)}\geq m)$",xlim=(0,54),ylim=(0,1),xticks=[7,20,50])
+    fig.legend(handles=[Line2D([],[],c=c,ls=ls,lw=2,label=rf"$\gamma={r['gamma']:.1f}$") for r,c,ls in zip(selected,["#0072B2","#D55E00"],["-","--"])]+[Line2D([],[],c="#333",ls=":",label=rf"$m={m:.1f}$")],loc="lower center",bbox_to_anchor=(.5,.025),ncol=3,frameon=False)
+    record=dict(fixed_observations_n=7,minimum=m,maximum=float(x[-1]),candidates=records,
+                fresh_draw_probabilities_under_fixed_blue_candidate=probabilities,
+                zero_count_formula="P_theta(min(X_1,...,X_n)>=m) = (1-F_theta(m))**n, for fixed theta and m",
+                minimum_density_formula="g_theta,n(m) = n*f_theta(m)*(1-F_theta(m))**(n-1)",
+                scope="Conditional curves on the same seven observations. The n-curve holds blue parameters and threshold fixed for hypothetical new iid draws; not a p-value for the fitted data, not the full minimum density or any method's objective.")
+    return save(fig,"31I_最小观测与整条分布.png"),record
+
+
 def main():
     source,rows,xs,est,identity=load();before=sha(source)
     plt.rcParams.update({"font.family":["Times New Roman","Microsoft YaHei"],"font.size":13,"mathtext.fontset":"custom","mathtext.rm":"Times New Roman","mathtext.it":"Times New Roman:italic","mathtext.bf":"Times New Roman:bold","axes.spines.top":False,"axes.spines.right":False,"axes.unicode_minus":False})
     f0,population_coverage=coverage();f1,features=information(xs);f5,inputs=information_inputs(xs);f2,criterion=criteria(xs,est);f3,errs=errors(est);f4,cond=conditional(xs,est)
+    f6,distribution_link=minimum_distribution_link(xs,cond)
     nested_gallery(rows,source_id=SID,source_path=LOCAL/"路径估计.csv")
-    images=[f0,f1,f5,f2,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
+    images=[f0,f6,f1,f5,f2,f3,f4]+[ASSETS/f"31_嵌套删点_样本474_n{n}.png" for n in NS]
     assert sha(source)==before
-    result=dict(identity=identity,population_coverage=population_coverage,coverage_figure_grammar_source="Research/00-方法对比/交付/程序/报告1/20261010-导入样本起点图.py; adapted to Study04 n=50,20,7, with the same analytic minimum density; source not executed or changed.",features=features,input_coordinates_at_true_parameters=inputs,estimates=[dict(n=n,method=m,**est[n,m]) for n in NS for _,m,_,_ in METHODS],actual_criteria=criterion,signed_errors=errs,conditional_seven_point_recovery=cond,
+    result=dict(identity=identity,population_coverage=population_coverage,minimum_to_distribution=distribution_link,coverage_figure_grammar_source="Research/00-方法对比/交付/程序/报告1/20261010-导入样本起点图.py; adapted to Study04 n=50,20,7, with the same analytic minimum density; source not executed or changed.",features=features,input_coordinates_at_true_parameters=inputs,estimates=[dict(n=n,method=m,**est[n,m]) for n in NS for _,m,_,_ in METHODS],actual_criteria=criterion,signed_errors=errs,conditional_seven_point_recovery=cond,
         conditional_scope="Same seven observations and n=7 reference coordinates; gamma alone changes. Old-gamma conditional results are NOT original n50 estimates.",
-        checks=dict(archived_coverage_samples=True,minimum_density_matches_scipy_and_integrates_to_one=True,mmle_gamma_minimum_all_3600_records=True,nested_subsets=True,same_observations_across_methods=True,formal_n50_estimates_match=True,shared_observation_reference_changes=True,mmle_positive_distance_likelihood=True,profile_gradient_target=True,lse_F_r2_identity=True,conditional_support=True,conditional_recovery_matches_n7=True,formal_source_unchanged=True),
+        checks=dict(pdf_area_equals_cdf_at_minimum=True,no_hit_probability_matches_binomial=True,archived_coverage_samples=True,minimum_density_matches_scipy_and_integrates_to_one=True,mmle_gamma_minimum_all_3600_records=True,nested_subsets=True,same_observations_across_methods=True,formal_n50_estimates_match=True,shared_observation_reference_changes=True,mmle_positive_distance_likelihood=True,profile_gradient_target=True,lse_F_r2_identity=True,conditional_support=True,conditional_recovery_matches_n7=True,formal_source_unchanged=True),
         scope="Archived n=50/20/7 samples and analytic minimum distributions at beta=5; one nested path 474 and conditional recovery explain concrete responses, not all methods or total RMSE differences; no independent Monte Carlo added.",program_sha256=sha(Path(__file__)),images={p.relative_to(STUDY).as_posix():sha(p) for p in images})
     dump(HERE/"3.1机制链核验.json",result)
     print(json.dumps(dict(features=features,conditional=cond,checks=result["checks"]),ensure_ascii=False,indent=2),flush=True)
