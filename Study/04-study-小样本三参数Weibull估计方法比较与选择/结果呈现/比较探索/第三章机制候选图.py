@@ -61,12 +61,16 @@ def criterion_figures():
             records.append(dict(source_id=sid,n=n,minimum=float(x[0]),mdm_gamma=float(d[d.method.eq("MDM")].iloc[0].gamma),lse_gamma=float(r.gamma)))
         for ax in axs:
             ax.axvline(500,c="#666666",ls="--",lw=1)
-            ax.set_xlabel("候选位置 γ")
-        axs[0].set(yticks=[0,1,2],yticklabels=["n = 50","n = 20","n = 7"],ylim=(2.5,-.5),title="K–R：直接取最小值")
+            ax.set_xlabel("位置 γ")
+            ax.set_xlim(0, max(float(json.loads(rows[(rows.source_id==sid)&(rows.n==n)].iloc[0].observations)[0]) for n in [50,20,7]) * 1.02)
+        axs[0].set(yticks=[0,1,2],yticklabels=["n = 50","n = 20","n = 7"],ylim=(2.5,-.5),title="K–R：位置 = 最小观测")
         axs[1].axhline(.1,c="#777777",ls=":",lw=1.5)
-        axs[1].set(ylim=(-.3,.5),ylabel="伪尺度标准差梯度",title="MDM：取阈值交点")
-        axs[2].set(ylabel="1 − R²（越低越好）",title="LSE：取最佳匹配位置")
-        fig.legend(*axs[1].get_legend_handles_labels(),loc="upper center",ncol=3,frameon=False)
+        axs[1].set(ylim=(-.3,.5),ylabel="伪尺度标准差梯度",title="MDM：梯度与0.1的交点")
+        axs[2].set(ylabel="1 − R²（越低越好）",title="LSE：匹配误差的最低点")
+        handles,labels=axs[1].get_legend_handles_labels()
+        from matplotlib.lines import Line2D
+        handles.append(Line2D([],[],c="#666666",ls="--"));labels.append("真位置 γ = 500")
+        fig.legend(handles,labels,loc="upper center",ncol=4,frameon=False)
         fig.savefig(OUT/f"31A_固定形状定位判据_样本{sid}.png",dpi=200,facecolor="white");plt.close(fig)
     return records
 
