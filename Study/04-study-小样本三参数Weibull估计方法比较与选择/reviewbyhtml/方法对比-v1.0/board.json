@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 34,
+  "revision": 35,
   "require_confirmation": true,
   "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.0.md",
@@ -492,13 +492,13 @@
             {
               "id": "origin-probability-figure",
               "kind": "image",
-              "src": "assets/机制_近起点观测缺失概率.png",
-              "alt": "固定相对距离0.5η，最小观测超过该距离的概率随β及n变化"
+              "src": "assets/R00_图2_样本与真实起点.png",
+              "alt": "Research00报告1图2：β=2与5、n=7/15/30时观测、最小观测及其与真实起点的距离"
             },
             {
               "id": "gap-interpretation",
               "kind": "text",
-              "html": "<p>β增大时，所有观测均落在γ+0.5η以外的概率上升；n越小，这种情况越常见。起点到最小观测之间缺少数据，位置参数需要由较远处的观测外推。</p><p><em>曲线由独立完整样本的精确关系P[T₍₁₎ &gt; γ+aη]=exp(−na<sup>β</sup>)计算，取a=0.5；该距离用于展示，不是异常判定阈值。</em></p>"
+              "html": "<p>相同n下，β=5时的最小观测比β=2时更远离真实起点；样本量减小时，这段距离进一步增大。下排最小观测的分布也显示，较大β下，即使增加样本，最小观测仍可能与起点保持较大距离。观测集中于分布中部，起点附近缺少数据，位置参数需要从较远处外推。</p><p><em>复用Research00报告1图2：η=1000、γ=500，β=2、5，n=7、15、30。橙点为每组样本的最小观测，灰线为其到真实起点的距离；下排为最小观测的理论密度。历史样本仅用于解释，不并入本轮1200次统计。</em></p>"
             },
             {
               "id": "compatible-heading",
