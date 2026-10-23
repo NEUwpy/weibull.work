@@ -12,7 +12,7 @@ from 细图绘制 import Diagram
 ROOT = Path(__file__).resolve().parent
 TARGET = ROOT / '07-似然估计路线-信息处理流程.drawio'
 META = ROOT / '预览' / '07-联合似然数值核对.json'
-W, H = 3000, 1540
+W, H = 3008, 1316
 BLUE, TEAL, ORANGE = '#78B5D3', '#3E9A91', '#EAA052'
 GRAY, RED = '#738293', '#B6404A'
 SEED, N = 7, 24
@@ -125,15 +125,13 @@ for layer, (level, color, opacity) in enumerate(zip(LEVELS, [BLUE, TEAL, ORANGE]
                        project_u(tri), shade(color, .88 + .12 * illum), opacity))
 
 d = Diagram('likelihood-joint-field-v20', '似然原理：完整三参数联合函数与最大化', W, H)
-d.text('title', '似然原理｜构造整个联合似然，再在三参数空间中最大化', 40, 20, 2910, 70, size=42, bold=True)
-d.text('core', r'固定样本 \(D\)；每个参数组合 \((\beta,\eta,\gamma)\) 对应一个联合似然值 \(L(\beta,\eta,\gamma;D)\)。', 45, 100, 2900, 60, size=31)
-d.text('sample-scope', r'原理图使用同一组模拟样本，\(n=24\)；三根轴表示参数，颜色与等值面表示第四维——似然大小。', 45, 170, 2900, 55, size=28)
+d.text('title', '似然构造 → 联合最大化', 40, 20, 2910, 70, size=42, bold=True)
 d.panel('data-panel', 30, 250, 600, 1110, fill='#F3F7FB')
 d.panel('field-panel', 710, 250, 1670, 1110, fill='#F7F9FA')
 d.panel('max-panel', 2460, 250, 510, 1110, fill='#F1F7F4')
-d.text('data-title', '① L1 由固定样本构造', 50, 270, 560, 65, size=33, bold=True)
-d.text('field-title', '② 完整三参数联合似然场', 735, 270, 1600, 65, size=34, bold=True)
-d.text('max-title', '③ L2 联合最大化', 2480, 270, 470, 65, size=33, bold=True)
+d.text('data-title', 'L1 构造联合似然', 50, 270, 560, 65, size=33, bold=True)
+d.text('field-title', '三参数联合似然场', 735, 270, 1600, 65, size=34, bold=True)
+d.text('max-title', 'L2 联合最大化', 2480, 270, 470, 65, size=33, bold=True)
 
 # Native editable faces ordered back to front, then cage/path/labels.
 for _, layer, j, points, color, opacity in sorted(facets, key=lambda f: f[0]):
@@ -176,7 +174,7 @@ peak = project_theta(THETA_STAR)
 d.line('peak-cross-h', [(peak[0]-13,peak[1]),(peak[0]+13,peak[1])], color=RED, width=5)
 d.line('peak-cross-v', [(peak[0],peak[1]-13),(peak[0],peak[1]+13)], color=RED, width=5)
 d.line('peak-callout', [peak, (1585, 475), (1745, 475)], color=RED, width=2.6)
-d.box('peak-label', r'窗内数值极大点<br>\(R=1\)', 1740, 420, 340, 115,
+d.box('peak-label', r'数值极大点<br>\(R=1\)', 1740, 420, 340, 115,
       size=28, bold=True, color=RED, fill='#FFFFFF')
 d.text('axis-origin',r'轴起点 \((1.2,1.5,0.7)\)',1325,1140,460,50,size=24,color=GRAY)
 inner_points=np.vstack([face[3] for face in facets if face[1]==2])
@@ -185,8 +183,7 @@ d.line('inner-surface-callout',[inner_anchor,(1790,762)],color='#AD6C20',width=2
 d.box('inner-surface-label',r'\(R=0.85\)',1790,730,285,65,size=27,color='#AD6C20',fill='#FFFFFF')
 
 # L1 is deliberately secondary to the full joint field.
-d.text('fixed-data', r'同一组完整、独立观测 \(D\)', 65, 365, 525, 60, size=29, bold=True)
-d.text('sample-definition', r'样本 \(D=(x_1,\ldots,x_{24})\)<br>同一组数据贯穿整个参数场', 65, 430, 525, 105, size=28)
+d.text('sample-definition', r'\(D=(x_1,\ldots,x_{24})\)', 65, 430, 525, 105, size=28)
 sx = lambda x: 85 + (x-2.3)/(7.05-2.3)*490
 d.line('sample-axis', [(75, 655), (585, 655)], color=GRAY, width=2.6, arrow='block')
 for i, x in enumerate(DATA):
@@ -198,12 +195,10 @@ d.text('sample-min', rf'\(x_{{(1)}}={DATA.min():.3f}\)', 60, 680, 270, 55, size=
 d.text('sample-x-axis', r'观测寿命 \(x\)', 340, 680, 250, 55, size=27, align='right')
 d.box('joint-construction', r'\(L(\beta,\eta,\gamma;D)\)<br>\(=\displaystyle\prod_{i=1}^{n}f(x_i;\beta,\eta,\gamma)\)',
       65, 790, 530, 180, fill='#FFFFFF', color='#337695', size=31, bold=True)
-d.text('density-small', r'\(f(x_i;\theta)=\dfrac{\beta}{\eta}\left(\dfrac{x_i-\gamma}{\eta}\right)^{\beta-1}\!\exp\!\left[-\left(\dfrac{x_i-\gamma}{\eta}\right)^\beta\right]\)',
-       65, 995, 530, 150, size=25)
 d.text('support', r'支持域：\(\beta>0,\eta>0,\gamma<x_{(1)}\)', 65, 1180, 530, 90, size=27, bold=True)
 d.line('construct-to-field', [(645, 815), (695, 815)], color='#337695', width=5, arrow='block')
 
-d.text('field-definition', r'同一面上的 \(R\) 相同；蓝 → 绿 → 橙表示联合似然增大', 755, 350, 1550, 60, size=29, bold=True)
+d.text('field-definition', r'\(R(\theta)=\exp[\ell(\theta)-\ell^\star_{\mathcal W}]\)', 755, 350, 1550, 60, size=29, bold=True)
 d.text('window-bounds', r'有限参数窗 \(\mathcal W=[1.2,4.2]\times[1.5,4.2]\times[0.7,2.4]\)', 745, 1195, 1595, 60, size=29, align='center')
 for i, (level, color) in enumerate(zip(LEVELS, [BLUE, TEAL, ORANGE])):
     x = 825 + i*470
@@ -211,20 +206,28 @@ for i, (level, color) in enumerate(zip(LEVELS, [BLUE, TEAL, ORANGE])):
     d.text('relative-level-label-' + str(i), rf'\(R={level:g}\)', x+70, 1265, 320, 60, size=29)
 d.line('field-to-maximum', [(2390, 815), (2445, 815)], color=TEAL, width=5, arrow='block')
 
-d.box('max-principle', r'\(\theta_{\mathcal W}^{\star}\in\operatorname*{arg\,max}_{\theta\in\mathcal W}L(\theta;D)\)<br>等价于最大化 \(\ell(\theta)=\log L(\theta;D)\)',
+d.box('max-principle', r'\(\theta_{\mathcal W}^{\star}\in\operatorname*{arg\,max}_{\theta\in\mathcal W}L(\theta;D)\)<br>\(\ell(\theta)=\log L(\theta;D)\)',
       2480, 370, 470, 175, fill='#FFFFFF', color=TEAL, size=28, bold=True)
-d.text('numerical-result-title', '图中窗内数值极大点', 2485, 585, 460, 55, size=28, bold=True)
+d.text('numerical-result-title', '参数估计', 2485, 585, 460, 55, size=28, bold=True)
 d.box('numerical-result', rf'\(\beta^\star={THETA_STAR[0]:.4f}\)<br>\(\eta^\star={THETA_STAR[1]:.4f}\)<br>\(\gamma^\star={THETA_STAR[2]:.4f}\)<br>\(\ell^\star_{{\mathcal W}}={ELL_STAR:.4f}\)',
       2480, 655, 470, 240, fill='#FFFFFF', color=TEAL, size=29)
 d.line('path-legend', [(2495, 955), (2570, 955)], color=RED, width=5, arrow='block')
-d.text('path-legend-label', '同一目标的一次实际迭代', 2580, 925, 355, 65, size=27, color=RED)
-d.text('path-numerics', '红点为记录的迭代点；连线显示参数在联合空间中的移动。', 2490, 1000, 445, 105, size=26)
-d.box('window-limit', r'图中求解范围：\(\mathcal W\)<br>全参数域需另行核验<br>支持边界与有限最大值', 2480, 1155, 470, 155,
-      fill='#FFFFFF', color=GRAY, size=27)
-d.text('relative-definition', r'颜色只重标同一似然函数的大小：\(R(\theta)=\exp[\ell(\theta)-\ell^\star_{\mathcal W}]\)。三坐标经线性缩放；等值面由数值网格插值，两外层在参数窗处截断。',
-       40, 1390, 2910, 70, size=27)
-d.text('scope', '原理示意，非方法比较实验。相对似然不是参数概率；统计原则是联合最大化，优化器只是实现这一步的计算工具。',
-       40, 1470, 2910, 55, size=26)
+d.text('path-legend-label', '数值迭代', 2580, 925, 355, 65, size=27, color=RED)
+# Wide canvas: move the graphical mechanism up after removing prose rows.
+# This is a translation, not a vertical squeeze; glyphs and surfaces keep scale.
+for cell in d.root.findall('mxCell'):
+    if cell.get('id') in {'0','1','title'}: continue
+    geo=cell.find('mxGeometry')
+    if geo is not None:
+        if cell.get('vertex')=='1': geo.set('y',str(float(geo.get('y','0'))-170))
+        for point in geo.findall('./Array/mxPoint'):
+            point.set('y',str(float(point.get('y','0'))-170))
+    if cell.get('labelY') is not None: cell.set('labelY',str(float(cell.get('labelY'))-170))
+ORIGIN[1]-=170
+# Formula is the transition from the sample to the whole parameter field.
+for ident, y, height in [('joint-construction',660,215),('support',1010,90),('sample-definition',260,90)]:
+    cell=next(c for c in d.root.findall('mxCell') if c.get('id')==ident)
+    geo=cell.find('mxGeometry');geo.set('y',str(y));geo.set('height',str(height))
 d.save(TARGET)
 
 # Independent numerical and structural checks, retained for reproducibility.

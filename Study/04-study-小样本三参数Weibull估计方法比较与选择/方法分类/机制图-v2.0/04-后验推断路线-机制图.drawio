@@ -1,125 +1,121 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="26.0.9">
-  <diagram id="posterior-detail-v10" name="后验推断：联合后验、决策与计算">
-    <mxGraphModel page="1" pageWidth="1800" pageHeight="1650" background="#ffffff" math="1">
+  <diagram id="posterior-detail-wide" name="后验推断：构造、决策与计算">
+    <mxGraphModel page="1" pageWidth="3200" pageHeight="1400" background="#ffffff" math="1">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="后验推断｜联合后验怎样变成三个参数的估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=35;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="45" y="20" width="1710" height="60" as="geometry" />
+        <mxCell id="title" value="后验推断｜样本与先验 → 联合后验 → 决策与计算 → 参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=38;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="20" width="3110" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="先把样本贡献、参数先验与支持域组合，再选择所需后验量和计算路径。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="45" y="90" width="1710" height="45" as="geometry" />
+        <mxCell id="support" value="\(\theta=(\beta,\eta,\gamma),\quad\Omega=\{\beta&gt;0,\eta&gt;0,\gamma&lt;x_{(1)}\}\cap\operatorname{supp}(\pi)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=27;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
+          <mxGeometry x="50" y="88" width="3090" height="45" as="geometry" />
         </mxCell>
-        <mxCell id="prior" value="参数先验 \(\pi(\beta,\eta,\gamma)\)&lt;br&gt;表达参数范围与已有信息" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F7F1FB;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="60" y="170" width="480" height="145" as="geometry" />
+        <mxCell id="inputs-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F8F5FC;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="40" y="175" width="680" height="1155" as="geometry" />
         </mxCell>
-        <mxCell id="like" value="样本 \(D\) 的联合似然&lt;br&gt;\(L(\beta,\eta,\gamma\mid D)=\prod_{i=1}^{n} f(x_i\mid\beta,\eta,\gamma)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A75043;fillColor=#FFF5F0;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="660" y="170" width="480" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="domain" value="模型与先验的支持域相交&lt;br&gt;\(\beta&gt;0,\quad\eta&gt;0,\quad\gamma&lt;x_{(1)}\)&lt;br&gt;再结合位置参数的先验域" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#F3F6FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1260" y="170" width="480" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="joint" value="三参数联合后验&lt;br&gt;\(p(\beta,\eta,\gamma\mid D)=\frac{L(\beta,\eta,\gamma\mid D)\,\pi(\beta,\eta,\gamma)}{Z}\)&lt;br&gt;\(Z\) 为允许参数域内 \(L\pi\) 的积分" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F4EDF9;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="430" y="425" width="940" height="155" as="geometry" />
-        </mxCell>
-        <mxCell id="prior-joint" value="先验权重" edge="1" parent="1" source="prior" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="307" labelY="410">
-          <mxGeometry relative="1" as="geometry" x="-0.4006327328471565">
-            <Array as="points">
-              <mxPoint x="300" y="502" />
-            </Array>
-            <mxPoint x="7.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="like-joint" value="样本贡献" edge="1" parent="1" source="like" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A75043;fontColor=#A75043;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="990" labelY="370">
-          <mxGeometry relative="1" as="geometry" x="0.0">
-            <mxPoint x="90.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="domain-joint" value="限定积分与抽样范围" edge="1" parent="1" source="domain" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1510" labelY="410">
-          <mxGeometry relative="1" as="geometry" x="-0.4006327328471565">
-            <Array as="points">
-              <mxPoint x="1500" y="502" />
-            </Array>
-            <mxPoint x="10.0" y="0.0" as="offset" />
-          </mxGeometry>
+        <mxCell id="posterior-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F7F2FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="760" y="175" width="730" height="1155" as="geometry" />
         </mxCell>
         <mxCell id="decision-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F8F5FC;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
-          <mxGeometry x="45" y="680" width="825" height="680" as="geometry" />
+          <mxGeometry x="1530" y="175" width="950" height="510" as="geometry" />
         </mxCell>
         <mxCell id="compute-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F3F8FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
-          <mxGeometry x="930" y="680" width="825" height="680" as="geometry" />
+          <mxGeometry x="1530" y="735" width="950" height="595" as="geometry" />
         </mxCell>
-        <mxCell id="decision-title" value="① 选取哪一个后验量作为估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F8F5FC;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="70" y="700" width="775" height="60" as="geometry" />
+        <mxCell id="output-panel" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#DFE6EB;fillColor=#F8F5FC;fontColor=#243449;fontFamily=Times New Roman;fontSize=23;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="background">
+          <mxGeometry x="2520" y="175" width="640" height="1155" as="geometry" />
         </mxCell>
-        <mxCell id="compute-title" value="② 怎样计算需要的后验量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#F3F8FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="955" y="700" width="775" height="60" as="geometry" />
+        <mxCell id="input-title" value="① 样本、先验与支持域" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="65" y="200" width="630" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="mean" value="后验均值&lt;br&gt;\(\hat{\theta}=\mathbb{E}(\theta\mid D)\)&lt;br&gt;对应平方损失" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="75" y="825" width="230" height="180" as="geometry" />
+        <mxCell id="prior" value="先验&lt;br&gt;\(\pi(\beta,\eta,\gamma)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="80" y="340" width="600" height="145" as="geometry" />
         </mxCell>
-        <mxCell id="median" value="逐参数后验中位数&lt;br&gt;\(\operatorname{median}(\theta_k\mid D)\)&lt;br&gt;对应绝对损失" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="340" y="825" width="230" height="180" as="geometry" />
+        <mxCell id="like" value="样本 \(D\) 的联合似然&lt;br&gt;\(L(\theta\mid D)=\prod_i f(x_i\mid\theta)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A75043;fillColor=#FFF5F0;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="80" y="620" width="600" height="145" as="geometry" />
         </mxCell>
-        <mxCell id="map" value="MAP&lt;br&gt;\(\operatorname*{arg\,max}_{\theta}p(\theta\mid D)\)&lt;br&gt;取联合后验密度峰" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="605" y="825" width="230" height="180" as="geometry" />
+        <mxCell id="domain" value="参数域 \(\Omega\)&lt;br&gt;模型支持 ∩ 先验支持" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#F3F6FA;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="80" y="935" width="600" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="joint-decision" value="" edge="1" parent="1" source="joint" target="decision-title" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="joint-title" value="② 构造联合后验" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="785" y="200" width="680" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="joint" value="\(p(\theta\mid D)=\frac{L(\theta\mid D)\pi(\theta)}{Z}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F1E9F8;fontColor=#243449;fontFamily=Times New Roman;fontSize=34;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="795" y="535" width="660" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="normalization" value="\(Z=\int_\Omega L(\theta\mid D)\pi(\theta)\,d\theta\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="795" y="835" width="660" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="prior-joint" value="先验权重" edge="1" parent="1" source="prior" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="950" labelY="412">
+          <mxGeometry relative="1" as="geometry" x="-0.049291576224801625">
+            <Array as="points">
+              <mxPoint x="735" y="412" />
+              <mxPoint x="1125" y="412" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="like-joint" value="样本贡献" edge="1" parent="1" source="like" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#A75043;fontColor=#A75043;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="740" labelY="620">
+          <mxGeometry relative="1" as="geometry" x="0.3199920836926837">
+            <Array as="points">
+              <mxPoint x="740" y="692" />
+              <mxPoint x="740" y="607" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="domain-normalization" value="" edge="1" parent="1" source="domain" target="normalization" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="900" y="630" />
-              <mxPoint x="457.5" y="630" />
+              <mxPoint x="740" y="995" />
+              <mxPoint x="740" y="895" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="rule-mean" value="" edge="1" parent="1" source="decision-title" target="mean" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="457.5" y="790" />
-              <mxPoint x="190" y="790" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="rule-median" value="" edge="1" parent="1" source="decision-title" target="median" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="normalization-joint" value="" edge="1" parent="1" source="normalization" target="joint" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="rule-map" value="" edge="1" parent="1" source="decision-title" target="map" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="decision-title" value="③ 选择后验量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1555" y="195" width="900" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mean" value="后验均值&lt;br&gt;\(\mathbb{E}(\theta\mid D)\)&lt;br&gt;平方损失" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1570" y="315" width="270" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="median" value="逐参数中位数&lt;br&gt;\(\operatorname{median}(\theta_k\mid D)\)&lt;br&gt;绝对损失" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1870" y="315" width="270" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="map" value="MAP&lt;br&gt;\(\operatorname*{arg\,max}_{\theta}p(\theta\mid D)\)&lt;br&gt;联合密度峰" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="2170" y="315" width="270" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="map-objective" value="MAP：\(\log L(\theta\mid D)+\log\pi(\theta)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F1E9F8;fontColor=#243449;fontFamily=Times New Roman;fontSize=28;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1570" y="565" width="870" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="joint-decision" value="" edge="1" parent="1" source="joint" target="decision-title" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="457.5" y="790" />
-              <mxPoint x="720" y="790" />
+              <mxPoint x="1510" y="607" />
+              <mxPoint x="1510" y="222" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="decision-meaning" value="先验与似然决定同一个联合后验&lt;br&gt;输出规则决定取其期望、中位数还是密度峰" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="75" y="1080" width="760" height="110" as="geometry" />
+        <mxCell id="compute-title" value="④ 计算后验量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="1555" y="755" width="900" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="map-example" value="MAP 的目标为 \(\log L+\log\pi\)&lt;br&gt;先验改变不同候选参数的相对权重" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F1E9F8;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="75" y="1240" width="760" height="85" as="geometry" />
+        <mxCell id="beta" value="更新 \(\beta\)&lt;br&gt;\(p(\beta\mid\eta,\gamma,D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1570" y="865" width="260" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="beta" value="\(\beta\) 条件更新&lt;br&gt;从 \(p(\beta\mid\eta,\gamma,D)\)&lt;br&gt;抽取新的 \(\beta\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="960" y="825" width="230" height="170" as="geometry" />
+        <mxCell id="eta" value="更新 \(\eta\)&lt;br&gt;\(p(\eta\mid\beta,\gamma,D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1870" y="865" width="260" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="eta" value="\(\eta\) 条件更新&lt;br&gt;给定新 \(\beta\)、当前 \(\gamma\)&lt;br&gt;抽取新的 \(\eta\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1227" y="825" width="230" height="170" as="geometry" />
+        <mxCell id="gamma" value="更新 \(\gamma\)&lt;br&gt;\(p(\gamma\mid\beta,\eta,D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="2170" y="865" width="270" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="gamma" value="\(\gamma\) 条件更新&lt;br&gt;给定新 \(\beta,\eta\)&lt;br&gt;在允许域内抽取 \(\gamma\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=25;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="1494" y="825" width="230" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="joint-compute" value="" edge="1" parent="1" source="joint" target="compute-title" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="joint-compute" value="" edge="1" parent="1" source="joint" target="compute-title" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="900" y="650" />
-              <mxPoint x="1342.5" y="650" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="compute-chain" value="" edge="1" parent="1" source="compute-title" target="beta" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1342.5" y="790" />
-              <mxPoint x="1075" y="790" />
+              <mxPoint x="1510" y="607" />
+              <mxPoint x="1510" y="782" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -129,65 +125,64 @@
         <mxCell id="eta-gamma" value="" edge="1" parent="1" source="eta" target="gamma" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="repeat" value="循环更新，形成联合后验样本" edge="1" parent="1" source="gamma" target="beta" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="1340" labelY="1040">
-          <mxGeometry relative="1" as="geometry" x="0.0064102564102563875">
+        <mxCell id="repeat" value="条件抽样循环" edge="1" parent="1" source="gamma" target="beta" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=7 5;" relationKind="feedback" evidence="" labelX="2000" labelY="1040">
+          <mxGeometry relative="1" as="geometry" x="0.007407407407407307">
             <Array as="points">
-              <mxPoint x="1609" y="1040" />
-              <mxPoint x="1075" y="1040" />
+              <mxPoint x="2305" y="1040" />
+              <mxPoint x="1700" y="1040" />
             </Array>
             <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="samples" value="由后验样本近似期望、中位数与区间&lt;br&gt;Green 方案：Gibbs＋条件拒绝抽样；\(\gamma\) 更新也可构造 MH 核" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="960" y="1110" width="764" height="100" as="geometry" />
+        <mxCell id="samples" value="后验样本 → 均值、中位数、区间&lt;br&gt;Green：Gibbs＋条件拒绝抽样；\(\gamma\) 可用 MH 核" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#2C7B61;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1570" y="1100" width="870" height="95" as="geometry" />
         </mxCell>
         <mxCell id="chain-samples" value="" edge="1" parent="1" source="eta" target="samples" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="laplace" value="另一条计算路径：Laplace&lt;br&gt;在后验峰附近作二次近似，再近似积分" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#367B98;fillColor=#EEF7FB;fontColor=#243449;fontFamily=Times New Roman;fontSize=24;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
-          <mxGeometry x="960" y="1260" width="764" height="80" as="geometry" />
+        <mxCell id="laplace" value="Laplace：后验峰二次近似 → 积分近似" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#367B98;fillColor=#EEF7FB;fontColor=#243449;fontFamily=Times New Roman;fontSize=26;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;" renderRole="method">
+          <mxGeometry x="1570" y="1245" width="870" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="joint-laplace" value="" edge="1" parent="1" source="joint" target="laplace" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#367B98;fontColor=#367B98;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=10 4 2 4;" relationKind="borrow" evidence="">
+        <mxCell id="joint-laplace" value="" edge="1" parent="1" source="joint" target="laplace" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#367B98;fontColor=#367B98;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;dashed=1;dashPattern=10 4 2 4;" relationKind="borrow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1770" y="502" />
-              <mxPoint x="1770" y="1300" />
+              <mxPoint x="1510" y="607" />
+              <mxPoint x="1510" y="1275" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="estimate" value="输出 \(\hat{\theta}=(\hat{\beta},\hat{\eta},\hat{\gamma})\)&lt;br&gt;由所选后验规则与相应计算共同确定" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F1E9F8;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
-          <mxGeometry x="540" y="1460" width="720" height="105" as="geometry" />
+        <mxCell id="output-title" value="⑤ 参数估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=30;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="2545" y="200" width="590" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="rule-output" value="所选规则" edge="1" parent="1" source="decision-meaning" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="410" labelY="1400">
-          <mxGeometry relative="1" as="geometry" x="0.4474834209942813">
+        <mxCell id="estimate" value="\(\widehat\theta\)&lt;br&gt;\((\widehat\beta,\widehat\eta,\widehat\gamma)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#F1E9F8;fontColor=#243449;fontFamily=Times New Roman;fontSize=36;spacing=12;align=center;verticalAlign=middle;strokeWidth=1.8;fontStyle=1;" renderRole="method">
+          <mxGeometry x="2560" y="610" width="560" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="rule-output" value="决策规则" edge="1" parent="1" source="decision-title" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="2670" labelY="290">
+          <mxGeometry relative="1" as="geometry" x="-0.2677832839436637">
             <Array as="points">
-              <mxPoint x="58" y="1135" />
-              <mxPoint x="58" y="1400" />
-              <mxPoint x="500" y="1400" />
-              <mxPoint x="500" y="1512" />
+              <mxPoint x="2500" y="222" />
+              <mxPoint x="2500" y="290" />
+              <mxPoint x="2840" y="290" />
             </Array>
             <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="sample-output" value="计算后验量" edge="1" parent="1" source="samples" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="1550" labelY="1512">
-          <mxGeometry relative="1" as="geometry" x="0.3160370885838144">
+        <mxCell id="sample-output" value="后验量" edge="1" parent="1" source="samples" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#2C7B61;fontColor=#2C7B61;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="" labelX="2660" labelY="1147">
+          <mxGeometry relative="1" as="geometry" x="-0.40700413583864137">
             <Array as="points">
-              <mxPoint x="1740" y="1160" />
-              <mxPoint x="1740" y="1512" />
+              <mxPoint x="2500" y="1147" />
+              <mxPoint x="2840" y="1147" />
             </Array>
-            <mxPoint x="-0.0002061629706986423" y="-0.19791645191367024" as="offset" />
+            <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="laplace-output" value="" edge="1" parent="1" source="laplace" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#367B98;fontColor=#367B98;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
+        <mxCell id="laplace-output" value="" edge="1" parent="1" source="laplace" target="estimate" style="html=1;rounded=0;strokeWidth=2.5;strokeColor=#367B98;fontColor=#367B98;fontFamily=Times New Roman;fontSize=20;labelBackgroundColor=#ffffff;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;" relationKind="flow" evidence="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1342" y="1420" />
-              <mxPoint x="900" y="1420" />
+              <mxPoint x="3140" y="1275" />
+              <mxPoint x="3140" y="707" />
             </Array>
           </mxGeometry>
-        </mxCell>
-        <mxCell id="basis" value="构造依据：方法工作稿 §5.3；Green 的条件抽样、后验均值决策与 Laplace 积分近似。" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#243449;fillColor=#FFFFFF;fontColor=#243449;fontFamily=Times New Roman;fontSize=21;spacing=12;align=left;verticalAlign=middle;strokeWidth=1.8;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="55" y="1590" width="1690" height="36" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
