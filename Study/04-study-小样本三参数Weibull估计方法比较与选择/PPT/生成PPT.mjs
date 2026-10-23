@@ -11,8 +11,8 @@ export const TMP=path.join(import.meta.dirname,'.build');
 export const TITLE='小样本三参数Weibull参数估计方法的比较与选择';
 export const FINAL=path.join(ROOT,TITLE+'.pptx');
 const A='reviewbyhtml/方法对比-v1.0/assets/';
-const U='方法分类/机制图-v2.0/预览/';
-const UP='报告上（方法分类）-v2.0.md',DOWN='报告下（方法对比）-v2.1.md';
+const U='方法分类/机制图-v2.2/预览/';
+const UP='报告上（方法分类）-v2.3.md',DOWN='报告下（方法对比）-v2.1.md';
 const BLACK='#192F40',BLUE='#2D5D97',GRAY='#536575';
 const upper=await fs.readFile(path.join(ROOT,UP),'utf8');
 const lower=await fs.readFile(path.join(ROOT,DOWN),'utf8');
@@ -25,16 +25,20 @@ function low(title,config={}){add(title,{part:'性能比较',source:DOWN,...conf
 const fig=(file,caption='',extra={})=>({image:file.startsWith('U:')?U+file.slice(2):A+file,caption,...extra});
 add(TITLE,{type:'cover',part:'封面',section:'开场',notes:'各位老师、各位同学，大家好！我是东北大学机械工程与自动化学院的魏鹏宇。今天汇报小样本三参数Weibull参数估计方法的比较与选择。第一部分梳理方法原理及相互联系；第二部分在共同样本上比较代表方法，分析性能现象并解释典型机制。'});
 add('方法原理与性能变化共同构成比较依据',{type:'text',section:'研究背景',items:[['研究背景','试验成本与周期限制，使寿命分布参数估计经常面对小样本。'],['方法整理','依据估计机制归纳路线，并区分文献间的沿袭、数学联系与局部借用。'],['统一比较','在共同样本下发现性能变化，解释典型现象，再讨论评价与选择。']],notes:strip(upper.slice(0,upper.indexOf('## 1')))});
+add('路线图同时表达估计机制与方法之间的联系',{section:'方法路线图',...fig('U:06-完整机理地图-估计路线与方法关系.svg','浅色区域界定五条路线；实线表示沿袭或修正，虚线表示数学联系，点划线表示借用或组合。'),sectionKey:'## 1'});
 add('五条路线依据不同机制将样本信息转为参数',{type:'table',section:'五条估计路线',widths:[245,405,500],rows:[['估计路线','从样本构造什么','据此怎样确定参数'],['似然构造与优化','观测或统计量的联合密度','最大化似然，或按具体构造修正方程'],['分布关系匹配','概率图、概率间距、反推尺度等','指定拟合、一致性或概率结构准则'],['统计特征关系匹配与反演','矩、分位数、次序统计量等特征','匹配理论关系，消元并恢复参数'],['贝叶斯后验推断','似然与先验形成后验分布','按后验决策规则给出估计'],['学习型参数映射','多组带参数标签的训练样本','训练映射，固定后用于新样本']],sectionKey:'## 2'});
-add('路线图同时表达估计过程与方法间关系',{section:'方法路线图',...fig('U:06-完整机理地图-估计路线与方法关系.svg','金色节点对应本轮七种实现。完整地图与局部构造在备页保留。'),layout:'side',items:['路线节点：确定参数所依据的机制','跨路线连接：同一方法中的不同阶段','方法关系：沿袭、数学联系与局部借用'],sectionKey:'## 7'});
-add('似然方法在固定观测下比较候选参数的联合密度',{section:'似然构造与优化',...fig('U:07-似然估计路线-信息处理流程.svg','图中固定η、γ展示β截面；完整三参数MLE仍需在参数域内求解。'),sectionKey:'## 3'});
-add('分布匹配先明确比较对象，再指定参数准则',{section:'分布关系匹配',...fig('U:08-分布匹配路线-信息处理流程.svg','CDF平方差仅为示例；概率图、MPS与MDM采用各自的实际准则。',{crop:[0,0,1,0.535]}),sectionKey:'## 4'});
-add('回归方向与位置评分改变概率图的估计过程',{section:'概率图方法',...fig('U:02-分布匹配路线-机制图.svg','Soman对数寿命对分数回归；Park分数对对数寿命回归，实际分数也不同。',{crop:[0.018,0.19,0.982,0.60]}),sectionKey:'## 4'});
-add('统计关系方法通过选定特征的理论关系识别参数',{section:'统计特征关系匹配与反演',...fig('U:09-统计关系反演路线-信息处理流程.svg','常规矩法示例：偏度识别形状，再由方差与均值恢复尺度和位置。',{crop:[0,0,1,0.455]}),sectionKey:'## 5'});
-add('贝叶斯估计由后验分布与决策规则共同决定',{section:'贝叶斯后验推断',...fig('U:10-后验推断路线-信息处理流程.svg','平方损失对应后验均值；中位数与MAP分别依据其输出规则。'),sectionKey:'## 6'});
-add('学习型方法先训练映射，再用于新样本',{section:'学习型参数映射',...fig('U:11-学习映射路线-信息处理流程.svg','训练使用已知参数标签；应用时固定映射，无需新样本的真实参数。',{crop:[0,0,1,0.605]}),sectionKey:'## 6'});
-add('同一路线并不自动构成方法间的历史沿袭',{type:'table',section:'方法之间的联系',widths:[215,520,415],rows:[['关系类型','代表联系','说明'],['沿袭或扩展','Jacquelin → WMLE → 形状偏差修正','有文献依据的延续与修正'],['沿袭或扩展','White → Soman；LSPF → LPF','原有构造接入未知位置或保留更多参数信息'],['数学联系','PWM与L矩；同分数、同位置的两种回归','注明关系成立的条件'],['局部借用或组合','K–R与Firth修正 → DMMLE','不同来源的步骤汇合']],sectionKey:'## 7'});
-add('七种实现覆盖路线内改动与路线间差异',{type:'table',section:'本轮比较对象',widths:[210,350,590],rows:[['实现','采用的机制','关键构造'],['MLE','原始联合似然','原始观测密度；另记录边界与求解失败'],['WMLE','估计方程修正','在估计方程中引入三个权重'],['MMLE（K–R）','最小值定位后进行似然估计','以最小值定位，删除该观测后估计其余参数'],['LSE / LRE（Park）','分布关系匹配','分数、位置评分与回归方向不同'],['MDM-0.1','尺度一致性与梯度定位','先压缩伪尺度离散，再按δ=0.1定位'],['MM（Cran式）','统计关系匹配与反演','由Weibull矩及矩差显式恢复']],sectionKey:'## 8'});
+add('联合似然同时比较三个参数组成的候选组合',{section:'似然构造与优化',...fig('U:07-似然估计路线-信息处理流程.svg','β、η、γ构成三维参数空间；等值面表示相同相对似然，红线为实际数值迭代，极大点限于图示参数窗。'),sectionKey:'## 3'});
+add('似然路线通过数据、方程或目标修改形成具体方法',{section:'似然构造与优化',...fig('U:01-似然估计路线-机制图.svg','上方沿用“构造联合似然→联合最大化”；下方对照删点、权重、辅助关系、区间概率及罚似然。'),sectionKey:'## 3'});
+add('分布匹配先明确比较对象，再指定参数准则',{section:'分布关系匹配',...fig('U:08-分布匹配路线-信息处理流程.svg','构造分布表示→定义匹配准则→确定参数；CDF平方差仅为此处示例。'),sectionKey:'## 4'});
+add('回归方向、概率间距与尺度一致性形成不同匹配依据',{section:'分布关系匹配',...fig('U:02-分布匹配路线-机制图.svg','各分支沿相同主步骤展开；White与Park分数及回归方向不同，MPS与MDM采用各自准则。'),sectionKey:'## 4'});
+add('统计关系方法通过选定特征的理论关系识别参数',{section:'统计特征关系匹配与反演',...fig('U:09-统计关系反演路线-信息处理流程.svg','提取样本特征→建立理论关系→识别与恢复参数；常规矩以偏度、方差和均值示例。'),sectionKey:'## 5'});
+add('更换特征、权重与识别关系形成不同的统计构造',{section:'统计特征关系匹配与反演',...fig('U:03-统计关系反演路线-机制图.svg','常规矩、Cran、PWM／L矩／截尾L矩、W／V变换和条件位置MVLUE分别改变相应环节。'),sectionKey:'## 5'});
+add('贝叶斯估计由后验分布与决策规则共同决定',{section:'贝叶斯后验推断',...fig('U:10-后验推断路线-信息处理流程.svg','构造后验→后验决策；平方损失对应后验均值，中位数与MAP采用各自规则。'),sectionKey:'## 6'});
+add('后验决策与抽样近似分别决定输出和计算路径',{section:'贝叶斯后验推断',...fig('U:04-后验推断路线-机制图.svg','同一后验可按不同规则输出估计；Gibbs、MH与Laplace服务于抽样或近似计算。'),sectionKey:'## 6'});
+add('学习型方法先训练映射，再用于新样本',{section:'学习型参数映射',...fig('U:11-学习映射路线-信息处理流程.svg','训练映射→固定映射用于新样本；训练使用标签，应用时不需提供新样本的真实参数。'),sectionKey:'## 7'});
+add('直接映射、过程量学习与数值搜索的作用位置不同',{section:'学习型参数映射',...fig('U:05-学习映射路线-机制图.svg','直接预测参数、辅助传统估计器和搜索当前目标分别接入不同环节。'),sectionKey:'## 7'});
+add('同一路线并不自动构成方法间的历史沿袭',{type:'table',section:'方法之间的联系',widths:[215,520,415],rows:[['关系类型','代表联系','说明'],['沿袭或扩展','Jacquelin（1993）→ WMLE（2009）→ 形状修正（2024）','有文献依据的延续与修正'],['沿袭或扩展','White（1969）→ LSE（1992）；LSPF（2013）→ LPF（2015）','接入未知位置或保留更多参数信息'],['数学联系','PWM与L矩；同分数、同位置的两种回归','注明关系成立的条件'],['局部借用或组合','Kundu–Raqab与Firth修正 → DMMLE','不同来源的步骤汇合']],sectionKey:'## 8'});
+add('七种实现覆盖路线内改动与路线间差异',{type:'table',section:'本轮比较对象',widths:[210,350,590],rows:[['实现','采用的机制','对应构造'],['MLE','原始联合似然','观测密度形成联合似然；另记录边界与失败'],['WMLE','估计方程修正','Cousineau（2009）：估计方程中引入三权重'],['MMLE','最小值定位后进行似然估计','Kundu、Raqab（2009）：删最小观测后估计'],['LSE / LRE','分布关系匹配','Soman、Misra（1992）/ Park（2017）：分数、评分与回归方向不同'],['MDM-0.1','尺度一致性与梯度定位','Xie、Wu、Yang（2023）：伪尺度离散与δ=0.1定位'],['MM','统计关系匹配与反演','Cran（1988）：Weibull矩及矩差显式恢复']],sectionKey:'## 9'});
 low('共同样本使性能差异对应方法构造与求解约定',{type:'table',section:'实验设置',widths:[260,890],rows:[['项目','本轮设置'],['总体参数','η=1000，γ=500；β=1.5、2、2.5、3、3.5、4、4.5、5'],['样本量','n=50、20、15、10、7'],['重复抽样','每个条件1200组；七种方法使用相同样本'],['精度图','七法共同有效样本；形状RMSE/β，尺度和位置RMSE/1000'],['分布与返回','分布用各法自身有效结果；有效率按全部1200次尝试统计']],sectionKey:'## 1'});
 for(const n of [50,20,15,10,7]) low('样本减少时，各方法的误差增幅不同',{section:`样本量变化　n=${n}`,rose:true,...fig(`RMSE玫瑰图_n${n}_八档β.png`,'蓝：形状；橙：尺度；绿：位置。五页共用线性半径；MM数值见备页。'),sectionKey:'### 2.1',notesExtra:'五页按n=50、20、15、10、7连续切换。观察扇区的长度和相对距离，不逐项报数值。'});
 low('较大β下，方法间差距呈现扩大与缩小并存',{section:'样本量与方法差距',...fig('方法差距变化_轨迹与50到7联合图.png','纵向比较相同方法对随n的变化；上：β=1.5，下：β=5。',{crop:[0,0,1,0.635]}),sectionKey:'### 2.1'});
@@ -42,8 +46,9 @@ low('误差上升并不意味着方法间距离同步扩大',{section:'方法差
 for(const b of [1.5,2,2.5,3,3.5,4,4.5,5]) low('形状条件改变时，估计分布的偏移与形态也改变',{section:`形状条件变化　β=${b}`,...fig(b===5?'修订_估计值分布_两档n.png':`估计值分布_β${b}_两档n.png`,'行：n=50、7；列：形状、尺度、位置。虚线为真值，红点为均值，横线为四分位区间。'),sectionKey:'### 2.2',notesExtra:'八页依β递增连续切换。重点观察分布展宽、参数偏移方向和零边界聚集。不将原图的双峰外观认定为两个内部估计群体。'});
 low('样本量减少时，明显异常估计更加常见',{section:'明显异常估计',...fig('07_形状异常频率.png','异常判据：β̂≤β/3或β̂≥3β；频率以各法自身有效结果为分母，失败另计。'),sectionKey:'### 2.3'});
 low('误差增长、参数偏移与异常增多需要分别解释',{type:'text',section:'主要现象',items:[['n减小','估计误差总体增大，但各方法的增幅不同。'],['β增大','三个参数出现不同方向的偏移、展宽和边界聚集。'],['明显异常','小样本下更常见，但程度与方向因方法和参数条件而异。']],sectionKey:'### 2.4'});
-low('同一次删点经过不同定位规则产生不同响应',{section:'机制一：样本减少',...fig('31A_固定形状定位判据_样本1055.png','固定β=5；同一路径保留50、20、7个观测。最小值保留，K–R位置不变，MDM与LSE仍改变。'),sectionKey:'### 3.1'});
-low('下端观测被移除后，三种定位依据的移动程度不同',{section:'机制一：样本减少',...fig('31A_固定形状定位判据_样本474.png','样本474的固定删点路径：最小值、梯度阈值交点与匹配误差最低点并非同步移动。'),sectionKey:'### 3.1'});
+low('同一组观测减少后，不同方法的三参数误差增幅不同',{section:'机制一：样本减少',...fig('31_删点前后_样本474.png','W(5,1000,500)：从同一组50个观测中随机保留7个；空心点为删点前、实心点为删点后。'),sectionKey:'### 3.1'});
+low('下端观测被移除后，三种定位依据的移动程度不同',{section:'机制一：样本减少',...fig('31A_固定形状定位判据_样本474.png','同一删点路径474：最小值、梯度阈值交点与匹配误差最低点向右移动，幅度不同。'),sectionKey:'### 3.1'});
+low('定位变化继续传递到形状与尺度的恢复',{section:'机制一：参数恢复',...fig('31_参数恢复过程_样本474.png','MDM的标准差最低点向较低形状移动；LSE回归斜率增大、截距降低，形状与尺度随之降低。'),sectionKey:'### 3.1'});
 low('较大β使有限样本的最小观测更远离真实起点',{section:'机制二：形状条件',minimum:true,...fig('R00_图2_样本与真实起点.png','Research00报告1；η=1000、γ=500，β=2与5。上：n=7抽样；下：最小值理论密度。'),sectionKey:'### 3.2'});
 low('起点附近缺少观测时，不同参数组合仍可相容',{section:'机制二：形状条件',...fig('R00_图3_参数组合与样本相容.png','两条CDF在样本覆盖区间接近；说明有限样本的参数相容性，不意味着必然选中某一组。'),layout:'side',items:['观测主要覆盖分布中部','位置参数需要从较远处外推','仍需追踪方法准则选择了哪组参数'],sectionKey:'### 3.2'});
 low('位置选得偏高可沿恢复关系传递为形状和尺度偏低',{section:'机制二：方向性偏移',...fig('R00_MDM_位置形状尺度传递.png','MDM-0.1：先看梯度交点，再沿同一位置读形状和尺度；此处放大β=5一列。',{crop:[0.50,0,1,1]}),triptych:true,layout:'side',items:['梯度阈值可能在较高位置相交','较高位置改变各点到起点的距离','条件形状与恢复尺度随之降低'],sectionKey:'### 3.2'});
@@ -55,17 +60,7 @@ low('成功结果的精度与全部尝试的有效率应同时评价',{section:'
 low('评价目标改变后，方法的相对表现也改变',{section:'评价目标与选择',...fig('v04_06_寿命目标及候选差距.png','格内为最低RMSE方法，下行为第二名高出的比例。B10、B1分别为10%、1%失效分位寿命。'),bottomText:'B10的最低RMSE方法随n与β变化；B1在多数条件下为MDM。名次还需结合差距幅度与风险。',sectionKey:'### 4.2'});
 low('方法选择取决于目标、已知条件与风险要求',{type:'table',section:'条件性选择依据',widths:[285,865],rows:[['已知条件或使用要求','应优先关注的性能'],['知道n，β范围未知','在给定参考范围内评价整体表现，保留稳健候选'],['知道n及β的大致范围','缩小比较区域，核对优势幅度及其稳定性'],['关心参数或低失效寿命','按具体目标评价，不能直接沿用另一个指标的排序'],['对异常和失败敏感','同时考察极端误差、异常频率与有效返回情况']],sectionKey:'### 4.2'});
 low('后续将探索基于样本特征的自适应选择与求解优化',{type:'closing',section:'后续研究与平台',items:[['研究方向','根据可观测样本特征与使用目标选择方法，优化过程量和求解过程。'],['验证要求','在新的样本上检验选择规则的收益。'],['weibull.work','已有部分方法可在线调用，平台仍在建设，欢迎试用与交流。']],sectionKey:'## 5'});
-// Complete source figures remain available as hidden backup slides.
-for(const [name,title] of [
- ['01-似然估计路线-机制图.svg','似然路线的改进发生在不同构造环节'],
- ['02-分布匹配路线-机制图.svg','分布匹配的表示、准则与恢复关系可以分别改变'],
- ['03-统计关系反演路线-机制图.svg','特征构造与参数确定机制需要按阶段区分'],
- ['04-后验推断路线-机制图.svg','后验输出规则与后验计算承担不同作用'],
- ['05-学习映射路线-机制图.svg','直接预测参数与辅助传统估计的作用位置不同'],
- ['08-分布匹配路线-信息处理流程.svg','分布关系匹配的完整构造保留各方法的实际准则'],
- ['09-统计关系反演路线-信息处理流程.svg','统计关系路线可以采用不同特征与识别次序'],
- ['11-学习映射路线-信息处理流程.svg','训练阶段与新样本应用阶段使用同一固定映射'],
-])add(title,{section:'备页：完整机制图',backup:true,...fig('U:'+name),sectionKey:'## 2'});
+// Uncropped comparison figures and supplementary cases remain available as hidden backup slides.
 for(const n of [50,20,15,10,7])low('完整RMSE图保留MM数值与统一半径',{section:`备页：n=${n}`,backup:true,...fig(`RMSE玫瑰图_n${n}_八档β.png`),sectionKey:'### 2.1'});
 low('最小值与真实起点的距离同时随n与β变化',{section:'备页：最小观测完整图',backup:true,...fig('R00_图2_样本与真实起点.png'),sectionKey:'### 3.2'});
 low('MDM的梯度定位影响形状与尺度的恢复',{section:'备页：MDM完整诊断图',backup:true,...fig('R00_MDM_位置形状尺度传递.png'),sectionKey:'### 3.2'});
@@ -74,7 +69,7 @@ low('同一总体与样本量仍可能返回差异很大的估计',{type:'table'
 
 // The institutional header carries the chapter, while the blue band carries the slide's takeaway.
 for(const [i,p] of plan.entries()){
- p.chapter=p.backup?'附录　方法原理与补充结果':i===0?'封面':i===1?'01　研究背景':i<=11?'02　参数估计方法的原理与联系':i===12?'03　比较实验设置':i<=29?'04　估计性能的差异与变化':i<=38?'05　性能变化的机制解释':i<=41?'06　评价目标与方法选择':'07　后续研究与平台';
+ p.chapter=p.backup?'附录　补充结果与案例':p.type==='cover'?'封面':p.section==='研究背景'?'01　研究背景':p.source===UP?'02　参数估计方法的原理与联系':p.sectionKey==='## 1'?'03　比较实验设置':p.sectionKey?.startsWith('### 2.')?'04　估计性能的差异与变化':p.sectionKey?.startsWith('### 3.')?'05　性能变化的机制解释':p.sectionKey?.startsWith('### 4.')?'06　评价目标与方法选择':'07　后续研究与平台';
  p.condition=p.rose?`n=${p.section.match(/n=(\d+)/)?.[1]}`:p.section.startsWith('形状条件变化')?p.section.match(/β=[\d.]+/)?.[0]:null;
 }
 
@@ -164,9 +159,9 @@ export async function populate(presentation,start=0,end=plan.length){
   }
   const md=p.source===UP?upper:lower;
   const notes=p.notes||section(md,p.sectionKey||'## 2');
-  slide.speakerNotes.text=[notes,p.notesExtra||'',`来源：${path.join(ROOT,p.source)}${p.sectionKey?'；'+p.sectionKey:''}`,p.image?`图源：${path.join(ROOT,p.image)}`:'',`生成依据：报告上v2.0 / 报告下v2.1；2026-10-23；演讲日期2026-10-25。`,i===0?'封面姓名依用户2026-10-23本轮指令：报告人魏鹏宇；另列谢里阳、陈鉴朋、孙伟侨。原报告内旧署名不因此改动。':''].filter(Boolean).join('\n\n');
+  slide.speakerNotes.text=[notes,p.notesExtra||'',`来源：${path.join(ROOT,p.source)}${p.sectionKey?'；'+p.sectionKey:''}`,p.image?`图源：${path.join(ROOT,p.image)}`:'',`生成依据：报告上v2.3工作稿（v2.2审定基线） / 报告下v2.1；2026-10-23；演讲日期2026-10-25。`,i===0?'封面姓名依用户2026-10-23本轮指令：报告人魏鹏宇；另列谢里阳、陈鉴朋、孙伟侨。原报告内旧署名不因此改动。':''].filter(Boolean).join('\n\n');
  }
- const manifest={title:TITLE,created:'2026-10-23',talkDate:'2026-10-25',presenter:'魏鹏宇',otherNames:['谢里阳','陈鉴朋','孙伟侨'],sourceReports:[{file:UP,version:'2.0',sha256:sha(upper)},{file:DOWN,version:'2.1',sha256:sha(lower)}],output:path.basename(FINAL),slideSize:[1280,720],total:plan.length,main:plan.filter(p=>!p.backup).length,backup:plan.filter(p=>p.backup).length,slides:plan.map((p,i)=>({page:i+1,title:p.title,section:p.section,chapter:p.chapter,condition:p.condition,backup:!!p.backup,source:p.source,sourceSection:p.sectionKey||'',figure:p.image||null,crop:p.crop||null,rose:!!p.rose,minimum:!!p.minimum}))};
+ const manifest={title:TITLE,created:'2026-10-23',talkDate:'2026-10-25',presenter:'魏鹏宇',otherNames:['谢里阳','陈鉴朋','孙伟侨'],sourceReports:[{file:UP,version:'2.3',status:'工作稿',baseline:'2.2',sha256:sha(upper)},{file:DOWN,version:'2.1',sha256:sha(lower)}],output:path.basename(FINAL),slideSize:[1280,720],total:plan.length,main:plan.filter(p=>!p.backup).length,backup:plan.filter(p=>p.backup).length,slides:plan.map((p,i)=>({page:i+1,title:p.title,section:p.section,chapter:p.chapter,condition:p.condition,backup:!!p.backup,source:p.source,sourceSection:p.sectionKey||'',figure:p.image||null,crop:p.crop||null,rose:!!p.rose,minimum:!!p.minimum}))};
  await fs.writeFile(path.join(import.meta.dirname,'版本与页码映射.json'),JSON.stringify(manifest,null,2)+'\n');
  return manifest;
 }
@@ -174,34 +169,6 @@ export async function exportCandidate(presentation){
  const out=path.join(TMP,'candidate.pptx');await(await PresentationFile.exportPptx(presentation)).save(out);return out;
 }
 export {plan};
-export async function prepareSessionFiles(){
- await prepare();
- const lookup={};
- for(const p of [{image:path.join(TMP,'assets/body-background.png')},{image:path.join(TMP,'assets/cover-background.png')},...plan.filter(p=>p.image)]){
-  const file=p.image;const crop=p.crop;let img=file.startsWith(TMP)?file:file.endsWith('.svg')?path.join(TMP,'assets',path.basename(file).replace('.svg','.png')):path.join(ROOT,file);
-  const key=file+'|'+JSON.stringify(crop||null);
-  if(!lookup[key]){
-   const output=path.join(TMP,'assets','slide-'+sha(key).slice(0,12)+'.png');
-   if(crop){const m=await sharp(img).metadata();const[x0,y0,x1,y1]=crop;await sharp(img).extract({left:Math.round(m.width*x0),top:Math.round(m.height*y0),width:Math.round(m.width*(x1-x0)),height:Math.round(m.height*(y1-y0))}).png().toFile(output);}
-   else await fs.copyFile(img,output);
-   lookup[key]=output;
-  }
-  for(const c of p.rose?[[0,0.014,1,0.385],[0,0.517,1,0.891]]:p.minimum?[[0,0,1,0.245],[0,0.752,1,1]]:[]){
-   const k=file+'|'+JSON.stringify(c),o=path.join(TMP,'assets','slide-'+sha(k).slice(0,12)+'.png');const m=await sharp(img).metadata();const[x0,y0,x1,y1]=c;
-   await sharp(img).extract({left:Math.round(m.width*x0),top:Math.round(m.height*y0),width:Math.round(m.width*(x1-x0)),height:Math.round(m.height*(y1-y0))}).png().toFile(o);lookup[k]=o;
-  }
- }
- const model={ROOT,TMP,TITLE,FINAL,UP,DOWN,upper,lower,plan,BLACK,BLUE,GRAY,lookup};
- await fs.writeFile(path.join(TMP,'session-input.json'),JSON.stringify(model));
- const body=populate.toString().split(' const manifest=')[0]+' return {total:plan.length,main:plan.filter(p=>!p.backup).length,backup:plan.filter(p=>p.backup).length};\n}';
- const code=`import fs from 'node:fs/promises';\nimport path from 'node:path';\nconst {ROOT,TMP,TITLE,FINAL,UP,DOWN,upper,lower,plan,BLACK,BLUE,GRAY,lookup}=JSON.parse(await fs.readFile(${JSON.stringify(path.join(TMP,'session-input.json'))},'utf8'));\nconst strip=${strip.toString()};\n${section.toString()}\n${textbox.toString()}\n${table.toString()}\nasync function addImage(slide,file,box,crop){const key=file+'|'+JSON.stringify(crop||null); const data=await fs.readFile(lookup[key]); return slide.images.add({blob:new Uint8Array(data),contentType:'image/png',alt:path.basename(file),position:box,fit:'contain'});}\nexport ${body}\n`;
- await fs.writeFile(path.join(TMP,'session-author.mjs'),code);
- // Persist the same manifest without needing to create a second deck.
- const m={title:TITLE,created:'2026-10-23',talkDate:'2026-10-25',presenter:'魏鹏宇',otherNames:['谢里阳','陈鉴朋','孙伟侨'],sourceReports:[{file:UP,version:'2.0',sha256:sha(upper)},{file:DOWN,version:'2.1',sha256:sha(lower)}],output:path.basename(FINAL),slideSize:[1280,720],total:plan.length,main:plan.filter(p=>!p.backup).length,backup:plan.filter(p=>p.backup).length,slides:plan.map((p,i)=>({page:i+1,title:p.title,section:p.section,chapter:p.chapter,condition:p.condition,backup:!!p.backup,source:p.source,sourceSection:p.sectionKey||'',figure:p.image||null,crop:p.crop||null,rose:!!p.rose,minimum:!!p.minimum}))};
- await fs.writeFile(path.join(import.meta.dirname,'版本与页码映射.json'),JSON.stringify(m,null,2)+'\n');
- return {total:m.total,main:m.main,backup:m.backup};
-}
-if(process.argv.includes('--prepare'))console.log(JSON.stringify(await prepareSessionFiles()));
 if(process.argv.includes('--build')){
  await prepare();const p=Presentation.create({slideSize:{width:1280,height:720}});const m=await populate(p);await exportCandidate(p);console.log(JSON.stringify({total:m.total,main:m.main,backup:m.backup,candidate:path.join(TMP,'candidate.pptx')}));
  if(process.argv.includes('--render')){
