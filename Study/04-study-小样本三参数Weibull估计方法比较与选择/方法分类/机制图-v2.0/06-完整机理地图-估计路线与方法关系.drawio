@@ -5,435 +5,470 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" value="三参数 Weibull 参数估计方法路线图" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#334155;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=49;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="50" y="16" width="4700" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="legend" value="实心箭头：沿袭／修正　　虚线：数学联系　　点划线：局部借用／组合　　空心箭头：估计过程　　金色：七种比较实现" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#334155;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;" renderRole="label">
-          <mxGeometry x="50" y="94" width="4700" height="44" as="geometry" />
-        </mxCell>
         <mxCell id="band-like" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#FFF1EC;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
-          <mxGeometry x="40" y="150" width="700" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="heading-like" value="① 似然构造与优化" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="55" y="153" width="670" height="54" as="geometry" />
-        </mxCell>
-        <mxCell id="L1" value="L1 概率模型&lt;br&gt;\(L(\theta\mid D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="L1">
-          <mxGeometry x="60" y="280" width="280" height="150" as="geometry" />
-        </mxCell>
-        <mxCell id="L2" value="L2 最大化／修正&lt;br&gt;\(\hat{\theta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="L2">
-          <mxGeometry x="420" y="280" width="280" height="150" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-L1-L2" value="" edge="1" parent="1" source="L1" target="L2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="mle" value="MLE&lt;br&gt;原始观测联合似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L1 原观测；L2 最大化">
-          <mxGeometry x="850" y="230" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="cw" value="Cohen–Whitten MMLE&lt;br&gt;位置／矩关系替换" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 方程＋S2 辅助关系">
-          <mxGeometry x="1620" y="230" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="cmle" value="CMLE&lt;br&gt;最小值处采用区间概率" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 单项概率替代">
-          <mxGeometry x="2390" y="230" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="firth" value="Firth 得分修正&lt;br&gt;加入偏差修正项" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 得分修改">
-          <mxGeometry x="3160" y="230" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="dmmle" value="DMMLE（2025）&lt;br&gt;数据修改＋得分修正" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 数据修改＋L2 得分修正">
-          <mxGeometry x="3930" y="230" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="jacquelin" value="Jacquelin（1993）&lt;br&gt;二参数代数构造" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 方程代数构造">
-          <mxGeometry x="850" y="435" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="wmle" value="Cousineau WMLE&lt;br&gt;三权重估计方程" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L2 三权重方程">
-          <mxGeometry x="1620" y="435" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="wmle-correct" value="杨小玉等（2024）&lt;br&gt;WMLE 形状偏差修正" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 后接形状修正">
-          <mxGeometry x="2390" y="435" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="smith" value="Smith（1985）&lt;br&gt;最小值替代构造" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 修改输入；L2 最大化">
-          <mxGeometry x="3160" y="435" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="kr" value="K–R MMLE（2009）&lt;br&gt;最小值定位＋删点" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L1 删最小值；L2 最大化">
-          <mxGeometry x="3930" y="435" width="570" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mle-cw" value="替换部分&lt;br&gt;得分方程" edge="1" parent="1" source="mle" target="cw" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:72" evidenceSection="2.1 同叫“修正”，实际改动不同">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mle-cmle" value="最小值密度 → 区间概率" edge="1" parent="1" source="mle" target="cmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:74" evidenceSection="2.1 同叫“修正”，实际改动不同" labelX="2210" labelY="210">
-          <mxGeometry relative="1" as="geometry" x="0.38607594936708867" y="0">
-            <Array as="points">
-              <mxPoint x="1135" y="210" />
-              <mxPoint x="2675" y="210" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-jac-wmle" value="三参数&lt;br&gt;三权重" edge="1" parent="1" source="jacquelin" target="wmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:83" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-wmle-correct" value="随样本量&lt;br&gt;修正形状" edge="1" parent="1" source="wmle" target="wmle-correct" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:85" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-smith-kr" value="共同最小值&lt;br&gt;场景适配" edge="1" parent="1" source="smith" target="kr" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:67" evidenceSection="2.0 先澄清MLE的对象">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-kr-dmmle" value="保留数据&lt;br&gt;修改似然" edge="1" parent="1" source="kr" target="dmmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:84" evidenceSection="2.2 可以给出直接依据的沿袭与组合" labelX="4585" labelY="395">
-          <mxGeometry relative="1" as="geometry" x="0.0" y="0">
-            <mxPoint x="370.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-firth-dmmle" value="偏差&lt;br&gt;修正项" edge="1" parent="1" source="firth" target="dmmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:84,88" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="use-L2-mle" value="" edge="1" parent="1" source="L2" target="mle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="805" y="355" />
-              <mxPoint x="805" y="292.5" />
-            </Array>
-          </mxGeometry>
+          <mxGeometry x="25" y="20" width="3580" height="395" as="geometry" />
         </mxCell>
         <mxCell id="band-dist" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#EBF5FC;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
-          <mxGeometry x="40" y="600" width="700" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="heading-dist" value="② 分布关系匹配" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="55" y="603" width="670" height="54" as="geometry" />
-        </mxCell>
-        <mxCell id="D1" value="D1 分布表示&lt;br&gt;概率图／F" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D1">
-          <mxGeometry x="60" y="730" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="D2" value="D2 匹配准则&lt;br&gt;残差／概率" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D2">
-          <mxGeometry x="290" y="730" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="D3" value="D3 参数确定&lt;br&gt;拟合／恢复" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D3">
-          <mxGeometry x="520" y="730" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-D1-D2" value="" edge="1" parent="1" source="D1" target="D2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-D2-D3" value="" edge="1" parent="1" source="D2" target="D3" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="white" value="White（1969）&lt;br&gt;概率图分数与回归" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率图；D2 回归">
-          <mxGeometry x="850" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="soman" value="Soman LSE（1992）&lt;br&gt;White 回归＋位置评分" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D1 分数；D2 定位与回归">
-          <mxGeometry x="1510" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lipson" value="Lipson–Sheth&lt;br&gt;概率图相关性定位" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率图；D2 定位">
-          <mxGeometry x="2170" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="park" value="Park LRE（2017）&lt;br&gt;相关定位＋回归" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D2 相关定位＋回归">
-          <mxGeometry x="2830" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="park-mle2" value="Park Proposed+MLE2&lt;br&gt;相关定位 \(\gamma\) → MLE" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="3490" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mle2" value="二参数 MLE&lt;br&gt;平移后恢复 \(\beta\)、\(\eta\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="4150" y="670" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mdm" value="MDM&lt;br&gt;反推尺度的一致性" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D1 反推尺度；D2 一致性">
-          <mxGeometry x="850" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mps" value="MPS&lt;br&gt;相邻 CDF 概率间距" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率间距；D2 乘积">
-          <mxGeometry x="1510" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="qmp" value="QMP&lt;br&gt;分位数组概率与计数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 分组；D2 分组概率">
-          <mxGeometry x="2170" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="gm" value="灰色位置估计&lt;br&gt;GM 确定 \(\hat{\gamma}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 变换；D2 灰色关系">
-          <mxGeometry x="2830" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="gm-svr" value="GM–SVR（2021）&lt;br&gt;当前样本 \(\epsilon\)-SVR 拟合" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D2 当前样本的回归">
-          <mxGeometry x="3490" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="yang" value="Yang 迭代（2023）&lt;br&gt;回归 ↔ 最小值修正" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D2 回归＋S2 期望修正">
-          <mxGeometry x="4150" y="875" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="e-white-soman" value="接入未知&lt;br&gt;位置参数" edge="1" parent="1" source="white" target="soman" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:128" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-lipson-park" value="相关系数&lt;br&gt;最大化" edge="1" parent="1" source="lipson" target="park" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:130" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-soman-park" value="同分数、同 \(\gamma\)：\(\hat{\beta}_{\mathrm{Park}}=r^2\hat{\beta}_{\mathrm{White}}\)" edge="1" parent="1" source="soman" target="park" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:148,152" evidenceSection="3.4 修正F评分关系，并区分位置与参数的等价性" labelX="2440" labelY="835">
-          <mxGeometry relative="1" as="geometry" x="0.04285714285714293" y="0">
-            <Array as="points">
-              <mxPoint x="1750" y="835" />
-              <mxPoint x="3070" y="835" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-park-mle2" value="相关定位&lt;br&gt;提供 \(\hat{\gamma}\)" edge="1" parent="1" source="park" target="park-mle2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:123" evidenceSection="3.2 各分支究竟在做什么">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mle2-park" value="恢复&lt;br&gt;\(\beta\)、\(\eta\)" edge="1" parent="1" source="mle2" target="park-mle2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:123" evidenceSection="3.2 各分支究竟在做什么">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mps-qmp" value="次序量作&lt;br&gt;分位数；计数 1&lt;br&gt;MPS 特例" edge="1" parent="1" source="mps" target="qmp" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:94" evidenceSection="2.3 MPS、分组分位数似然与CMLE的联系">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-gm-svr" value="GM 定 \(\gamma\)&lt;br&gt;SVR 求 \(\beta\)、\(\eta\)" edge="1" parent="1" source="gm" target="gm-svr" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:222" evidenceSection="5.2 灰色、SVR与密度拟合的不同组合">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="use-D3-white" value="" edge="1" parent="1" source="D3" target="white" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="805" y="802.5" />
-              <mxPoint x="805" y="732.5" />
-            </Array>
-          </mxGeometry>
+          <mxGeometry x="25" y="450" width="3580" height="395" as="geometry" />
         </mxCell>
         <mxCell id="band-stat" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#EAF6EE;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
-          <mxGeometry x="40" y="1060" width="700" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="heading-stat" value="③ 统计特征关系匹配与反演" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="55" y="1063" width="670" height="54" as="geometry" />
-        </mxCell>
-        <mxCell id="S1" value="S1 统计特征&lt;br&gt;矩／次序量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S1">
-          <mxGeometry x="60" y="1190" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="S2" value="S2 理论关系&lt;br&gt;特征 ↔ 参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S2">
-          <mxGeometry x="290" y="1190" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="S3" value="S3 参数识别&lt;br&gt;匹配／反演" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S3">
-          <mxGeometry x="520" y="1190" width="180" height="145" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-S1-S2" value="" edge="1" parent="1" source="S1" target="S2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-S2-S3" value="" edge="1" parent="1" source="S2" target="S3" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="cran" value="MM：Cran（1988）&lt;br&gt;Weibull moments 显式恢复" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="S1 生存积分；S2/S3 恢复">
-          <mxGeometry x="850" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="pwm" value="PWM&lt;br&gt;概率加权矩" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 加权矩；S2/S3 匹配">
-          <mxGeometry x="1510" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lmom" value="L 矩（1990）&lt;br&gt;次序量的线性组合" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 线性矩；S2/S3 匹配">
-          <mxGeometry x="2170" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="tlmom" value="TL 矩（2003）&lt;br&gt;内部次序量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 内部次序量；S2/S3 匹配">
-          <mxGeometry x="2830" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mvleh" value="MVLE-H（2020）&lt;br&gt;倒数形状的线性组合" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 线性量；S2/S3 组合">
-          <mxGeometry x="3490" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mvleh-extended" value="MVLE-H 扩展（2022）&lt;br&gt;n 与临时 \(\beta\) 确定超参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S2 选权＋临时形状策略">
-          <mxGeometry x="4150" y="1120" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="w-mean" value="W 均值匹配（2003）&lt;br&gt;标准化后匹配期望" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 不变量；S2 均值关系">
-          <mxGeometry x="850" y="1335" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="quantile" value="分位数／枢轴反演&lt;br&gt;统计关系 → 参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 分位统计；S2/S3 反演">
-          <mxGeometry x="1510" y="1335" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mvlue" value="位置 MVLUE（2019）&lt;br&gt;给定 \(\beta\)、\(\eta\)：协方差选权" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 次序量；S2 条件协方差">
-          <mxGeometry x="2170" y="1335" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="early-iter" value="初始失效期迭代（2025）&lt;br&gt;MVLUE ↔ 二参数恢复" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="2830" y="1335" width="480" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="mixed" value="Cousineau Mixed 各版本&lt;br&gt;形状估计 → 均值、最小值期望 → \(\hat{\eta}\)、\(\hat{\gamma}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="3490" y="1335" width="1140" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="e-cran-pwm" value="生存积分&lt;br&gt;对应 PWM" edge="1" parent="1" source="cran" target="pwm" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:168,173" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-pwm-lmom" value="同阶数&lt;br&gt;同估计规则" edge="1" parent="1" source="pwm" target="lmom" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:175" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-lmom-tlmom" value="内部次序量&lt;br&gt;替代端部" edge="1" parent="1" source="lmom" target="tlmom" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:175" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mvleh-extended" value="扩展&lt;br&gt;超参数" edge="1" parent="1" source="mvleh" target="mvleh-extended" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:195" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mvlue-early" value="位置代入&lt;br&gt;交替更新" edge="1" parent="1" source="mvlue" target="early-iter" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:197" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-wmle-mvleh" value="WMLE 临时形状策略" edge="1" parent="1" source="wmle" target="mvleh-extended" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:195" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="4400" labelY="410">
-          <mxGeometry relative="1" as="geometry" x="0.36124240378122896" y="0">
-            <Array as="points">
-              <mxPoint x="1905" y="410" />
-              <mxPoint x="4720" y="410" />
-              <mxPoint x="4720" y="1182.5" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-mle-mixed" value="MLE 形状" edge="1" parent="1" source="mle" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.2;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="770" labelY="1030">
-          <mxGeometry relative="1" as="geometry" x="-0.5154903331003959" y="0">
-            <Array as="points">
-              <mxPoint x="1135" y="390" />
-              <mxPoint x="770" y="390" />
-              <mxPoint x="770" y="1300" />
-              <mxPoint x="3718" y="1300" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-mps-mixed" value="MPS 形状" edge="1" parent="1" source="mps" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="1900" labelY="1030">
-          <mxGeometry relative="1" as="geometry" x="-0.8638941398865785" y="0">
-            <Array as="points">
-              <mxPoint x="1750" y="1030" />
-              <mxPoint x="2070" y="1030" />
-              <mxPoint x="2070" y="1270" />
-              <mxPoint x="4060" y="1270" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-wmle-mixed" value="WMLE 形状" edge="1" parent="1" source="wmle" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.8;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="4470" labelY="600">
-          <mxGeometry relative="1" as="geometry" x="0.30641925777332" y="0">
-            <Array as="points">
-              <mxPoint x="1905" y="600" />
-              <mxPoint x="4760" y="600" />
-              <mxPoint x="4760" y="1290" />
-              <mxPoint x="4402" y="1290" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="use-S3-cran" value="" edge="1" parent="1" source="S3" target="cran" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="805" y="1262.5" />
-              <mxPoint x="805" y="1182.5" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="lspf" value="LSPF（2013）&lt;br&gt;不变统计量似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="60" y="1520" width="430" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="lspf-eliminate" value="消去位置、尺度&lt;br&gt;\(W_i=\frac{x_{(i)}-x_{(1)}}{x_{(n)}-x_{(1)}}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="670" y="1505" width="1000" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lspf-like" value="L1＋L2｜最大化 W 的联合密度&lt;br&gt;\(\hat{\beta}=\arg\max_\beta L_W(\beta)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="1900" y="1505" width="1000" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lspf-restore" value="S2＋S3｜最小值期望修正 \(\hat{\gamma}\)&lt;br&gt;按原文方程回代 \(\hat{\eta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="3130" y="1505" width="1170" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lpf" value="LPF（2015）&lt;br&gt;去位置统计量似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="60" y="1680" width="430" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="lpf-eliminate" value="消去位置，保留尺度&lt;br&gt;\(V_i=x_{(i)}-x_{(1)}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="670" y="1665" width="1000" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lpf-like" value="L1＋L2｜最大化 V 的联合密度&lt;br&gt;联合确定 \(\hat{\beta}\)、\(\hat{\eta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="1900" y="1665" width="1000" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="lpf-restore" value="L2｜形状代入似然方程 (9)、(10)&lt;br&gt;恢复 \(\hat{\eta}\)、\(\hat{\gamma}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="3130" y="1665" width="1170" height="125" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-lspf-input" value="" edge="1" parent="1" source="lspf" target="lspf-eliminate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-lspf-restore" value="" edge="1" parent="1" source="lspf-like" target="lspf-restore" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-lpf-input" value="" edge="1" parent="1" source="lpf" target="lpf-eliminate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-lpf-restore" value="" edge="1" parent="1" source="lpf-like" target="lpf-restore" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-lspf-likelihood" value="统计量似然" edge="1" parent="1" source="lspf-eliminate" target="lspf-like" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process" evidence="../04-方法分类与沿袭关系工作稿.md:182" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-lpf-likelihood" value="统计量似然" edge="1" parent="1" source="lpf-eliminate" target="lpf-like" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process" evidence="../04-方法分类与沿袭关系工作稿.md:183" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-lspf-lpf" value="尺度保留；2 → 1" edge="1" parent="1" source="lspf" target="lpf" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:183" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则" labelX="275" labelY="1647">
-          <mxGeometry relative="1" as="geometry" x="-0.01538461538461533" y="0">
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-lspf-mvlue" value="最小值修正 → 多次序量组合" edge="1" parent="1" source="lspf-restore" target="mvlue" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:193" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="3090" labelY="1478">
-          <mxGeometry relative="1" as="geometry" x="-0.034074074074074034" y="0">
-            <Array as="points">
-              <mxPoint x="3715" y="1478" />
-              <mxPoint x="2410" y="1478" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e-lspf-yang" value="最小值期望位置修正" edge="1" parent="1" source="lspf-restore" target="yang" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:133" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系" labelX="4490" labelY="1567.5">
-          <mxGeometry relative="1" as="geometry" x="-0.6346153846153846" y="0">
-            <Array as="points">
-              <mxPoint x="4670" y="1567.5" />
-              <mxPoint x="4670" y="937.5" />
-            </Array>
-            <mxPoint x="0.0" y="0.0" as="offset" />
-          </mxGeometry>
+          <mxGeometry x="25" y="895" width="3580" height="390" as="geometry" />
         </mxCell>
         <mxCell id="band-post" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#F1EAF7;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
-          <mxGeometry x="40" y="1820" width="2180" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="heading-post" value="④ 贝叶斯后验推断" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="55" y="1823" width="2150" height="54" as="geometry" />
-        </mxCell>
-        <mxCell id="B1" value="B1 后验构造&lt;br&gt;\(p(\theta\mid D)\propto L(\theta\mid D)\pi(\theta)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="B1">
-          <mxGeometry x="60" y="1885" width="900" height="110" as="geometry" />
-        </mxCell>
-        <mxCell id="B2" value="B2 后验决策&lt;br&gt;均值／中位数／MAP → 参数估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="B2">
-          <mxGeometry x="1290" y="1885" width="930" height="110" as="geometry" />
-        </mxCell>
-        <mxCell id="flow-B1-B2" value="" edge="1" parent="1" source="B1" target="B2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="green" value="Green Bayes（1994）&lt;br&gt;先验与后验；Gibbs 计算" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="60" y="2000" width="900" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="teimouri" value="Teimouri 后验方案&lt;br&gt;位置更新采用 MH" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="1290" y="2000" width="930" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="e-green-teimouri" value="模型承接&lt;br&gt;位置抽样修改" edge="1" parent="1" source="green" target="teimouri" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:236" evidenceSection="5.3 后验模型、点估计与计算算法分开">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="use-B1-green" value="" edge="1" parent="1" source="B1" target="green" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mle-bayes" value="样本似然＋先验" edge="1" parent="1" source="mle" target="B1" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:236" evidenceSection="5.3 后验模型、点估计与计算算法分开" labelX="190" labelY="1030">
-          <mxGeometry relative="1" as="geometry" x="0.3065693430656935" y="0">
-            <Array as="points">
-              <mxPoint x="1135" y="375" />
-              <mxPoint x="745" y="375" />
-              <mxPoint x="745" y="575" />
-              <mxPoint x="20" y="575" />
-              <mxPoint x="20" y="1940" />
-            </Array>
-            <mxPoint x="170.0" y="0.0" as="offset" />
-          </mxGeometry>
+          <mxGeometry x="25" y="1765" width="2330" height="320" as="geometry" />
         </mxCell>
         <mxCell id="band-learn" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#FBF0E2;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
-          <mxGeometry x="2480" y="1820" width="2260" height="60" as="geometry" />
+          <mxGeometry x="2400" y="1765" width="1770" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="band-lspf-construct" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#F3F5F7;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
+          <mxGeometry x="25" y="1335" width="1560" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="band-lspf-like" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#FFF1EC;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
+          <mxGeometry x="1615" y="1335" width="1460" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="band-lspf-stat" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#EAF6EE;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
+          <mxGeometry x="3115" y="1335" width="1660" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="band-lpf-construct" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#F3F5F7;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
+          <mxGeometry x="25" y="1545" width="1560" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="band-lpf-like" value="" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=none;fillColor=#FFF1EC;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="background">
+          <mxGeometry x="1615" y="1545" width="3160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="heading-like" value="① 似然构造与优化" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="28" width="3540" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="heading-dist" value="② 分布关系匹配" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="458" width="3540" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="heading-stat" value="③ 统计特征关系匹配与反演" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="903" width="3540" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="heading-post" value="④ 贝叶斯后验推断" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="45" y="1773" width="2290" height="54" as="geometry" />
         </mxCell>
         <mxCell id="heading-learn" value="⑤ 学习型参数映射" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=37;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
-          <mxGeometry x="2495" y="1823" width="2230" height="54" as="geometry" />
+          <mxGeometry x="2420" y="1773" width="1730" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="N1" value="N1 带标签的多组样本训练&lt;br&gt;\(\{(T(D_j),\theta_j)\}\longrightarrow h_\varphi\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="N1">
-          <mxGeometry x="2500" y="1885" width="970" height="110" as="geometry" />
+        <mxCell id="heading-combined" value="跨路线／组合估计过程" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#334155;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=36;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=none;fillColor=none;fontStyle=1;" renderRole="label">
+          <mxGeometry x="3720" y="23" width="1020" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="N2" value="N2 新样本应用&lt;br&gt;\(\hat{\theta}=h_\varphi(T(D))\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="N2">
-          <mxGeometry x="3750" y="1885" width="970" height="110" as="geometry" />
+        <mxCell id="L1" value="L1 概率模型&lt;br&gt;\(L(\theta\mid D)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="L1" routeRegion="like">
+          <mxGeometry x="55" y="150" width="240" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="flow-N1-N2" value="固定映射" edge="1" parent="1" source="N1" target="N2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A5621F;fontColor=#A5621F;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism" labelX="3610" labelY="1940">
-          <mxGeometry relative="1" as="geometry" x="0.0" y="0">
+        <mxCell id="L2" value="L2 最大化／修正&lt;br&gt;\(\hat{\theta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="L2" routeRegion="like">
+          <mxGeometry x="365" y="150" width="270" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-L1-L2" value="" edge="1" parent="1" source="L1" target="L2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mle" value="MLE（待核）&lt;br&gt;极大似然估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L1 原观测；L2 最大化" routeRegion="like" methodId="mle" methodYear="待核">
+          <mxGeometry x="760" y="110" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cmle" value="CMLE（1987）&lt;br&gt;区间概率修正似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 单项概率替代" routeRegion="like" methodId="cmle" methodYear="1987">
+          <mxGeometry x="1330" y="110" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="firth" value="Firth（1993）&lt;br&gt;得分偏差修正" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 得分修改" routeRegion="like" methodId="firth" methodYear="1993">
+          <mxGeometry x="1900" y="110" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="dmmle" value="DMMLE（2025）&lt;br&gt;双重修正极大似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 数据修改＋L2 得分修正" routeRegion="like" methodId="dmmle" methodYear="2025">
+          <mxGeometry x="2470" y="110" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mle2" value="MLE2（待核）&lt;br&gt;二参数极大似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" routeRegion="like" methodId="mle2" methodYear="待核">
+          <mxGeometry x="3040" y="110" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="jacquelin" value="Jacquelin（1993）&lt;br&gt;二参数加权代数构造" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 方程代数构造" routeRegion="like" methodId="jacquelin" methodYear="1993">
+          <mxGeometry x="760" y="270" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="wmle" value="WMLE（2009）&lt;br&gt;加权极大似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L2 三权重方程" routeRegion="like" methodId="wmle" methodYear="2009">
+          <mxGeometry x="1330" y="270" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="wmle-correct" value="WMLE（2024）&lt;br&gt;形状偏差修正" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 后接形状修正" routeRegion="like" methodId="wmle-correct" methodYear="2024">
+          <mxGeometry x="1900" y="270" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="smith" value="Smith（1985）&lt;br&gt;最小值定位删点" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L1 修改输入；L2 最大化" routeRegion="like" methodId="smith" methodYear="1985">
+          <mxGeometry x="2470" y="270" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="kr" value="MMLE（2009）&lt;br&gt;删最小值修正似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="L1 删最小值；L2 最大化" routeRegion="like" methodId="kr" methodYear="2009">
+          <mxGeometry x="3040" y="270" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e-mle-cmle" value="最小值&lt;br&gt;区间概率" edge="1" parent="1" source="mle" target="cmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:74" evidenceSection="2.1 同叫“修正”，实际改动不同">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-jac-wmle" value="三参数&lt;br&gt;三权重" edge="1" parent="1" source="jacquelin" target="wmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:83" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-wmle-correct" value="样本量&lt;br&gt;修正形状" edge="1" parent="1" source="wmle" target="wmle-correct" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:85" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-smith-kr" value="共同最小值&lt;br&gt;场景适配" edge="1" parent="1" source="smith" target="kr" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:67" evidenceSection="2.0 先澄清MLE的对象">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-kr-dmmle" value="保留数据修改似然" edge="1" parent="1" source="kr" target="dmmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:84" evidenceSection="2.2 可以给出直接依据的沿袭与组合" labelX="3000" labelY="247">
+          <mxGeometry relative="1" as="geometry" x="-0.022580645161290325" y="0">
+            <Array as="points">
+              <mxPoint x="3280" y="247" />
+              <mxPoint x="2710" y="247" />
+            </Array>
             <mxPoint x="0.0" y="0.0" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ann" value="ANN／BPNN&lt;br&gt;训练映射 → 新样本三参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method">
-          <mxGeometry x="2500" y="2000" width="970" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="solver" value="PSO／SA／DE&lt;br&gt;搜索当前样本的既定目标" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#334155;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=29;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
-          <mxGeometry x="3750" y="2000" width="970" height="95" as="geometry" />
-        </mxCell>
-        <mxCell id="use-N1-ann" value="" edge="1" parent="1" source="N1" target="ann" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A5621F;fontColor=#A5621F;fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+        <mxCell id="e-firth-dmmle" value="偏差&lt;br&gt;修正项" edge="1" parent="1" source="firth" target="dmmle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:84,88" evidenceSection="2.2 可以给出直接依据的沿袭与组合">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="use-L2-mle" value="" edge="1" parent="1" source="L2" target="mle" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="225" />
+              <mxPoint x="715" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="D1" value="D1 分布表示&lt;br&gt;概率图／F" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D1" routeRegion="dist">
+          <mxGeometry x="55" y="610" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="D2" value="D2 匹配准则&lt;br&gt;残差／概率" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D2" routeRegion="dist">
+          <mxGeometry x="285" y="610" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="D3" value="D3 参数确定&lt;br&gt;拟合／恢复" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="D3" routeRegion="dist">
+          <mxGeometry x="515" y="610" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-D1-D2" value="" edge="1" parent="1" source="D1" target="D2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-D2-D3" value="" edge="1" parent="1" source="D2" target="D3" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="white" value="White（1969）&lt;br&gt;概率图分数回归" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率图；D2 回归" routeRegion="dist" methodId="white" methodYear="1969">
+          <mxGeometry x="760" y="550" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="soman" value="LSE（1992）&lt;br&gt;位置评分最小二乘" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D1 分数；D2 定位与回归" routeRegion="dist" methodId="soman" methodYear="1992">
+          <mxGeometry x="1330" y="550" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lipson" value="Lipson–Sheth（1973）&lt;br&gt;概率图相关性定位" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率图；D2 定位" routeRegion="dist" methodId="lipson" methodYear="1973">
+          <mxGeometry x="1900" y="550" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="park" value="LRE（2017）&lt;br&gt;相关定位与回归" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D2 相关定位＋回归" routeRegion="dist" methodId="park" methodYear="2017">
+          <mxGeometry x="2470" y="550" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mdm" value="MDM（2023）&lt;br&gt;最小差异估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="D1 反推尺度；D2 一致性" routeRegion="dist" methodId="mdm" methodYear="2023">
+          <mxGeometry x="760" y="715" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mps" value="MPS（1983）&lt;br&gt;极大乘积间距" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 概率间距；D2 乘积" routeRegion="dist" methodId="mps" methodYear="1983">
+          <mxGeometry x="1330" y="715" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="qmp" value="QMP（2004）&lt;br&gt;分位数组概率估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 分组；D2 分组概率" routeRegion="dist" methodId="qmp" methodYear="2004">
+          <mxGeometry x="1900" y="715" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="gm" value="GM（待核）&lt;br&gt;灰色位置估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D1 变换；D2 灰色关系" routeRegion="dist" methodId="gm" methodYear="待核">
+          <mxGeometry x="2470" y="715" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="gm-svr" value="GM–noise SVR（2021）&lt;br&gt;灰色与噪声SVR估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#286D99;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D2 当前样本的回归" routeRegion="dist" methodId="gm-svr" methodYear="2021">
+          <mxGeometry x="3040" y="715" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e-white-soman" value="接入未知&lt;br&gt;位置参数" edge="1" parent="1" source="white" target="soman" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:128" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lipson-park" value="相关系数&lt;br&gt;最大化" edge="1" parent="1" source="lipson" target="park" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:130" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-soman-park" value="同分数、同 \(\gamma\)：\(\hat{\beta}_{\mathrm{Park}}=r^2\hat{\beta}_{\mathrm{White}}\)" edge="1" parent="1" source="soman" target="park" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:148,152" evidenceSection="3.4 修正F评分关系，并区分位置与参数的等价性" labelX="2140" labelY="687">
+          <mxGeometry relative="1" as="geometry" x="0.0" y="0">
+            <Array as="points">
+              <mxPoint x="1570" y="687" />
+              <mxPoint x="2710" y="687" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mps-qmp" value="次序量作&lt;br&gt;分位数&lt;br&gt;MPS 特例" edge="1" parent="1" source="mps" target="qmp" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:94" evidenceSection="2.3 MPS、分组分位数似然与CMLE的联系">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-gm-svr" value="GM 定 \(\gamma\)&lt;br&gt;SVR 拟合" edge="1" parent="1" source="gm" target="gm-svr" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:222" evidenceSection="5.2 灰色、SVR与密度拟合的不同组合">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="use-D3-white" value="" edge="1" parent="1" source="D3" target="white" style="html=1;rounded=0;strokeWidth=3;strokeColor=#286D99;fontColor=#286D99;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="725" y="682.5" />
+              <mxPoint x="725" y="605" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="S1" value="S1 统计特征&lt;br&gt;矩／次序量" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S1" routeRegion="stat">
+          <mxGeometry x="55" y="1060" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="S2" value="S2 理论关系&lt;br&gt;特征 ↔ 参数" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S2" routeRegion="stat">
+          <mxGeometry x="285" y="1060" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="S3" value="S3 参数识别&lt;br&gt;匹配／反演" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="S3" routeRegion="stat">
+          <mxGeometry x="515" y="1060" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-S1-S2" value="" edge="1" parent="1" source="S1" target="S2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-S2-S3" value="" edge="1" parent="1" source="S2" target="S3" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cran" value="MM（1988）&lt;br&gt;威布尔矩显式估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;strokeColor=#AF8120;fillColor=#FFF6D5;strokeWidth=3;" renderRole="method" mechanismUse="S1 生存积分；S2/S3 恢复" routeRegion="stat" methodId="cran" methodYear="1988">
+          <mxGeometry x="760" y="995" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="pwm" value="PWM（1979）&lt;br&gt;概率加权矩估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 加权矩；S2/S3 匹配" routeRegion="stat" methodId="pwm" methodYear="1979">
+          <mxGeometry x="1330" y="995" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lmom" value="LM（1990）&lt;br&gt;L矩估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 线性矩；S2/S3 匹配" routeRegion="stat" methodId="lmom" methodYear="1990">
+          <mxGeometry x="1900" y="995" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="tlmom" value="TLM（2003）&lt;br&gt;截尾L矩估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 内部次序量；S2/S3 匹配" routeRegion="stat" methodId="tlmom" methodYear="2003">
+          <mxGeometry x="2470" y="995" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mvleh" value="MVLE-H（2020）&lt;br&gt;倒数形状线性组合" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 线性量；S2/S3 组合" routeRegion="stat" methodId="mvleh" methodYear="2020">
+          <mxGeometry x="3040" y="995" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="w-mean" value="W均值匹配（2003）&lt;br&gt;W均值匹配估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 不变量；S2 均值关系" routeRegion="stat" methodId="w-mean" methodYear="2003">
+          <mxGeometry x="760" y="1155" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="quantile" value="分位数／枢轴反演（待核）&lt;br&gt;统计关系反演" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 分位统计；S2/S3 反演" routeRegion="stat" methodId="quantile" methodYear="待核">
+          <mxGeometry x="1330" y="1155" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mvlue" value="MVLUE（2019）&lt;br&gt;给定\(\beta,\eta\)：位置线性无偏估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S1 次序量；S2 条件协方差" routeRegion="stat" methodId="mvlue" methodYear="2019">
+          <mxGeometry x="1900" y="1155" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cran-pwm" value="生存积分&lt;br&gt;对应 PWM" edge="1" parent="1" source="cran" target="pwm" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:168,173" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pwm-lmom" value="同阶数&lt;br&gt;同估计规则" edge="1" parent="1" source="pwm" target="lmom" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:175" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lmom-tlmom" value="内部次序量&lt;br&gt;替代端部" edge="1" parent="1" source="lmom" target="tlmom" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:175" evidenceSection="4.1 常规矩、Weibull moments、PWM、L矩与截尾L矩">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="use-S3-cran" value="" edge="1" parent="1" source="S3" target="cran" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="725" y="1132.5" />
+              <mxPoint x="725" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cw" value="MMLE（1982）&lt;br&gt;辅助关系修正似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L2 方程＋S2 辅助关系" routePlacement="combined-sidebar" methodId="cw" methodYear="1982">
+          <mxGeometry x="3720" y="100" width="1020" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="park-mle2" value="Proposed+MLE2（2017）&lt;br&gt;相关定位与条件似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D2 相关定位；L2 二参数MLE" routePlacement="combined-sidebar" methodId="park-mle2" methodYear="2017">
+          <mxGeometry x="3720" y="295" width="1020" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="yang" value="Yang迭代（2023）&lt;br&gt;回归与位置修正迭代" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="D2 回归＋S2 期望修正" routePlacement="combined-sidebar" methodId="yang" methodYear="2023">
+          <mxGeometry x="3720" y="490" width="1020" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="mixed" value="Mixed（2009）&lt;br&gt;形状与统计关系组合" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="L或D形状估计；S2/S3恢复" routePlacement="combined-sidebar" methodId="mixed" methodYear="2009">
+          <mxGeometry x="3720" y="685" width="1020" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="early-iter" value="初始失效期迭代（2025）&lt;br&gt;位置与二参数恢复迭代" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S2 位置MVLUE与二参数恢复交替" routePlacement="combined-sidebar" methodId="early-iter" methodYear="2025">
+          <mxGeometry x="3720" y="890" width="1020" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="mvleh-extended" value="MVLE-H（2022）&lt;br&gt;临时形状与超参数扩展" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" mechanismUse="S2 选权＋临时形状策略" routePlacement="combined-sidebar" methodId="mvleh-extended" methodYear="2022">
+          <mxGeometry x="3720" y="1085" width="1020" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="e-mle-cw" value="替换部分得分方程" edge="1" parent="1" source="mle" target="cw" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:72" evidenceSection="2.1 同叫“修正”，实际改动不同" labelX="2640" labelY="85">
+          <mxGeometry relative="1" as="geometry" x="0.17980513728963676" y="0">
+            <Array as="points">
+              <mxPoint x="1000" y="85" />
+              <mxPoint x="3650" y="85" />
+              <mxPoint x="3650" y="162.5" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-park-mle2" value="相关定位提供 \(\hat{\gamma}\)" edge="1" parent="1" source="park" target="park-mle2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:123" evidenceSection="3.2 各分支究竟在做什么" labelX="3260" labelY="605">
+          <mxGeometry relative="1" as="geometry" x="-0.3906633906633906" y="0">
+            <Array as="points">
+              <mxPoint x="3570" y="605" />
+              <mxPoint x="3570" y="357.5" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mle2-park" value="恢复 \(\beta\)、\(\eta\)" edge="1" parent="1" source="mle2" target="park-mle2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.75;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:123" evidenceSection="3.2 各分支究竟在做什么" labelX="3600" labelY="388.75">
+          <mxGeometry relative="1" as="geometry" x="0.8584070796460177" y="0">
+            <Array as="points">
+              <mxPoint x="3690" y="165" />
+              <mxPoint x="3690" y="388.75" />
+            </Array>
+            <mxPoint x="-90" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mvleh-extended" value="扩展超参数" edge="1" parent="1" source="mvleh" target="mvleh-extended" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.25;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:195" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="3590" labelY="1050">
+          <mxGeometry relative="1" as="geometry" x="-0.4790697674418605" y="0">
+            <Array as="points">
+              <mxPoint x="3690" y="1050" />
+              <mxPoint x="3690" y="1118.75" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-wmle-mvleh" value="WMLE 临时形状策略" edge="1" parent="1" source="wmle" target="mvleh-extended" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.75;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:195" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="2630" labelY="415">
+          <mxGeometry relative="1" as="geometry" x="-0.2591966173361522" y="0">
+            <Array as="points">
+              <mxPoint x="1570" y="415" />
+              <mxPoint x="3670" y="415" />
+              <mxPoint x="3670" y="1186.25" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mle-mixed" value="MLE 形状" edge="1" parent="1" source="mle" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.2;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="3140" labelY="235">
+          <mxGeometry relative="1" as="geometry" x="0.34142545907251787" y="0">
+            <Array as="points">
+              <mxPoint x="1000" y="235" />
+              <mxPoint x="3620" y="235" />
+              <mxPoint x="3620" y="713" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-wmle-mixed" value="WMLE 形状" edge="1" parent="1" source="wmle" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="3260" labelY="432">
+          <mxGeometry relative="1" as="geometry" x="0.3798019801980197" y="0">
+            <Array as="points">
+              <mxPoint x="1570" y="432" />
+              <mxPoint x="3640" y="432" />
+              <mxPoint x="3640" y="755" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mps-mixed" value="MPS 形状" edge="1" parent="1" source="mps" target="mixed" style="html=1;rounded=0;strokeWidth=3;strokeColor=#B47744;fontColor=#B47744;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.8;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:205" evidenceSection="5.1 先估一个参数，再恢复其他参数" labelX="3260" labelY="862">
+          <mxGeometry relative="1" as="geometry" x="0.5337477797513321" y="0">
+            <Array as="points">
+              <mxPoint x="1570" y="862" />
+              <mxPoint x="3650" y="862" />
+              <mxPoint x="3650" y="797" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-mvlue-early" value="位置代入；交替更新" edge="1" parent="1" source="mvlue" target="early-iter" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:197" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="3110" labelY="1295">
+          <mxGeometry relative="1" as="geometry" x="0.02695763799743256" y="0">
+            <Array as="points">
+              <mxPoint x="2140" y="1295" />
+              <mxPoint x="3630" y="1295" />
+              <mxPoint x="3630" y="957.5" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lspf" value="LSPF（2013）&lt;br&gt;去位置尺度统计量似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" methodId="lspf" methodYear="2013">
+          <mxGeometry x="50" y="1365" width="450" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="lspf-eliminate" value="构造 W&lt;br&gt;消去位置、尺度" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="600" y="1350" width="930" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="lspf-like" value="L1＋L2｜W 统计量联合似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="1700" y="1350" width="1230" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="lspf-restore" value="S2＋S3｜最小值期望修正 \(\hat{\gamma}\)&lt;br&gt;按原文方程回代 \(\hat{\eta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#26745A;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="3170" y="1350" width="1550" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="lpf" value="LPF（2015）&lt;br&gt;去位置统计量似然" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" methodId="lpf" methodYear="2015">
+          <mxGeometry x="50" y="1575" width="450" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="lpf-eliminate" value="构造 V&lt;br&gt;消去位置，保留尺度" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#64748B;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="600" y="1560" width="930" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="lpf-like" value="L1＋L2｜最大化 V 的联合密度&lt;br&gt;联合确定 \(\hat{\beta}\)、\(\hat{\eta}\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="1700" y="1560" width="1230" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="lpf-restore" value="L2｜似然方程恢复位置、尺度" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#AB4D3D;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="3170" y="1560" width="1550" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-lspf-input" value="" edge="1" parent="1" source="lspf" target="lspf-eliminate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-lspf-restore" value="" edge="1" parent="1" source="lspf-like" target="lspf-restore" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-lpf-input" value="" edge="1" parent="1" source="lpf" target="lpf-eliminate" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-lpf-restore" value="" edge="1" parent="1" source="lpf-like" target="lpf-restore" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lspf-likelihood" value="统计量&lt;br&gt;联合似然" edge="1" parent="1" source="lspf-eliminate" target="lspf-like" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process" evidence="../04-方法分类与沿袭关系工作稿.md:182" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lpf-likelihood" value="统计量&lt;br&gt;联合似然" edge="1" parent="1" source="lpf-eliminate" target="lpf-like" style="html=1;rounded=0;strokeWidth=3;strokeColor=#AB4D3D;fontColor=#AB4D3D;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="process" evidence="../04-方法分类与沿袭关系工作稿.md:183" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-lspf-lpf" value="保留尺度；2 → 1" edge="1" parent="1" source="lspf" target="lpf" style="html=1;rounded=0;strokeWidth=3;strokeColor=#64748B;fontColor=#64748B;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:183" evidenceSection="4.2 Nagatsuka系列：同一种统计量可以接不同估计准则" labelX="275" labelY="1520">
+          <mxGeometry relative="1" as="geometry" x="0.04347826086956519" y="0">
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-lspf-mvlue" value="最小值修正 → 多次序量组合" edge="1" parent="1" source="lspf-restore" target="mvlue" style="html=1;rounded=0;strokeWidth=3;strokeColor=#26745A;fontColor=#26745A;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.5;entryY=1;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:193" evidenceSection="4.4 线性最小方差分支：目标与参数已知条件要写清" labelX="2800" labelY="1315">
+          <mxGeometry relative="1" as="geometry" x="0.2486772486772486" y="0">
+            <Array as="points">
+              <mxPoint x="3945" y="1315" />
+              <mxPoint x="2140" y="1315" />
+            </Array>
+            <mxPoint x="0.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-lspf-yang" value="最小值期望位置修正" edge="1" parent="1" source="lspf-restore" target="yang" style="html=1;rounded=0;strokeWidth=3;strokeColor=#C96A20;fontColor=#C96A20;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;" relationKind="borrow" evidence="../04-方法分类与沿袭关系工作稿.md:133" evidenceSection="3.3 引用支持哪些沿袭，哪些只支持联系" labelX="4525" labelY="1265">
+          <mxGeometry relative="1" as="geometry" x="-1.0" y="0">
+            <Array as="points">
+              <mxPoint x="4790" y="1412.5" />
+              <mxPoint x="4790" y="552.5" />
+            </Array>
+            <mxPoint x="-195" y="-147.5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="B1" value="B1 后验构造&lt;br&gt;\(p(\theta\mid D)\propto L(\theta\mid D)\pi(\theta)\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="B1" routeRegion="post">
+          <mxGeometry x="50" y="1828" width="850" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="B2" value="B2 后验决策&lt;br&gt;均值／中位数／MAP → 参数估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="B2" routeRegion="post">
+          <mxGeometry x="1170" y="1828" width="1150" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-B1-B2" value="" edge="1" parent="1" source="B1" target="B2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="green" value="Bayes（1994）&lt;br&gt;联合后验与条件抽样" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" routeRegion="post" methodId="green" methodYear="1994">
+          <mxGeometry x="50" y="1958" width="850" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="teimouri" value="Bayes（2022）&lt;br&gt;位置MH更新后验估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#785499;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" routeRegion="post" methodId="teimouri" methodYear="2022">
+          <mxGeometry x="1170" y="1958" width="1150" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="e-green-teimouri" value="模型承接&lt;br&gt;位置抽样修改" edge="1" parent="1" source="green" target="teimouri" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=block;endFill=1;" relationKind="inherit" evidence="../04-方法分类与沿袭关系工作稿.md:236" evidenceSection="5.3 后验模型、点估计与计算算法分开">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="use-B1-green" value="" edge="1" parent="1" source="B1" target="green" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-mle-bayes" value="样本似然＋先验" edge="1" parent="1" source="mle" target="B1" style="html=1;rounded=0;strokeWidth=3;strokeColor=#785499;fontColor=#785499;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=none;dashed=1;dashPattern=7 5;" relationKind="math" evidence="../04-方法分类与沿袭关系工作稿.md:236" evidenceSection="5.3 后验模型、点估计与计算算法分开" labelX="205" labelY="1735">
+          <mxGeometry relative="1" as="geometry" x="0.8779186124082723" y="0">
+            <Array as="points">
+              <mxPoint x="1000" y="10" />
+              <mxPoint x="10" y="10" />
+              <mxPoint x="10" y="1878" />
+            </Array>
+            <mxPoint x="195.0" y="0.0" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="N1" value="N1 带标签的多组样本训练&lt;br&gt;\(\{(T(D_j),\theta_j)\}\longrightarrow h_\varphi\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="N1" routeRegion="learn">
+          <mxGeometry x="2430" y="1828" width="790" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="N2" value="N2 新样本应用&lt;br&gt;\(\hat{\theta}=h_\varphi(T(D))\)" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;fontStyle=1;" renderRole="principle" mechanismId="N2" routeRegion="learn">
+          <mxGeometry x="3380" y="1828" width="760" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-N1-N2" value="固定映射" edge="1" parent="1" source="N1" target="N2" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A5621F;fontColor=#A5621F;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ann" value="ANN（2008）｜神经网络直接估计&lt;br&gt;BPNN（2025）｜反向传播网络直接估计" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#A5621F;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="method" routeRegion="learn" methodId="ann" methodYear="2008">
+          <mxGeometry x="2430" y="1958" width="1710" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="use-N1-ann" value="" edge="1" parent="1" source="N1" target="ann" style="html=1;rounded=0;strokeWidth=3;strokeColor=#A5621F;fontColor=#A5621F;fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.2309941520467836;entryY=0;exitPerimeter=0;entryPerimeter=0;endArrow=open;strokeWidth=2;" relationKind="mechanism">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="solver" value="PSO／SA／DE&lt;br&gt;搜索当前样本&lt;br&gt;的既定目标" vertex="1" parent="1" style="html=1;whiteSpace=wrap;rounded=1;arcSize=10;strokeColor=#334155;fillColor=#ffffff;fontColor=#243449;fontFamily=Times New Roman;fontSize=31;spacing=12;align=center;verticalAlign=middle;strokeWidth=2;" renderRole="process">
+          <mxGeometry x="4250" y="1845" width="520" height="195" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

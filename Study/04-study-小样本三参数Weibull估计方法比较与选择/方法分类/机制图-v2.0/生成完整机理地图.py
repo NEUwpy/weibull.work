@@ -81,7 +81,7 @@ def port(key, side, along=.5):
 def edge(key, src, dst, label, kind='inherit', color='#475569', start='right', end='left', via=(), at=None, evidence='', exit_at=.5, entry_at=.5):
     pos=lambda side,along:{'left':(0,along),'right':(1,along),'top':(along,0),'bottom':(along,1)}[side]
     sx,sy=pos(start,exit_at);tx,ty=pos(end,entry_at)
-    style=f'html=1;rounded=0;strokeWidth=3;strokeColor={color};fontColor={color};fontFamily=Times New Roman;fontSize=28;labelBackgroundColor=#ffffff;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
+    style=f'html=1;rounded=0;strokeWidth=3;strokeColor={color};fontColor={color};fontFamily=Times New Roman;fontSize=26;labelBackgroundColor=#ffffff;exitX={sx};exitY={sy};entryX={tx};entryY={ty};exitPerimeter=0;entryPerimeter=0;'
     style += 'endArrow=none;' if kind=='math' else 'endArrow=open;' if kind in ('process','mechanism') else 'endArrow=block;endFill=1;'
     if kind=='math':style+='dashed=1;dashPattern=7 5;'
     if kind=='borrow':style+='dashed=1;dashPattern=10 4 2 4;strokeWidth=3.5;'
@@ -130,6 +130,9 @@ USAGE = {
     'quantile':'S1 分位统计；S2/S3 反演', 'tlmom':'S1 内部次序量；S2/S3 匹配',
     'mvlue':'S1 次序量；S2 条件协方差', 'mvleh':'S1 线性量；S2/S3 组合',
     'mvleh-extended':'S2 选权＋临时形状策略',
+    'park-mle2':'D2 相关定位；L2 二参数MLE',
+    'early-iter':'S2 位置MVLUE与二参数恢复交替',
+    'mixed':'L或D形状估计；S2/S3恢复',
 }
 
 def method(key,text,x,y,w=480,h=125,route='like',current=False,size=31):
@@ -142,128 +145,162 @@ def mechanism(key,text,x,y,w,color,h=145):
     cell.set('mechanismId',key)
     return cell
 
-def open_route(key,title,y,width=700,x=40,fill='#ffffff'):
-    node('band-'+key,'',x,y,width,60,color='none',fill=fill,role='background')
-    node('heading-'+key,title,x+15,y+3,width-30,54,color=colors[key],size=37,bold=True,role='label')
+fills = dict(like='#FFF1EC', dist='#EBF5FC', stat='#EAF6EE', post='#F1EAF7', learn='#FBF0E2')
+regions = {
+    'like':(25,20,3580,395), 'dist':(25,450,3580,395),
+    'stat':(25,895,3580,390), 'post':(25,1765,2330,320),
+    'learn':(2400,1765,1770,320),
+}
+for key, geometry in regions.items():
+    node('band-'+key,'',*geometry,color='none',fill=fills[key],role='background')
+# 不变统计量构造为中性区域；推断阶段分别覆盖完整的L或S范围。
+for key,geometry,fill in (
+    ('lspf-construct',(25,1335,1560,160),'#F3F5F7'),
+    ('lspf-like',(1615,1335,1460,160),fills['like']),
+    ('lspf-stat',(3115,1335,1660,160),fills['stat']),
+    ('lpf-construct',(25,1545,1560,160),'#F3F5F7'),
+    ('lpf-like',(1615,1545,3160,160),fills['like']),
+):
+    node('band-'+key,'',*geometry,color='none',fill=fill,role='background')
+for key,title in (
+    ('like','① 似然构造与优化'), ('dist','② 分布关系匹配'),
+    ('stat','③ 统计特征关系匹配与反演'), ('post','④ 贝叶斯后验推断'),
+    ('learn','⑤ 学习型参数映射'),
+):
+    x,y,w,h=regions[key]
+    node('heading-'+key,title,x+20,y+8,w-40,54,color=colors[key],size=37,bold=True,role='label')
+node('heading-combined','跨路线／组合估计过程',3720,23,1020,54,size=36,bold=True,role='label')
 
-node('title','三参数 Weibull 参数估计方法路线图',50,16,4700,70,size=49,bold=True,role='label')
-node('legend','实心箭头：沿袭／修正　　虚线：数学联系　　点划线：局部借用／组合　　空心箭头：估计过程　　金色：七种比较实现',50,94,4700,44,size=29,role='label')
-
-# 三条经典路线从左侧核心机制展开，方法分支以横向短链延续。
-open_route('like','① 似然构造与优化',150,fill='#FFF1EC')
-mechanism('L1',r'L1 概率模型<br>\(L(\theta\mid D)\)',60,280,280,'like',150)
-mechanism('L2',r'L2 最大化／修正<br>\(\hat{\theta}\)',420,280,280,'like',150)
+# 每条经典路线的整片浅色背景同时覆盖机制与完整使用该机制的方法。
+mechanism('L1',r'L1 概率模型<br>\(L(\theta\mid D)\)',55,150,240,'like',150)
+mechanism('L2',r'L2 最大化／修正<br>\(\hat{\theta}\)',365,150,270,'like',150)
 edge('flow-L1-L2','L1','L2','',kind='mechanism',color=colors['like'])
-
-method('mle','MLE<br>原始观测联合似然',850,230,570,current=True)
-method('cw','Cohen–Whitten MMLE<br>位置／矩关系替换',1620,230,570)
-method('cmle','CMLE<br>最小值处采用区间概率',2390,230,570)
-method('firth','Firth 得分修正<br>加入偏差修正项',3160,230,570)
-method('dmmle','DMMLE（2025）<br>数据修改＋得分修正',3930,230,570)
-method('jacquelin','Jacquelin（1993）<br>二参数代数构造',850,435,570)
-method('wmle','Cousineau WMLE<br>三权重估计方程',1620,435,570,current=True)
-method('wmle-correct','杨小玉等（2024）<br>WMLE 形状偏差修正',2390,435,570)
-method('smith','Smith（1985）<br>最小值替代构造',3160,435,570)
-method('kr','K–R MMLE（2009）<br>最小值定位＋删点',3930,435,570,current=True)
-edge('e-mle-cw','mle','cw','替换部分<br>得分方程','borrow',colors['like'],evidence=True)
-edge('e-mle-cmle','mle','cmle','最小值密度 → 区间概率','borrow',colors['like'],'top','top',via=[(1135,210),(2675,210)],at=(2210,210),evidence=True)
+method('mle','MLE<br>原始观测联合似然',760,110,480,110,current=True)
+method('cmle','CMLE<br>最小值处采用区间概率',1330,110,480,110)
+method('firth','Firth 得分修正<br>加入偏差修正项',1900,110,480,110)
+method('dmmle','DMMLE（2025）<br>数据修改＋得分修正',2470,110,480,110)
+method('mle2','二参数 MLE<br>平移后恢复 β、η',3040,110,480,110)
+method('jacquelin','Jacquelin（1993）<br>二参数代数构造',760,270,480,110)
+method('wmle','Cousineau WMLE<br>三权重估计方程',1330,270,480,110,current=True)
+method('wmle-correct','杨小玉等（2024）<br>WMLE 形状偏差修正',1900,270,480,110)
+method('smith','Smith（1985）<br>最小值替代构造',2470,270,480,110)
+method('kr','K–R MMLE（2009）<br>最小值定位＋删点',3040,270,480,110,current=True)
+edge('e-mle-cmle','mle','cmle','最小值<br>区间概率','borrow',colors['like'],evidence=True)
 edge('e-jac-wmle','jacquelin','wmle','三参数<br>三权重','inherit',colors['like'],evidence=True)
-edge('e-wmle-correct','wmle','wmle-correct','随样本量<br>修正形状','inherit',colors['like'],evidence=True)
+edge('e-wmle-correct','wmle','wmle-correct','样本量<br>修正形状','inherit',colors['like'],evidence=True)
 edge('e-smith-kr','smith','kr','共同最小值<br>场景适配','inherit',colors['like'],evidence=True)
-edge('e-kr-dmmle','kr','dmmle','保留数据<br>修改似然','borrow',colors['like'],'top','bottom',at=(4585,395),evidence=True)
+edge('e-kr-dmmle','kr','dmmle','保留数据修改似然','borrow',colors['like'],'top','bottom',via=[(3280,247),(2710,247)],at=(3000,247),evidence=True)
 edge('e-firth-dmmle','firth','dmmle','偏差<br>修正项','borrow',colors['like'],evidence=True)
-edge('use-L2-mle','L2','mle','',kind='mechanism',color=colors['like'],via=[(805,355),(805,292.5)])
+edge('use-L2-mle','L2','mle','',kind='mechanism',color=colors['like'],via=[(715,225),(715,165)])
 
-open_route('dist','② 分布关系匹配',600,fill='#EBF5FC')
-mechanism('D1','D1 分布表示<br>概率图／F',60,730,180,'dist')
-mechanism('D2','D2 匹配准则<br>残差／概率',290,730,180,'dist')
-mechanism('D3','D3 参数确定<br>拟合／恢复',520,730,180,'dist')
+mechanism('D1','D1 分布表示<br>概率图／F',55,610,210,'dist')
+mechanism('D2','D2 匹配准则<br>残差／概率',285,610,210,'dist')
+mechanism('D3','D3 参数确定<br>拟合／恢复',515,610,210,'dist')
 edge('flow-D1-D2','D1','D2','',kind='mechanism',color=colors['dist'])
 edge('flow-D2-D3','D2','D3','',kind='mechanism',color=colors['dist'])
-method('white','White（1969）<br>概率图分数与回归',850,670,route='dist')
-method('soman','Soman LSE（1992）<br>White 回归＋位置评分',1510,670,route='dist',current=True)
-method('lipson','Lipson–Sheth<br>概率图相关性定位',2170,670,route='dist')
-method('park','Park LRE（2017）<br>相关定位＋回归',2830,670,route='dist',current=True)
-method('park-mle2','Park Proposed+MLE2<br>相关定位 γ → MLE',3490,670,route='dist')
-method('mle2','二参数 MLE<br>平移后恢复 β、η',4150,670)
-method('mdm','MDM<br>反推尺度的一致性',850,875,route='dist',current=True)
-method('mps','MPS<br>相邻 CDF 概率间距',1510,875,route='dist')
-method('qmp','QMP<br>分位数组概率与计数',2170,875,route='dist')
-method('gm','灰色位置估计<br>GM 确定 γ̂',2830,875,route='dist')
-method('gm-svr','GM–SVR（2021）<br>当前样本 ε-SVR 拟合',3490,875,route='dist')
-method('yang','Yang 迭代（2023）<br>回归 ↔ 最小值修正',4150,875,route='dist')
+method('white','White（1969）<br>概率图分数与回归',760,550,480,110,route='dist')
+method('soman','Soman LSE（1992）<br>White 回归＋位置评分',1330,550,480,110,route='dist',current=True)
+method('lipson','Lipson–Sheth<br>概率图相关性定位',1900,550,480,110,route='dist')
+method('park','Park LRE（2017）<br>相关定位＋回归',2470,550,480,110,route='dist',current=True)
+method('mdm','MDM<br>反推尺度的一致性',760,715,480,110,route='dist',current=True)
+method('mps','MPS<br>相邻 CDF 概率间距',1330,715,480,110,route='dist')
+method('qmp','QMP<br>分位数组概率与计数',1900,715,480,110,route='dist')
+method('gm','灰色位置估计<br>GM 确定 γ̂',2470,715,480,110,route='dist')
+method('gm-svr','GM–SVR（2021）<br>当前样本 ε-SVR 拟合',3040,715,480,110,route='dist')
 edge('e-white-soman','white','soman','接入未知<br>位置参数','inherit',colors['dist'],evidence=True)
 edge('e-lipson-park','lipson','park','相关系数<br>最大化','inherit',colors['dist'],evidence=True)
-edge('e-soman-park','soman','park',r'同分数、同 \(\gamma\)：\(\hat{\beta}_{\mathrm{Park}}=r^2\hat{\beta}_{\mathrm{White}}\)','math',colors['dist'],'bottom','bottom',via=[(1750,835),(3070,835)],at=(2440,835),evidence=True)
-edge('e-park-mle2','park','park-mle2','相关定位<br>提供 γ̂','borrow','#C96A20',evidence=True)
-edge('e-mle2-park','mle2','park-mle2','恢复<br>β、η','borrow','#C96A20','left','right',evidence=True)
-edge('e-mps-qmp','mps','qmp','次序量作<br>分位数；计数 1<br>MPS 特例','math',colors['dist'],evidence=True)
-edge('e-gm-svr','gm','gm-svr','GM 定 γ<br>SVR 求 β、η','borrow',colors['dist'],evidence=True)
-edge('use-D3-white','D3','white','',kind='mechanism',color=colors['dist'],via=[(805,802.5),(805,732.5)])
+edge('e-soman-park','soman','park',r'同分数、同 \(\gamma\)：\(\hat{\beta}_{\mathrm{Park}}=r^2\hat{\beta}_{\mathrm{White}}\)','math',colors['dist'],'bottom','bottom',via=[(1570,687),(2710,687)],at=(2140,687),evidence=True)
+edge('e-mps-qmp','mps','qmp','次序量作<br>分位数<br>MPS 特例','math',colors['dist'],evidence=True)
+edge('e-gm-svr','gm','gm-svr','GM 定 γ<br>SVR 拟合','borrow',colors['dist'],evidence=True)
+edge('use-D3-white','D3','white','',kind='mechanism',color=colors['dist'],via=[(725,682.5),(725,605)])
 
-open_route('stat','③ 统计特征关系匹配与反演',1060,fill='#EAF6EE')
-mechanism('S1','S1 统计特征<br>矩／次序量',60,1190,180,'stat')
-mechanism('S2','S2 理论关系<br>特征 ↔ 参数',290,1190,180,'stat')
-mechanism('S3','S3 参数识别<br>匹配／反演',520,1190,180,'stat')
+mechanism('S1','S1 统计特征<br>矩／次序量',55,1060,210,'stat')
+mechanism('S2','S2 理论关系<br>特征 ↔ 参数',285,1060,210,'stat')
+mechanism('S3','S3 参数识别<br>匹配／反演',515,1060,210,'stat')
 edge('flow-S1-S2','S1','S2','',kind='mechanism',color=colors['stat'])
 edge('flow-S2-S3','S2','S3','',kind='mechanism',color=colors['stat'])
-method('cran','MM：Cran（1988）<br>Weibull moments 显式恢复',850,1120,route='stat',current=True)
-method('pwm','PWM<br>概率加权矩',1510,1120,route='stat')
-method('lmom','L 矩（1990）<br>次序量的线性组合',2170,1120,route='stat')
-method('tlmom','TL 矩（2003）<br>内部次序量',2830,1120,route='stat')
-method('mvleh','MVLE-H（2020）<br>倒数形状的线性组合',3490,1120,route='stat')
-method('mvleh-extended','MVLE-H 扩展（2022）<br>n 与临时 β 确定超参数',4150,1120,route='stat')
-method('w-mean','W 均值匹配（2003）<br>标准化后匹配期望',850,1335,route='stat')
-method('quantile','分位数／枢轴反演<br>统计关系 → 参数',1510,1335,route='stat')
-method('mvlue','位置 MVLUE（2019）<br>给定 β、η：协方差选权',2170,1335,route='stat')
-method('early-iter','初始失效期迭代（2025）<br>MVLUE ↔ 二参数恢复',2830,1335,route='stat')
-method('mixed','Cousineau Mixed 各版本<br>形状估计 → 均值、最小值期望 → η̂、γ̂',3490,1335,1140,route='stat')
+method('cran','MM：Cran（1988）<br>Weibull moments 显式恢复',760,995,480,110,route='stat',current=True)
+method('pwm','PWM<br>概率加权矩',1330,995,480,110,route='stat')
+method('lmom','L 矩（1990）<br>次序量的线性组合',1900,995,480,110,route='stat')
+method('tlmom','TL 矩（2003）<br>内部次序量',2470,995,480,110,route='stat')
+method('mvleh','MVLE-H（2020）<br>倒数形状的线性组合',3040,995,480,110,route='stat')
+method('w-mean','W 均值匹配（2003）<br>标准化后匹配期望',760,1155,480,110,route='stat')
+method('quantile','分位数／枢轴反演<br>统计关系 → 参数',1330,1155,480,110,route='stat')
+method('mvlue','位置 MVLUE（2019）<br>给定 β、η：协方差选权',1900,1155,480,110,route='stat')
 edge('e-cran-pwm','cran','pwm','生存积分<br>对应 PWM','math',colors['stat'],evidence=True)
 edge('e-pwm-lmom','pwm','lmom','同阶数<br>同估计规则','math',colors['stat'],evidence=True)
 edge('e-lmom-tlmom','lmom','tlmom','内部次序量<br>替代端部','inherit',colors['stat'],evidence=True)
-edge('e-mvleh-extended','mvleh','mvleh-extended','扩展<br>超参数','inherit',colors['stat'],evidence=True)
-edge('e-mvlue-early','mvlue','early-iter','位置代入<br>交替更新','borrow','#C96A20',evidence=True)
-edge('e-wmle-mvleh','wmle','mvleh-extended','WMLE 临时形状策略','borrow','#C96A20','top','right',via=[(1905,410),(4720,410),(4720,1182.5)],at=(4400,410),evidence=True)
-edge('e-mle-mixed','mle','mixed','MLE 形状','borrow','#B47744','bottom','top',via=[(1135,390),(770,390),(770,1300),(3718,1300)],at=(770,1030),entry_at=.2,evidence=True)
-edge('e-mps-mixed','mps','mixed','MPS 形状','borrow','#B47744','bottom','top',via=[(1750,1030),(2070,1030),(2070,1270),(4060,1270)],at=(1900,1030),entry_at=.5,evidence=True)
-edge('e-wmle-mixed','wmle','mixed','WMLE 形状','borrow','#B47744','bottom','top',via=[(1905,600),(4760,600),(4760,1290),(4402,1290)],at=(4470,600),entry_at=.8,evidence=True)
-edge('use-S3-cran','S3','cran','',kind='mechanism',color=colors['stat'],via=[(805,1262.5),(805,1182.5)])
+edge('use-S3-cran','S3','cran','',kind='mechanism',color=colors['stat'],via=[(725,1132.5),(725,1050)])
 
-# 两条横向短流程保留各自的似然与参数恢复步骤。
-method('lspf','LSPF（2013）<br>不变统计量似然',60,1520,430,95,route='stat')
-node('lspf-eliminate',r'消去位置、尺度<br>\(W_i=\frac{x_{(i)}-x_{(1)}}{x_{(n)}-x_{(1)}}\)',670,1505,1000,125,color=colors['stat'],role='process')
-node('lspf-like',r'L1＋L2｜最大化 W 的联合密度<br>\(\hat{\beta}=\arg\max_\beta L_W(\beta)\)',1900,1505,1000,125,color=colors['like'],role='process')
-node('lspf-restore','S2＋S3｜最小值期望修正 γ̂<br>按原文方程回代 η̂',3130,1505,1170,125,color=colors['stat'],role='process')
-method('lpf','LPF（2015）<br>去位置统计量似然',60,1680,430,95,route='like')
-node('lpf-eliminate',r'消去位置，保留尺度<br>\(V_i=x_{(i)}-x_{(1)}\)',670,1665,1000,125,color=colors['stat'],role='process')
-node('lpf-like','L1＋L2｜最大化 V 的联合密度<br>联合确定 β̂、η̂',1900,1665,1000,125,color=colors['like'],role='process')
-node('lpf-restore','L2｜形状代入似然方程 (9)、(10)<br>恢复 η̂、γ̂',3130,1665,1170,125,color=colors['like'],role='process')
+# 无单一路线覆盖的完整方法放在白色侧栏，以短阶段链表达实际组合。
+for key,text,y,h in (
+    ('cw','Cohen–Whitten MMLE<br>L2 似然方程＋S2 位置／矩辅助关系',100,125),
+    ('park-mle2','Park Proposed+MLE2<br>D 相关定位 γ̂ → L 二参数 MLE',295,125),
+    ('yang','Yang 迭代（2023）<br>D 回归 ↔ S 最小值期望修正',490,125),
+    ('mixed','Cousineau Mixed 各版本<br>L（MLE／WMLE）或 D（MPS）形状<br>→ S 均值、最小值期望恢复 η̂、γ̂',685,140),
+    ('early-iter','初始失效期迭代（2025）<br>S 位置 MVLUE ↔ 二参数恢复',890,135),
+    ('mvleh-extended','MVLE-H 扩展（2022）<br>S 超参数选择；借用 WMLE 临时形状策略',1085,135),
+):
+    cell=node(key,text,3720,y,1020,h,color='#64748B',size=31)
+    cell.set('mechanismUse',USAGE[key])
+    cell.set('routePlacement','combined-sidebar')
+edge('e-mle-cw','mle','cw','替换部分得分方程','borrow',colors['like'],'top','left',via=[(1000,85),(3650,85),(3650,162.5)],at=(2640,85),evidence=True)
+edge('e-park-mle2','park','park-mle2','相关定位提供 γ̂','borrow','#C96A20','right','left',via=[(3570,605),(3570,357.5)],at=(3260,605),evidence=True)
+edge('e-mle2-park','mle2','park-mle2','恢复 β、η','borrow','#C96A20','right','left',via=[(3690,165),(3690,388.75)],entry_at=.75,at=(3600,388.75),evidence=True)
+edge('e-mvleh-extended','mvleh','mvleh-extended','扩展超参数','inherit',colors['stat'],'right','left',via=[(3690,1050),(3690,1118.75)],entry_at=.25,at=(3590,1050),evidence=True)
+edge('e-wmle-mvleh','wmle','mvleh-extended','WMLE 临时形状策略','borrow','#C96A20','bottom','left',via=[(1570,415),(3670,415),(3670,1186.25)],entry_at=.75,at=(2630,415),evidence=True)
+edge('e-mle-mixed','mle','mixed','MLE 形状','borrow','#B47744','bottom','left',via=[(1000,235),(3620,235),(3620,713)],entry_at=.2,at=(3140,235),evidence=True)
+edge('e-wmle-mixed','wmle','mixed','WMLE 形状','borrow','#B47744','bottom','left',via=[(1570,432),(3640,432),(3640,755)],at=(3260,432),evidence=True)
+edge('e-mps-mixed','mps','mixed','MPS 形状','borrow','#B47744','bottom','left',via=[(1570,862),(3650,862),(3650,797)],entry_at=.8,at=(3260,862),evidence=True)
+edge('e-mvlue-early','mvlue','early-iter','位置代入；交替更新','borrow','#C96A20','bottom','left',via=[(2140,1295),(3630,1295),(3630,957.5)],at=(3110,1295),evidence=True)
+
+# LSPF与LPF按实际阶段展开；LPF自V联合密度至末阶段保持L背景。
+node('lspf','LSPF（2013）<br>不变统计量似然',50,1365,450,95,color='#64748B')
+node('lspf-eliminate','构造 W<br>消去位置、尺度',600,1350,930,125,color='#64748B',role='process')
+node('lspf-like','L1＋L2｜W 统计量联合似然',1700,1350,1230,125,color=colors['like'],role='process')
+node('lspf-restore','S2＋S3｜最小值期望修正 γ̂<br>按原文方程回代 η̂',3170,1350,1550,125,color=colors['stat'],role='process')
+node('lpf','LPF（2015）<br>去位置统计量似然',50,1575,450,95,color='#64748B')
+node('lpf-eliminate','构造 V<br>消去位置，保留尺度',600,1560,930,125,color='#64748B',role='process')
+node('lpf-like','L1＋L2｜最大化 V 的联合密度<br>联合确定 β̂、η̂',1700,1560,1230,125,color=colors['like'],role='process')
+node('lpf-restore','L2｜似然方程恢复位置、尺度',3170,1560,1550,125,color=colors['like'],role='process')
 for prefix in ('lspf','lpf'):
     edge('flow-'+prefix+'-input',prefix,prefix+'-eliminate','',kind='process',color='#64748B')
     edge('flow-'+prefix+'-restore',prefix+'-like',prefix+'-restore','',kind='process',color='#64748B')
-edge('e-lspf-likelihood','lspf-eliminate','lspf-like','统计量似然','process',colors['like'],evidence=True)
-edge('e-lpf-likelihood','lpf-eliminate','lpf-like','统计量似然','process',colors['like'],evidence=True)
-edge('e-lspf-lpf','lspf','lpf','尺度保留；2 → 1','inherit',colors['stat'],'bottom','top',at=(275,1647),evidence=True)
-edge('e-lspf-mvlue','lspf-restore','mvlue','最小值修正 → 多次序量组合','borrow',colors['stat'],'top','bottom',via=[(3715,1478),(2410,1478)],at=(3090,1478),evidence=True)
-edge('e-lspf-yang','lspf-restore','yang','最小值期望位置修正','borrow','#C96A20','right','right',via=[(4670,1567.5),(4670,937.5)],at=(4490,1567.5),evidence=True)
+edge('e-lspf-likelihood','lspf-eliminate','lspf-like','统计量<br>联合似然','process',colors['like'],evidence=True)
+edge('e-lpf-likelihood','lpf-eliminate','lpf-like','统计量<br>联合似然','process',colors['like'],evidence=True)
+edge('e-lspf-lpf','lspf','lpf','保留尺度；2 → 1','inherit','#64748B','bottom','top',at=(275,1520),evidence=True)
+edge('e-lspf-mvlue','lspf-restore','mvlue','最小值修正 → 多次序量组合','borrow',colors['stat'],'top','bottom',via=[(3945,1315),(2140,1315)],at=(2800,1315),evidence=True)
+edge('e-lspf-yang','lspf-restore','yang','最小值期望位置修正','borrow','#C96A20','right','right',via=[(4790,1412.5),(4790,552.5)],at=(4525,1265),evidence=True)
 
-open_route('post','④ 贝叶斯后验推断',1820,2180,40,'#F1EAF7')
-mechanism('B1',r'B1 后验构造<br>\(p(\theta\mid D)\propto L(\theta\mid D)\pi(\theta)\)',60,1885,900,'post',110)
-mechanism('B2','B2 后验决策<br>均值／中位数／MAP → 参数估计',1290,1885,930,'post',110)
+mechanism('B1',r'B1 后验构造<br>\(p(\theta\mid D)\propto L(\theta\mid D)\pi(\theta)\)',50,1828,850,'post',100)
+mechanism('B2','B2 后验决策<br>均值／中位数／MAP → 参数估计',1170,1828,1150,'post',100)
 edge('flow-B1-B2','B1','B2','',kind='mechanism',color=colors['post'])
-method('green','Green Bayes（1994）<br>先验与后验；Gibbs 计算',60,2000,900,95,route='post',size=29)
-method('teimouri','Teimouri 后验方案<br>位置更新采用 MH',1290,2000,930,95,route='post',size=29)
+method('green','Green Bayes（1994）<br>先验与后验；Gibbs 计算',50,1958,850,105,route='post')
+method('teimouri','Teimouri 后验方案<br>位置更新采用 MH',1170,1958,1150,105,route='post')
 edge('e-green-teimouri','green','teimouri','模型承接<br>位置抽样修改','inherit',colors['post'],evidence=True)
 edge('use-B1-green','B1','green','',kind='mechanism',color=colors['post'],start='bottom',end='top')
-edge('e-mle-bayes','mle','B1','样本似然＋先验','math',colors['post'],'bottom','left',via=[(1135,375),(745,375),(745,575),(20,575),(20,1940)],at=(190,1030),evidence=True)
+edge('e-mle-bayes','mle','B1','样本似然＋先验','math',colors['post'],'top','left',via=[(1000,10),(10,10),(10,1878)],at=(205,1735),evidence=True)
 
-open_route('learn','⑤ 学习型参数映射',1820,2260,2480,'#FBF0E2')
-mechanism('N1',r'N1 带标签的多组样本训练<br>\(\{(T(D_j),\theta_j)\}\longrightarrow h_\varphi\)',2500,1885,970,'learn',110)
-mechanism('N2',r'N2 新样本应用<br>\(\hat{\theta}=h_\varphi(T(D))\)',3750,1885,970,'learn',110)
-edge('flow-N1-N2','N1','N2','固定映射',kind='mechanism',color=colors['learn'],at=(3610,1940))
-method('ann','ANN／BPNN<br>训练映射 → 新样本三参数',2500,2000,970,95,route='learn',size=29)
-node('solver','PSO／SA／DE<br>搜索当前样本的既定目标',3750,2000,970,95,size=29,role='process')
-edge('use-N1-ann','N1','ann','',kind='mechanism',color=colors['learn'],start='bottom',end='top')
+mechanism('N1',r'N1 带标签的多组样本训练<br>\(\{(T(D_j),\theta_j)\}\longrightarrow h_\varphi\)',2430,1828,790,'learn',100)
+mechanism('N2',r'N2 新样本应用<br>\(\hat{\theta}=h_\varphi(T(D))\)',3380,1828,760,'learn',100)
+edge('flow-N1-N2','N1','N2','固定映射',kind='mechanism',color=colors['learn'])
+method('ann','ANN／BPNN<br>训练映射 → 新样本三参数',2430,1958,1710,105,route='learn')
+edge('use-N1-ann','N1','ann','',kind='mechanism',color=colors['learn'],start='bottom',end='top',exit_at=.5,entry_at=395/1710)
+node('solver','PSO／SA／DE<br>搜索当前样本<br>的既定目标',4250,1845,520,195,size=31,role='process')
+
+# 区域归属只应用于可由该路线完整概括的节点；组合方法不强制唯一落位。
+MEMBERS = {
+    'like':'L1 L2 mle cmle firth dmmle mle2 jacquelin wmle wmle-correct smith kr',
+    'dist':'D1 D2 D3 white soman lipson park mdm mps qmp gm gm-svr',
+    'stat':'S1 S2 S3 cran pwm lmom tlmom mvleh w-mean quantile mvlue',
+    'post':'B1 B2 green teimouri', 'learn':'N1 N2 ann',
+}
+for route, keys in MEMBERS.items():
+    rx,ry,rw,rh=regions[route]
+    for key in keys.split():
+        x,y,w,h=boxes[key]
+        assert rx <= x and ry <= y and x+w <= rx+rw and y+h <= ry+rh, (route,key)
+        root.find(f"mxCell[@id='{key}']").set('routeRegion',route)
 
 # 生成时校验画幅、节点边界与既有证据集合；SVG 预览由统一入口另行生成。
 assert WIDTH*7 == HEIGHT*16
@@ -285,3 +322,6 @@ target=ROOT/'06-完整机理地图-估计路线与方法关系.drawio'
 with target.open('w',encoding='utf-8',newline='\n') as output:
     ET.ElementTree(doc).write(output,encoding='unicode',xml_declaration=True)
 print(f'generated {WIDTH}x{HEIGHT} horizontal route map: {len(boxes)} nodes, 28 method relations + 2 internal mechanism connections; all 30 evidence IDs retained')
+
+from 方法标识 import unify_file
+unify_file(target)

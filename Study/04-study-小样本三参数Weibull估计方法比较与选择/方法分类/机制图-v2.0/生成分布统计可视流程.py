@@ -1,4 +1,4 @@
-"""分布匹配与统计关系反演：横向图像主流程及并列方法构造。"""
+"""分布匹配与统计关系反演：图像化核心机制，具体方法分支见第二幅图。"""
 from pathlib import Path
 import math
 import xml.etree.ElementTree as ET
@@ -47,10 +47,23 @@ def legend(d, key, x, y, label, color):
     text(d, key+'-label', label, x+50, y-5, 180, 50, 25)
 
 
-def card(d, key, title, x, w, color, fill='#FFFFFF'):
-    d.panel(key+'-bg', x, 800, w, 550, fill=fill, color='#DEE6EC')
-    text(d, key+'-title', title, x+20, 815, w-40, 60, 29, True)
-    d.line(key+'-divider', [(x+20,885),(x+w-20,885)], color=color, width=2.5)
+def expand_core(d):
+    """Give the four-step example the whole wide page; keep glyphs and dots round."""
+    scale=2.02
+    for cell in d.root.findall('mxCell'):
+        geo=cell.find('mxGeometry')
+        if geo is None: continue
+        if cell.get('vertex')=='1':
+            y=float(geo.get('y','0'));h=float(geo.get('height','0'))
+            role=cell.get('renderRole')
+            if role in {'label','point'} or cell.get('value'):
+                geo.set('y',str(65+(y+h/2-130)*scale-h/2))
+            else:
+                geo.set('y',str(65+(y-130)*scale));geo.set('height',str(h*scale))
+        for point in geo.findall('./Array/mxPoint'):
+            point.set('y',str(65+(float(point.get('y'))-130)*scale))
+        if cell.get('labelY') is not None:
+            cell.set('labelY',str(65+(float(cell.get('labelY'))-130)*scale))
 
 
 def cdf(x, beta, eta, gamma=0):
@@ -59,7 +72,6 @@ def cdf(x, beta, eta, gamma=0):
 
 def distribution():
     d = Diagram('visual-distribution-flow', '分布匹配：表示、准则与定参', WIDTH, HEIGHT)
-    text(d, 'title', '分布匹配｜分布表示 → 匹配准则 → 参数确定', 45, 20, 3110, 75, 39, True)
     stage(d, 'empirical', '① D1 样本概率点', STAGES[0], '#F1F7FB')
     stage(d, 'candidate', '② D1 候选分布', STAGES[1], '#F1F7FB')
     stage(d, 'difference', '③ D2 概率残差', STAGES[2], '#F8FAFC')
@@ -109,24 +121,7 @@ def distribution():
     text(d, 'selected-rule', r'\(D(B)<D(A)\)', 2490, 610, 620, 45, 29, True)
     text(d, 'criterion-objective', r'\(\widehat\theta=\operatorname*{arg\,min}_{\theta}D(\theta)\)', 2490, 655, 620, 65, 29)
 
-    card(d, 'probability-plot', '概率图', 50, 1000, BLUE)
-    text(d, 'plot-d1', r'D1　\(u_i=\ln(x_{(i)}-\gamma)\)，\(z_i=\ln[-\ln(1-p_i)]\)', 75, 905, 950, 80, 27)
-    text(d, 'plot-d2', r'D2　Soman：位置评分、回归\(u\)对\(z\)<br>　　 Park：最大相关定位', 75, 995, 950, 85, 27)
-    text(d, 'plot-d3a', r'D3　\(u=a+bz\Rightarrow\widehat\beta=1/b,\ \widehat\eta=e^a\)', 75, 1100, 950, 65, 27)
-    text(d, 'plot-d3b', r'　　 \(z=a+bu\Rightarrow\widehat\beta=b,\ \widehat\eta=e^{-a/b}\)', 75, 1175, 950, 65, 27)
-    text(d, 'plot-branches', 'White：理论次序量分数　｜　Park：二参数似然分支', 75, 1270, 950, 55, 26)
-
-    card(d, 'probability-spacing', 'MPS', 1100, 1000, BLUE)
-    text(d, 'spacing-d1', r'D1　\(F_i=F_\theta(x_{(i)})\)，\(F_0=0,\ F_{n+1}=1\)<br>　　 \(\Delta_i(\theta)=F_i-F_{i-1}\)', 1125, 905, 950, 110, 28)
-    text(d, 'spacing-d2', r'D2　\(Q(\theta)=\sum_{i=1}^{n+1}\ln\Delta_i(\theta)\)', 1125, 1050, 950, 100, 29)
-    text(d, 'spacing-d3', r'D3　\(\widehat\theta=\operatorname*{arg\,max}_{\theta}Q(\theta)\)', 1125, 1180, 950, 75, 29)
-    text(d, 'spacing-support', r'\(\beta>0,\ \eta>0,\ \gamma<x_{(1)},\ \Delta_i>0\)', 1125, 1280, 950, 50, 26)
-
-    card(d, 'pseudo-scale', 'MDM', 2150, 1000, GREEN)
-    text(d, 'mdm-d1', r'D1　\(q_i=-\ln(1-p_i)\)，\(\eta_i=\frac{x_{(i)}-\gamma}{q_i^{1/\beta}}\)', 2175, 905, 950, 90, 28)
-    text(d, 'mdm-d2', r'D2　\(s_\eta=\operatorname{std}(\eta_1,\ldots,\eta_n)\)<br>　　 \(\beta^*(\gamma)=\operatorname*{arg\,min}_{\beta}s_\eta\)，\(s^*(\gamma)=s_\eta[\beta^*(\gamma),\gamma]\)', 2175, 1005, 950, 115, 27)
-    text(d, 'mdm-d3', r'D3　\(\frac{ds^*}{d\gamma}(\gamma_0)=\delta\)<br>　　 \(\widehat\gamma=\max(0,\gamma_0),\quad\widehat\beta=\beta^*(\widehat\gamma)\)<br>　　 \(\widehat\eta=\frac1n\sum_i\eta_i\)', 2175, 1130, 950, 140, 27)
-    text(d, 'mdm-boundary', r'MDM-0.1：\(\delta=0.1\)，\(0\leq\widehat\gamma<x_{(1)}\)', 2175, 1280, 950, 50, 26)
+    expand_core(d)
     d.save(ROOT/'08-分布匹配路线-信息处理流程.drawio')
 
 
@@ -141,7 +136,6 @@ def density_y(y,beta):
 
 def statistics():
     d = Diagram('visual-statistics-flow', '统计关系反演：特征、理论关系与参数', WIDTH, HEIGHT)
-    text(d, 'title', '统计关系反演｜样本特征 → 理论关系 → 参数识别', 45, 20, 3110, 75, 39, True)
     stage(d, 'features', '① S1 提取样本特征', STAGES[0], '#F2F8F4')
     stage(d, 'cancel', '② S2 消去位置与尺度', STAGES[1], '#F2F8F4')
     stage(d, 'solve', '③ S3 反解形状', STAGES[2], '#F8FAFC')
@@ -208,31 +202,7 @@ def statistics():
     curve(d, 'restored-x-density', [p4b(x,density_y((x-gh)/eh,bh)/eh) for x in gridx], GREEN)
     text(d, 'restore-rules', r'\(\widehat\eta=\frac{\sqrt{m_2}}{\operatorname{sd}_{\widehat\beta}(Y)}\)<br>\(\widehat\gamma=\bar x-\widehat\eta\mathbb E_{\widehat\beta}[Y]\)', 2490, 620, 620, 100, 28)
 
-    card(d, 'cran', 'Cran｜生存积分矩', 50, 755, GREEN)
-    text(d, 'cran-features', r'\(\bar m_k=\int_0^\infty[1-\widehat F(x)]^k\,dx\)<br>\(k=1,2,4,\quad\bar m_1=\bar x\)', 70, 905, 715, 100, 26)
-    text(d, 'cran-relation', r'\(\bar\mu_k=\gamma+\eta\Gamma(1+1/\beta)k^{-1/\beta}\)', 70, 1020, 715, 65, 26)
-    text(d, 'cran-differences', r'\(d_{12}=\bar m_1-\bar m_2\)<br>\(d_{24}=\bar m_2-\bar m_4\)', 70, 1095, 715, 80, 26)
-    text(d, 'cran-inverse', r'\(\widehat\beta=\frac{\ln2}{\ln d_{12}-\ln d_{24}}\) → \(\widehat\eta,\widehat\gamma\)', 70, 1180, 715, 75, 27)
-    text(d, 'cran-conditions', r'\(\gamma\geq0,\quad d_{12}>d_{24}>0\)', 70, 1280, 715, 45, 25)
-
-    card(d, 'rank-moments', 'PWM／L矩／TL矩', 835, 755, GREEN)
-    text(d, 'rank-features', r'\(\widehat b_r=\frac1n\sum_i\frac{\binom{i-1}{r}}{\binom{n-1}{r}}x_{(i)}\)', 855, 905, 715, 85, 25)
-    text(d, 'l-moments', r'\(\widehat\lambda_1=\widehat b_0,\quad\widehat\lambda_2=2\widehat b_1-\widehat b_0\)<br>\(\widehat\lambda_3=6\widehat b_2-6\widehat b_1+\widehat b_0\)', 855, 995, 715, 85, 25)
-    text(d, 'l-shape', r'\(\frac{\widehat\lambda_3}{\widehat\lambda_2}=\frac{a_3(\widehat\beta)}{a_2(\widehat\beta)}\)', 855, 1085, 715, 80, 27)
-    text(d, 'l-recover', r'\(\widehat\eta=\widehat\lambda_2/a_2(\widehat\beta)\)<br>\(\widehat\gamma=\widehat\lambda_1-\widehat\eta a_1(\widehat\beta)\)', 855, 1165, 715, 90, 26)
-    text(d, 'tl-rule', 'TL矩：端部修整 → 权重、理论关系更新', 855, 1280, 715, 45, 25)
-
-    card(d, 'conditional-weights', '条件位置MVLUE', 1620, 755, GREEN)
-    text(d, 'mvlue-given', r'给定 \(\beta,\eta\)，\(X=\gamma+\eta Y\)', 1640, 905, 715, 55, 26)
-    text(d, 'mvlue-statistic', r'\(T_i=X_{(i)}-\eta\mathbb E_\beta[Y_{(i)}]\)<br>\(\mathbb E[T_i]=\gamma,\quad S=\operatorname{Cov}(T)\)', 1640, 970, 715, 100, 26)
-    text(d, 'mvlue-objective', r'\(\min_c c^{\mathsf T}Sc,\quad\mathbf1^{\mathsf T}c=1\)', 1640, 1090, 715, 60, 26)
-    text(d, 'mvlue-weights', r'\(c=\frac{S^{-1}\mathbf1}{\mathbf1^{\mathsf T}S^{-1}\mathbf1}\)<br>\(\widehat\gamma=c^{\mathsf T}T\)', 1640, 1165, 715, 120, 27)
-
-    card(d, 'invariant-cross-route', 'W／V｜统计构造 → 似然 → 恢复', 2405, 745, BLUE)
-    text(d, 'w-statistic', r'\(W_i=\frac{X_{(i)}-X_{(1)}}{X_{(n)}-X_{(1)}}\)<br>LSPF：\(\max_\beta f_W(w_2,\ldots,w_{n-1};\beta)\)', 2425, 905, 705, 110, 25)
-    text(d, 'v-statistic', r'\(V_i=X_{(i)}-X_{(1)}\)<br>LPF：\(\max_{\eta,\beta}f_V(v_2,\ldots,v_n;\eta,\beta)\)', 2425, 1030, 705, 100, 25)
-    text(d, 'w-recover', r'LSPF：最小值期望 → \(\gamma\)修正 → \(\eta\)更新', 2425, 1160, 705, 60, 25)
-    text(d, 'v-recover', r'LPF：原似然方程 → \(\gamma,\eta\)恢复', 2425, 1250, 705, 60, 25)
+    expand_core(d)
     d.save(ROOT/'09-统计关系反演路线-信息处理流程.drawio')
 
 

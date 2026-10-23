@@ -92,3 +92,5 @@ class Diagram:
     def save(self,path):
         ET.indent(self.doc,space='  ')
         ET.ElementTree(self.doc).write(Path(path),encoding='utf-8',xml_declaration=True)
+        from 方法标识 import unify_file
+        unify_file(path)

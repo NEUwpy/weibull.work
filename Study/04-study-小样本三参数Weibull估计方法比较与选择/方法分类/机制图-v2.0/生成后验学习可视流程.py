@@ -26,7 +26,6 @@ def curve(d, key, values, x, y, w, h, color):
 
 def base(key, title, panel_y, panel_height):
     d = Diagram(key, title, WIDTH, HEIGHT)
-    d.text('title', title, 45, 20, 3110, 80, size=39, bold=True)
     for i,x in enumerate(STAGES,1):
         d.panel(f'step-{i}', x, panel_y, 950, panel_height, fill='#F8F9FC')
     for i in [1,2]:
@@ -80,7 +79,7 @@ def learning():
     for key,label,x in [('s1','① 样本表示',70),('s2','② 映射预测',1145),('s3','③ 损失与更新',2220)]:
         d.text(key, label, x, 185, 910, 65, size=32, bold=True)
     d.text('training-pairs', r'\((D_j,\theta_j),\quad j=1,\ldots,m\)', 80, 270, 890, 65, size=30, align='center')
-    d.text('training-prediction', r'\(\widehat\theta_j=g_\varphi[T(D_j)]\)', 1155, 270, 890, 65, size=31, align='center')
+    d.text('training-prediction', r'\(\widehat\theta_j=h_\varphi[T(D_j)]\)', 1155, 270, 890, 65, size=31, align='center')
     chart(d, 'features', 140, 425, 770, 255, '特征维度', r'\(T(D_j)\)')
     vals = [.12,.18,.23,.30,.36,.43,.52,.64,.80,.96]
     for i,v in enumerate(vals):

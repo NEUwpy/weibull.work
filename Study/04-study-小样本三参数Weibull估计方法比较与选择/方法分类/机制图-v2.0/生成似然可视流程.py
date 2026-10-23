@@ -125,7 +125,6 @@ for layer, (level, color, opacity) in enumerate(zip(LEVELS, [BLUE, TEAL, ORANGE]
                        project_u(tri), shade(color, .88 + .12 * illum), opacity))
 
 d = Diagram('likelihood-joint-field-v20', '似然原理：完整三参数联合函数与最大化', W, H)
-d.text('title', '似然构造 → 联合最大化', 40, 20, 2910, 70, size=42, bold=True)
 d.panel('data-panel', 30, 250, 600, 1110, fill='#F3F7FB')
 d.panel('field-panel', 710, 250, 1670, 1110, fill='#F7F9FA')
 d.panel('max-panel', 2460, 250, 510, 1110, fill='#F1F7F4')
