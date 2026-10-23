@@ -16,8 +16,52 @@ plt.rcParams.update({"font.family":"Microsoft YaHei","font.size":11,"axes.spines
 
 def cdf(t,b,e,g):return -np.expm1(-np.maximum((t-g)/e,0)**b)
 
+def recovery_figures(rows):
+    import sys
+    sys.path.insert(0,str(ROOT/"程序/计算实现-20261016"))
+    from methods.lse import log_weibull_order_stat_means
+    from scipy.optimize import minimize_scalar
+    records=[]
+    for sid in [1055,474]:
+        fig,axs=plt.subplots(1,2,figsize=(12,4.8))
+        fig.subplots_adjust(left=.085,right=.985,bottom=.17,top=.80,wspace=.28)
+        minimum_spreads=[]
+        selected_beta=rows[(rows.source_id==sid)&rows.n.isin([50,7])&rows.method.eq("MDM")].beta.to_numpy()
+        for n,c in [(50,"#0072B2"),(7,"#D55E00")]:
+            part=rows[(rows.source_id==sid)&(rows.n==n)]
+            x=np.array(json.loads(part.iloc[0].observations))
+            mdm=part[part.method.eq("MDM")].iloc[0]
+            p=(np.arange(1,n+1)-.3)/(n+.4);q=-np.log1p(-p)
+            beta_grid=np.linspace(float(selected_beta.min())*.6,float(selected_beta.max())*1.6,500)
+            spread=np.array([np.std((x-mdm.gamma)/q**(1/b),ddof=1) for b in beta_grid])
+            f=lambda b:np.std((x-mdm.gamma)/q**(1/b),ddof=1)
+            res=minimize_scalar(f,bounds=(.1,15),method="bounded")
+            assert np.isclose(res.x,mdm.beta,rtol=1e-10)
+            eta=float(np.mean((x-mdm.gamma)/q**(1/res.x)))
+            assert np.isclose(eta,mdm.eta,rtol=1e-10)
+            axs[0].plot(beta_grid,spread,c=c,lw=1.8,label=f"n = {n}")
+            axs[0].scatter(mdm.beta,f(mdm.beta),c=c,s=45)
+            minimum_spreads.append(float(f(mdm.beta)))
+            lse=part[part.method.eq("LSE")].iloc[0]
+            z=log_weibull_order_stat_means(n);y=np.log(x-lse.gamma)
+            slope=float(np.dot(z-z.mean(),y-y.mean())/np.dot(z-z.mean(),z-z.mean()))
+            intercept=float(y.mean()-slope*z.mean())
+            assert np.allclose([1/slope,np.exp(intercept)],[lse.beta,lse.eta],rtol=1e-12)
+            axs[1].scatter(z,y,c=c,s=26)
+            grid=np.linspace(z.min(),z.max(),100)
+            axs[1].plot(grid,intercept+slope*grid,c=c,lw=1.8)
+            records.append(dict(sid=sid,n=n,mdm_beta_from_minimum=float(res.x),mdm_eta_from_mean=eta,lse_slope=slope,lse_beta_from_slope=1/slope,lse_eta_from_intercept=float(np.exp(intercept))))
+        axs[0].set_ylim(0,max(minimum_spreads)*3)
+        axs[0].set(xlabel="候选形状 β",ylabel="伪尺度标准差",title="MDM：选定位置后，取标准差最小的形状")
+        axs[1].set(xlabel="顺序统计量参考坐标 z",ylabel="ln(观测值 − 估计位置)",title="LSE：β = 1 / 回归斜率")
+        fig.legend(*axs[0].get_legend_handles_labels(),ncol=2,loc="upper center",frameon=False)
+        fig.savefig(ASSETS/f"31_参数恢复过程_样本{sid}.png",dpi=200,facecolor="white");plt.close(fig)
+    (DATA.parent/"删点定位与参数恢复核对.json").write_text(json.dumps(records,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+
 def main():
     rows=pd.read_csv(DATA,float_precision="round_trip")
+    recovery_figures(rows)
     t=np.linspace(400,2100,1000)
     changes=[]
     for sid in [1055,474]:
