@@ -1,0 +1,630 @@
+{
+  "identity": {
+    "source": "结果/W5,1000,500/估计结果/n50.csv",
+    "source_sha256": "9fe93bd3f72252197e92192695fb8ad11e2fc183294d38e467fd009ddc5929ee",
+    "source_id": 474,
+    "seed_rule": "20261023+source_id",
+    "sizes": [
+      50,
+      20,
+      15,
+      10,
+      7
+    ],
+    "frozen_source_sha256": {
+      "base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+      "methods/conditional_profiles.py": "e3ed44ef690069acdecb64c61edbebe1d6b0c6bb5536079a17313ea1067b2762",
+      "methods/j3_weights.tsv": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1",
+      "methods/lre.py": "6daa00d43311ed19bf2d74131220fb51b40e4fd91569f48b981b1beaa8c9c7ae",
+      "methods/lse.py": "1ad248fc9c4b127735c4d70b1d64516c2207d28d9fca297aa3d12db0b0db87cf",
+      "methods/mdm.py": "9fd71d39c09481090b7d8d1040b471b7f6b7c46ccfe164e764566da8725ba0ed",
+      "methods/mle.py": "6c87236e96226283ae4c9ef7d92224ce0b0c55471e4c89fa1ea8fdef6d94d688",
+      "methods/mm.py": "6804ccf1183b8506594ae3eb362be683af1a5523fe6a54d57ea5b41896c588d1",
+      "methods/mmle.py": "afe5318c04373254ad6acffc47e9cf7ff7ba80efa667865102ce8fc49edb85f9",
+      "methods/mmle_ch.py": "e0e3f919fb8aba6d235f7b55a494ca9e4f6f88fcb8b5c1a1d3142f0f34e1de3a",
+      "methods/mps.py": "3c6e15318d759357c535893fe810df073b345b9ffe34a7ff132ce309206b7ecb",
+      "methods/profile_solvers.py": "4e64e99019de33d60ca771184fcf2489bb90e6656c8d8acd39934714dacb3df0",
+      "methods/registry.py": "49dd3d536670ae6759afabe4e842e0054f0bd146deffcf51563ace95a1c0643f",
+      "methods/wmle.py": "1dcdb5b47c6d52498e5b5f0c5c310fa852b526f7250633f97d99f14f7f1ef310",
+      "studies/common/experiment.py": "28b4cd42b85674df68edab80f027fd7369b654f662065c2c8d9d0486eb88bad5",
+      "studies/common/metrics.py": "b3bfaaad22eb252a46b4861e2ddb89aeeb5372c52a5cadc519dc51705fa7a8fb",
+      "studies/common/runner.py": "057184f8c6d452a83c93f9f466245c055159aaebb5f158919455f9801d8524e5",
+      "studies/common/sample.py": "0dd44cd2268122b84f0a1224ac8c08edd141c969a363c93f9fbdb18bc5e42f48"
+    },
+    "cache_sha256": "70c1ac00607327b60b2a3cb2a3efe28194aff4c2dde6060de33b17e8fc5ae087",
+    "cache_scope": "15 restored diagnostic fits on the existing nested path; not independent n7 Monte Carlo records"
+  },
+  "features": [
+    {
+      "n": 50,
+      "sample_sha256": "001f92b026148d0ea14898a50b5d51592a658e9dfb11b410765e9adae3e6fedb",
+      "minimum": 930.6313855567805,
+      "minimum_minus_true_location": 430.6313855567805,
+      "maximum": 1936.1071119126411,
+      "max_adjacent_gap": 104.80827594312495,
+      "count_below_1200": 7
+    },
+    {
+      "n": 20,
+      "sample_sha256": "e303fe55417f970cf0289335efd37d931630e64f7513bfd5f0776ee085ef28c8",
+      "minimum": 930.6313855567805,
+      "minimum_minus_true_location": 430.6313855567805,
+      "maximum": 1903.457069622321,
+      "max_adjacent_gap": 191.63070340714557,
+      "count_below_1200": 3
+    },
+    {
+      "n": 15,
+      "sample_sha256": "e7bff209a5cd792ae9bdaad76eefb8931e09d0cc88b0a0fe1bb0eb5ca9ea3ce2",
+      "minimum": 1222.2723881005993,
+      "minimum_minus_true_location": 722.2723881005993,
+      "maximum": 1903.457069622321,
+      "max_adjacent_gap": 191.63070340714557,
+      "count_below_1200": 0
+    },
+    {
+      "n": 10,
+      "sample_sha256": "d6c8e1558886cc5c821130b1c39b939e9f5f664b0fcdf18a371a6bd3aef2cdcf",
+      "minimum": 1226.8800146458543,
+      "minimum_minus_true_location": 726.8800146458543,
+      "maximum": 1903.457069622321,
+      "max_adjacent_gap": 191.63070340714557,
+      "count_below_1200": 0
+    },
+    {
+      "n": 7,
+      "sample_sha256": "a89fa63bb4b51addea573228672739b6476f09d50899b33cad8293644f1dcd51",
+      "minimum": 1226.8800146458543,
+      "minimum_minus_true_location": 726.8800146458543,
+      "maximum": 1903.457069622321,
+      "max_adjacent_gap": 334.45164192908396,
+      "count_below_1200": 0
+    }
+  ],
+  "input_coordinates_at_true_parameters": [
+    {
+      "n": 50,
+      "minimum": 930.6313855567805,
+      "mdm_first_plotting_position": 0.013888888888888888,
+      "mdm_first_pseudo_scale_at_true_beta_gamma": 1011.4990323559125,
+      "lse_first_reference": -4.489238670329681,
+      "lse_first_log_distance_at_true_gamma": 6.065252470236861
+    },
+    {
+      "n": 20,
+      "minimum": 930.6313855567805,
+      "mdm_first_plotting_position": 0.03431372549019608,
+      "mdm_first_pseudo_scale_at_true_beta_gamma": 842.36462946798,
+      "lse_first_reference": -3.572947938455523,
+      "lse_first_log_distance_at_true_gamma": 6.065252470236861
+    },
+    {
+      "n": 7,
+      "minimum": 1226.8800146458543,
+      "mdm_first_plotting_position": 0.09459459459459459,
+      "mdm_first_pseudo_scale_at_true_beta_gamma": 1153.4785104512193,
+      "lse_first_reference": -2.523125813956846,
+      "lse_first_log_distance_at_true_gamma": 6.588761422160023
+    }
+  ],
+  "estimates": [
+    {
+      "n": 50,
+      "method": "MMLE",
+      "beta": 2.4397973624352582,
+      "eta": 570.9545832396608,
+      "gamma": 930.6313855567805
+    },
+    {
+      "n": 50,
+      "method": "MDM",
+      "beta": 3.1750514822258644,
+      "eta": 777.2389016999206,
+      "gamma": 733.673226901283
+    },
+    {
+      "n": 50,
+      "method": "LSE",
+      "beta": 3.6710333960009196,
+      "eta": 851.2378220195257,
+      "gamma": 662.5353387936273
+    },
+    {
+      "n": 20,
+      "method": "MMLE",
+      "beta": 2.451076147391716,
+      "eta": 561.5068447111032,
+      "gamma": 930.6313855567805
+    },
+    {
+      "n": 20,
+      "method": "MDM",
+      "beta": 3.078066960198833,
+      "eta": 807.624416594934,
+      "gamma": 683.6537447627313
+    },
+    {
+      "n": 20,
+      "method": "LSE",
+      "beta": 3.9079134423542703,
+      "eta": 947.7183627112781,
+      "gamma": 550.4856357203197
+    },
+    {
+      "n": 15,
+      "method": "MMLE",
+      "beta": 1.3479954262250313,
+      "eta": 310.7585472880925,
+      "gamma": 1222.2723881005993
+    },
+    {
+      "n": 15,
+      "method": "MDM",
+      "beta": 1.9222660864751775,
+      "eta": 413.75294366890444,
+      "gamma": 1125.9051429955316
+    },
+    {
+      "n": 15,
+      "method": "LSE",
+      "beta": 1.9990165746020807,
+      "eta": 431.9414483843112,
+      "gamma": 1114.7787682817432
+    },
+    {
+      "n": 10,
+      "method": "MMLE",
+      "beta": 1.4194107280038808,
+      "eta": 295.26490947486116,
+      "gamma": 1226.8800146458543
+    },
+    {
+      "n": 10,
+      "method": "MDM",
+      "beta": 1.55621758473696,
+      "eta": 342.616770894838,
+      "gamma": 1163.9241556886548
+    },
+    {
+      "n": 10,
+      "method": "LSE",
+      "beta": 1.3397603031740437,
+      "eta": 319.4712942325109,
+      "gamma": 1188.6316584969863
+    },
+    {
+      "n": 7,
+      "method": "MMLE",
+      "beta": 1.618701139306828,
+      "eta": 313.21398583126427,
+      "gamma": 1226.8800146458543
+    },
+    {
+      "n": 7,
+      "method": "MDM",
+      "beta": 1.758403644428845,
+      "eta": 363.1990632333483,
+      "gamma": 1143.8089170716676
+    },
+    {
+      "n": 7,
+      "method": "LSE",
+      "beta": 1.5166803683303616,
+      "eta": 332.9406733136792,
+      "gamma": 1173.956540899823
+    }
+  ],
+  "actual_criteria": [
+    {
+      "n": 50,
+      "minimum": 930.6313855567805,
+      "mdm_gamma": 733.673226901283,
+      "mdm_gradient": 0.10000000000122147,
+      "lse_gamma": 662.5353387936273,
+      "lse_one_minus_r2": 0.008866177145091525,
+      "lse_F": 110.48638220329022
+    },
+    {
+      "n": 20,
+      "minimum": 930.6313855567805,
+      "mdm_gamma": 683.6537447627313,
+      "mdm_gradient": 0.10000000000007622,
+      "lse_gamma": 550.4856357203197,
+      "lse_one_minus_r2": 0.01635789493366402,
+      "lse_F": 57.915057218210755
+    },
+    {
+      "n": 7,
+      "minimum": 1226.8800146458543,
+      "mdm_gamma": 1143.8089170716676,
+      "mdm_gradient": 0.09999999999964927,
+      "lse_gamma": 1173.956540899823,
+      "lse_one_minus_r2": 0.10643047130139927,
+      "lse_F": 7.8298378569933
+    }
+  ],
+  "signed_errors": [
+    {
+      "n": 50,
+      "method": "MMLE",
+      "parameter": "beta",
+      "estimate": 2.4397973624352582,
+      "signed_error": -2.5602026375647418
+    },
+    {
+      "n": 20,
+      "method": "MMLE",
+      "parameter": "beta",
+      "estimate": 2.451076147391716,
+      "signed_error": -2.548923852608284
+    },
+    {
+      "n": 15,
+      "method": "MMLE",
+      "parameter": "beta",
+      "estimate": 1.3479954262250313,
+      "signed_error": -3.6520045737749687
+    },
+    {
+      "n": 10,
+      "method": "MMLE",
+      "parameter": "beta",
+      "estimate": 1.4194107280038808,
+      "signed_error": -3.580589271996119
+    },
+    {
+      "n": 7,
+      "method": "MMLE",
+      "parameter": "beta",
+      "estimate": 1.618701139306828,
+      "signed_error": -3.381298860693172
+    },
+    {
+      "n": 50,
+      "method": "MDM",
+      "parameter": "beta",
+      "estimate": 3.1750514822258644,
+      "signed_error": -1.8249485177741356
+    },
+    {
+      "n": 20,
+      "method": "MDM",
+      "parameter": "beta",
+      "estimate": 3.078066960198833,
+      "signed_error": -1.921933039801167
+    },
+    {
+      "n": 15,
+      "method": "MDM",
+      "parameter": "beta",
+      "estimate": 1.9222660864751775,
+      "signed_error": -3.0777339135248223
+    },
+    {
+      "n": 10,
+      "method": "MDM",
+      "parameter": "beta",
+      "estimate": 1.55621758473696,
+      "signed_error": -3.44378241526304
+    },
+    {
+      "n": 7,
+      "method": "MDM",
+      "parameter": "beta",
+      "estimate": 1.758403644428845,
+      "signed_error": -3.241596355571155
+    },
+    {
+      "n": 50,
+      "method": "LSE",
+      "parameter": "beta",
+      "estimate": 3.6710333960009196,
+      "signed_error": -1.3289666039990804
+    },
+    {
+      "n": 20,
+      "method": "LSE",
+      "parameter": "beta",
+      "estimate": 3.9079134423542703,
+      "signed_error": -1.0920865576457297
+    },
+    {
+      "n": 15,
+      "method": "LSE",
+      "parameter": "beta",
+      "estimate": 1.9990165746020807,
+      "signed_error": -3.0009834253979193
+    },
+    {
+      "n": 10,
+      "method": "LSE",
+      "parameter": "beta",
+      "estimate": 1.3397603031740437,
+      "signed_error": -3.6602396968259563
+    },
+    {
+      "n": 7,
+      "method": "LSE",
+      "parameter": "beta",
+      "estimate": 1.5166803683303616,
+      "signed_error": -3.483319631669638
+    },
+    {
+      "n": 50,
+      "method": "MMLE",
+      "parameter": "eta",
+      "estimate": 570.9545832396608,
+      "signed_error": -429.0454167603392
+    },
+    {
+      "n": 20,
+      "method": "MMLE",
+      "parameter": "eta",
+      "estimate": 561.5068447111032,
+      "signed_error": -438.4931552888968
+    },
+    {
+      "n": 15,
+      "method": "MMLE",
+      "parameter": "eta",
+      "estimate": 310.7585472880925,
+      "signed_error": -689.2414527119075
+    },
+    {
+      "n": 10,
+      "method": "MMLE",
+      "parameter": "eta",
+      "estimate": 295.26490947486116,
+      "signed_error": -704.7350905251388
+    },
+    {
+      "n": 7,
+      "method": "MMLE",
+      "parameter": "eta",
+      "estimate": 313.21398583126427,
+      "signed_error": -686.7860141687357
+    },
+    {
+      "n": 50,
+      "method": "MDM",
+      "parameter": "eta",
+      "estimate": 777.2389016999206,
+      "signed_error": -222.76109830007942
+    },
+    {
+      "n": 20,
+      "method": "MDM",
+      "parameter": "eta",
+      "estimate": 807.624416594934,
+      "signed_error": -192.37558340506598
+    },
+    {
+      "n": 15,
+      "method": "MDM",
+      "parameter": "eta",
+      "estimate": 413.75294366890444,
+      "signed_error": -586.2470563310956
+    },
+    {
+      "n": 10,
+      "method": "MDM",
+      "parameter": "eta",
+      "estimate": 342.616770894838,
+      "signed_error": -657.383229105162
+    },
+    {
+      "n": 7,
+      "method": "MDM",
+      "parameter": "eta",
+      "estimate": 363.1990632333483,
+      "signed_error": -636.8009367666517
+    },
+    {
+      "n": 50,
+      "method": "LSE",
+      "parameter": "eta",
+      "estimate": 851.2378220195257,
+      "signed_error": -148.76217798047435
+    },
+    {
+      "n": 20,
+      "method": "LSE",
+      "parameter": "eta",
+      "estimate": 947.7183627112781,
+      "signed_error": -52.28163728872187
+    },
+    {
+      "n": 15,
+      "method": "LSE",
+      "parameter": "eta",
+      "estimate": 431.9414483843112,
+      "signed_error": -568.0585516156889
+    },
+    {
+      "n": 10,
+      "method": "LSE",
+      "parameter": "eta",
+      "estimate": 319.4712942325109,
+      "signed_error": -680.5287057674891
+    },
+    {
+      "n": 7,
+      "method": "LSE",
+      "parameter": "eta",
+      "estimate": 332.9406733136792,
+      "signed_error": -667.0593266863208
+    },
+    {
+      "n": 50,
+      "method": "MMLE",
+      "parameter": "gamma",
+      "estimate": 930.6313855567805,
+      "signed_error": 430.6313855567805
+    },
+    {
+      "n": 20,
+      "method": "MMLE",
+      "parameter": "gamma",
+      "estimate": 930.6313855567805,
+      "signed_error": 430.6313855567805
+    },
+    {
+      "n": 15,
+      "method": "MMLE",
+      "parameter": "gamma",
+      "estimate": 1222.2723881005993,
+      "signed_error": 722.2723881005993
+    },
+    {
+      "n": 10,
+      "method": "MMLE",
+      "parameter": "gamma",
+      "estimate": 1226.8800146458543,
+      "signed_error": 726.8800146458543
+    },
+    {
+      "n": 7,
+      "method": "MMLE",
+      "parameter": "gamma",
+      "estimate": 1226.8800146458543,
+      "signed_error": 726.8800146458543
+    },
+    {
+      "n": 50,
+      "method": "MDM",
+      "parameter": "gamma",
+      "estimate": 733.673226901283,
+      "signed_error": 233.673226901283
+    },
+    {
+      "n": 20,
+      "method": "MDM",
+      "parameter": "gamma",
+      "estimate": 683.6537447627313,
+      "signed_error": 183.65374476273132
+    },
+    {
+      "n": 15,
+      "method": "MDM",
+      "parameter": "gamma",
+      "estimate": 1125.9051429955316,
+      "signed_error": 625.9051429955316
+    },
+    {
+      "n": 10,
+      "method": "MDM",
+      "parameter": "gamma",
+      "estimate": 1163.9241556886548,
+      "signed_error": 663.9241556886548
+    },
+    {
+      "n": 7,
+      "method": "MDM",
+      "parameter": "gamma",
+      "estimate": 1143.8089170716676,
+      "signed_error": 643.8089170716676
+    },
+    {
+      "n": 50,
+      "method": "LSE",
+      "parameter": "gamma",
+      "estimate": 662.5353387936273,
+      "signed_error": 162.53533879362726
+    },
+    {
+      "n": 20,
+      "method": "LSE",
+      "parameter": "gamma",
+      "estimate": 550.4856357203197,
+      "signed_error": 50.48563572031969
+    },
+    {
+      "n": 15,
+      "method": "LSE",
+      "parameter": "gamma",
+      "estimate": 1114.7787682817432,
+      "signed_error": 614.7787682817432
+    },
+    {
+      "n": 10,
+      "method": "LSE",
+      "parameter": "gamma",
+      "estimate": 1188.6316584969863,
+      "signed_error": 688.6316584969863
+    },
+    {
+      "n": 7,
+      "method": "LSE",
+      "parameter": "gamma",
+      "estimate": 1173.956540899823,
+      "signed_error": 673.956540899823
+    }
+  ],
+  "conditional_seven_point_recovery": [
+    {
+      "beta": 4.337435932325478,
+      "eta": 799.6317165757129,
+      "gamma": 733.673226901283,
+      "sd": 97.03794777116751,
+      "method": "MDM",
+      "location_source": "gamma_from_n50",
+      "n_fixed": 7
+    },
+    {
+      "beta": 1.758403644428321,
+      "eta": 363.1990632333783,
+      "gamma": 1143.8089170716676,
+      "sd": 84.45755305344267,
+      "method": "MDM",
+      "location_source": "gamma_from_n7",
+      "n_fixed": 7
+    },
+    {
+      "beta": 5.226054551525561,
+      "eta": 870.991539714292,
+      "gamma": 662.5353387936273,
+      "slope": 0.19134894022644397,
+      "intercept": 6.769632263503712,
+      "method": "LSE",
+      "location_source": "gamma_from_n50",
+      "n_fixed": 7
+    },
+    {
+      "beta": 1.5166803683303616,
+      "eta": 332.9406733136792,
+      "gamma": 1173.956540899823,
+      "slope": 0.6593347028687729,
+      "intercept": 5.807964315891204,
+      "method": "LSE",
+      "location_source": "gamma_from_n7",
+      "n_fixed": 7
+    }
+  ],
+  "conditional_scope": "Same seven observations and n=7 reference coordinates; gamma alone changes. Old-gamma conditional results are NOT original n50 estimates.",
+  "checks": {
+    "nested_subsets": true,
+    "same_observations_across_methods": true,
+    "formal_n50_estimates_match": true,
+    "shared_observation_reference_changes": true,
+    "mmle_positive_distance_likelihood": true,
+    "profile_gradient_target": true,
+    "lse_F_r2_identity": true,
+    "conditional_support": true,
+    "conditional_recovery_matches_n7": true,
+    "formal_source_unchanged": true
+  },
+  "scope": "One existing path, beta=5; typical process, not all methods or total RMSE differences; no independent Monte Carlo added.",
+  "program_sha256": "1cd5b16f765d0169815c3b6645329af1ff9d0a46a70de8fe5c3fe3dd2f2ba09c",
+  "images": {
+    "reviewbyhtml/方法对比-v1.0/assets/31C_样本信息变化_样本474.png": "bc25f57af04b756396c3a23c3f274db85fb6fe7e273b474c94080ababa165597",
+    "reviewbyhtml/方法对比-v1.0/assets/31G_样本进入构造_样本474.png": "da2a17b36ea98f743f412b88c21fc6d9144a7187b2cae0b598446266a6935eda",
+    "reviewbyhtml/方法对比-v1.0/assets/31D_定位判据响应_样本474.png": "a09393f43c108c018cebbad37c45d213bc01136d3ae99645243a47a657a8eba0",
+    "reviewbyhtml/方法对比-v1.0/assets/31E_单次误差响应_样本474.png": "232962c1295fd9fdc816e236e0085769baacdded32d9c36b4a36693f397b1cfc",
+    "reviewbyhtml/方法对比-v1.0/assets/31F_固定七点的位置条件对照_样本474.png": "74483a88662088eb4b878c5422a02517e228cb7d50f22c431b04801b5cd8cf1d",
+    "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n50.png": "d36e52283aee3ba3130125119f1d8ed9d89d389a419a9c56dc82f8808dd63ac6",
+    "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n20.png": "dc4bb6b46519eeb5a2dbc284deb9926e46c9ceabf4788c4fb421cc6ec7f6b969",
+    "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n15.png": "f6a029082510db87aff361ffb6c72a830a7210601aa8044d5c4356c80abfade8",
+    "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n10.png": "f18450ac9f81892723a769c8714dd533cba10e7ff08329fac445d4b93e169edf",
+    "reviewbyhtml/方法对比-v1.0/assets/31_嵌套删点_样本474_n7.png": "6686832c64bd9747383ac717bf560401fa28d8e59ac15685c7af02bb6df3c241"
+  }
+}

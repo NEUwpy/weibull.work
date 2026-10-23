@@ -20,20 +20,27 @@ ASSETS=STUDY/"reviewbyhtml/方法对比-v1.0/assets"
 
 def cdf(t,b,e,g):return -np.expm1(-np.maximum((t-g)/e,0)**b)
 
+def nested_samples(frame, source_ids=IDS):
+    """Restore the existing fixed-permutation paths without new sampling."""
+    samples = {}
+    for sid in source_ids:
+        row = frame.loc[frame["样本编号"].eq(sid)].iloc[0]
+        x = row[[f"观测值{i}" for i in range(1,51)]].to_numpy(float)
+        order = np.random.default_rng(20261023+sid).permutation(50)
+        for k, n in enumerate(NS):
+            y = np.sort(x[order[:n]])
+            if k:
+                assert np.isin(y, samples[sid,NS[k-1]]).all()
+            samples[sid,n] = y
+    return samples
+
+
 def main():
     source=STUDY/"结果/W5,1000,500/估计结果/n50.csv"
     before=hashlib.sha256(source.read_bytes()).hexdigest()
     frame=pd.read_csv(source,float_precision="round_trip")
     cache=OUT/"嵌套样本拟合.csv"
-    samples={}; rows=[]
-    for sid in IDS:
-        row=frame.loc[frame["样本编号"].eq(sid)].iloc[0]
-        x=row[[f"观测值{i}" for i in range(1,51)]].to_numpy(float)
-        order=np.random.default_rng(20261023+sid).permutation(50)
-        for n in NS:
-            y=np.sort(x[order[:n]])
-            if n<50: assert set(y).issubset(set(samples[sid,NS[NS.index(n)-1]]))
-            samples[sid,n]=y
+    samples=nested_samples(frame); rows=[]
     if cache.exists():
         rows=list(csv.DictReader(cache.open(encoding="utf-8-sig",newline="")))
         for r in rows:

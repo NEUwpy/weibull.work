@@ -26,7 +26,7 @@ def read_rows():
 
 
 
-def nested_gallery(rows, source_id=474):
+def nested_gallery(rows, source_id=474, source_path=DATA):
     """同一嵌套样本下，比较三法的CDF拟合和单次带符号参数误差。
 
     每个n一张2×3定量组图：上排每法独占一列，下排每参数独占一列。
@@ -107,7 +107,7 @@ def nested_gallery(rows, source_id=474):
         plt.close(fig)
 
     qa = {"source_id": source_id, "sizes": sizes,
-          "source_sha256": hashlib.sha256(DATA.read_bytes()).hexdigest(),
+          "source_sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
           "nested_subsets_checked": True, "same_observations_across_methods_checked": True,
           "statistic": "single-sample signed error: estimate minus truth",
           "cdf_limits": {"x": [400, 2100], "y": [-.06, 1.04]},
