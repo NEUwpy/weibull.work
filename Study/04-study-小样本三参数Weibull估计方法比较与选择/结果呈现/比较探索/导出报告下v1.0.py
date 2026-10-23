@@ -85,7 +85,10 @@ def image(path, alt):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--draft', action='store_true', help='输出已获修改授权、尚在审阅的修订稿')
+    parser.add_argument('--draft-option', help='草稿暂按同名候选排版，HTML中的候选仍保持未选')
     args = parser.parse_args()
+    if args.draft_option and not args.draft:
+        parser.error('--draft-option只能与--draft一起使用')
     board = json.loads((REVIEW / 'board.json').read_text(encoding='utf-8'))
     if not (board.get('archive_pending') or board.get('review_complete') or args.draft):
         raise SystemExit('请先在HTML中确认存档。')
@@ -96,7 +99,9 @@ def main():
     version = board.get('manuscript_version', '1.0')
     lines = ['# ' + board['title'], '', f'**报告下（方法对比）v{version}｜{board.get("manuscript_date", "2026-10-21")}**', '']
     if args.draft and any(u.get('mode') == 'choices' for u in board['units']):
-        lines.extend(['> 待审稿：第三章包含未选定的候选解释，正式基准稿v2.0保持原文。', ''])
+        note = (f'此稿暂按各处“{args.draft_option}”候选排版，尚未审定；修改前后对照保留在原HTML任务中。'
+                if args.draft_option else '包含尚未审定的局部候选，请在原HTML任务中继续审阅。')
+        lines.extend(['> 待审稿：' + note, ''])
     image_count = 0
     for unit in board['units']:
         if unit.get('mode') != 'content' and not (args.draft and unit.get('mode') == 'choices'):
@@ -106,8 +111,13 @@ def main():
             lines.extend(['#' * level + ' ' + unit['title'], ''])
         if unit.get('mode') == 'choices' and unit.get('context'):
             lines.extend(['*' + unit['context'] + '*', ''])
-        for option in unit['options']:
-            if unit.get('mode') == 'choices':
+        options = unit['options']
+        if unit.get('mode') == 'choices' and args.draft_option:
+            options = [option for option in options if option['label'] == args.draft_option]
+            if len(options) != 1:
+                raise ValueError(f'候选名称不唯一或不存在：{unit["id"]} / {args.draft_option}')
+        for option in options:
+            if unit.get('mode') == 'choices' and not args.draft_option:
                 lines.extend(['#### ' + option['label'], ''])
             for block in option['blocks']:
                 if block['kind'] == 'gallery':
