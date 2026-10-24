@@ -2,17 +2,17 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 62,
+  "revision": 63,
   "require_confirmation": true,
-  "archive_plan": "保存新版：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.0.md\n归档旧审定稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.2.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.2.md\n归档v2.3工作稿：D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md → D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.3-工作稿.md\n更新引用，保留审阅记录，提交本地Git。",
-  "source_document": "../../报告下（方法对比）-v3.0.md",
-  "source_sha256": "35f3d660119aa1f0b1d63e1d3b61e896dc5eef7dcd92242523833cdcb71a6a0b",
-  "review_phase": "v3.0-archived",
+  "archive_plan": "保存报告下v3.1，将v3.0移至其他/历史版本并调整相对链接；更新文档入口，保留原HTML、批注及历史；提交本地main。",
+  "source_document": "../../报告下（方法对比）-v3.1.md",
+  "source_sha256": "bfe8523fa5b5a1e0cb00e96d81f658b00a0f3d2974628d82dafdb752a2e7ca5e",
+  "review_phase": "v3.1-archived",
   "content_fill_authorized": true,
   "units": [
     {
       "id": "manuscript-outline",
-      "title": "报告下（方法对比）v3.0 已存档",
+      "title": "报告下（方法对比）v3.1 已存档",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -800,8 +800,123 @@
             {
               "id": "report-4c485a61fc3c",
               "kind": "text",
-              "html": "<p>模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。利用未知样本进行方法选择的规则及其收益仍需验证。</p>",
-              "markdown": "模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。利用未知样本进行方法选择的规则及其收益仍需验证。"
+              "html": "<p>模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。下面从样本特征出发，分别检验地图推荐的可识别性与逐样本选法的误差表现。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evaluation-feature-map",
+      "title": "4.3　从样本特征恢复性能地图的推荐",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "evaluation-feature-map-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "map-question",
+              "kind": "text",
+              "html": "<p>性能地图给出已知β与n时的条件推荐。实际只有一组样本时，可以检验：<strong>由样本自身的可观测特征，能否识别地图推荐的方法？</strong></p>"
+            },
+            {
+              "id": "map-design",
+              "kind": "text",
+              "html": "<p>复用48,000组样本与既有B10地图，以每格最低RMSE方法作为分类标签。输入为样本量、位置尺度、归一化分位数、形状统计与间距等30维特征，不输入真参数或七法估计值。按样本指纹划分训练、验证和测试，分别为28,807、9,551和9,642组；分类网络采用64×64两层结构，验证集用于早停。</p>"
+            },
+            {
+              "id": "map-matching-table",
+              "kind": "text",
+              "html": "<table><thead><tr><th>策略</th><th>测试样本逐组一致率</th><th>40条件等权一致率</th></tr></thead><tbody><tr><td>训练多数类</td><td>44.70%</td><td>45.00%</td></tr><tr><td>只按n查训练多数类</td><td>46.53%</td><td>47.50%</td></tr><tr><td>样本特征分类网络</td><td>73.15%（7,053/9,642）</td><td>73.30%</td></tr></tbody></table>"
+            },
+            {
+              "id": "map-classification-image",
+              "kind": "image",
+              "src": "assets/43_B10地图分类对照.png",
+              "alt": "原B10地图与样本特征分类器测试多数票对照"
+            },
+            {
+              "id": "map-caption",
+              "kind": "text",
+              "html": "<p><em>图注：每格将该条件中测试样本的预测类别作多数投票，恢复35/40格（87.5%）；虚线框为不一致格。β仅用于汇总显示，不是网络输入。MDM指δ=0.1，LRE为Park实现。逐格数据来自分类报告中的冻结结果表。</em></p>"
+            },
+            {
+              "id": "map-results",
+              "kind": "text",
+              "html": "<p>样本特征比只看n提供了额外的地图匹配信息，但五个不一致格中，四个LSE格均被判为WMLE，另有一个MLE格被判为WMLE。LSE的逐组召回率仅5.18%，训练集上也只有6.59%。其中三个LSE冠军相对WMLE的RMSE优势不足0.2%；类别稀少、窄区域的样本信息重叠及最大概率判决的取舍共同参与识别困难。</p>"
+            },
+            {
+              "id": "map-interpretation",
+              "kind": "text",
+              "html": "<p><strong>地图标签匹配率与当前样本的真实最优命中率是两个评价对象。</strong>原地图按整格平均误差定义冠军，并使用全1200组结果；本轮评价的是对这张既定地图的模仿。测试样本来自相同40个条件的留出部分，范围为η=1000、γ=500及既有β×n网格。</p>"
+            },
+            {
+              "id": "map-ablation",
+              "kind": "text",
+              "html": "<p>匹配三个初始化重新训练后，完整特征的条件等权一致率均值为73.30%；删除位置尺度组降至72.25%，删除n降至73.02%。其他组未显示额外总体收益，但特征之间存在重叠信息，删除后不降不能解释为形状或间距无用。所有消融设置的LSE召回率仍不足7%。</p>"
+            },
+            {
+              "id": "map-source-links",
+              "kind": "text",
+              "html": "<p><em>详细方案、结果与核对：<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E5%9C%B0%E5%9B%BE%E5%88%86%E7%B1%BB%E5%8C%B9%E9%85%8D-v1.0.md\">地图分类匹配</a>；<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-LSE%E9%94%99%E5%88%86%E8%AF%8A%E6%96%AD-v1.0.md\">LSE错分诊断</a>；<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E5%88%86%E7%B1%BB%E5%99%A8%E7%89%B9%E5%BE%81%E6%B6%88%E8%9E%8D-v1.0.md\">分类器特征消融</a>。</em></p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evaluation-feature-risk",
+      "title": "4.4　以B10误差评价逐样本选法",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "evaluation-feature-risk-current",
+          "label": "当前内容",
+          "blocks": [
+            {
+              "id": "risk-question",
+              "kind": "text",
+              "html": "<p>地图分类之外，还可以直接学习各方法的预计B10平方误差风险，再按预测风险从小到大选择方法。该路线采用相同样本特征，七法结果与真值只用于监督；先运行首选方法，失败后依排序回退。</p>"
+            },
+            {
+              "id": "risk-main-table",
+              "kind": "text",
+              "html": "<table><thead><tr><th>9,642组留出测试，40条件等权</th><th>B10 RMSE</th><th>相对固定方法改善</th></tr></thead><tbody><tr><td>训练集选定固定MDM-0.1（含固定回退）</td><td>106.85</td><td>—</td></tr><tr><td>只按样本量选法</td><td>106.73</td><td>0.11%</td></tr><tr><td>特征风险网络选法，含失败回退</td><td>95.08</td><td>11.01%</td></tr></tbody></table>"
+            },
+            {
+              "id": "risk-gain",
+              "kind": "text",
+              "html": "<p>配对95%区间为[10.27%, 11.72%]。首次选中方法失败率3.35%，本批依序回退后最终失败率0%；有效极端值保留，失败不填零误差。在同一批7,317组七法共同有效测试样本上，网络RMSE为93.14，仅用训练部分重建的β×n地图推荐为103.22，前者低9.76%。</p>"
+            },
+            {
+              "id": "risk-distinction",
+              "kind": "text",
+              "html": "<p>这一模型直接优化误差风险，逐样本事后最优命中率为40.29%；将预测风险按条件取平均后，仅4/40格复现原地图冠军。<strong>逐样本选法降低误差，并不要求它与地图分类器给出相同的条件推荐。</strong>两条路线应分别按实际选法误差和地图标签匹配率评价。</p>"
+            },
+            {
+              "id": "risk-feature-association",
+              "kind": "text",
+              "html": "<p>固定β×n后，样本特征仍能区分不同方法的误差表现。例如样本最小值从低四分位到高四分位时，MLE的实际B10 RMSE由80.52增至191.61，MDM由117.10增至163.76。这为样本特征包含选法信息提供了观察证据；风险预测消融衡量额外信息贡献，不能将其换算成造成估计误差的因果占比。</p>"
+            },
+            {
+              "id": "risk-tradeoffs",
+              "kind": "text",
+              "html": "<p>收益也伴随取舍：总体带符号Bias由10.91增至30.34，P95绝对误差由217.60降至196.81。少量独立新样本中的未训练β=2.25、n=10及未训练n=30、β=3分别改善6.97%和10.01%；但η=500、γ=250及γ=0、η=1000时，RMSE分别增加26.03%和35.35%。各新条件仅200组。</p>"
+            },
+            {
+              "id": "risk-conclusion",
+              "kind": "text",
+              "html": "<p>当前结果说明：<strong>在已考察范围内，样本特征可以辅助方法选择；选择目标、偏差方向、极端误差与适用范围仍需共同判断。</strong>这是一项固定训练范围的研究原型，跨尺度、位置的推广仍待研究。配对区间固定已训练模型，不包含重新训练的全部不确定性。</p>"
+            },
+            {
+              "id": "risk-source-links",
+              "kind": "text",
+              "html": "<p><em>详细方案、结果与核对：<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E7%A0%94%E7%A9%B6%E6%96%B9%E6%A1%88-v1.0.md\">首轮方案</a>；<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E7%AE%80%E8%A6%81%E6%8A%A5%E5%91%8A-v1.0.md\">选法与新样本结果</a>；<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E6%80%A7%E8%83%BD%E5%9C%B0%E5%9B%BE%E5%AF%B9%E7%85%A7%E8%A1%A5%E5%85%85-v1.0.md\">性能地图对照</a>；<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/B10%E6%96%B9%E6%B3%95%E9%80%89%E6%8B%A9-%E8%AF%AF%E5%B7%AE%E5%9B%A0%E7%B4%A0%E9%87%8F%E5%8C%96%E8%A1%A5%E5%85%85-v1.0.md\">误差因素量化</a>。</em></p>"
             }
           ]
         }
@@ -821,8 +936,7 @@
             {
               "id": "report-4e32b99204ac",
               "kind": "text",
-              "html": "<p>相同n和总体参数下，具体样本仍存在差异。后续考虑利用人工智能方法，根据样本可观测特征与使用目标选择估计方法，并优化方法内部的过程量和求解过程。选择规则的收益需要在新样本上验证。</p>",
-              "markdown": "相同n和总体参数下，具体样本仍存在差异。后续考虑利用人工智能方法，根据样本可观测特征与使用目标选择估计方法，并优化方法内部的过程量和求解过程。选择规则的收益需要在新样本上验证。"
+              "html": "<p>样本特征已在本轮固定参数范围内提供了方法选择信息。后续需扩大尺度和位置条件，并在独立样本上检验规则的稳定性与风险；进一步考虑依据使用目标，优化方法内部的过程量与求解过程。</p>"
             },
             {
               "id": "report-bee2a0cf0e07",
@@ -848,8 +962,8 @@
             {
               "id": "n52-19b51b3430e6",
               "kind": "text",
-              "html": "<a id=\"n-supplement\"></a><p>本页补充<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E6%8A%A5%E5%91%8A%E4%B8%8B%EF%BC%88%E6%96%B9%E6%B3%95%E5%AF%B9%E6%AF%94%EF%BC%89-v3.0.md\">报告下v3.0第3.1节</a>，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。</p>",
-              "markdown": "本页补充[报告下v3.0第3.1节](../../报告下（方法对比）-v3.0.md)，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。"
+              "html": "<a id=\"n-supplement\"></a><p>本页补充<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E6%8A%A5%E5%91%8A%E4%B8%8B%EF%BC%88%E6%96%B9%E6%B3%95%E5%AF%B9%E6%AF%94%EF%BC%89-v3.1.md\">报告下v3.1第3.1节</a>，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。</p>",
+              "markdown": "本页补充[报告下v3.1第3.1节](../../报告下（方法对比）-v3.1.md)，沿同一条474号嵌套路径逐档浏览结果。正文用下端覆盖与候选组合引入耦合，从方法原理解释响应差别，以MDM说明选参和偏差—波动取舍；此处保留共同删点例证、样本、判据、条件恢复和逐档CDF供核对，不以单条路径说明总体RMSE成因。"
             },
             {
               "id": "info31-796fe968bde1",
@@ -1194,7 +1308,7 @@
               "id": "n55-acf4d3317fe5",
               "kind": "text",
               "html": "<a id=\"population-supplement\"></a><p>对应<a href=\"#mechanism-current\">报告下v2.1</a>。计算前固定的<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E5%81%8F%E7%A7%BB%E9%87%8F%E4%B8%8E%E5%BB%93%E7%BA%BF%E7%BE%A4%E4%BD%93%E9%AA%8C%E8%AF%81-%E6%96%B9%E6%A1%88.md\">方案</a>及用户追加四法后的<a href=\"file:///D:/weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1%E5%87%8F%E7%82%B9%E5%9B%9B%E6%96%B9%E6%B3%95%E4%B8%8E%E4%BB%A3%E8%A1%A8%E4%BE%8B-%E8%A1%A5%E5%85%85%E7%BA%A6%E5%AE%9A.md\">补充约定</a>保留实验身份。</p>",
-              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v3.0.md)。计算前固定的[方案](3.1偏移量与廓线群体验证-方案.md)及用户追加四法后的[补充约定](3.1减点四方法与代表例-补充约定.md)保留实验身份。"
+              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v3.1.md)。计算前固定的[方案](3.1偏移量与廓线群体验证-方案.md)及用户追加四法后的[补充约定](3.1减点四方法与代表例-补充约定.md)保留实验身份。"
             },
             {
               "id": "n61-63ab7678a582",
@@ -1480,7 +1594,7 @@
               "id": "n55-0ea16e877b45",
               "kind": "text",
               "html": "<a id=\"growth-supplement\"></a><p>对应<a href=\"#mechanism-current\">报告下v2.1</a>。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。</p>",
-              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v3.0.md)。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。"
+              "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v3.1.md)。数据读取正式40条件七法原结果，经共享指标函数汇总。每个条件采用七法共同有效样本，各n集合不相同；这不是同一固定队列的纵向方差变化。未调用估计器或新抽样。"
             },
             {
               "id": "n55-6262324db3cf",
@@ -1597,8 +1711,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "138642bf-ea9a-4b5b-af7b-ac5375a99779",
-  "last_rendered_submission_id": "138642bf-ea9a-4b5b-af7b-ac5375a99779",
+  "last_applied_submission_id": "5563cfdc-4860-4a58-896c-0bc3f99a8f8e",
+  "last_rendered_submission_id": "5563cfdc-4860-4a58-896c-0bc3f99a8f8e",
   "outline_confirmed": true,
   "review_complete": true,
   "review_runtime": "0.7.1",
@@ -1792,11 +1906,11 @@
     },
     "current_section31_evidence": "section_3_1_evidence；原删点474正文转为远端补充核对。"
   },
-  "manuscript_version": "3.0",
+  "manuscript_version": "3.1",
   "archive_targets": {
-    "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.0.md",
-    "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.2.md",
-    "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.2.md",
+    "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.1.md",
+    "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.0.md",
+    "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v3.0.md",
     "sync_remote": false
   },
   "manuscript_date": "2026-10-24",
@@ -1941,15 +2055,10 @@
       "source_archive_is_historical": true
     }
   },
-  "draft_archive_target": {
-    "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md",
-    "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.3-工作稿.md"
-  },
   "save_authorization": {
     "source": "本轮聊天",
-    "user_text": "存3.0ban'b'h",
-    "interpreted_request": "保存v3.0版本",
-    "previous_request": "存一个版本"
+    "user_text": "拉取远端home分支，这个作为第四章的方法选择的一部分，把他做的工作整合一下到当前版本里，然后再存一个版本、",
+    "interpreted_request": "将home工作纳入第四章，保存v3.1并归档v3.0"
   },
   "processing": false,
   "archive_completion_v3": {
@@ -1975,6 +2084,31 @@
     "source_review_revision": 62,
     "laptop_source_commit": "87449d882eed3b21fbda8cfd148936ffecf314da"
   },
-  "accepted_revision": 62,
-  "accepted_at": "2026-10-24T01:53:31.533164+00:00"
+  "home_integration": {
+    "source_branch": "origin/home",
+    "source_commit": "b2d445df1a70af26d0e95a0e7f61439249a4295c",
+    "merge_commit": "fc4a1b00",
+    "added_units": [
+      "evaluation-feature-map",
+      "evaluation-feature-risk"
+    ],
+    "chapter_3": "Preserved from v3.0; only the supplement self-link version changes",
+    "raw_models_and_results": "Not tracked by remote Git; report numbers integrated, models not independently rerun locally",
+    "map_figure_basis": "Frozen 40-cell table in source report; redraw checked against all cells",
+    "new_method_calls": 0,
+    "new_training_runs": 0
+  },
+  "archive_completion_v31": {
+    "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.1.md",
+    "output_sha256": "bfe8523fa5b5a1e0cb00e96d81f658b00a0f3d2974628d82dafdb752a2e7ca5e",
+    "previous": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.0.md",
+    "archive": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v3.0.md",
+    "previous_original_sha256": "35f3d660119aa1f0b1d63e1d3b61e896dc5eef7dcd92242523833cdcb71a6a0b",
+    "archive_sha256": "b345a7eba51a839284e8ed52e69478c5953687caaccf99d70feb4a06f0e771e5",
+    "archive_change": "Relative links adjusted; self-link follows archived report",
+    "authorizing_submission_id": "5563cfdc-4860-4a58-896c-0bc3f99a8f8e",
+    "home_commit": "b2d445df1a70af26d0e95a0e7f61439249a4295c"
+  },
+  "accepted_revision": 63,
+  "accepted_at": "2026-10-24T02:03:52.510415+00:00"
 }
