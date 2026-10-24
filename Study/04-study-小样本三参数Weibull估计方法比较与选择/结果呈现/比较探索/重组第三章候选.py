@@ -121,7 +121,7 @@ def main():
     board.setdefault('chapter3_evidence', {})['mechanism_candidates_sources'] = source_map
     board['chapter3_evidence']['fixed_position_control'] = '结果呈现/分析数据/第三章固定真位置对照.csv'
     path.write_text(json.dumps(board, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    print(json.dumps({'revision': board['revision'], 'choices': {'3.1': 3, '3.2': 3}, 'source_v2.0_unchanged': hashlib.sha256((STUDY/'报告下（方法对比）-v2.0.md').read_bytes()).hexdigest() == board['source_sha256']}, ensure_ascii=False))
+    print(json.dumps({'revision': board['revision'], 'choices': {'3.1': 3, '3.2': 3}, 'source_v2.0_unchanged': hashlib.sha256((STUDY/'其他/历史版本/报告下（方法对比）-v2.0.md').read_bytes()).hexdigest() == board['source_sha256']}, ensure_ascii=False))
 
 
 if __name__ == '__main__':
