@@ -199,3 +199,5 @@ npm run dev
 ## 凭证信息
 
 GitHub、NAS、Cloudflare 等连接信息存储在 `docs/凭证信息.md`（本地文件，不提交）。
+
+Study04下篇[v2.3工作稿](Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.3.md)已合并laptop分支3.1，并保留本地3.2收拢内容；当前HTML为第62轮续审，已存档基线v2.2不变。
