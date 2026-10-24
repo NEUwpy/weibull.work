@@ -27,6 +27,10 @@ def markdown(node):
     if tag == 'math':
         expression = ''.join(node.itertext()).replace('\u2009', '').replace('\u2061', '')
         formulas = {
+            'x(1)': r'x_{(1)}',
+            'x(1)−γ': r'x_{(1)}-\gamma',
+            '0<d<η': r'0<d<\eta',
+            'Pr(x(1)>γ+d)=[1−F(γ+d)]n=exp[−n(dη)β],d>0.': r'\Pr\left(x_{(1)}>\gamma+d\right)=[1-F(\gamma+d)]^n=\exp\left[-n\left(\frac{d}{\eta}\right)^\beta\right],\qquad d>0.',
             'E(γ^−γ)=ηΓ(1+1/β)n−1/β.': r'\operatorname{E}(\hat{\gamma}-\gamma)=\eta\,\Gamma(1+1/\beta)\,n^{-1/\beta}.',
             'RMSE(γ^)=ηn−1/βΓ(1+2/β).': r'\operatorname{RMSE}(\hat{\gamma})=\eta n^{-1/\beta}\sqrt{\Gamma(1+2/\beta)}.',
             'T=γ+ηexp(Z/β)': r'T=\gamma+\eta\exp(Z/\beta)',
