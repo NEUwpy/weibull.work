@@ -2,7 +2,7 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 69,
+  "revision": 70,
   "require_confirmation": true,
   "archive_plan": "本轮审定后保存v3.4，归档v3.3并调整引用；保留当前HTML、素材、草稿和连续批注，提交本地Git。",
   "source_document": "../../报告下（方法对比）-v3.3.md",
@@ -942,7 +942,7 @@
     },
     {
       "id": "evaluation-target",
-      "title": "4.2　评价目标与已知条件",
+      "title": "4.2　B10性能地图与样本特征预测",
       "mode": "content",
       "state": "open",
       "selected": null,
@@ -954,32 +954,28 @@
             {
               "id": "report-141e74cc51cf",
               "kind": "text",
-              "html": "<p>方法的评价取决于使用目标。参数估计与不同寿命指标下的方法排序可能不同。</p>",
-              "markdown": "方法的评价取决于使用目标。参数估计与不同寿命指标下的方法排序可能不同。"
+              "html": "<p>这里以B10，即10%失效分位寿命为使用目标，按B10的RMSE比较方法。性能地图给出各n、β条件下误差最低的方法；进一步由样本特征预测地图推荐，比较已知条件下的推荐与仅有样本时能够识别的推荐。</p>"
             },
             {
-              "id": "preview",
+              "id": "map-classification-image",
               "kind": "image",
-              "src": "assets/v04_06_寿命目标及候选差距.png",
-              "alt": "候选区域：同时看第二名差多少",
-              "markdown": "![候选区域：同时看第二名差多少](D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/reviewbyhtml/方法对比/assets/v04_06_寿命目标及候选差距.png)"
+              "src": "assets/43_B10地图分类对照.png",
+              "alt": "原B10地图与样本特征分类器测试多数票对照"
+            },
+            {
+              "id": "map-caption",
+              "kind": "text",
+              "html": "<p><em>左图为原B10性能地图，右图为样本特征分类器在每格测试样本上的预测多数票，恢复35/40格（87.5%）；虚线框为不一致格。β仅用于汇总显示，不是网络输入。MDM指δ=0.1，LRE为Park实现。逐格数据来自分类报告的冻结结果表。</em></p>"
             },
             {
               "id": "life-insight",
               "kind": "text",
-              "markdown": "B10的最低RMSE方法随n和β变化，B1则在多数条件下由MDM取得最低RMSE。评价指标改变后，方法的相对表现也发生变化。\n\n部分条件下，第一与第二方法的RMSE接近，单一名次不足以反映差异幅度。方法选择还应结合稳定性与异常风险。",
-              "html": "<p>B10的最低RMSE方法随n和β变化，B1则在多数条件下由MDM取得最低RMSE。评价指标改变后，方法的相对表现也发生变化。</p>\n<p>部分条件下，第一与第二方法的RMSE接近，单一名次不足以反映差异幅度。方法选择还应结合稳定性与异常风险。</p>"
-            },
-            {
-              "id": "report-0b09dfed9e36",
-              "kind": "text",
-              "html": "<p><em>图注：格内为共同有效样本上RMSE最低的方法，下行为第二名高出的比例。B10、B1分别为10%、1%失效分位寿命。</em></p>",
-              "markdown": "*图注：格内为共同有效样本上RMSE最低的方法，下行为第二名高出的比例。B10、B1分别为10%、1%失效分位寿命。*"
+              "html": "<p>B10的最低RMSE方法随n和β变化，体现了方法适用区域的条件性。图中AI预测恢复了多数区域，同时在若干LSE和MLE区域出现差异，下一节检验这种地图推荐的识别情况。</p>"
             },
             {
               "id": "report-4c485a61fc3c",
               "kind": "text",
-              "html": "<p>模拟条件表以真实β为依据。实际使用时，β范围未知，需要在给定参考范围内综合评价；β范围可预估时，可以缩小候选区域。选择还取决于目标参数或寿命指标，以及对波动和异常风险的要求。下面从样本特征出发，分别检验地图推荐的可识别性与逐样本选法的误差表现。</p>"
+              "html": "<p>左图依据真实β与样本量定义条件，实际应用中β通常未知。右图根据一组样本的可观测特征作出预测，真实β只用于事后汇总成图。方法选择还需结合实际B10误差、波动与失败风险。</p>"
             }
           ]
         }
@@ -999,7 +995,7 @@
             {
               "id": "map-question",
               "kind": "text",
-              "html": "<p>性能地图给出已知β与n时的条件推荐。实际只有一组样本时，可以检验：<strong>由样本自身的可观测特征，能否识别地图推荐的方法？</strong></p>"
+              "html": "<p>前图右侧采用样本特征分类器预测既定B10地图的推荐。本节说明其训练与检验，考察样本自身的信息能在多大程度上恢复地图标签。</p>"
             },
             {
               "id": "map-design",
@@ -1010,17 +1006,6 @@
               "id": "map-matching-table",
               "kind": "text",
               "html": "<table><thead><tr><th>策略</th><th>测试样本逐组一致率</th><th>40条件等权一致率</th></tr></thead><tbody><tr><td>训练多数类</td><td>44.70%</td><td>45.00%</td></tr><tr><td>只按n查训练多数类</td><td>46.53%</td><td>47.50%</td></tr><tr><td>样本特征分类网络</td><td>73.15%（7,053/9,642）</td><td>73.30%</td></tr></tbody></table>"
-            },
-            {
-              "id": "map-classification-image",
-              "kind": "image",
-              "src": "assets/43_B10地图分类对照.png",
-              "alt": "原B10地图与样本特征分类器测试多数票对照"
-            },
-            {
-              "id": "map-caption",
-              "kind": "text",
-              "html": "<p><em>图注：每格将该条件中测试样本的预测类别作多数投票，恢复35/40格（87.5%）；虚线框为不一致格。β仅用于汇总显示，不是网络输入。MDM指δ=0.1，LRE为Park实现。逐格数据来自分类报告中的冻结结果表。</em></p>"
             },
             {
               "id": "map-results",
@@ -1128,8 +1113,8 @@
       ]
     }
   ],
-  "last_applied_submission_id": "9ad9ad56-d0ab-45ec-9b37-fb3e842c4397",
-  "last_rendered_submission_id": "9ad9ad56-d0ab-45ec-9b37-fb3e842c4397",
+  "last_applied_submission_id": "7b1e65c0-f358-44af-957a-09ef56017340",
+  "last_rendered_submission_id": "7b1e65c0-f358-44af-957a-09ef56017340",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
@@ -1567,7 +1552,7 @@
     "main_text_change": "Five references redirected; five appendix units removed"
   },
   "stage": "v3.3-continuing-review",
-  "content_fingerprint": "d4c04a5d74572a940fa95c88656670a4bcb46b4342122a4f23b99714a54507cf",
+  "content_fingerprint": "4fbfa9489f230faa8186390bac18806276eed6485c0f478e60290888d7cde5f4",
   "archive_completion_v33": {
     "output": "D:/weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v3.3.md",
     "output_sha256": "c637b535f8b8f9f0f9631b603b46af90a5c64f0c6bec0bc5940116891f0dd32e",
