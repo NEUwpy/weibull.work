@@ -1,0 +1,307 @@
+{
+  "scope": "Formal 40 conditions; existing estimates and saved fixed-true-location diagnostic only. No new estimator calls or Weibull samples.",
+  "attempts": {
+    "mle": 48000,
+    "mmle": 48000,
+    "wmle": 48000,
+    "lse": 48000,
+    "lre": 48000,
+    "mdm": 48000,
+    "mm": 48000
+  },
+  "failures": {
+    "mle": 8790,
+    "mm": 2140,
+    "wmle": 503
+  },
+  "recorded_failure_status": {
+    "mle": {
+      "no_finite_local_maximum": 8790
+    },
+    "mm": {
+      "inadmissible_moments": 2140
+    },
+    "wmle": {
+      "no_equation_root_found": 503
+    }
+  },
+  "first_failure_examples": {
+    "mle": {
+      "beta": "1.5",
+      "n": "7",
+      "repeat_id": "0",
+      "status": "failure",
+      "extra": {
+        "raw_status": "no_finite_local_maximum",
+        "solution_info": {
+          "status": "no_finite_local_maximum",
+          "solver_version": "2026-10-16-profile-v2",
+          "strategy": "profile_likelihood_finite_maxima",
+          "constraint": "beta>=1, eta>0, 0<=gamma<min(x)",
+          "profile_grid_points": 225,
+          "profile_evaluations": 225,
+          "candidate_count": 0,
+          "candidates": [],
+          "support_boundary_limit": {
+            "beta": 1.0,
+            "eta": 596.300385407616,
+            "gamma": 719.931690025589,
+            "log_likelihood": -51.73521179722413,
+            "attained_in_open_support": false
+          },
+          "boundary_limit_exceeds_selected": false
+        },
+        "experiment": {
+          "sample_sha256": "eb35b70d16fb8decb4afb1b7fd2f7741e9ab303dcca091bd99cead0d1b7ca8b1",
+          "result_origin": "computed",
+          "boundary_tol": 0.0,
+          "support_min": 719.931690025589
+        }
+      }
+    },
+    "mm": {
+      "beta": "1.5",
+      "n": "7",
+      "repeat_id": "27",
+      "status": "failure",
+      "extra": {
+        "raw_status": "inadmissible_moments",
+        "solution_info": {
+          "status": "inadmissible_moments",
+          "m1": 1718.0571658363347,
+          "m2": 1606.921964031134,
+          "m4": 1477.7261990382108
+        },
+        "experiment": {
+          "sample_sha256": "d18b6d3529a1c9452bb38a164c49762a2cac484f96b8322eb7c828bec41c164b",
+          "result_origin": "computed",
+          "boundary_tol": 0.0,
+          "support_min": 1341.2595795188836
+        }
+      }
+    },
+    "wmle": {
+      "beta": "1.5",
+      "n": "7",
+      "repeat_id": "28",
+      "status": "failure",
+      "extra": {
+        "raw_status": "no_equation_root_found",
+        "solution_info": {
+          "status": "no_equation_root_found",
+          "solver_version": "2026-10-16-profile-v2",
+          "strategy": "profile_weighted_equation_roots",
+          "constraint": "0<beta<9.99, eta>0, 0<=gamma<min(x)",
+          "shape_upper": 10.0,
+          "profile_grid_points": 267,
+          "profile_evaluations": 399,
+          "candidate_count": 0,
+          "candidates": [],
+          "best_profile_objective": 0.0006025547912216577,
+          "selection": "root nearest original beta=2, gamma=.9*min(x) heuristic"
+        },
+        "experiment": {
+          "sample_sha256": "a82b4c1c03705d03e89218f5b6d928db2b3773a543cd8853b05f97f38432bf14",
+          "result_origin": "computed",
+          "boundary_tol": 0.0,
+          "support_min": 762.1867732944752
+        }
+      }
+    }
+  },
+  "endpoint_failure_rates": [
+    {
+      "method": "mle",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 24
+    },
+    {
+      "method": "mle",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 4140
+    },
+    {
+      "method": "mmle",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "mmle",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "wmle",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 23
+    },
+    {
+      "method": "wmle",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 115
+    },
+    {
+      "method": "lse",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "lse",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "lre",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "lre",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "mdm",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "mdm",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 0
+    },
+    {
+      "method": "mm",
+      "n": 50,
+      "attempts": 9600,
+      "failures": 34
+    },
+    {
+      "method": "mm",
+      "n": 7,
+      "attempts": 9600,
+      "failures": 860
+    }
+  ],
+  "lse_paired_cases": {
+    "truth": [
+      5,
+      1000,
+      500
+    ],
+    "n": 7,
+    "cases": [
+      {
+        "repeat_id": 0,
+        "sample_min": 1241.753838545253,
+        "at_true_location": {
+          "gamma": 500.0,
+          "beta": 6.4864555543100435,
+          "eta": 1020.5288616141131,
+          "relative_residual": 0.1041038664313312,
+          "fisher_ratio": 8.004825967563992
+        },
+        "at_selected_location": {
+          "gamma": 1205.952679871678,
+          "beta": 1.238364442711587,
+          "eta": 282.981116317531,
+          "relative_residual": 0.011728564101482607,
+          "fisher_ratio": 71.05160752184419
+        }
+      },
+      {
+        "repeat_id": 34,
+        "sample_min": 1229.879779759087,
+        "at_true_location": {
+          "gamma": 500.0,
+          "beta": 6.950560411446671,
+          "eta": 1020.0283252897189,
+          "relative_residual": 0.07756457867966252,
+          "fisher_ratio": 10.743735704089294
+        },
+        "at_selected_location": {
+          "gamma": 681.7308352628238,
+          "beta": 5.545898553930085,
+          "eta": 836.7675325674181,
+          "relative_residual": 0.07735117750257144,
+          "fisher_ratio": 10.773376181708809
+        }
+      }
+    ]
+  },
+  "fixed_gamma_diagnostic": {
+    "truth": [
+      5,
+      1000,
+      500
+    ],
+    "gamma_fixed": 500,
+    "interpretation": "Diagnostic intervention using true gamma; not an available estimator or an additive causal contribution.",
+    "rows": [
+      {
+        "method": "LSE",
+        "n": 7,
+        "repeats": 1200,
+        "full": {
+          "bias": -0.584175601118865,
+          "sd": 3.5379955047008935
+        },
+        "fixed_true_gamma": {
+          "bias": 0.7288001979981269,
+          "sd": 2.4054506701614637
+        }
+      },
+      {
+        "method": "LSE",
+        "n": 50,
+        "repeats": 1200,
+        "full": {
+          "bias": 0.27666220939476727,
+          "sd": 2.03887082409599
+        },
+        "fixed_true_gamma": {
+          "bias": 0.08496912454906003,
+          "sd": 0.7263775453339054
+        }
+      },
+      {
+        "method": "MDM",
+        "n": 7,
+        "repeats": 1200,
+        "full": {
+          "bias": -2.619616738564553,
+          "sd": 1.1387555006606886
+        },
+        "fixed_true_gamma": {
+          "bias": 0.4724883242831375,
+          "sd": 2.1458989566298023
+        }
+      },
+      {
+        "method": "MDM",
+        "n": 50,
+        "repeats": 1200,
+        "full": {
+          "bias": -1.4471365250285984,
+          "sd": 0.7577994711149177
+        },
+        "fixed_true_gamma": {
+          "bias": 0.06213071556033434,
+          "sd": 0.6831234242707417
+        }
+      }
+    ]
+  }
+}
