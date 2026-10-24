@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 60,
+  "revision": 61,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "bd21d6635b6db0a7e5dff99232422e4ce35beea50f4293ce39e095fa4c96cdb4",
+  "source_sha256": "18c962801ae39e4b06ba5e1f0c6a2b8c47897fab47b6736eab71883006e4b677",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -367,10 +367,10 @@
           "label": "当前正文",
           "blocks": [
             {
-              "id": "n59-ab3cf4ae1883",
+              "id": "n61-576d37db172f",
               "kind": "text",
-              "html": "<a id=\"mechanism-current\"></a><p>2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=2的MDM两偏移量对照核对稳定性。</p>",
-              "markdown": "2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=2的MDM两偏移量对照核对稳定性。"
+              "html": "<a id=\"mechanism-current\"></a><p>2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=3的MDM两偏移量对照核对稳定性。</p>",
+              "markdown": "2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=3的MDM两偏移量对照核对稳定性。"
             },
             {
               "id": "n55-597332758fe9",
@@ -561,23 +561,23 @@
               "markdown": "MDM以伪尺度离散程度的廓线梯度定位。零梯度附近较平缓时，样本的小变化也可能让定位点移动较远；引入δ=0.1，把定位目标移向梯度曲线较陡的上升段，部分避开平坦区，从而降低这种位置敏感性。上图两列MDM使用相同曲线，区别正是目标与选中位置。对内部交点，位置响应近似为$\\Delta\\hat\\gamma\\approx-\\Delta g_n(\\hat\\gamma)/g_n'(\\hat\\gamma)$：同样的判据扰动，在斜率较小时会产生较大的位置移动。小偏移的作用在于减弱这一放大，而不是让样本量下降失去影响。选点改变也会带来偏差，性能需要同时看偏差和波动。"
             },
             {
-              "id": "n59-9509d2c74048",
+              "id": "n61-47c228c4e07c",
               "kind": "image",
-              "src": "assets/31N_MDM两偏移量估计分布_beta2.png",
-              "alt": "β=2时MDM两种偏移量的共同样本估计分布",
-              "markdown": "![β=2时MDM两种偏移量的共同样本估计分布](reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta2.png)"
+              "src": "assets/31N_MDM两偏移量估计分布_beta3.png",
+              "alt": "β=3时MDM两种偏移量的共同样本估计分布",
+              "markdown": "![β=3时MDM两种偏移量的共同样本估计分布](reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta3.png)"
             },
             {
-              "id": "n59-eac031709a97",
+              "id": "n61-15c858ba8789",
               "kind": "text",
-              "html": "<p><em>固定W(2,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=2核对重复分布，两个条件不混算。</em></p>",
-              "markdown": "*固定W(2,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=2核对重复分布，两个条件不混算。*"
+              "html": "<p><em>固定W(3,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=3核对重复分布，两个条件不混算。</em></p>",
+              "markdown": "*固定W(3,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=3核对重复分布，两个条件不混算。*"
             },
             {
-              "id": "n59-e9bfaf15d08e",
+              "id": "n61-67f4e4b3651a",
               "kind": "text",
-              "html": "<p>在β=2、n=7的配对结果中，位置SD由δ=0时377.0变为δ=0.1时288.1，位置RMSE由394.0变为300.0。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见<a href=\"#beta2-delta-supplement\">β=2核对</a>。</p>",
-              "markdown": "在β=2、n=7的配对结果中，位置SD由δ=0时377.0变为δ=0.1时288.1，位置RMSE由394.0变为300.0。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见[β=2核对](结果呈现/比较探索/3.1-MDM偏移量-beta2结果.md)。"
+              "html": "<p>在β=3、n=7的配对结果中，位置SD由δ=0时450.5变为δ=0.1时292.7，位置RMSE由461.5变为369.7。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见<a href=\"#beta3-delta-supplement\">β=3核对</a>。</p>",
+              "markdown": "在β=3、n=7的配对结果中，位置SD由δ=0时450.5变为δ=0.1时292.7，位置RMSE由461.5变为369.7。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见[β=3核对](结果呈现/比较探索/3.1-MDM偏移量-beta3结果.md)。"
             },
             {
               "id": "n59-78ab13667f42",
@@ -586,10 +586,10 @@
               "markdown": "本节得到的结论是：n减少后，变化的样本信息通过各法判据和定位规则，转化为不同程度的方向性偏移、选点分散或边界响应，最终形成不同的RMSE增幅。MLE、LSE、LRE在当前β=5比较中的形状误差增长主要来自方差，MDM(0.1)、WMLE主要来自偏差平方；MMLE的位置直接映射和MDM的正偏移定位体现了对特定放大环节的抑制。这些稳定作用允许波动较小，也仍可能伴随偏差增长。"
             },
             {
-              "id": "n59-5d57b88f3075",
+              "id": "n61-9246d58db50d",
               "kind": "text",
-              "html": "<p>上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见<a href=\"#population-supplement\">群体核对</a>，β=2重复验证见<a href=\"#beta2-delta-supplement\">配对核对</a>。</p>",
-              "markdown": "上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)，β=2重复验证见[配对核对](结果呈现/比较探索/3.1-MDM偏移量-beta2结果.md)。"
+              "html": "<p>上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见<a href=\"#population-supplement\">群体核对</a>，β=3重复验证见<a href=\"#beta3-delta-supplement\">配对核对</a>。</p>",
+              "markdown": "上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)，β=3重复验证见[配对核对](结果呈现/比较探索/3.1-MDM偏移量-beta3结果.md)。"
             }
           ]
         }
@@ -1286,16 +1286,16 @@
               "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v2.1.md)。计算前固定的[方案](3.1偏移量与廓线群体验证-方案.md)及用户追加四法后的[补充约定](3.1减点四方法与代表例-补充约定.md)保留实验身份。"
             },
             {
-              "id": "n59-dc5f7ec7e882",
+              "id": "n61-63ab7678a582",
               "kind": "text",
-              "html": "<h2>正文改用β=2的重复分布</h2>",
-              "markdown": "## 正文改用β=2的重复分布"
+              "html": "<h2>正文使用β=3的重复分布</h2>",
+              "markdown": "## 正文使用β=3的重复分布"
             },
             {
-              "id": "n59-447fe3a61a66",
+              "id": "n61-6db32a23ea9f",
               "kind": "text",
-              "html": "<p>第58轮反馈要求正文MDM两δ分布改用β=2；<a href=\"#beta2-delta-supplement\">新配对核对</a>另存n=50、7各1200组。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。</p>",
-              "markdown": "第58轮反馈要求正文MDM两δ分布改用β=2；[新配对核对](3.1-MDM偏移量-beta2结果.md)另存n=50、7各1200组。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。"
+              "html": "<p>第60轮反馈将正文MDM两δ分布改用β=3；<a href=\"#beta3-delta-supplement\">当前配对核对</a>另存n=50、7各1200组。此前<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1-MDM%E5%81%8F%E7%A7%BB%E9%87%8F-beta2%E7%BB%93%E6%9E%9C.md\">β=2核对</a>保留原身份。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。</p>",
+              "markdown": "第60轮反馈将正文MDM两δ分布改用β=3；[当前配对核对](3.1-MDM偏移量-beta3结果.md)另存n=50、7各1200组。此前[β=2核对](3.1-MDM偏移量-beta2结果.md)保留原身份。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。"
             },
             {
               "id": "n55-84862763995e",
@@ -1644,10 +1644,50 @@
           ]
         }
       ]
+    },
+    {
+      "id": "mechanism-beta3-delta",
+      "title": "附：β=3的MDM偏移量核对",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "beta3-delta-content",
+          "label": "配对核对",
+          "blocks": [
+            {
+              "id": "n61-3588f14026ac",
+              "kind": "text",
+              "html": "<a id=\"beta3-delta-supplement\"></a><p>按第60轮HTML反馈，将正文两δ重复分布图改用β=3。固定W(3,1000,500)，n=50、7各1200组，沿用正式原样本。新增δ=0的2400次完整方法调用，复用δ=0.1的2400条原结果，共4800条，均有效；无新抽样。β=2和β=5结果保留原身份，不覆盖。冻结共享流水线与方法源码不变。</p>",
+              "markdown": "按第60轮HTML反馈，将正文两δ重复分布图改用β=3。固定W(3,1000,500)，n=50、7各1200组，沿用正式原样本。新增δ=0的2400次完整方法调用，复用δ=0.1的2400条原结果，共4800条，均有效；无新抽样。β=2和β=5结果保留原身份，不覆盖。冻结共享流水线与方法源码不变。"
+            },
+            {
+              "id": "n61-862d25d5f27a",
+              "kind": "image",
+              "src": "assets/31N_MDM两偏移量估计分布_beta3.png",
+              "alt": "β=3两偏移量重复分布",
+              "markdown": "![β=3两偏移量重复分布](../../reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta3.png)"
+            },
+            {
+              "id": "n61-f8ca92671636",
+              "kind": "visual",
+              "html": "<table><thead><tr><th style=\"text-align:right\">n</th><th>方法</th><th>参数</th><th style=\"text-align:right\">Bias</th><th style=\"text-align:right\">SD</th><th style=\"text-align:right\">RMSE</th><th style=\"text-align:right\">有效数</th></tr></thead><tbody><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>β</td><td style=\"text-align:right\">+0.4485</td><td style=\"text-align:right\">1.0564</td><td style=\"text-align:right\">1.1473</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>β</td><td style=\"text-align:right\">-0.2274</td><td style=\"text-align:right\">0.5839</td><td style=\"text-align:right\">0.6264</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>β</td><td style=\"text-align:right\">+0.5105</td><td style=\"text-align:right\">2.0946</td><td style=\"text-align:right\">2.1551</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>β</td><td style=\"text-align:right\">-0.8865</td><td style=\"text-align:right\">1.0303</td><td style=\"text-align:right\">1.3589</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>η</td><td style=\"text-align:right\">+101.1889</td><td style=\"text-align:right\">267.0418</td><td style=\"text-align:right\">285.4664</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>η</td><td style=\"text-align:right\">-53.5146</td><td style=\"text-align:right\">165.3900</td><td style=\"text-align:right\">173.7667</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>η</td><td style=\"text-align:right\">+89.8367</td><td style=\"text-align:right\">496.4421</td><td style=\"text-align:right\">504.3015</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>η</td><td style=\"text-align:right\">-248.4450</td><td style=\"text-align:right\">328.1801</td><td style=\"text-align:right\">411.5062</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>γ</td><td style=\"text-align:right\">-101.7458</td><td style=\"text-align:right\">248.5363</td><td style=\"text-align:right\">268.4605</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>γ</td><td style=\"text-align:right\">+48.7308</td><td style=\"text-align:right\">148.9367</td><td style=\"text-align:right\">156.6472</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>γ</td><td style=\"text-align:right\">-100.6846</td><td style=\"text-align:right\">450.5486</td><td style=\"text-align:right\">461.4784</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>γ</td><td style=\"text-align:right\">+226.1115</td><td style=\"text-align:right\">292.6707</td><td style=\"text-align:right\">369.7447</td><td style=\"text-align:right\">1200</td></tr></tbody></table>",
+              "markdown": "| n | 方法 | 参数 | Bias | SD | RMSE | 有效数 |\n|---:|---|---|---:|---:|---:|---:|\n| 50 | MDM-0 | β | +0.4485 | 1.0564 | 1.1473 | 1200 |\n| 50 | MDM-0.1 | β | -0.2274 | 0.5839 | 0.6264 | 1200 |\n| 7 | MDM-0 | β | +0.5105 | 2.0946 | 2.1551 | 1200 |\n| 7 | MDM-0.1 | β | -0.8865 | 1.0303 | 1.3589 | 1200 |\n| 50 | MDM-0 | η | +101.1889 | 267.0418 | 285.4664 | 1200 |\n| 50 | MDM-0.1 | η | -53.5146 | 165.3900 | 173.7667 | 1200 |\n| 7 | MDM-0 | η | +89.8367 | 496.4421 | 504.3015 | 1200 |\n| 7 | MDM-0.1 | η | -248.4450 | 328.1801 | 411.5062 | 1200 |\n| 50 | MDM-0 | γ | -101.7458 | 248.5363 | 268.4605 | 1200 |\n| 50 | MDM-0.1 | γ | +48.7308 | 148.9367 | 156.6472 | 1200 |\n| 7 | MDM-0 | γ | -100.6846 | 450.5486 | 461.4784 | 1200 |\n| 7 | MDM-0.1 | γ | +226.1115 | 292.6707 | 369.7447 | 1200 |"
+            },
+            {
+              "id": "n61-00ddd89a13e1",
+              "kind": "text",
+              "html": "<p><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1-MDM%E5%81%8F%E7%A7%BB%E9%87%8F-beta3%E6%A0%B8%E5%AF%B9.json\">数值及SHA核对</a>。<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E9%AA%8C%E8%AF%81MDM%E4%B8%A4%E5%81%8F%E7%A7%BB%E9%87%8F_beta2.py\">共用程序</a>保留原文件名，通过环境变量STUDY04_MDM_BETA=3选择本条件；不设置时仍复现β=2。新数据单独存于结果呈现/分析数据/3.1-MDM偏移量-beta3/，由Git忽略。</p>",
+              "markdown": "[数值及SHA核对](3.1-MDM偏移量-beta3核对.json)。[共用程序](验证MDM两偏移量_beta2.py)保留原文件名，通过环境变量STUDY04_MDM_BETA=3选择本条件；不设置时仍复现β=2。新数据单独存于结果呈现/分析数据/3.1-MDM偏移量-beta3/，由Git忽略。"
+            }
+          ]
+        }
+      ]
     }
   ],
-  "last_applied_submission_id": "06445a1a-92c6-4e12-ae15-a21879fcd80f",
-  "last_rendered_submission_id": "06445a1a-92c6-4e12-ae15-a21879fcd80f",
+  "last_applied_submission_id": "81ccb07c-9f06-4276-8132-f63c8c18da61",
+  "last_rendered_submission_id": "81ccb07c-9f06-4276-8132-f63c8c18da61",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
@@ -1778,7 +1818,7 @@
   "manuscript_date": "2026-10-24",
   "section_3_1_evidence": {
     "source": "结果呈现/比较探索/3.1群体核验摘要.json",
-    "sha256": "840516a582a020e8020a6baa260376693b341e14fc0edff9039755426209a56d",
+    "sha256": "1b105b773c2dc6321fdc85f2a6cafd412ca5f80b47f16512231c74e614c9aefd",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
       "31S",
@@ -1808,12 +1848,14 @@
     "removed_from_main": "31K fixed-candidate figure, caption and numerical example removed per submission d59ffbd8; brief support/coupling bridge retained.",
     "beta2_audit": "结果呈现/比较探索/3.1-MDM偏移量-beta2核对.json",
     "additional_beta2_method_calls": 2400,
-    "total_new_method_calls": 10320,
-    "main_distribution_beta": 2.0,
+    "total_new_method_calls": 12720,
+    "main_distribution_beta": 3.0,
     "main_distribution_n": [
       50,
       7
     ],
-    "conclusion": "n decline -> sample information -> method-specific criterion/selection sensitivity -> bias or dispersion -> RMSE; MMLE direct-minimum map and MDM shifted threshold illustrate stabilization with bias retained."
+    "conclusion": "n decline -> sample information -> method-specific criterion/selection sensitivity -> bias or dispersion -> RMSE; MMLE direct-minimum map and MDM shifted threshold illustrate stabilization with bias retained.",
+    "beta3_audit": "结果呈现/比较探索/3.1-MDM偏移量-beta3核对.json",
+    "additional_beta3_method_calls": 2400
   }
 }
