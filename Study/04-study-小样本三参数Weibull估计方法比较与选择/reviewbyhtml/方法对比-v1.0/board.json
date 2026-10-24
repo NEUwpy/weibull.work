@@ -2,11 +2,11 @@
   "id": "study04-method-comparison-v1",
   "title": "小样本三参数Weibull参数估计方法的比较与选择",
   "document": true,
-  "revision": 58,
+  "revision": 60,
   "require_confirmation": true,
   "archive_plan": "保存新版：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.1.md\n归档旧稿：C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/报告下（方法对比）-v2.0.md → C:/Web/Weibull/Study/04-study-小样本三参数Weibull估计方法比较与选择/其他/历史版本/报告下（方法对比）-v2.0.md\n更新引用，保留审阅记录，提交Git并同步远端。",
   "source_document": "../../报告下（方法对比）-v2.1.md",
-  "source_sha256": "2908066a7b1c72cb876e992610ec2aed8e63171b37d5c7033b201f98f8a1ffbc",
+  "source_sha256": "bd21d6635b6db0a7e5dff99232422e4ce35beea50f4293ce39e095fa4c96cdb4",
   "review_phase": "v2.1-chapter3-revision",
   "content_fill_authorized": true,
   "units": [
@@ -367,10 +367,10 @@
           "label": "当前正文",
           "blocks": [
             {
-              "id": "n55-ffa00198b21f",
+              "id": "n59-ab3cf4ae1883",
               "kind": "text",
-              "html": "<a id=\"mechanism-current\"></a><p>2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节先确定增长来自偏移还是波动，再沿“样本信息变化→参数组合的约束与补偿→各方法定位和恢复参数→重复估计的偏移与波动”解释这些差别。以β=5贯穿具体核验，其他形状条件的现象由2.1分层图对照。</p>",
-              "markdown": "2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节先确定增长来自偏移还是波动，再沿“样本信息变化→参数组合的约束与补偿→各方法定位和恢复参数→重复估计的偏移与波动”解释这些差别。以β=5贯穿具体核验，其他形状条件的现象由2.1分层图对照。"
+              "html": "<a id=\"mechanism-current\"></a><p>2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=2的MDM两偏移量对照核对稳定性。</p>",
+              "markdown": "2.1显示，样本量由大变小时，误差总体增大，但不同方法的增幅不同。本节解释这条传递链：n减小改变样本信息，信息变化进入各法的判据或定位依据，使估计出现更大的方向性偏移或样本间波动，进而推高RMSE。各法判据和定位规则不同，对这些变化的放大或抑制也不同。先以β=5分解增长并观察判据，再用β=2的MDM两偏移量对照核对稳定性。"
             },
             {
               "id": "n55-597332758fe9",
@@ -507,34 +507,22 @@
               "markdown": "![每个n与方法坐标系内叠加十组样本的定位判据](reviewbyhtml/方法对比-v1.0/assets/31T_十组叠加定位判据.svg)"
             },
             {
-              "id": "n57-b76903fecc9f",
+              "id": "n59-5b4d44ed143b",
               "kind": "text",
-              "html": "<p><em>五行自上而下为n=50、20、15、10、7，四列为MLE、MMLE、MDM(0)、MDM(0.1)。每个MLE、MDM坐标系叠加十组样本的曲线；图例编号为样本号，同一样本跨行跨列颜色、线型一致。全部面板使用相同原始γ横轴，每列跨n固定纵轴，两MDM列共用纵轴。MLE纵轴为相对每观测负对数似然<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mo>−</mo><mi mathvariant=\"normal\">Δ</mi><msub><mover accent=\"true\"><mi mathvariant=\"normal\">ℓ</mi><mo>ˉ</mo></mover><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mo stretchy=\"false\">[</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi mathvariant=\"normal\">ℓ</mi><mi>p</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo><mi mathvariant=\"normal\">/</mi><mi>n</mi></mrow></semantics></math></span>，圆点为实际返回位置；MMLE没有位置优化廓线，仅以十个彩点和短竖线标出各组<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span>。MDM纵轴为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>，参考线分别为目标0和0.1。</em></p>",
-              "markdown": "*五行自上而下为n=50、20、15、10、7，四列为MLE、MMLE、MDM(0)、MDM(0.1)。每个MLE、MDM坐标系叠加十组样本的曲线；图例编号为样本号，同一样本跨行跨列颜色、线型一致。全部面板使用相同原始γ横轴，每列跨n固定纵轴，两MDM列共用纵轴。MLE纵轴为相对每观测负对数似然$-\\Delta\\bar\\ell_p(\\gamma)=[\\ell_p(\\hat\\gamma)-\\ell_p(\\gamma)]/n$，圆点为实际返回位置；MMLE没有位置优化廓线，仅以十个彩点和短竖线标出各组$\\hat\\gamma=x_{(1)}$。MDM纵轴为$g_n(\\gamma)$，参考线分别为目标0和0.1。*"
+              "html": "<p><em>五行对应n=50、20、15、10、7，四列对应四种方法，每个剖面格子叠加十组样本。样本号、颜色和线型贯穿全图，横轴均为原始γ；MLE为相对每观测负对数似然，MDM为梯度<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>。MMLE只标样本最小值；MLE失败的曲线不标返回点。十组为典型路径，选例及120条完整核对见<a href=\"#population-supplement\">补充</a>。</em></p>",
+              "markdown": "*五行对应n=50、20、15、10、7，四列对应四种方法，每个剖面格子叠加十组样本。样本号、颜色和线型贯穿全图，横轴均为原始γ；MLE为相对每观测负对数似然，MDM为梯度$g_n(\\gamma)$。MMLE只标样本最小值；MLE失败的曲线不标返回点。十组为典型路径，选例及120条完整核对见[补充](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。*"
             },
             {
-              "id": "n57-82412dbe51cc",
+              "id": "n59-c1752d982aaa",
               "kind": "text",
-              "html": "<p>先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。蓝色670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。</p>",
-              "markdown": "先沿一列向下看：观测减少后，定位依据及实际选中位置怎样变化；再沿一行横向看：完全相同的观测为何得到不同位置。蓝色670号样本的MMLE位置随最小观测从913.7升至1085.2；MLE从631.8转到零边界；MDM(0)从336.1转到零边界；MDM(0.1)则由686.4移至816.1。MDM(0)的零位置点是约束截断，不要求梯度恰好为零。MMLE没有位置优化廓线，其后续形状似然不能充当定位γ的判据。"
+              "html": "<p>沿行向下看，减点使同一样本的判据形状和定位结果改变：MLE低值区及最优位置发生移动，部分选点转向零边界；MMLE位置随最小观测右移；MDM的零梯度选点在平缓区或边界变化较大，而δ=0.1的交点落在梯度上升段。不同样本的响应方向并不一致，也没有各法都随n减小而变平的统一趋势，差别体现为各自规则对同一信息变化的不同响应。</p>",
+              "markdown": "沿行向下看，减点使同一样本的判据形状和定位结果改变：MLE低值区及最优位置发生移动，部分选点转向零边界；MMLE位置随最小观测右移；MDM的零梯度选点在平缓区或边界变化较大，而δ=0.1的交点落在梯度上升段。不同样本的响应方向并不一致，也没有各法都随n减小而变平的统一趋势，差别体现为各自规则对同一信息变化的不同响应。"
             },
             {
-              "id": "n57-dcf4e0a8ce44",
+              "id": "n59-cd8e0d8177c8",
               "kind": "text",
-              "html": "<p>这里将<a href=\"#ten-gamma-paths\">十组定位判据</a>按相同n、相同方法叠加到同一坐标系，既看样本间的差异，也可沿同色曲线向下追踪减点响应。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在<a href=\"#population-supplement\">补充选例表</a>。MLE各曲线减去自身参照似然后再除以n，比较的是相对定位形状，不能把曲线的高低解释为不同样本的绝对似然优劣。</p>",
-              "markdown": "这里将[十组定位判据](结果呈现/比较探索/3.1十组定位判据.md)按相同n、相同方法叠加到同一坐标系，既看样本间的差异，也可沿同色曲线向下追踪减点响应。选例先按n=7时MLE的内部、零边界、失败，以及MDM(0)的内部、零边界分层，再选取各层参数响应的实际中心路径，保留原共同中心670号。十组覆盖六种实际分支组合，没有按“是否变平”挑选。失败行仍展示判据形状，以所绘网格最大似然作相对基准，但不标返回位置；各组的具体失败档列在[补充选例表](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。MLE各曲线减去自身参照似然后再除以n，比较的是相对定位形状，不能把曲线的高低解释为不同样本的绝对似然优劣。"
-            },
-            {
-              "id": "n55-1b4ba995ce92",
-              "kind": "text",
-              "html": "<p>十组图用于观察不同过程，120条路径的完整统计用于判断趋势。670号是88/120条共同端点有效路径中的综合中心例，不代表所有单项变化都恰好居中；曲率中心例640、反方向例330和全部选例规则另见<a href=\"#population-supplement\">群体核对</a>。</p>",
-              "markdown": "十组图用于观察不同过程，120条路径的完整统计用于判断趋势。670号是88/120条共同端点有效路径中的综合中心例，不代表所有单项变化都恰好居中；曲率中心例640、反方向例330和全部选例规则另见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。"
-            },
-            {
-              "id": "n55-572088823cdd",
-              "kind": "text",
-              "html": "<p>不同路径给出了不同定位响应。120条完整诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，MLE失败由0增至32/120。可靠内部解的曲率既有降低也有升高；MLE总似然曲率的下降还包含观测项减少的加和效应，除以n后的结果不同。因此，单条路径上的位置跳变、边界转换和判据变平分别反映选参过程，不能直接当作SD或其增长的测量。曲率定义、完整群体图及正反方向例见<a href=\"#population-supplement\">群体核对</a>。</p>",
-              "markdown": "不同路径给出了不同定位响应。120条完整诊断中，MDM(0)零位置由41/120增至64/120，MLE零位置由17/120增至41/120，MLE失败由0增至32/120。可靠内部解的曲率既有降低也有升高；MLE总似然曲率的下降还包含观测项减少的加和效应，除以n后的结果不同。因此，单条路径上的位置跳变、边界转换和判据变平分别反映选参过程，不能直接当作SD或其增长的测量。曲率定义、完整群体图及正反方向例见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)。"
+              "html": "<p>判据的变化通过“选点”进入误差：不同样本的最优点向同一侧移动，会加重方向性偏差；最优点在更大范围内散开，或在内部与边界之间转换，会增大重复估计的不稳定性。当判据在一段位置范围内差别很小时，样本的偶然变化就可能重新排列候选优劣，使选点产生较大移动。随后位置变化又通过参数耦合传入形状和尺度。第一幅堆叠图中的偏差项与方差项，正是这些响应在重复估计中的表现。</p>",
+              "markdown": "判据的变化通过“选点”进入误差：不同样本的最优点向同一侧移动，会加重方向性偏差；最优点在更大范围内散开，或在内部与边界之间转换，会增大重复估计的不稳定性。当判据在一段位置范围内差别很小时，样本的偶然变化就可能重新排列候选优劣，使选点产生较大移动。随后位置变化又通过参数耦合传入形状和尺度。第一幅堆叠图中的偏差项与方差项，正是这些响应在重复估计中的表现。"
             },
             {
               "id": "n55-39618b93ac31",
@@ -555,77 +543,53 @@
               "markdown": "| 方法 | 怎样利用样本信息 | 与样本量变化有关的响应环节 |\n|---|---|---|\n| MLE | 用各观测到候选起点的距离构造似然，联合确定三参数。 | 对数距离和幂次距离共同影响候选组合的似然高低。 |\n| WMLE | 将距离、对数距离、幂加权距离和倒数距离放入带有样本量校准权重的估计方程。 | 样本统计关系与n相关权重共同改变形状、位置方程的交点。 |\n| MMLE | 以最小观测确定位置，再对删除该点后的正距离估计形状、尺度。 | 位置直接受单个极值影响，其误差随后进入其余观测到起点的距离。 |\n| LSE | 将排序观测的对数距离与按n确定的理论参考坐标回归，再以相对匹配定位。 | 点列、参考坐标及回归斜率共同影响三参数恢复。 |\n| LRE | 用绘图位置形成概率图参考坐标，以相关性定位，再由另一方向的回归恢复参数。 | 绘图位置、对数间距和回归方向决定其对点列变化的响应。 |\n| MDM | 每个位置下使各点反算的伪尺度尽量一致，再以最小标准差的梯度阈值定位。 | 伪尺度离散程度、条件形状和梯度交点共同响应样本变化。 |\n| MM | 用排序间距的加权和计算Cran的样本Weibull矩，再由矩差关系反演参数。 | 间距和n相关权重改变矩组合，非线性反演可能放大矩差的变化。 |"
             },
             {
-              "id": "n55-da4b5d6c5062",
+              "id": "n59-239f59a936ad",
               "kind": "text",
-              "html": "<p>MMLE先用最小观测固定位置，再估计其余两参；MLE通过条件似然及位置搜索选择组合；MDM先逐位置优化形状，再按梯度阈值定位。回归与矩反演也有各自的放大环节，例如斜率取倒数和矩差反演。参数约束既可能限制极端值，也可能使多个不同样本返回同一边界值；这些作用不能用单一的“样本少了”概括。</p>",
-              "markdown": "MMLE先用最小观测固定位置，再估计其余两参；MLE通过条件似然及位置搜索选择组合；MDM先逐位置优化形状，再按梯度阈值定位。回归与矩反演也有各自的放大环节，例如斜率取倒数和矩差反演。参数约束既可能限制极端值，也可能使多个不同样本返回同一边界值；这些作用不能用单一的“样本少了”概括。"
+              "html": "<p>MMLE的位置规则为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>x</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub></mrow></semantics></math></span>：最小观测改变多少，位置就改变多少，位置定位不需要反解平坦准则，也不在多个候选最优点之间搜索。这使它避免了该环节的额外放大，但最小观测偏大仍会直接成为位置偏差。β=5的完整1200组结果中，n从50减到7，位置SD由95.9增至142.8，Bias则由+418.1增至+618.6；因此，它的位置RMSE增长更多体现为偏移加重。形状与尺度随后还受条件估计的影响。</p>",
+              "markdown": "MMLE的位置规则为$\\hat\\gamma=x_{(1)}$：最小观测改变多少，位置就改变多少，位置定位不需要反解平坦准则，也不在多个候选最优点之间搜索。这使它避免了该环节的额外放大，但最小观测偏大仍会直接成为位置偏差。β=5的完整1200组结果中，n从50减到7，位置SD由95.9增至142.8，Bias则由+418.1增至+618.6；因此，它的位置RMSE增长更多体现为偏移加重。形状与尺度随后还受条件估计的影响。"
             },
             {
-              "id": "n55-92f4c7a241a2",
+              "id": "n59-5959008ebf1a",
               "kind": "text",
-              "html": "<h4>MDM两种偏移量的重复分布与误差取舍</h4>",
-              "markdown": "#### MDM两种偏移量的重复分布与误差取舍"
+              "html": "<h4>MDM用小偏移降低定位敏感性</h4>",
+              "markdown": "#### MDM用小偏移降低定位敏感性"
             },
             {
-              "id": "n55-c13cfa99acbc",
+              "id": "n59-379314c93ad8",
               "kind": "text",
-              "html": "<p>MDM内部位置由条件最小伪尺度标准差的梯度确定：</p>",
-              "markdown": "MDM内部位置由条件最小伪尺度标准差的梯度确定："
+              "html": "<p>MDM以伪尺度离散程度的廓线梯度定位。零梯度附近较平缓时，样本的小变化也可能让定位点移动较远；引入δ=0.1，把定位目标移向梯度曲线较陡的上升段，部分避开平坦区，从而降低这种位置敏感性。上图两列MDM使用相同曲线，区别正是目标与选中位置。对内部交点，位置响应近似为<span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\"><semantics><mrow><mi mathvariant=\"normal\">Δ</mi><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo>≈</mo><mo>−</mo><mi mathvariant=\"normal\">Δ</mi><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">/</mi><msubsup><mi>g</mi><mi>n</mi><mo mathvariant=\"normal\" lspace=\"0em\" rspace=\"0em\">′</mo></msubsup><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo></mrow></semantics></math></span>：同样的判据扰动，在斜率较小时会产生较大的位置移动。小偏移的作用在于减弱这一放大，而不是让样本量下降失去影响。选点改变也会带来偏差，性能需要同时看偏差和波动。</p>",
+              "markdown": "MDM以伪尺度离散程度的廓线梯度定位。零梯度附近较平缓时，样本的小变化也可能让定位点移动较远；引入δ=0.1，把定位目标移向梯度曲线较陡的上升段，部分避开平坦区，从而降低这种位置敏感性。上图两列MDM使用相同曲线，区别正是目标与选中位置。对内部交点，位置响应近似为$\\Delta\\hat\\gamma\\approx-\\Delta g_n(\\hat\\gamma)/g_n'(\\hat\\gamma)$：同样的判据扰动，在斜率较小时会产生较大的位置移动。小偏移的作用在于减弱这一放大，而不是让样本量下降失去影响。选点改变也会带来偏差，性能需要同时看偏差和波动。"
             },
             {
-              "id": "n55-d4263efe56c0",
-              "kind": "text",
-              "html": "<p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>S</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>β</mi></munder><msub><mi>s</mi><mi>η</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"2em\"/><msub><mi>g</mi><mi>n</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>γ</mi><mo>^</mo></mover><mo stretchy=\"false\">)</mo><mo>=</mo><mi>δ</mi><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p>",
-              "markdown": "$$\nS_n(\\gamma)=\\min_\\beta s_\\eta(\\beta,\\gamma),\\qquad\ng_n(\\hat\\gamma)=\\delta.\n$$"
-            },
-            {
-              "id": "n55-aa2bade71004",
-              "kind": "text",
-              "html": "<p>保持样本、秩、形状范围、位置约束和求解程序相同，只将δ由0改为0.1，就能直接检验偏移判据的影响。这里使用正式五档n各1200组原样本，补算MDM(0)，复用MDM(0.1)；两方案全部有效。它与上面的120条嵌套诊断分开统计。</p>",
-              "markdown": "保持样本、秩、形状范围、位置约束和求解程序相同，只将δ由0改为0.1，就能直接检验偏移判据的影响。这里使用正式五档n各1200组原样本，补算MDM(0)，复用MDM(0.1)；两方案全部有效。它与上面的120条嵌套诊断分开统计。"
-            },
-            {
-              "id": "n55-51dd06510c44",
+              "id": "n59-9509d2c74048",
               "kind": "image",
-              "src": "assets/31N_MDM两偏移量估计分布.png",
-              "alt": "MDM零偏移和正偏移在1200组共同样本上的估计分布",
-              "markdown": "![MDM零偏移和正偏移在1200组共同样本上的估计分布](reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布.png)"
+              "src": "assets/31N_MDM两偏移量估计分布_beta2.png",
+              "alt": "β=2时MDM两种偏移量的共同样本估计分布",
+              "markdown": "![β=2时MDM两种偏移量的共同样本估计分布](reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta2.png)"
             },
             {
-              "id": "n55-836013af89fe",
+              "id": "n59-eac031709a97",
               "kind": "text",
-              "html": "<p><em>上排n=50，下排n=7，每种方案各1200次。每列共用横轴、分箱和纵轴；纵轴为每箱所占比例，包含γ=0的集中质量，虚线为真实参数。完整五档指标及偏差平方/方差分解在补充区。</em></p>",
-              "markdown": "*上排n=50，下排n=7，每种方案各1200次。每列共用横轴、分箱和纵轴；纵轴为每箱所占比例，包含γ=0的集中质量，虚线为真实参数。完整五档指标及偏差平方/方差分解在补充区。*"
+              "html": "<p><em>固定W(2,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=2核对重复分布，两个条件不混算。</em></p>",
+              "markdown": "*固定W(2,1000,500)，上排n=50，下排n=7；每档两方案使用完全相同的1200组原样本，均有效。δ=0补算，δ=0.1复用原估计，其他实现相同。各列共用坐标与分箱，虚线为真值。判据图用β=5展示选参过程，本图用β=2核对重复分布，两个条件不混算。*"
             },
             {
-              "id": "n55-3edc5fedd787",
-              "kind": "visual",
-              "html": "<table><thead><tr><th>参数（n=7）</th><th style=\"text-align:right\">δ</th><th style=\"text-align:right\">Bias</th><th style=\"text-align:right\">SD</th><th style=\"text-align:right\">RMSE</th></tr></thead><tbody><tr><td>形状β</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">+0.53</td><td style=\"text-align:right\">3.48</td><td style=\"text-align:right\">3.52</td></tr><tr><td>形状β</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">-2.62</td><td style=\"text-align:right\">1.14</td><td style=\"text-align:right\">2.86</td></tr><tr><td>尺度η</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">+66.97</td><td style=\"text-align:right\">527.44</td><td style=\"text-align:right\">531.45</td></tr><tr><td>尺度η</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">-448.64</td><td style=\"text-align:right\">256.93</td><td style=\"text-align:right\">516.95</td></tr><tr><td>位置γ</td><td style=\"text-align:right\">0</td><td style=\"text-align:right\">-79.04</td><td style=\"text-align:right\">503.51</td><td style=\"text-align:right\">509.47</td></tr><tr><td>位置γ</td><td style=\"text-align:right\">0.1</td><td style=\"text-align:right\">+426.11</td><td style=\"text-align:right\">248.67</td><td style=\"text-align:right\">493.31</td></tr></tbody></table>",
-              "markdown": "| 参数（n=7） | δ | Bias | SD | RMSE |\n|---|---:|---:|---:|---:|\n| 形状β | 0 | +0.53 | 3.48 | 3.52 |\n| 形状β | 0.1 | -2.62 | 1.14 | 2.86 |\n| 尺度η | 0 | +66.97 | 527.44 | 531.45 |\n| 尺度η | 0.1 | -448.64 | 256.93 | 516.95 |\n| 位置γ | 0 | -79.04 | 503.51 | 509.47 |\n| 位置γ | 0.1 | +426.11 | 248.67 | 493.31 |"
-            },
-            {
-              "id": "n55-44bb55ddbaa7",
+              "id": "n59-e9bfaf15d08e",
               "kind": "text",
-              "html": "<p>在这组小样本对照中，δ=0.1使三个参数的绝对偏差更大，但SD更小，RMSE数值也更低，直接呈现了偏差与波动的取舍。以位置为例，δ=0的Bias由n=50时−144.9变为n=7时−79.0，偏差减轻，SD却由343.4增至503.5，RMSE仍上升；δ=0.1的Bias由+221.3增至+426.1，SD由151.1增至248.7，组成又不同。不能将误差增大统一写成偏差和SD同时增大。</p>",
-              "markdown": "在这组小样本对照中，δ=0.1使三个参数的绝对偏差更大，但SD更小，RMSE数值也更低，直接呈现了偏差与波动的取舍。以位置为例，δ=0的Bias由n=50时−144.9变为n=7时−79.0，偏差减轻，SD却由343.4增至503.5，RMSE仍上升；δ=0.1的Bias由+221.3增至+426.1，SD由151.1增至248.7，组成又不同。不能将误差增大统一写成偏差和SD同时增大。"
+              "html": "<p>在β=2、n=7的配对结果中，位置SD由δ=0时377.0变为δ=0.1时288.1，位置RMSE由394.0变为300.0。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见<a href=\"#beta2-delta-supplement\">β=2核对</a>。</p>",
+              "markdown": "在β=2、n=7的配对结果中，位置SD由δ=0时377.0变为δ=0.1时288.1，位置RMSE由394.0变为300.0。这让判据上避开平缓定位区的解释，与重复估计的分布变化对应起来；结论限于当前条件和固定实现。三参数Bias、SD、RMSE及样本来源见[β=2核对](结果呈现/比较探索/3.1-MDM偏移量-beta2结果.md)。"
             },
             {
-              "id": "n55-2e7059483a35",
+              "id": "n59-78ab13667f42",
               "kind": "text",
-              "html": "<p>零位置聚集也是分布差别的一部分：δ=0的γ=0比例在正式1200组中由36.8%增至52.7%；δ=0.1在本条件五档样本中均无零位置。正偏移改变了位置选择及随后的三参数恢复，允许更大偏移而获得更集中分布；这不是由单条廓线推得，而是同一样本上改变δ后的重复比较。该结论限于当前W(5,1000,500)与固定实现，不据此认定δ=0.1对所有条件均最优。</p>",
-              "markdown": "零位置聚集也是分布差别的一部分：δ=0的γ=0比例在正式1200组中由36.8%增至52.7%；δ=0.1在本条件五档样本中均无零位置。正偏移改变了位置选择及随后的三参数恢复，允许更大偏移而获得更集中分布；这不是由单条廓线推得，而是同一样本上改变δ后的重复比较。该结论限于当前W(5,1000,500)与固定实现，不据此认定δ=0.1对所有条件均最优。"
+              "html": "<p>本节得到的结论是：n减少后，变化的样本信息通过各法判据和定位规则，转化为不同程度的方向性偏移、选点分散或边界响应，最终形成不同的RMSE增幅。MLE、LSE、LRE在当前β=5比较中的形状误差增长主要来自方差，MDM(0.1)、WMLE主要来自偏差平方；MMLE的位置直接映射和MDM的正偏移定位体现了对特定放大环节的抑制。这些稳定作用允许波动较小，也仍可能伴随偏差增长。</p>",
+              "markdown": "本节得到的结论是：n减少后，变化的样本信息通过各法判据和定位规则，转化为不同程度的方向性偏移、选点分散或边界响应，最终形成不同的RMSE增幅。MLE、LSE、LRE在当前β=5比较中的形状误差增长主要来自方差，MDM(0.1)、WMLE主要来自偏差平方；MMLE的位置直接映射和MDM的正偏移定位体现了对特定放大环节的抑制。这些稳定作用允许波动较小，也仍可能伴随偏差增长。"
             },
             {
-              "id": "n55-6b900161a282",
+              "id": "n59-5d57b88f3075",
               "kind": "text",
-              "html": "<p>由此能连起本节的机制链：n减少使观测和下端覆盖变少，一些候选组合不再被支持条件排除；三参补偿又使观测区间内相近的分布对应不同参数。各方法将这些观测转成最小值、似然、回归或伪尺度一致性，并按不同规则处理参数耦合，于是同样的信息变化可以形成不同的位置选择、边界响应及误差组成。MDM两δ的同样本对照进一步表明，仅改变定位规则就能改变重复估计的偏移和波动。</p>",
-              "markdown": "由此能连起本节的机制链：n减少使观测和下端覆盖变少，一些候选组合不再被支持条件排除；三参补偿又使观测区间内相近的分布对应不同参数。各方法将这些观测转成最小值、似然、回归或伪尺度一致性，并按不同规则处理参数耦合，于是同样的信息变化可以形成不同的位置选择、边界响应及误差组成。MDM两δ的同样本对照进一步表明，仅改变定位规则就能改变重复估计的偏移和波动。"
-            },
-            {
-              "id": "n55-c2aa26e0563d",
-              "kind": "text",
-              "html": "<p>现在的证据支持这些构造与响应的差别，并用两δ对照验证了一个具体机制；尚未分离七法全部RMSE差距中每个环节的独立贡献。最小值图说明约束怎样变化，十组判据说明参数怎样选中，重复统计说明误差怎样增长。逐档四法参数、数值与选例记录见<a href=\"#population-supplement\">群体核对</a>；原474号过程材料保留在<a href=\"#n-supplement\">旧路径补充</a>。</p>",
-              "markdown": "现在的证据支持这些构造与响应的差别，并用两δ对照验证了一个具体机制；尚未分离七法全部RMSE差距中每个环节的独立贡献。最小值图说明约束怎样变化，十组判据说明参数怎样选中，重复统计说明误差怎样增长。逐档四法参数、数值与选例记录见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)；原474号过程材料保留在[旧路径补充](结果呈现/比较探索/3.1逐档拟合与误差.md)。"
+              "html": "<p>上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见<a href=\"#population-supplement\">群体核对</a>，β=2重复验证见<a href=\"#beta2-delta-supplement\">配对核对</a>。</p>",
+              "markdown": "上述证据解释了典型传递过程，尚未将七法全部RMSE差距逐项分解为独立机制贡献。完整选例、内部与边界统计见[群体核对](结果呈现/比较探索/3.1偏移量与廓线群体-结果.md)，β=2重复验证见[配对核对](结果呈现/比较探索/3.1-MDM偏移量-beta2结果.md)。"
             }
           ]
         }
@@ -1322,6 +1286,18 @@
               "markdown": "对应[报告下v2.1](../../报告下（方法对比）-v2.1.md)。计算前固定的[方案](3.1偏移量与廓线群体验证-方案.md)及用户追加四法后的[补充约定](3.1减点四方法与代表例-补充约定.md)保留实验身份。"
             },
             {
+              "id": "n59-dc5f7ec7e882",
+              "kind": "text",
+              "html": "<h2>正文改用β=2的重复分布</h2>",
+              "markdown": "## 正文改用β=2的重复分布"
+            },
+            {
+              "id": "n59-447fe3a61a66",
+              "kind": "text",
+              "html": "<p>第58轮反馈要求正文MDM两δ分布改用β=2；<a href=\"#beta2-delta-supplement\">新配对核对</a>另存n=50、7各1200组。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。</p>",
+              "markdown": "第58轮反馈要求正文MDM两δ分布改用β=2；[新配对核对](3.1-MDM偏移量-beta2结果.md)另存n=50、7各1200组。以下β=5五档n和120条嵌套结果保留原条件。判据图下仅保留变化描述，详细选例与统计在此核对。"
+            },
+            {
               "id": "n55-84862763995e",
               "kind": "text",
               "html": "<h2>两种集合及方法身份</h2>",
@@ -1628,10 +1604,50 @@
           ]
         }
       ]
+    },
+    {
+      "id": "mechanism-beta2-delta",
+      "title": "附：β=2的MDM偏移量核对",
+      "mode": "content",
+      "state": "open",
+      "selected": null,
+      "options": [
+        {
+          "id": "beta2-delta-content",
+          "label": "配对核对",
+          "blocks": [
+            {
+              "id": "n59-c528702b549e",
+              "kind": "text",
+              "html": "<a id=\"beta2-delta-supplement\"></a><p>按第58轮HTML反馈，正文重复分布图改用β=2；β=5原结果保留，不覆盖。固定W(2,1000,500)，只比较原图显示的n=50、7，每档1200组。新增2400次δ=0完整方法调用，δ=0.1的2400条原结果复用，共4800条，无新抽样。调用冻结共享run_experiment流水线并按共享指标汇总；原正式40条件七法结果及源码不变。</p>",
+              "markdown": "按第58轮HTML反馈，正文重复分布图改用β=2；β=5原结果保留，不覆盖。固定W(2,1000,500)，只比较原图显示的n=50、7，每档1200组。新增2400次δ=0完整方法调用，δ=0.1的2400条原结果复用，共4800条，无新抽样。调用冻结共享run_experiment流水线并按共享指标汇总；原正式40条件七法结果及源码不变。"
+            },
+            {
+              "id": "n59-9509d2c74048",
+              "kind": "image",
+              "src": "assets/31N_MDM两偏移量估计分布_beta2.png",
+              "alt": "β=2两偏移量重复分布",
+              "markdown": "![β=2两偏移量重复分布](../../reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta2.png)"
+            },
+            {
+              "id": "n59-228f1cf092bd",
+              "kind": "visual",
+              "html": "<table><thead><tr><th style=\"text-align:right\">n</th><th>方法</th><th>参数</th><th style=\"text-align:right\">Bias</th><th style=\"text-align:right\">SD</th><th style=\"text-align:right\">RMSE</th><th style=\"text-align:right\">有效数</th></tr></thead><tbody><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>β</td><td style=\"text-align:right\">+0.1875</td><td style=\"text-align:right\">0.5570</td><td style=\"text-align:right\">0.5875</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>β</td><td style=\"text-align:right\">+0.0279</td><td style=\"text-align:right\">0.3940</td><td style=\"text-align:right\">0.3949</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>β</td><td style=\"text-align:right\">+0.5324</td><td style=\"text-align:right\">1.5641</td><td style=\"text-align:right\">1.6516</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>β</td><td style=\"text-align:right\">-0.1925</td><td style=\"text-align:right\">0.7742</td><td style=\"text-align:right\">0.7975</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>η</td><td style=\"text-align:right\">+37.9467</td><td style=\"text-align:right\">186.6650</td><td style=\"text-align:right\">190.4068</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>η</td><td style=\"text-align:right\">-6.4193</td><td style=\"text-align:right\">145.8421</td><td style=\"text-align:right\">145.9226</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>η</td><td style=\"text-align:right\">+103.4075</td><td style=\"text-align:right\">465.9886</td><td style=\"text-align:right\">477.1347</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>η</td><td style=\"text-align:right\">-106.7870</td><td style=\"text-align:right\">371.1080</td><td style=\"text-align:right\">386.0179</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0</td><td>γ</td><td style=\"text-align:right\">-40.9262</td><td style=\"text-align:right\">146.2016</td><td style=\"text-align:right\">151.7632</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">50</td><td>MDM-0.1</td><td>γ</td><td style=\"text-align:right\">+1.0972</td><td style=\"text-align:right\">106.1408</td><td style=\"text-align:right\">106.1022</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0</td><td>γ</td><td style=\"text-align:right\">-115.0541</td><td style=\"text-align:right\">376.9777</td><td style=\"text-align:right\">393.9939</td><td style=\"text-align:right\">1200</td></tr><tr><td style=\"text-align:right\">7</td><td>MDM-0.1</td><td>γ</td><td style=\"text-align:right\">+84.2877</td><td style=\"text-align:right\">288.0711</td><td style=\"text-align:right\">300.0337</td><td style=\"text-align:right\">1200</td></tr></tbody></table>",
+              "markdown": "| n | 方法 | 参数 | Bias | SD | RMSE | 有效数 |\n|---:|---|---|---:|---:|---:|---:|\n| 50 | MDM-0 | β | +0.1875 | 0.5570 | 0.5875 | 1200 |\n| 50 | MDM-0.1 | β | +0.0279 | 0.3940 | 0.3949 | 1200 |\n| 7 | MDM-0 | β | +0.5324 | 1.5641 | 1.6516 | 1200 |\n| 7 | MDM-0.1 | β | -0.1925 | 0.7742 | 0.7975 | 1200 |\n| 50 | MDM-0 | η | +37.9467 | 186.6650 | 190.4068 | 1200 |\n| 50 | MDM-0.1 | η | -6.4193 | 145.8421 | 145.9226 | 1200 |\n| 7 | MDM-0 | η | +103.4075 | 465.9886 | 477.1347 | 1200 |\n| 7 | MDM-0.1 | η | -106.7870 | 371.1080 | 386.0179 | 1200 |\n| 50 | MDM-0 | γ | -40.9262 | 146.2016 | 151.7632 | 1200 |\n| 50 | MDM-0.1 | γ | +1.0972 | 106.1408 | 106.1022 | 1200 |\n| 7 | MDM-0 | γ | -115.0541 | 376.9777 | 393.9939 | 1200 |\n| 7 | MDM-0.1 | γ | +84.2877 | 288.0711 | 300.0337 | 1200 |"
+            },
+            {
+              "id": "n59-28844f8c77f5",
+              "kind": "text",
+              "html": "<p><a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/3.1-MDM%E5%81%8F%E7%A7%BB%E9%87%8F-beta2%E6%A0%B8%E5%AF%B9.json\">数值与指纹</a>保留两份原始CSV、图像、结果SHA及2400次新调用的边界；<a href=\"file:///C:/Web/Weibull/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%BB%93%E6%9E%9C%E5%91%88%E7%8E%B0/%E6%AF%94%E8%BE%83%E6%8E%A2%E7%B4%A2/%E9%AA%8C%E8%AF%81MDM%E4%B8%A4%E5%81%8F%E7%A7%BB%E9%87%8F_beta2.py\">程序</a>可按分片复用。数据在结果呈现/分析数据/3.1-MDM偏移量-beta2/，由Git忽略。</p>",
+              "markdown": "[数值与指纹](3.1-MDM偏移量-beta2核对.json)保留两份原始CSV、图像、结果SHA及2400次新调用的边界；[程序](验证MDM两偏移量_beta2.py)可按分片复用。数据在结果呈现/分析数据/3.1-MDM偏移量-beta2/，由Git忽略。"
+            }
+          ]
+        }
+      ]
     }
   ],
-  "last_applied_submission_id": "d59ffbd8-3f98-4c23-bef2-ea99a3d9706c",
-  "last_rendered_submission_id": "d59ffbd8-3f98-4c23-bef2-ea99a3d9706c",
+  "last_applied_submission_id": "06445a1a-92c6-4e12-ae15-a21879fcd80f",
+  "last_rendered_submission_id": "06445a1a-92c6-4e12-ae15-a21879fcd80f",
   "outline_confirmed": true,
   "review_complete": false,
   "review_runtime": "0.7.1",
@@ -1762,7 +1778,7 @@
   "manuscript_date": "2026-10-24",
   "section_3_1_evidence": {
     "source": "结果呈现/比较探索/3.1群体核验摘要.json",
-    "sha256": "b5b842548bb7c7ef203170b5251c44c342ecaf9431f0d432a5460599c88dfa83",
+    "sha256": "840516a582a020e8020a6baa260376693b341e14fc0edff9039755426209a56d",
     "self_review": "结果呈现/比较探索/3.1讲述目标与自检.md",
     "main_figures": [
       "31S",
@@ -1789,6 +1805,15 @@
     },
     "gamma_presentation": "5 n rows x4 methods,10 sample profile curves overlaid per MLE/MDM axes;MMLE actual minimum markers.",
     "stack_presentation": "Standalone stack in3.1;2.1 restored original method gap figure.",
-    "removed_from_main": "31K fixed-candidate figure, caption and numerical example removed per submission d59ffbd8; brief support/coupling bridge retained."
+    "removed_from_main": "31K fixed-candidate figure, caption and numerical example removed per submission d59ffbd8; brief support/coupling bridge retained.",
+    "beta2_audit": "结果呈现/比较探索/3.1-MDM偏移量-beta2核对.json",
+    "additional_beta2_method_calls": 2400,
+    "total_new_method_calls": 10320,
+    "main_distribution_beta": 2.0,
+    "main_distribution_n": [
+      50,
+      7
+    ],
+    "conclusion": "n decline -> sample information -> method-specific criterion/selection sensitivity -> bias or dispersion -> RMSE; MMLE direct-minimum map and MDM shifted threshold illustrate stabilization with bias retained."
   }
 }

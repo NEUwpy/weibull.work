@@ -1027,7 +1027,7 @@
     }
   },
   "final_presentation": {
-    "revision": 57,
+    "revision": 60,
     "decomposition_record": "3.1误差增长分解.json",
     "mse_identities": 840,
     "growth_identities": 168,
@@ -1037,6 +1037,161 @@
     "gamma_groups_in_one_image": 10,
     "stack_location": "Section3.1 standalone stack figure; section2.1 original gap figure restored.",
     "previous_revision_independent_review": "APPROVE: layout, raw-statistic crosscheck, narrative chain and board/source correspondence.",
-    "current_layout_check": "PASS:20 axes;10 curves each in15 profile axes; unchanged cached numbers; sample colors consistent; MMLE not assigned a fictitious profile."
+    "current_layout_check": "PASS:20 axes;10 curves each in15 profile axes; unchanged cached numbers; sample colors consistent; MMLE not assigned a fictitious profile.",
+    "mdm_distribution": "Beta2 original n50/n7 samples,1200 each;paired delta0 new2400 calls,delta.1 reused2400.",
+    "criterion_caption": "Brief deletion response; selection/geometry details remain supplemental.",
+    "current_conclusion": "n -> information -> method-specific criterion/selection response -> bias or dispersion -> RMSE; MMLE direct minimum and MDM shifted threshold stabilize specific steps."
+  },
+  "beta2_addendum": {
+    "beta": 2.0,
+    "eta": 1000.0,
+    "gamma": 500.0,
+    "n": [
+      50,
+      7
+    ],
+    "repeats": 1200,
+    "total_rows": 4800,
+    "new_method_calls": 2400,
+    "new_weibull_samples": 0,
+    "source_sha256": {
+      "结果/W2,1000,500/估计结果/n50.csv": "201d20880753423a86c4c276171674ca3442c1860897c68da58cd82be7242bfa",
+      "结果/W2,1000,500/估计结果/n7.csv": "b2a394236a3bdda8d429f63947055f42e0ed59ebe053ab4e7cbd032f0e4c9967"
+    },
+    "results_sha256": "6e928ad9ee0e0931638d7755585c83f34d32c853368b22854d850a7efa6866d5",
+    "figure": {
+      "path": "reviewbyhtml/方法对比-v1.0/assets/31N_MDM两偏移量估计分布_beta2.png",
+      "sha256": "24919e97cf9bf3f6a3a083105c6acd7507cdf6af8522fed280727cc39208aeac"
+    },
+    "metrics": [
+      {
+        "n": 50,
+        "method": "MDM-0",
+        "parameter": "beta",
+        "valid": 1200,
+        "bias": 0.18753870663361275,
+        "sd": 0.5569726170689546,
+        "rmse": 0.5874782951198948,
+        "zero_gamma": 19
+      },
+      {
+        "n": 50,
+        "method": "MDM-0.1",
+        "parameter": "beta",
+        "valid": 1200,
+        "bias": 0.027850569229569674,
+        "sd": 0.3940413388481448,
+        "rmse": 0.3948605329063016,
+        "zero_gamma": 0
+      },
+      {
+        "n": 7,
+        "method": "MDM-0",
+        "parameter": "beta",
+        "valid": 1200,
+        "bias": 0.5324051115242273,
+        "sd": 1.5641343327153376,
+        "rmse": 1.6516454371465437,
+        "zero_gamma": 472
+      },
+      {
+        "n": 7,
+        "method": "MDM-0.1",
+        "parameter": "beta",
+        "valid": 1200,
+        "bias": -0.19245776403228193,
+        "sd": 0.7742069534689033,
+        "rmse": 0.797456519648714,
+        "zero_gamma": 36
+      },
+      {
+        "n": 50,
+        "method": "MDM-0",
+        "parameter": "eta",
+        "valid": 1200,
+        "bias": 37.94667133490121,
+        "sd": 186.66498668460025,
+        "rmse": 190.40675041863065,
+        "zero_gamma": 19
+      },
+      {
+        "n": 50,
+        "method": "MDM-0.1",
+        "parameter": "eta",
+        "valid": 1200,
+        "bias": -6.419295215423704,
+        "sd": 145.84211616608135,
+        "rmse": 145.92260024806652,
+        "zero_gamma": 0
+      },
+      {
+        "n": 7,
+        "method": "MDM-0",
+        "parameter": "eta",
+        "valid": 1200,
+        "bias": 103.40749973433292,
+        "sd": 465.9886370197958,
+        "rmse": 477.13474650739914,
+        "zero_gamma": 472
+      },
+      {
+        "n": 7,
+        "method": "MDM-0.1",
+        "parameter": "eta",
+        "valid": 1200,
+        "bias": -106.78703058833669,
+        "sd": 371.10797659916017,
+        "rmse": 386.0179174453144,
+        "zero_gamma": 36
+      },
+      {
+        "n": 50,
+        "method": "MDM-0",
+        "parameter": "gamma",
+        "valid": 1200,
+        "bias": -40.92621385381362,
+        "sd": 146.20162383212823,
+        "rmse": 151.7631620735082,
+        "zero_gamma": 19
+      },
+      {
+        "n": 50,
+        "method": "MDM-0.1",
+        "parameter": "gamma",
+        "valid": 1200,
+        "bias": 1.0972120592184498,
+        "sd": 106.14078607248369,
+        "rmse": 106.10222486041894,
+        "zero_gamma": 0
+      },
+      {
+        "n": 7,
+        "method": "MDM-0",
+        "parameter": "gamma",
+        "valid": 1200,
+        "bias": -115.05407590117626,
+        "sd": 376.9776679415518,
+        "rmse": 393.9938777523736,
+        "zero_gamma": 472
+      },
+      {
+        "n": 7,
+        "method": "MDM-0.1",
+        "parameter": "gamma",
+        "valid": 1200,
+        "bias": 84.2876910915626,
+        "sd": 288.0711474240691,
+        "rmse": 300.0337425903703,
+        "zero_gamma": 36
+      }
+    ]
+  },
+  "beta2_validation": {
+    "paired_rows": 4800,
+    "computed": 2400,
+    "reused": 2400,
+    "sample_sha_checks": 4800,
+    "independent_metric_groups": 12,
+    "core_unchanged": true
   }
 }
