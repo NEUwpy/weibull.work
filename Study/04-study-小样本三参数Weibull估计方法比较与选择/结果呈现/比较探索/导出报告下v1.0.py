@@ -33,6 +33,26 @@ def markdown(node):
             'Z=lnE': r'Z=\ln E',
             'E∼Exp(1)': r'E\sim\operatorname{Exp}(1)',
             'T≈(γ+η)+ηβZ.': r'T\approx(\gamma+\eta)+(\eta/\beta)Z.',
+            'RMSE2=Bias2+VR,VR=R−1RSD2.': r'\operatorname{RMSE}^2=\operatorname{Bias}^2+V_R,\qquad V_R=\frac{R-1}{R}\operatorname{SD}^2.',
+            'ΔRMSE2=ΔBias2+ΔVR.': r'\Delta\operatorname{RMSE}^2=\Delta\operatorname{Bias}^2+\Delta V_R.',
+            'gn(γ)': r'g_n(\gamma)',
+            'γ^=x(1)': r'\hat\gamma=x_{(1)}',
+            'Δγ^≈−Δgn(γ^)/gn′(γ^)': r"\Delta\hat\gamma\approx-\Delta g_n(\hat\gamma)/g_n'(\hat\gamma)",
+            '1−R2': r'1-R^2',
+            'm': r'm',
+            'θ=(β,η,γ)': r'\theta=(\beta,\eta,\gamma)',
+            'q=Fθ(m)=∫γmfθ(t),dt.': r'q=F_\theta(m)=\int_\gamma^m f_\theta(t)\,\mathrm{d}t.',
+            'm=1226.9': r'm=1226.9',
+            'q': r'q',
+            'Pθ(X(1)≥m)=[1−Fθ(m)]n=(1−q)n.': r'P_\theta(X_{(1)}\geq m)=[1-F_\theta(m)]^n=(1-q)^n.',
+            '(R−1)SD2/R': r'(R-1)\operatorname{SD}^2/R',
+            'κ=η0Sn′′(γ^)': r"\kappa=\eta_0S_n''(\hat\gamma)",
+            'κ=η02[−ℓp′′(γ^)]': r"\kappa=\eta_0^2[-\ell_p''(\hat\gamma)]",
+            'η0=1000': r'\eta_0=1000',
+            'RMSE2': r'\mathrm{RMSE}^2',
+            'Bias2': r'\mathrm{Bias}^2',
+            'VR=(R−1)SD2/R': r'V_R=(R-1)\mathrm{SD}^2/R',
+            'ΔMSE=ΔBias2+ΔVR': r'\Delta\mathrm{MSE}=\Delta\mathrm{Bias}^2+\Delta V_R',
         }
         if expression not in formulas:
             raise ValueError(f'请核对新增公式的Markdown表达：{expression}')
@@ -57,10 +77,12 @@ def markdown(node):
     if tag in ('em', 'i', 'small'):
         return '*' + text + '*'
     if tag == 'a':
+        if 'href' not in node.attrib:
+            return ('<a id="' + node.attrib['id'] + '"></a>' + text) if 'id' in node.attrib else text
         return '[' + text + '](' + local_link(node.attrib['href']) + ')'
     if tag == 'br':
         return '  \n'
-    if tag in ('h3', 'h4', 'h5'):
+    if tag in ('h2', 'h3', 'h4', 'h5'):
         return '\n\n' + '#' * int(tag[1]) + ' ' + text + '\n\n'
     if tag in ('sup', 'sub'):
         return '<' + tag + '>' + text + '</' + tag + '>'
