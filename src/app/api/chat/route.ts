@@ -3,6 +3,7 @@ import { getMoonshotClient, hasMoonshotKey } from '@/lib/server/moonshot-client'
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
+import { readPreferredPaper } from '@/lib/server/literature'
 
 // Load config from JSON
 const configPath = path.join(process.cwd(), 'src/app/api/chat/config.json')
@@ -163,33 +164,24 @@ async function stage2RankSections(
   controller?: ReadableStreamDefaultController<any>,
   encoder?: TextEncoder
 ): Promise<any[]> {
-  const contentDir = path.join(process.cwd(), 'src/content')
   const paperTocs: any[] = []
 
   // Read TOC from each paper
   paperSlugs.forEach(slug => {
-    const filePaths = [
-      path.join(contentDir, `${slug}-pdf翻译.md`),
-      path.join(contentDir, `${slug}-pdf原文.md`)
-    ]
+    const paper = readPreferredPaper(slug)
+    if (paper) {
+      const data = paper.metadata
+      const body = paper.body
+      const headings = extractHeadings(body)
 
-    for (const filePath of filePaths) {
-      if (fs.existsSync(filePath)) {
-        const content = readTextFile(filePath)
-        const { data } = matter(content)
-        const body = content.slice(content.indexOf('---', 3) + 3)
-        const headings = extractHeadings(body)
+      // Limit headings to reduce token count
+      const limitedHeadings = headings.slice(0, 50)
 
-        // Limit headings to reduce token count
-        const limitedHeadings = headings.slice(0, 50)
-
-        paperTocs.push({
-          slug,
-          title: data.title || slug,
-          headings: limitedHeadings
-        })
-        break
-      }
+      paperTocs.push({
+        slug,
+        title: data.title || slug,
+        headings: limitedHeadings
+      })
     }
   })
 
@@ -290,55 +282,45 @@ async function stage3GenerateAnswer(
   controller: ReadableStreamDefaultController<any>,
   encoder: TextEncoder
 ): Promise<{ content: string; sources: string[] }> {
-  const contentDir = path.join(process.cwd(), 'src/content')
   const sectionContents: any[] = []
 
   // Read section content
   sections.forEach((section: any) => {
-    const filePaths = [
-      path.join(contentDir, `${section.paper_slug}-pdf翻译.md`),
-      path.join(contentDir, `${section.paper_slug}-pdf原文.md`)
-    ]
+    const paper = readPreferredPaper(section.paper_slug)
+    if (paper) {
+      const body = paper.body
 
-    for (const filePath of filePaths) {
-      if (fs.existsSync(filePath)) {
-        const content = readTextFile(filePath)
-        const { data } = matter(content)
-        const body = content.slice(content.indexOf('---', 3) + 3)
+      // Skip if no section_heading
+      if (!section.section_heading) {
+        console.warn('Missing section_heading for', section.paper_slug)
+        return
+      }
 
-        // Skip if no section_heading
-        if (!section.section_heading) {
-          console.warn('Missing section_heading for', section.paper_slug)
+      // Find the section by heading
+      const lines = body.split(/\r?\n/)
+      let sectionStart = -1
+      let sectionEnd = lines.length
+
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^#{1,3}\s+(.+)$/)
+        if (match && match[1] && match[1].trim() === section.section_heading) {
+          sectionStart = i
+          continue
+        }
+        if (sectionStart >= 0 && lines[i].match(/^#{1,3}\s/)) {
+          sectionEnd = i
           break
         }
+      }
 
-        // Find the section by heading
-        const lines = body.split(/\r?\n/)
-        let sectionStart = -1
-        let sectionEnd = lines.length
-
-        for (let i = 0; i < lines.length; i++) {
-          const match = lines[i].match(/^#{1,3}\s+(.+)$/)
-          if (match && match[2] && match[2].trim() === section.section_heading) {
-            sectionStart = i
-            continue
-          }
-          if (sectionStart >= 0 && lines[i].match(/^#{1,3}\s/)) {
-            sectionEnd = i
-            break
-          }
-        }
-
-        if (sectionStart >= 0) {
-          const sectionText = lines.slice(sectionStart, sectionEnd).join('\n')
-          sectionContents.push({
-            paper_slug: section.paper_slug,
-            paper_title: section.paper_title,
-            section_heading: section.section_heading,
-            content: sectionText.slice(0, 3000) // Limit content length
-          })
-        }
-        break
+      if (sectionStart >= 0) {
+        const sectionText = lines.slice(sectionStart, sectionEnd).join('\n')
+        sectionContents.push({
+          paper_slug: section.paper_slug,
+          paper_title: section.paper_title,
+          section_heading: section.section_heading,
+          content: sectionText.slice(0, 3000) // Limit content length
+        })
       }
     }
   })

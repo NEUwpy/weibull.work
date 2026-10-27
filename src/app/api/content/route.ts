@@ -1,44 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { isContentSlug, resolveContentFile } from '@/lib/server/content-files'
+import { isContentSlug } from '@/lib/server/content-files'
+import { LibraryConfigurationError, readPaper } from '@/lib/server/literature'
 
-function readTextFile(filePath: string): string {
-  const buffer = fs.readFileSync(filePath)
-  try {
-    const decoder = new TextDecoder('utf-8', { fatal: true })
-    return decoder.decode(buffer)
-  } catch (e) {
-    try {
-      const decoder = new TextDecoder('gbk')
-      return decoder.decode(buffer)
-    } catch (e2) {
-      return buffer.toString('binary')
-    }
-  }
-}
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const slug = searchParams.get('slug')
-  const type = searchParams.get('type') // '翻译' or '原文'
-
-  if (!slug || !type) {
-    return new NextResponse('Missing parameters', { status: 400 })
-  }
-
+  const type = searchParams.get('type')
+  if (!slug || !type) return new NextResponse('Missing parameters', { status: 400 })
   if (!isContentSlug(slug) || !['翻译', '原文'].includes(type)) {
     return new NextResponse('Invalid content identifier', { status: 400 })
   }
-
-  const contentDir = path.join(process.cwd(), 'src/content')
-  const fileName = `${slug}-pdf${type}.md`
-  const filePath = resolveContentFile(contentDir, fileName)
-
-  if (!filePath) {
-    return new NextResponse('File not found', { status: 404 })
+  try {
+    const content = readPaper(slug, type as '翻译' | '原文')
+    if (content === null) return new NextResponse('File not found', { status: 404 })
+    return new NextResponse(content, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    console.error('Literature content read failed:', error)
+    return new NextResponse('文献库暂时不可用', { status: error instanceof LibraryConfigurationError ? 503 : 500 })
   }
-
-  const content = readTextFile(filePath)
-  return new NextResponse(content)
 }
