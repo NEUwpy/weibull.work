@@ -1,0 +1,24 @@
+{
+  "note": "controller-anchor single-replay fix — BEFORE (fd43e38) vs AFTER (d480c13), median of 3, validate_controller=True. Build uses validate_controller=False to reach N fast (anchors still written by _commit_transaction regardless). anchor_cost = full - baseline. Synthetic A-E1 fits.",
+  "BEFORE": {
+    "git": "fd43e38",
+    "results": [
+      {"N_fits": 32,  "events": 65,  "full_s": 11.2674, "baseline_s": 0.6706, "anchor_cost_s": 10.5968},
+      {"N_fits": 64,  "events": 129, "full_s": 42.5004, "baseline_s": 0.8964, "anchor_cost_s": 41.604},
+      {"N_fits": 96,  "events": 193, "full_s": 90.3344, "baseline_s": 1.2313, "anchor_cost_s": 89.1031}
+    ],
+    "anchor_cost_scaling": "10.60s -> 41.60s -> 89.10s for 65 -> 129 -> 193 events ~= O(N^1.9)"
+  },
+  "AFTER": {
+    "git": "d480c13",
+    "results": [
+      {"N_fits": 32,  "events": 65,  "full_s": 0.945,  "baseline_s": 0.6023, "anchor_cost_s": 0.3427},
+      {"N_fits": 64,  "events": 129, "full_s": 1.6042, "baseline_s": 0.9209, "anchor_cost_s": 0.6833},
+      {"N_fits": 96,  "events": 193, "full_s": 2.2405, "baseline_s": 1.2087, "anchor_cost_s": 1.0318}
+    ],
+    "speedup_full_at_N": {"32": "11.9x", "64": "26.6x", "96": "40.3x"},
+    "note": "validate-on ~= 2x baseline (step-1 strict replay + capture replay in _validate_controller_anchors); capture replay runs warm (right after step-1) so cheaper than baseline. anchor_cost now ~O(N) (linear)."
+  },
+  "smoke_extrapolation": "Anchor-rebuild cost model (VALID, independent of staging): validate-on ~= 0.29 + 0.0101*N seconds. The 349-record smoke wall-clock (~2h / 7321s) is NOT a valid staged-run time basis: that run FAILS because _a_e1_fit_stage mis-classifies every row as concrete (plan.jsonl carries no fit_kind), so staged selection never fires and placeholder rows are executed as concrete. 349 is therefore not a valid fit count and ~2h is not a valid formal staged-run extrapolation.",
+  "_smote_note": "test_access_count == 0 on the failed 349-record run (test stayed sealed)."
+}

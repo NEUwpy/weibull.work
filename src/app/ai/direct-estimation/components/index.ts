@@ -1,0 +1,7 @@
+export { TheoryTab } from './TheoryTab'
+export { TrainingTab } from './TrainingTab'
+export { DataTab } from './DataTab'
+export { PlaygroundTab } from './PlaygroundTab'
+export { PerformanceTab } from './PerformanceTab'
+export { VerificationTab } from './VerificationTab'
+export { CompareTab } from './CompareTab'
