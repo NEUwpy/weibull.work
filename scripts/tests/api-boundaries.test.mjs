@@ -11,6 +11,15 @@ import { getMoonshotClient, hasMoonshotKey } from '../../src/lib/server/moonshot
 
 const require = createRequire(import.meta.url)
 
+const storageSource = ts.transpileModule(fs.readFileSync('src/lib/server/literature.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
+}).outputText
+const storageModule = { exports: {} }
+vm.runInNewContext(storageSource, {
+  module: storageModule, exports: storageModule.exports, process, TextDecoder,
+  require: name => name === './content-files' ? { isContentSlug, resolveContentFile } : require(name),
+})
+
 // Exercise the actual handlers with Next's response objects, without starting a server.
 function loadRoute(relative, overrides = {}, globals = {}) {
   const file = path.resolve(relative)
@@ -20,6 +29,7 @@ function loadRoute(relative, overrides = {}, globals = {}) {
   const module = { exports: {} }
   const dependencies = {
     '@/lib/server/content-files': { isContentSlug, resolveContentFile },
+    '@/lib/server/literature': storageModule.exports,
     '@/lib/server/moonshot-client': { getMoonshotClient, hasMoonshotKey },
     '@/lib/config': { getApiBaseUrl: () => 'http://simulation.test' },
     ...overrides,

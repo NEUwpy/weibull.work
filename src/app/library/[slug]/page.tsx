@@ -15,7 +15,7 @@ import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
-import referencesData from '@/data/references.json'
+
 
 // -------------------------------------------------------------------------
 // REFACTOR: Moving heavy logic to a shared processing function
@@ -259,7 +259,8 @@ function renderTextWithMath(text: string): React.ReactNode {
 // -------------------------------------------------------------------------
 async function fetchFile(slug: string, type: '翻译' | '原文') {
   const response = await fetch(`/api/content?slug=${slug}&type=${type}`)
-  if (!response.ok) return null
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error('文献库暂时不可用，请稍后重试。')
   return response.text()
 }
 
@@ -268,6 +269,8 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasOriginal, setHasOriginal] = useState(false)
+  const [references, setReferences] = useState<Record<string, string>>({})
+  const [error, setError] = useState('')
 
   const slug = params.slug
 
@@ -275,25 +278,33 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const trans = await fetchFile(slug, '翻译')
-      const orig = await fetchFile(slug, '原文')
+      setError('')
+      try {
+        const [trans, orig, referenceResponse] = await Promise.all([
+          fetchFile(slug, '翻译'), fetchFile(slug, '原文'),
+          fetch(`/api/library/references?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' }),
+        ])
+        setReferences(referenceResponse.ok ? await referenceResponse.json() : {})
 
-      // Only show toggle if BOTH files are found
-      setHasOriginal(!!trans && !!orig)
+        // Only show toggle if BOTH files are found
+        setHasOriginal(!!trans && !!orig)
 
-      if (version === '翻译' && trans) {
-        setFileContent(trans)
-      } else if (version === '原文' && orig) {
-        setFileContent(orig)
-      } else {
-        setFileContent(trans || orig || null)
-      }
-      setLoading(false)
+        if (version === '翻译' && trans) {
+          setFileContent(trans)
+        } else if (version === '原文' && orig) {
+          setFileContent(orig)
+        } else {
+          setFileContent(trans || orig || null)
+        }
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : '文献库暂时不可用，请稍后重试。')
+      } finally { setLoading(false) }
     }
     load()
   }, [slug, version])
 
   if (loading) return <div className="p-20 text-center text-slate-400">正在加载文献...</div>
+  if (error) return <div className="p-20 text-center text-red-400">{error}</div>
   if (!fileContent) return <div className="p-20 text-center text-red-400">文献未找到 (ID: {slug})</div>
 
   const { frontmatter, body, referenceTitle, referenceList } = processContent(fileContent)
@@ -416,7 +427,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                     const refContent = refItem.replace(/^(\[\s*\d+\s*\]|\d+\.|\(\d+\))\s*/, '')
 
                     // Check if this reference has a linked article
-                    const currentPaperRefs = (referencesData as any)[slug] || {}
+                    const currentPaperRefs = references
                     const targetSlug = currentPaperRefs[refId]
                     const hasLink = targetSlug && typeof targetSlug === 'string'
 

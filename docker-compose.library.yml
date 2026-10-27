@@ -1,0 +1,10 @@
+# Optional: use after copying and checking the library on the Docker host.
+services:
+  frontend:
+    environment:
+      WEIBULL_LIBRARY_ROOT: /library
+    volumes:
+      - type: bind
+        source: ${WEIBULL_LIBRARY_HOST_PATH:?Set an existing checked library directory on the Docker host}
+        target: /library
+        read_only: true
