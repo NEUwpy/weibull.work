@@ -27,7 +27,7 @@
 
 科研仓通过 `research.py setup / doctor / run` 集中选择软件路径，直接导入本仓 `python/` 源码，无需启动网站。共享入口是 `methods` 与 `studies.common`；科研的模型和输出写在科研目录。正式实验同时保存两仓提交号、dirty 状态及配置和数据身份；冻结实现与历史结果按原版本使用。新方法在科研仓验证，通过明确的代码或模型交付进入软件仓。
 
-软件仓继续使用 [NEUwpy/weibull.work](https://github.com/NEUwpy/weibull.work)。旧 Git 历史的封存目标为 `D:\weibull-backups\pre-v4.0-20261027\weibull-history.git`，旧 GitHub 仓库拟改名为 `NEUwpy/weibull.work-history-pre-v4-20261027`；执行状态与恢复步骤见 [v4.0 基线记录](coworker/plans/2026-10-27-v4-baseline.md)。旧 worktree 及历史文档仅用于恢复或追溯。当前科研工作只在科研仓继续，已迁出的 Study/Research 不作为实时镜像维护。
+软件仓继续使用 [NEUwpy/weibull.work](https://github.com/NEUwpy/weibull.work)，新历史从无父提交的 `v4.0.0`（`6147387f`）开始。完整旧本地 Git 历史已封存至 `D:\weibull-backups\pre-v4.0-20261027\weibull-history.git`；旧公开 GitHub 仓库已改名为 [weibull.work-history-pre-v4-20261027](https://github.com/NEUwpy/weibull.work-history-pre-v4-20261027)并归档，只保留其原有公开历史。未公开的本地旧科研提交保存在本机封存中。所有备份与迁移恢复副本统一放在 `D:\weibull-backups`，使用与恢复步骤见 [v4.0 基线记录](coworker/plans/2026-10-27-v4-baseline.md)。旧 worktree 及历史文档仅用于恢复或追溯。当前科研工作只在科研仓继续，已迁出的 Study/Research 不作为实时镜像维护。
 
 | 层级 | 技术 |
 |------|------|
