@@ -20,7 +20,7 @@
 
 **双仓职责（2026-10-27）**：本仓维护网站、API、公共算法、统一蒙特卡洛流程和产品资源；Study、Research、论文与研究专用程序已迁至私有[科研仓 `weibull-research`](https://github.com/NEUwpy/weibull-research)。
 
-**外挂文献库**：本机已切换到 `D:\weibull-data\literature`，软件通过忽略的 `.env.local` 中 `WEIBULL_LIBRARY_ROOT` 统一读取列表、原译文、图片、引用和问答资料。新增文献按[库结构与导入流程](docs/library/README.md)、[格式规范](docs/library/文献格式.md)整理，刷新即可读取，不更新仓内旧副本。内置资料保留作回退与既有证据；其他机器未配置时仍使用内置库，NAS 线上尚未切换。[配置与回退](docs/外挂文献库.md)；[切换记录](coworker/plans/2026-10-27-external-literature.md)。
+**外挂文献库**：本机使用 `D:\weibull-data\literature`，网站通过 `WEIBULL_LIBRARY_ROOT` 读取，新增资料刷新即可显示。目录、文献格式、示例及导入配置统一见[文献库 README](docs/library/README.md)。内置资料保留作回退，NAS 线上尚未切换；[切换记录](coworker/plans/2026-10-27-external-literature.md)。
 
 | 日常工作 | 本机目录与入口 |
 |---|---|
@@ -92,7 +92,7 @@
 | `01-A-数据模型与接口.md` | 数据模型、API 端点、渲染管线 | 权威源 |
 | `02-A-适用范围规范.md` | 适用范围模块的分片命名、组件结构 | 专题规范 |
 | `02-B-可信性验证规范.md` | 验证配置格式、组件架构 | 专题规范 |
-| `docs/library/` | 文献库 README、文献格式及模板的版本源；外部资料库携带同版副本 | 专题规范 |
+| `docs/library/README.md` | 文献库结构、格式示例、导入与配置；外部资料库携带同版 README | 专题规范 |
 | `03-维护.md` | 部署流程、日常维护、故障排查 | 运维手册 |
 | `07-用户手册.md` | 面向终端用户的使用说明 | 用户文档 |
 | `08-更新日志.md` | 版本更新条目（只记事实，不做当前状态判断） | 日志 |
