@@ -1,0 +1,29 @@
+{
+  "contract": "mdm_process_optimization_v1",
+  "model_source_commit": "ddc75754",
+  "representation": "sort(X) / mean(X), then per-position StandardScaler",
+  "supported_sample_sizes": [7, 10, 15, 20],
+  "delta_grid": [
+    0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16,
+    0.18, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.32, 0.34,
+    0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5
+  ],
+  "models": {
+    "7": {
+      "file": "n7_final.json",
+      "sha256": "2fbf16feb1a6ff03fbc5b19f5fd23f7f2a7e6eff9025a9049f64a3f088aa7353"
+    },
+    "10": {
+      "file": "n10_final.json",
+      "sha256": "3659911977677461251b4e38ddbdf8de879a4a5bfd0cb6b926d3c17612cc4a52"
+    },
+    "15": {
+      "file": "n15_final.json",
+      "sha256": "0a635bfebf0297103aea342b9d8371ce21478932c6bd993464d99091261e4cb0"
+    },
+    "20": {
+      "file": "n20_final.json",
+      "sha256": "cb914dd84b3100515e4e4d57a286a67ed6be2c566105d7237efac59ce019b314"
+    }
+  }
+}

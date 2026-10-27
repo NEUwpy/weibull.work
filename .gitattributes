@@ -1,0 +1,57 @@
+# All text files are normalized to LF in the repo AND forced to LF on checkout.
+# `eol=lf` (not bare `text`) is required so that a Windows checkout performed
+# with the default core.autocrlf=true still produces LF working-tree bytes.
+# This matters because Study/02 byte-hashes frozen artifacts whose approved
+# SHA-256 is computed over LF content:
+#   configs/A-g2-protocol-v1.json, configs/A-g2-search-v1.json,
+#   configs/A-g3-pilot-amendment-v4.json,
+#   artifacts/pilot/G3-matrix/experiment_matrix.csv
+# Under bare `text`, autocrlf=true would smudge those to CRLF on checkout and
+# break verify_frozen_hashes / FROZEN_MATRIX_SHA256. With eol=lf the working
+# tree matches the approved bytes with no manual git config or file rewriting.
+* text=auto eol=lf
+*.css   text eol=lf
+*.csv   text eol=lf
+*.html  text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+src/data/method-status.generated.json text eol=lf
+*.jsonl text eol=lf
+*.jsx   text eol=lf
+*.md    text eol=lf
+*.mjs   text eol=lf
+*.py    text eol=lf
+*.ps1   text eol=lf
+*.sha256 text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.txt   text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.docx binary
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.pdf  binary
+*.pt   binary
+*.pth  binary
+# Preserve hash-bound Study1.5 evidence byte-for-byte across checkouts.
+Study/015-study-NN*/artifacts/** -text
+# Same evidence after its approved relocation from Study to project-level Research.
+Research/03-NN输入表征与样本量机制/artifacts/** -text
+# Preserve the dated Study04 solver backup against its saved SHA-256 values.
+Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/** -text
+# Preserve the current Study04 reproduction implementation against its saved SHA-256 values.
+Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/计算实现-20261016/** -text -whitespace
+# Preserve hash-bound Study01 P2 v2 formal artifacts byte-for-byte across checkouts.
+Study/01-study-MDM*/artifacts/formal/extended_validation/p2_generalization_v2/** -text
+# Store large P2 v2 per-sample CSVs in Git LFS (>100 MB GitHub limit).
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/extended_validation/p2_generalization_v2/p2_baseline_per_sample.csv filter=lfs diff=lfs merge=lfs -text
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/extended_validation/p2_generalization_v2/p2_vector_per_sample.csv filter=lfs diff=lfs merge=lfs -text
+# Store large P4 formal comparison CSVs in Git LFS (>100 MB GitHub limit).
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/**/*.csv filter=lfs diff=lfs merge=lfs -text
+# Preserve hash-bound P4 formal comparison JSON/text seal files byte-for-byte across checkouts
+# (mirrors the P2 v2 convention; the runner seals CRLF bytes on Windows).
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/**/*.json -text
+Study/01-study-MDM最小偏移量优化研究/artifacts/formal/p4_formal_compare/SHA256SUMS -text
+Study/02-study-NN参数估计与分位点目标研究/reproducibility/Study02-v2.7.0-reproducibility.zip filter=lfs diff=lfs merge=lfs -text

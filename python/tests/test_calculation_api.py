@@ -1,0 +1,446 @@
+"""test_calculation_api.py — 方法失败时不回退到 WMLE，且响应保持方法身份一致"""
+
+import asyncio
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+import pytest
+from fastapi import HTTPException
+
+
+class _FakeModule:
+    pass
+
+
+def _build_torch_mocks():
+    nn = type(sys)("torch.nn")
+    nn.Module = _FakeModule
+    nn.Linear = _FakeModule
+    nn.ReLU = _FakeModule
+    nn.BatchNorm1d = _FakeModule
+    nn.Sequential = _FakeModule
+    nn.Sigmoid = _FakeModule
+
+    torch = type(sys)("torch")
+    torch.nn = nn
+    torch.load = lambda *args, **kwargs: {}
+    torch.FloatTensor = lambda x: x
+    torch.no_grad = _FakeModule()
+    return torch, nn
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_torch_mock():
+    saved = {}
+    for key in ("torch", "torch.nn"):
+        saved[key] = sys.modules.get(key, None)
+
+    torch, nn = _build_torch_mocks()
+    sys.modules["torch"] = torch
+    sys.modules["torch.nn"] = nn
+    sys.modules.pop("torch.nn.modules", None)  # 防止旧缓存的子模块干扰
+
+    yield
+
+    for key, original in saved.items():
+        if original is None:
+            sys.modules.pop(key, None)
+        else:
+            sys.modules[key] = original
+
+
+@pytest.fixture
+def helpers():
+    import main  # noqa: E402  — main 在 mock 环境下解析一次，受益于 fixture 的导入缓存
+
+    return main
+
+
+def test_failed_selected_method_raises_422_and_never_calls_wmle(helpers, monkeypatch):
+    """所选方法失败时抛出 422，不调用 WMLE。"""
+    calls = []
+
+    def fake_run_method(method_id, data, **kwargs):
+        calls.append(method_id)
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": None,
+            "eta_hat": None,
+            "gamma_hat": None,
+            "r_squared": None,
+            "converged": False,
+            "time": 0.0,
+            "extra": {"error": "NotImplementedError: "},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    with pytest.raises(HTTPException) as exc:
+        helpers._run_calculation_method("mle", [1, 2, 3, 4, 5])
+
+    assert exc.value.status_code == 422
+    assert "mle" in exc.value.detail
+    assert calls == ["mle"]
+
+
+def test_successful_method_preserves_identity(helpers, monkeypatch):
+    """成功的方法调用返回正确的 method 身份。"""
+    def fake_run_method(method_id, data, **kwargs):
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": 2.5,
+            "eta_hat": 100.0,
+            "gamma_hat": 5.0,
+            "r_squared": 0.98,
+            "converged": True,
+            "time": 0.01,
+            "extra": {},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    response = helpers._run_calculation_method("mdm", [1, 2, 3, 4, 5], offset=0.1)
+    assert response["method"] == "mdm"
+    assert response["beta"] == 2.5
+    assert response["converged"] is True
+
+
+def test_custom_mdm_offset_is_forwarded(helpers, monkeypatch):
+    """自定义 MDM 偏移量必须原样传入统一方法调用。"""
+    captured = {}
+
+    def fake_run_method(method_id, data, **kwargs):
+        captured.update(kwargs)
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": 2.0,
+            "eta_hat": 1000.0,
+            "gamma_hat": 1000.0,
+            "r_squared": 0.99,
+            "converged": True,
+            "time": 0.01,
+            "extra": {},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    helpers._run_calculation_method("mdm", [1, 2, 3, 4, 5], offset=0.24)
+
+    assert captured["offset"] == pytest.approx(0.24)
+
+
+@pytest.mark.parametrize("offset", [-0.02, 0.52, float("nan"), float("inf")])
+def test_invalid_mdm_offset_is_rejected(helpers, offset):
+    """计算入口拒绝非有限值和超出计算器范围的偏移量。"""
+    with pytest.raises(ValueError, match="MDM offset"):
+        helpers._calculation_kwargs("mdm", offset=offset)
+
+
+def test_ai_process_optimization_endpoint_returns_loss_curve(helpers):
+    """过程量优化接口返回离散预测损失曲线，而不是旧版单值置信度。"""
+    sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    response = asyncio.run(
+        helpers.ai_predict_delta(helpers.AIDeltaRequest(data=sample))
+    )
+
+    assert response.model_n == 7
+    assert len(response.delta_grid) == 26
+    assert len(response.predicted_loss_curve) == 26
+    assert response.selected_delta == response.delta_grid[response.selected_index]
+    assert not hasattr(response, "confidence")
+
+
+def test_ai_process_optimization_endpoint_rejects_unsupported_n(helpers):
+    """不支持的样本量必须显式失败，不能套用旧模型或静默回退。"""
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(
+            helpers.ai_predict_delta(helpers.AIDeltaRequest(data=[1, 2, 3, 4, 5]))
+        )
+
+    assert exc.value.status_code == 422
+    assert "仅支持样本量" in exc.value.detail
+
+
+def test_failure_422_detail_includes_requested_method(helpers, monkeypatch):
+    """HTTP 422 的 detail 中包含被请求的方法 ID。"""
+    def fake_run_method(method_id, data, **kwargs):
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": None,
+            "eta_hat": None,
+            "gamma_hat": None,
+            "r_squared": None,
+            "converged": False,
+            "time": 0.0,
+            "extra": {"error": "ValueError: optimization failed"},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    with pytest.raises(HTTPException) as exc:
+        helpers._run_calculation_method("mmle", [1, 2, 3, 4, 5])
+
+    assert exc.value.status_code == 422
+    assert "mmle" in exc.value.detail
+
+
+def test_wmle_not_invoked_on_any_failure(helpers, monkeypatch):
+    """验证失败路径上的 WMLE 调用计数始终为 0。"""
+    wmle_calls = []
+
+    def fake_run_method(method_id, data, **kwargs):
+        if method_id == "wmle":
+            wmle_calls.append(1)
+        return {
+            "method_id": method_id,
+            "method_variant": method_id,
+            "beta_hat": None,
+            "eta_hat": None,
+            "gamma_hat": None,
+            "r_squared": None,
+            "converged": False,
+            "time": 0.0,
+            "extra": {},
+        }
+
+    monkeypatch.setattr(helpers, "run_method", fake_run_method)
+
+    with pytest.raises(HTTPException):
+        helpers._run_calculation_method("lre", [1, 2, 3, 4, 5])
+
+    assert wmle_calls == []
+
+
+# Hirose (1996) Table 1 case 2（src/content/182-105-pdf原文.md），
+# Table 2 基准：beta=4.529, eta=6.239, gamma=22.092。
+_HIROSE_CASE2 = [27.15, 29.13, 28.28, 27.74, 28.87, 26.42, 24.46, 30.88, 29.11, 27.31,
+                 27.54, 27.98, 28.49, 26.25, 28.50, 25.61, 29.50, 28.04, 27.94, 26.66]
+
+
+def test_calculate_api_runs_real_mle_with_identity(helpers):
+    """真实后端路径：/calculate 的 MLE 调用返回 mle 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("mle", _HIROSE_CASE2)
+
+    assert response["method"] == "mle"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 4.529) < 0.01
+    assert abs(response["eta"] - 6.239) < 0.01
+    assert abs(response["gamma"] - 22.092) < 0.01
+
+
+# Cousineau (2009) §4 数值例（src/content/182-088-pdf原文.md），
+# WMLE 基准：shape=2.29, scale=116.0, location=283.7。
+_COUSINEAU_X = [310, 342, 353, 365, 383, 393, 403, 412, 451, 456]
+
+
+def test_calculate_api_runs_real_wmle_with_identity(helpers):
+    """真实后端路径：/calculate 的 WMLE 调用返回 wmle 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("wmle", _COUSINEAU_X)
+
+    assert response["method"] == "wmle"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 2.29) < 0.06
+    assert abs(response["eta"] - 116.0) < 2.5
+    assert abs(response["gamma"] - 283.7) < 2.5
+
+
+def test_calculate_api_runs_real_mdm_with_identity(helpers):
+    """真实后端路径：/calculate 的 MDM 调用（默认 offset=0.1）复现 182-046 理想样本。"""
+    # 谢里阳等 (2025) §2 理想样本：W(2, 1000, 1000)、n=7、精确中位秩反算
+    ideal_sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    response = helpers._run_calculation_method("mdm", ideal_sample)
+
+    assert response["method"] == "mdm"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 2.0) < 0.05
+    assert abs(response["eta"] - 1000.0) < 15.0
+    assert abs(response["gamma"] - 1000.0) < 15.0
+
+
+# Soman & Misra (1992) Example 2（src/content/182-104-pdf原文.md），
+# LSE 基准：c=0.8361, b=8.8521, mu=99.9（MLE 失效区）。
+_SOMAN_EX2 = [102.4378, 114.7585, 103.5102, 101.3378, 141.7785,
+              102.5250, 102.5244, 124.9970, 146.9202, 117.0452,
+              103.5730, 113.6165, 102.2618, 110.0926, 107.1926,
+              125.1443, 100.3264, 102.9202, 100.0017, 107.7962,
+              101.3272, 101.3620, 102.5391, 100.0935, 104.8785,
+              125.1759, 105.1076, 101.6966, 102.4999, 130.1677]
+
+
+def test_calculate_api_runs_real_lse_with_identity(helpers):
+    """真实后端路径：/calculate 的 LSE 调用返回 lse 身份和论文基准参数。"""
+    response = helpers._run_calculation_method("lse", _SOMAN_EX2)
+
+    assert response["method"] == "lse"
+    assert response["converged"] is True
+    assert abs(response["beta"] - 0.8361) < 0.08
+    assert abs(response["eta"] - 8.8521) < 0.4
+    assert abs(response["gamma"] - 99.9) < 0.5
+
+
+def test_calculate_api_runs_real_mm_with_identity(helpers):
+    """真实后端路径：/calculate 的 MM 调用返回 mm 身份和有限合法参数。"""
+    import numpy as np
+
+    rng = np.random.default_rng(2)
+    sample = (50.0 + 200.0 * np.sort(rng.weibull(1.5, 60))).tolist()
+    response = helpers._run_calculation_method("mm", sample)
+
+    assert response["method"] == "mm"
+    assert response["converged"] is True
+    assert response["beta"] > 0
+    assert response["eta"] > 0
+    assert 0.0 <= response["gamma"] < min(sample)
+
+
+def test_calculate_api_runs_real_lre_with_identity(helpers):
+    """真实后端路径：/calculate 的 LRE 调用返回 lre 身份和有限合法参数。"""
+    import numpy as np
+
+    from studies.common.sample import generate_sample
+
+    fixed = generate_sample(2.0, 100.0, 5.0, 30, 0)
+    response = helpers._run_calculation_method("lre", fixed)
+
+    assert response["method"] == "lre"
+    assert response["converged"] is True
+    assert response["beta"] > 0
+    assert response["eta"] > 0
+    assert 0.0 <= response["gamma"] < min(fixed)
+
+
+def test_calculate_api_returns_422_for_degenerate_lre(helpers):
+    """退化 LRE 全等值样本必须经真实 /calculate 路径返回 HTTP 422。"""
+    with pytest.raises(HTTPException) as exc:
+        helpers._run_calculation_method("lre", [5.0, 5.0, 5.0, 5.0, 5.0])
+
+    assert exc.value.status_code == 422
+    assert "lre" in exc.value.detail
+
+
+def test_batch_csv_keeps_failed_cells_empty_and_success_numbers(helpers, monkeypatch):
+    import csv
+    import io
+    from studies.common import simulation
+
+    results = iter([
+        {"beta_hat": None, "eta_hat": None, "gamma_hat": None, "r_squared": None,
+         "converged": False, "extra": {"error": "solver failed"}},
+        {"beta_hat": 2.0, "eta_hat": 100.0, "gamma_hat": 5.0, "r_squared": 0.98,
+         "converged": True, "extra": None},
+    ])
+    monkeypatch.setattr(simulation, "run_method", lambda *a, **k: next(results))
+
+    async def request_csv():
+        response = await helpers.batch_simulation(helpers.BatchSimulationRequest(
+            method="mdm", true_beta=2, true_eta=100, true_gamma=5,
+            sample_sizes=[7], num_simulations=2,
+        ))
+        chunks = [chunk async for chunk in response.body_iterator]
+        return b"".join(chunks).decode()
+
+    rows = list(csv.DictReader(io.StringIO(asyncio.run(request_csv()))))
+    assert rows[0]["est_beta"] == rows[0]["bias_beta"] == ""
+    assert rows[0]["converged"] == "False"
+    assert rows[0]["status"] == "failure"
+    assert rows[0]["error"] == "solver failed"
+    assert rows[1]["est_beta"] == "2.000000"
+    assert rows[1]["bias_beta"] == "0.000000"
+    assert rows[1]["status"] == "success"
+    assert rows[1]["error"] == ""
+
+
+@pytest.mark.parametrize("endpoint", ["calculate", "batch_simulation", "monte_carlo_simulate"])
+def test_stub_alias_api_preserves_501(helpers, endpoint):
+    requests = {
+        "calculate": helpers.CalculationRequest(method="lm", data=[1, 2, 3]),
+        "batch_simulation": helpers.BatchSimulationRequest(
+            method="lm", true_beta=2, true_eta=100, true_gamma=5, sample_sizes=[7]),
+        "monte_carlo_simulate": helpers.MonteCarloRequest(method="lm", beta=2, eta=100, n=7),
+    }
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(getattr(helpers, endpoint)(requests[endpoint]))
+    assert exc.value.status_code == 501
+
+
+@pytest.mark.parametrize("override", [
+    {"n": 501}, {"n": 2}, {"rep": 1001}, {"rep": 0},
+    {"beta": float("inf")}, {"eta": 0}, {"gamma": -1},
+    {"offset": 0.51}, {"offset": float("nan")},
+])
+def test_simulation_limits_fail_before_solver(helpers, monkeypatch, override):
+    def unexpected(*args, **kwargs):
+        pytest.fail("invalid request reached solver")
+    monkeypatch.setattr(helpers, "simulate_method", unexpected)
+    req = helpers.MonteCarloRequest(**({"method": "mdm", "beta": 2, "eta": 100, "n": 7} | override))
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(helpers.monte_carlo_simulate(req))
+    assert exc.value.status_code == 400
+
+
+def test_batch_total_work_limit_and_empty_grid(helpers):
+    for sizes, betas, offsets, rep in [([7, 10], [1, 2], [0.1, 0.2], 200), ([], None, None, 1), ([7], [], None, 1)]:
+        req = helpers.BatchSimulationRequest(method="mdm", true_beta=2, true_eta=100, true_gamma=5,
+            sample_sizes=sizes, betas=betas, offsets=offsets, num_simulations=rep)
+        with pytest.raises(HTTPException) as exc:
+            asyncio.run(helpers.batch_simulation(req))
+        assert exc.value.status_code == 400
+
+
+def test_compute_is_offloaded_bounded_and_releases_after_failure(helpers, monkeypatch):
+    import threading
+
+    monkeypatch.setattr(helpers, "_compute_slots", threading.BoundedSemaphore(2))
+    release = threading.Event()
+    started = []
+    main_thread = threading.get_ident()
+
+    def blocked():
+        started.append(threading.get_ident())
+        assert release.wait(timeout=3), "worker was not released"
+        return 42
+
+    async def check():
+        tasks = [asyncio.create_task(helpers._run_interactive_compute(blocked)) for _ in range(2)]
+        try:
+            for _ in range(100):
+                if len(started) == 2:
+                    break
+                await asyncio.sleep(0.01)
+            assert len(started) == 2
+            assert all(thread != main_thread for thread in started)
+            with pytest.raises(HTTPException) as exc:
+                await helpers._run_interactive_compute(lambda: None)
+            assert exc.value.status_code == 429
+            assert exc.value.headers["Retry-After"] == "2"
+        finally:
+            release.set()
+            assert await asyncio.gather(*tasks) == [42, 42]
+
+        def failed():
+            raise ValueError("expected")
+        with pytest.raises(ValueError, match="expected"):
+            await helpers._run_interactive_compute(failed)
+        assert await helpers._run_interactive_compute(lambda: 7) == 7
+
+    asyncio.run(check())
+
+
+def test_simulation_response_preserves_failures_and_shared_metrics(helpers, monkeypatch):
+    from studies.common import simulation
+    monkeypatch.setattr(simulation, "run_method", lambda *a, **k: {
+        "beta_hat": None, "eta_hat": None, "gamma_hat": None, "r_squared": None,
+        "converged": False, "extra": {"error": "solver failed"}, "method_id": "mdm", "time": 0.0,
+    })
+    response = asyncio.run(helpers.monte_carlo_simulate(
+        helpers.MonteCarloRequest(method="mdm", beta=2, eta=100, n=7, rep=2)))
+    assert response["count"] == 2
+    assert response["rows"][0]["est_beta"] is None
+    assert response["rows"][0]["status"] == "failure"
+    assert response["metrics"]["n_failure"] == 2

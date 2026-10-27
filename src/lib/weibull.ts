@@ -1,0 +1,207 @@
+
+// Weibull Analysis Core Logic
+// Implements Median Ranks (Benard's) and Rank Regression (RRX)
+// Supports 3-Parameter Weibull (gamma location parameter)
+
+/**
+ * Represents a single data point input
+ */
+export type DataPoint = {
+  id: number
+  value: number // Time to failure
+  status: 'F' | 'S' // Failure or Suspension
+}
+
+/**
+ * Represents a point on the Weibull Probability Plot
+ */
+export type PlotPoint = {
+  x: number // ln(t - gamma)
+  y: number // ln(-ln(1-MedianRank))
+  originalValue: number
+  medianRank: number
+}
+
+/**
+ * Analysis Result
+ */
+export type WeibullResult = {
+  beta: number | null // Shape parameter (slope)
+  eta: number | null  // Scale parameter (characteristic life)
+  gamma: number // Location parameter
+  rSquared: number | null // Coefficient of determination
+  points: PlotPoint[] // The calculated points for plotting
+  converged?: boolean | string // Whether the calculation converged, or "unbounded" for Smith (1985) problem
+}
+
+/**
+ * Multi-curve data source for batch display
+ */
+export type DataSource = {
+  id: string                    // Unique identifier
+  name: string                  // Display name (e.g., "g1-1", "案例1")
+  color: string                 // Curve color
+  data: DataPoint[]             // Raw data
+  result?: WeibullResult        // Calculation result (filled after calculation)
+  traceData?: any               // Trace data for calculation process visualization
+  sourceType: 'case' | 'group-subcase' | 'custom'
+  groupId?: string              // Parent group ID if it's a subcase
+  visible?: boolean             // Curve visibility (for legend toggle)
+}
+
+/**
+ * 30 colors for multi-curve display
+ */
+export const MULTI_CURVE_COLORS = [
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',  // 1-5: Blue, Red, Emerald, Amber, Violet
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',  // 6-10: Pink, Cyan, Lime, Orange, Indigo
+  '#14b8a6', '#eab308', '#a855f7', '#22c55e', '#f43f5e',  // 11-15: Teal, Yellow, Purple, Green, Rose
+  '#0ea5e9', '#e11d48', '#7c3aed', '#059669', '#d97706',  // 16-20: Sky, Red-600, Violet-600, Emerald-600, Amber-600
+  '#2563eb', '#dc2626', '#16a34a', '#9333ea', '#ca8a04',  // 21-25: Blue-600, Red-600, Green-600, Purple-600, Yellow-600
+  '#0891b2', '#be185d', '#4f46e5', '#15803d', '#c2410c',  // 26-30: Cyan-600, Pink-700, Indigo-600, Green-700, Orange-700
+]
+
+/**
+ * Calculates plotting positions: Park (2017) for LRE, Benard otherwise.
+ * Applies Weibull transformation with Gamma parameter.
+ * X = ln(t - gamma)
+ * Y = ln(-ln(1 - F(t)))
+ * 
+ * @param data Raw data points
+ * @param gamma Location parameter (default 0). Points where value <= gamma are excluded.
+ * @param methodId LRE uses the same piecewise plotting positions as its estimator.
+ */
+export function calculateMedianRanks(data: DataPoint[], gamma: number = 0, methodId?: string): PlotPoint[] {
+  // Filter for failures only
+  // Also filter out invalid points where t <= gamma
+  const failures = data
+    .filter(d => d.status === 'F' && d.value > gamma)
+    .sort((a, b) => a.value - b.value)
+  
+  const isPark = methodId?.toLowerCase() === 'lre'
+  // /calculate receives failure observations only; match that sample size for LRE.
+  const N = isPark ? data.filter(d => d.status === 'F').length : data.length
+  
+  return failures.map((point, index) => {
+    const rank = index + 1
+    const medianRank = isPark
+      ? (N <= 10 ? (rank - 3 / 8) / (N + 1 / 4) : (rank - 1 / 2) / N)
+      : (rank - 0.3) / (N + 0.4)
+    
+    // Weibull Transformation (3-Parameter)
+    const t_adjusted = point.value - gamma
+    const x = Math.log(t_adjusted)
+    const y = Math.log(-Math.log1p(-medianRank))
+
+    return {
+      x,
+      y,
+      originalValue: point.value,
+      medianRank
+    }
+  })
+}
+
+/**
+ * Performs Rank Regression on X (RRX) using Least Squares
+ * Fits Y = beta * X + C
+ * where X = ln(t - gamma)
+ * C = -beta * ln(eta)
+ */
+export function calculateWeibullParameters(points: PlotPoint[], fixedGamma: number = 0): WeibullResult {
+  const n = points.length
+  if (n < 2) {
+    return { beta: 0, eta: 0, gamma: fixedGamma, rSquared: 0, points }
+  }
+
+  let sumX = 0
+  let sumY = 0
+  let sumXY = 0
+  let sumXX = 0
+  let sumYY = 0
+
+  points.forEach(p => {
+    sumX += p.x
+    sumY += p.y
+    sumXY += p.x * p.y
+    sumXX += p.x * p.x
+    sumYY += p.y * p.y
+  })
+
+  // Calculate slope (Beta) and intercept
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+
+  const beta = slope
+  const eta = Math.exp(-intercept / slope)
+
+  // Calculate R-squared
+  const numerator = n * sumXY - sumX * sumY
+  const denom = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
+  const rSquared = denom === 0 ? 0 : Math.pow(numerator / denom, 2)
+
+  return {
+    beta,
+    eta,
+    gamma: fixedGamma,
+    rSquared,
+    points
+  }
+}
+
+/**
+ * Generates points for the fitted line (for visualization)
+ * Returns 2 points: [start, end] covering the range of data
+ * Line Equation: Y = beta * X - beta * ln(eta)
+ * where X is already transformed ln(t - gamma)
+ */
+export function generateLinePoints(beta: number, eta: number, minX: number, maxX: number) {
+  const y1 = beta * minX - beta * Math.log(eta)
+  const y2 = beta * maxX - beta * Math.log(eta)
+
+  return [
+    { x: minX, y: y1 },
+    { x: maxX, y: y2 }
+  ]
+}
+
+/**
+ * Generates points for the Probability Density Function (PDF) curve
+ * f(t) = (beta/eta) * ((t-gamma)/eta)^(beta-1) * exp(-((t-gamma)/eta)^beta)
+ */
+export function generatePDFPoints(beta: number, eta: number, gamma: number, minT: number, maxT: number, steps: number = 100) {
+  const points = []
+  const stepSize = (maxT - minT) / steps
+  
+  for (let i = 0; i <= steps; i++) {
+    const t = minT + i * stepSize
+    if (t <= gamma) continue // PDF is 0 or undefined for t <= gamma
+    
+    const z = (t - gamma) / eta
+    const y = (beta / eta) * Math.pow(z, beta - 1) * Math.exp(-Math.pow(z, beta))
+    points.push({ x: t, y })
+  }
+  return points
+}
+
+/**
+ * Generates points for the Cumulative Distribution Function (CDF) curve
+ * F(t) = 1 - exp(-((t-gamma)/eta)^beta)
+ */
+export function generateCDFPoints(beta: number, eta: number, gamma: number, minT: number, maxT: number, steps: number = 100) {
+  const points = []
+  const stepSize = (maxT - minT) / steps
+  
+  for (let i = 0; i <= steps; i++) {
+    const t = minT + i * stepSize
+    if (t <= gamma) {
+       points.push({ x: t, y: 0 })
+       continue
+    }
+    
+    const z = (t - gamma) / eta
+    const y = 1 - Math.exp(-Math.pow(z, beta))
+    points.push({ x: t, y })
+  }
+  return points
+}

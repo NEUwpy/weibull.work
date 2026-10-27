@@ -1,0 +1,181 @@
+# MDM 曲线性质与有解性研究 Chatbox 提示词
+
+你是三参数威布尔分布参数估计方法的研究审稿人和数值分析专家。请帮我完成一篇关于 MDM（Minimum Discrepancy Method，最小差异法）的证明型研究论文。
+
+这不是普通总结，也不是方法精度比较。我只想研究 MDM 方法本身：它的计算步骤、涉及的曲线、曲线性质，以及 strict offset-root 判据什么时候有解、什么时候无解。请不要讨论 AI 模型、NE、NQE、outlier、分位点误差等评价指标。唯一需要统计的指标是 **有解率**。
+
+我希望最终得到 Word 格式论文。如果你不能直接生成 `.docx` 文件，请输出可直接复制到 Word 的完整论文正文，并标明图片插入位置、图题和图注。
+
+## 一、三参数威布尔分布
+
+研究对象是三参数威布尔分布：
+
+```text
+F(x) = 1 - exp(-((x - gamma) / eta)^beta), x > gamma
+```
+
+其中：
+
+- `beta` 是形状参数
+- `eta` 是尺度参数
+- `gamma` 是位置参数
+
+样本是完全观测失效数据，排序后记为：
+
+```text
+t_1 <= t_2 <= ... <= t_n
+```
+
+## 二、MDM 方法需要分析的公式与步骤
+
+MDM 方法使用 plotting position，即经验分布点：
+
+```text
+F_i
+```
+
+如果你需要具体公式，可采用常见 median rank 形式，并在文中说明；如果你需要与某个程序实现完全一致，请说明需要查看程序中的 plotting position 公式。
+
+对给定候选位置参数 `gamma`，要求：
+
+```text
+gamma < t_1
+```
+
+定义：
+
+```text
+a_i(beta) = [-ln(1 - F_i)]^(1 / beta)
+
+eta_i(beta, gamma) = (t_i - gamma) / a_i(beta)
+
+sigma(beta | gamma) = std_i(eta_i(beta, gamma))
+```
+
+第一层优化：
+
+```text
+beta*(gamma) = argmin_beta sigma(beta | gamma)
+```
+
+由此得到 profile 曲线：
+
+```text
+S(gamma) = sigma(beta*(gamma) | gamma)
+```
+
+再计算梯度：
+
+```text
+g(gamma) = dS(gamma) / dgamma
+```
+
+strict offset-root 版本的 MDM 是在可行域内寻找：
+
+```text
+g(gamma) = offset
+```
+
+如果存在这样的 `gamma`，则 strict offset-root 有解；如果不存在，则 strict offset-root 无解。请注意：这里研究的是 offset-root 判据的有解性，不是参数估计精度。
+
+## 三、论文要回答的问题
+
+请通过研究 MDM 的曲线性质，回答：
+
+1. MDM 方法到底按什么公式计算？
+2. MDM 方法的每一步计算对应哪条曲线？
+3. 固定 `gamma` 时，`sigma(beta | gamma)` 曲线有什么性质？
+4. 对每个 `gamma` 取最优 `beta` 后，`S(gamma)=sigma_min(gamma)` 曲线有什么性质？
+5. 梯度曲线 `g(gamma)=dS(gamma)/dgamma` 有什么性质？
+6. strict offset-root 判据 `g(gamma)=offset` 在什么情况下有解？
+7. strict offset-root 判据在什么情况下无解？
+8. 无解是曲线本身无交点，还是数值搜索没有找到交点？
+9. 应该如何改进计算程序，使它能可靠判断“有解/无解/疑似漏解”？
+
+## 四、必须研究和展示的曲线
+
+如果你可以运行代码，请真实运行计算并绘图。至少展示：
+
+1. 固定 `gamma` 下的 `sigma(beta | gamma)` 曲线
+2. 多个 `gamma` 下的 `sigma-beta` 曲线对比
+3. `beta*(gamma)` 曲线
+4. `S(gamma)=sigma_min(gamma)` 曲线
+5. `g(gamma)=dS/dgamma` 曲线
+6. `g(gamma)-offset` 曲线
+7. 有解样本与无解样本的曲线对比
+8. 低分辨率网格与高分辨率网格下的曲线对比
+9. near-miss 样本，即 `g(gamma)` 很接近 offset 但未检测到交点的样本
+
+图片必须来自真实计算。若你不能真实运行计算，请明确说明，不能用示意图冒充验证图。
+
+## 五、有解/无解分类
+
+请不要笼统地说“MDM 无解”。请至少区分：
+
+1. `sigma(beta | gamma)` 子问题正常，且 `g(gamma)=offset` 有交点
+2. `sigma(beta | gamma)` 子问题正常，但 `g(gamma)` 全域高于 offset
+3. `sigma(beta | gamma)` 子问题正常，但 `g(gamma)` 全域低于 offset
+4. `g(gamma)` 接近 offset，但没有符号变化，属于 near-miss
+5. 粗网格下无解，高分辨率下有解，属于数值漏检
+6. `sigma(beta | gamma)` 曲线多峰或 beta 最优值贴边界，导致 beta 子问题不稳定
+7. 梯度估计噪声造成假有解或假无解
+
+请给出每类情形的样本数、比例和代表性曲线图。如果无法真实统计，请说明需要哪些数据才能统计。
+
+## 六、有解率统计
+
+请统计 strict offset-root 的有解率：
+
+```text
+有解率 = 有 offset-root 的样本数 / 总样本数
+```
+
+建议按以下维度分组：
+
+- `beta`
+- `gamma/eta`
+- `n`
+- `beta × gamma/eta`
+- `gamma/eta × n`
+
+请只统计有解率，不要统计参数误差、outlier、分位点误差等。
+
+## 七、程序改进建议
+
+请基于曲线性质提出 MDM 计算程序的改进建议。至少回答：
+
+1. 是否应先高分辨率分析 `sigma(beta | gamma)` 再优化 beta？
+2. 是否应对 beta 使用“网格扫描 + 局部优化”？
+3. 是否应对 gamma 使用自适应网格？
+4. 是否应改进梯度估计方法？
+5. 是否应检测所有交点，而不是只找符号变化？
+6. 是否应增加 near-miss 判断？
+7. 无解时程序应该返回哪些 `no_root_reason`？
+8. 程序如何区分“曲线无解”和“数值漏检”？
+
+## 八、Word 论文建议结构
+
+请把文档写得像一篇小论文：
+
+1. 摘要
+2. MDM 方法定义
+3. MDM 计算步骤
+4. `sigma(beta | gamma)` 曲线性质
+5. `beta*(gamma)` 与 `S(gamma)` 曲线性质
+6. `g(gamma)` 与 offset-root 判据
+7. 有解样本与无解样本对比
+8. 高分辨率复核：曲线无解还是数值漏检
+9. 有解率统计
+10. 无解类型分类
+11. 程序改进建议
+12. 结论
+13. 附录：实验设置、图片清单
+
+## 九、禁止事项
+
+- 不要评价 AI 模型
+- 不要讨论 NE、NQE、outlier、分位点误差
+- 不要做方法精度排名
+- 不要只给表格，必须讨论曲线性质
+- 不要用示意图冒充真实验证图
+

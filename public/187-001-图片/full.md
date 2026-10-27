@@ -1,0 +1,858 @@
+# An improved adaptive gradient-based optimization algorithm for estimating the parameters of three-parameter Weibull distribution: an application of aero-engine reliability assessment
+
+![](images/b12b3df63086fa5894f0d14f343b97c6d190651c780a63595deee035c1798b52.jpg)
+
+Zinan Wang a , Xiangwei Kong $\mathbf { a , b , c , \tilde { \mathcal { \ast } } _ { \mathbb { Q } } }$ , Jin Guo a , Bingfeng Zhao a,b,c , Liyang Xie a,b,c , Ningxiang Wu a,b,c
+
+a School of Mechanical Engineering and Automation, Northeastern University, Shenyang 110819, China   
+b Key Laboratory of Vibration and Control of Aero-Propulsion System, Ministry of Education, Northeastern University, Shenyang 110819, China   
+c Liaoning Province Key Laboratory of Multidisciplinary Design Optimization of Complex Equipment, Northeastern University, Shenyang 110819, China
+
+# A R T I C L E I N F O
+
+# Keywords:
+
+Three-parameter Weibull distribution
+
+Maximum likelihood estimation
+
+Monte-Carlo simulation
+
+Aero-engine reliability assessment
+
+Gradient-based method
+
+# A B S T R A C T
+
+The reliability assessment of long-life and high-quality products such as aero-engines under smaller sample size conditions is essential for maintaining structural integrity. Parameter estimation for the three-parameter Weibull distribution should be particularly emphasized in reliability assessment of aero-engine life. Optimization algorithms have emerged as an effective strategy for solving multivariate nonlinear equations in maximum likelihood estimation of parameters for the three-parameter Weibull distribution. This study proposes a novel metaheuristic optimization algorithm based on adaptive gradient optimization principles for determining the parameters of the three-parameter Weibull distribution. Initially, the proposed algorithm optimizes the initial confidence intervals by utilizing the correlation coefficient and Bootstrap methods. Furthermore, due to the pseudo-random nature of traditional initialization parameters, the Halton random initialization method is employed to facilitate lowdiscrepancy sequence sampling. Subsequently, the Gradient Search Rule and the Local Escaping Operator are incorporated to enhance the computational efficiency and the capability to escape local optima. Therefore, global optimal parameter estimation of Weibull parameters is achieved. Extensive Monte-Carlo simulations are conducted to validate the proposed method. The simulation results indicate that the proposed method exhibits superior performance compared to existing methodologies. Ultimately, the proposed method is implemented to evaluate the reliability of actual failure data from the aero-engine and confirm the applicability.
+
+# 1. Introduction
+
+In the engineering domain, aero-engines are exposed to harsh service environments and demanding operating conditions, threatening significantly to operational security and structural integrity [1–3]. Such conditions are likely to result in catastrophic accidents and significant loss of both life and property during operation. In accordance with the conflicting demands between performance optimization and structural complexity, aero-engines are required to exhibit high reliability [4,5]. Reliability assessment of aero-engines is of great significance to ensure flight security [6,7]. Furthermore, due to the high reliability requirements of this type of long-lifetime, high-quality products and consideration of economic and time costs, it is difficult to gather sufficient reliability data in the form of large samples by conducting product
+
+life reliability experiments, resulting in interference with the reliability assessment of aero-engine [8,9]. Therefore, it is valuable for the long-life and high-quality products, such as aero-engines, to investigate the reliability assessment procedures under smaller samples.
+
+Generally, selecting an appropriate life distribution type is crucial for reliability assessments of aero-engine life. Numerous studies indicate that the three-parameter Weibull distribution with location parameter is more representative of the actual lifetime distribution of aero-engine [10–12]. On the other hand, failures of high-quality and long-life products cannot occur immediately, resulting in a non-zero location parameter. Regarding the non-zero failure probability at the zero moment for an aero-engine, Rinne [13] emphasized the importance of introducing location parameters to regulate the shape of the three-parameter Weibull distribution in reliability assessment. The
+
+three-parameter Weibull distribution exhibits better fitting properties compared to other distributions for data with skewness and threshold characteristics. Therefore, it is reasonable to use the three-parameter Weibull distribution as the life distribution model. Assume that the life t follows three-parameter Weibull distribution, denoted as ${ \mathrm { W D } } ( \gamma , \eta ;$ $\beta _ { , }$ ). The probability density function (PDF) of the three-parameter Weibull distribution can be expressed as:
+
+$$
+f (t) = \frac {\beta}{\eta} \left(\frac {t - \gamma}{\eta}\right) ^ {\beta - 1} \exp \left[ - \left(\frac {t - \gamma}{\eta}\right) ^ {\beta} \right] \tag {1}
+$$
+
+where $\gamma$ represents the location parameter, $\eta$ denotes the scale parameter, and $\beta$ signifies the shape parameter. The cumulative distribution function (CDF) of the three-parameter Weibull distribution is given by
+
+$$
+F (t) = 1 - \exp \left[ - \left(\frac {t - \gamma}{\eta}\right) ^ {\beta} \right] \tag {2}
+$$
+
+The extensive application of the three-parameter Weibull distribution relies on obtaining acceptable statistical estimates of the distribution parameters. Traditional estimation methods have been developed, including Maximum Likelihood Estimation (MLE) [14], Least Squares Estimation (LSE) [15], Weibull Probability Plot (WPP) [16], Correlation Coefficient Method [17], and the Method of Moments (MOM) [18], etc. Rinne explored the estimation methods for the three-parameter Weibull distribution [13].
+
+While the WPP offers intuitive advantages in data visualization, it has limitations in terms of accuracy compared to LSE. The LSE is widely used in estimating parameters for Weibull distributions. However, it is primarily applied to the two-parameter Weibull distribution. Under the condition of three-parameter Weibull distribution, other methods are required to first estimate the location parameter, followed by integrating the LSE to estimate the scale and shape parameters. Moreover, it is sensitive to the assumption of normality of the data and exhibits bias in severely skewed distributions. The MOM estimation is sensitive to sample size when dealing with skewed distribution data, resulting in unstable estimates and poorly documented efficiency [19]. In this case, parameter estimation methods assisted by a priori information and sample expansion are applied in estimating parameters for small samples of lifetime data [20,21]. However, the semi-empirical methods are constrained by the quality of historical data and expert knowledge. Likewise, the Bayesian approaches depend on the accuracy of the prior information. In particular, the sample expansion based on the characteristics of the original sample can introduce duplicate samples during resampling, amplifying the bias of the original data, especially for small samples [22]. Moreover, the empirical distribution of the original sample is not characterized significantly in the case of small samples, causing a deviation of the expanded sample distribution from the original true distribution.
+
+In particular, MLE is widely recognized as a standard and effective method for estimating the parameters of the Weibull distribution, exhibiting desirable asymptotic property, consistency, and normality [23,24]. Rinne suggests that MLE is a generally applicable and reliable estimation method, outperforming MOM and LSE [13]. The asymptotic properties and large-sample performance of MLE for the three-parameter Weibull distribution have been discussed thoroughly, demonstrating that it can supply consistent and efficient parameter estimates under appropriate conditions. Maswadah [22] identified MLE as the commonly used method for parameter estimation. Teimouri et al [23] concluded that MLE achieves the highest accuracy in comparing the Weibull parameter estimation results from different methods across various parameter combinations. Han et al [25] derived the partial derivatives of the likelihood function for the three-parameter Weibull model and set them to zero to determine the maximum likelihood estimates. Shazaib [26] applied MLE to estimate the Weibull parameters and conducted reliability analysis based on gas turbine failure data.
+
+Nonetheless, conventional parameter estimation approaches are
+
+associated with solving nonlinear equations. More precisely, MLE, complicated by the log-likelihood function, still encounters challenges including high computational costs, difficulty in obtaining the optimal solution, and the potential for non-convergence or getting trapped in local optima when solving the numerical solution of the partial derivatives [27,28]. Additionally, MLE is sensitive to the computational process, with varying computational techniques producing substantial estimation bias and slow convergence. When dealing with small samples of full-life data, it leads to large estimation errors in the Weibull parameters and unreasonable estimates of the location parameters [22, 29]. Consequently, these methods have limitations in reliability assessment utilizing small samples of life data in the field of aero-engines. Obviously, the issue is transformed into an optimization problem for the objective function. It is necessary to utilize the optimization algorithms to estimate Weibull parameters [30].
+
+Optimization algorithms are designed to either maximize or minimize the objective function by utilizing initial parameter information. The algorithm iteratively updates the parameters progressively through the optimization model of the objective function until the optimal solution is obtained. Currently, optimization algorithms have demonstrated promising outcomes in estimating distribution parameters with the continuous advancement of computer science and technology. Emam [24], Han [25], Aynur Yonar [31], and Zhou [32] et al. integrated MLE with various optimization algorithms to estimate the Weibull parameter using the objective function of maximizing the log-likelihood function. According to the optimization strategies, optimization algorithms are categorized into Gradient-based Optimizer (GBO) algorithms and metaheuristic optimization algorithms [33].
+
+Ahmadianfar et al. [33] proposed the GBO algorithms to solve nonlinear optimization problems. The fundamental concept involves calculating the gradient information of the function at the current position and subsequently searching in the direction of the gradient to attain the global optimum of the objective function. Ismail [34] applied Newton’s gradient method to calculate the maximum likelihood estimates of the parameters for maximizing the likelihood function with censored data. In addition, Wang et al [35] proposed a gradient-based method to address the inability to obtain the optimal solution and convergence difficulties when reliability gradient information is unavailable over the entire region. The method converts the local gradient information into global gradient information by incorporating reliability displacement intervals, facilitating the search for the global optimal value. Gorjian et al. [36] introduced a cost optimization model for power generation engines, reducing maintenance costs better by leveraging Newton’s gradient method to evaluate reliability. Although the GBO algorithm offers certain advantages in terms of convergence speed and computational efficiency, it is susceptible to local optima on account of surface gradient effects.
+
+In contrast, metaheuristic optimization algorithms rely on information sharing and comparison among particles within the population [37–39]. Based on the objective function, the iterative evolution of the particle positions is performed, ultimately converging on the global optimum solution. Govindasamy [40] and Kilic [41] employed genetic algorithms to address the low convergence efficiency associated with traditional gradient methods in maximizing the likelihood function. Moreover, metaheuristic optimization algorithms are population-based optimization algorithms and can perform parameter optimization without relying on gradient information from the objective function. The Particle Swarm Optimization (PSO) is a metaheuristic optimization algorithm that avoids complex mathematical computations and has been broadly applied in numerous application studies [42–45].
+
+Krohling et al. [46] applied the PSO algorithm to estimate the reliability of censored data under a mixed Weibull distribution, intending to maximize the likelihood function. Likewise, Orkc ¨ [47], Handoyo [48], Zhou [32], and Acitas [49] employed PSO to estimate the optimal Weibull parameters to overcome the difficulties in maximizing the likelihood function of the Weibull distribution. Consistent with other
+
+heuristic optimization algorithms, the parameter estimation performance of the PSO algorithm is substantially dependent on the selection of control parameters, including the parameter search space, inertia weight, and acceleration coefficients [49–51]. The standard PSO algorithm is susceptible to premature convergence and exhibits a lack of robustness in conducting complex high-dimensional optimization issues.
+
+Furthermore, regardless of whether it is the gradient-based algorithm or the heuristic optimization algorithm, the initialization parameters fluctuate significantly on the convergence result of the optimization scheme. Existing methods typically initialize population parameters through random generation. Nevertheless, the deterministic process fails to produce truly random numbers and may cause partial clustering of random numbers, significantly restricting the robustness of the estimation algorithm [52,53]. Thus, random initialization is not an efficient approach for initialization.
+
+Consequently, to resolve these conflicts, this study aims to identify a novel heuristic optimization algorithm to enhance the stability of reliability evaluation and mitigate the impact of control parameter selection on the performance of the optimization algorithm. The main objective of this study is to solve the complex nonlinear equations in aero-engine reliability assessment methodologies and improve the accuracy of Weibull parameter estimation.
+
+To overcome the limitations, the main contribution of this study is the development of a novel model integrating Adaptive Gradient-based Optimization with PSO. In contrast to the previous investigations, the proposed algorithm provides an adaptive search space for Weibull parameters rather than a random definition. Besides, the gradient search rule has been refined and implemented to enhance the exploration and exploitation capabilities of the optimization algorithm. It is worth noting that parameter random initialization is incorporated to further improve the capability of the optimization algorithm. To validate the performance of the proposed methodology, a general Monte Carlo simulation was conducted to evaluate effectiveness and applicability. Meanwhile, the smaller datasets containing noisy environments are utilized to evaluate parameter estimation performance. Finally, the proposed method was applied to two sets of actual aero-engine failure cases for reliability analysis to confirm the applicability of the proposed method. This optimization proposal is expected not only to enhance both the efficiency and accuracy of Weibull parameter estimation but also to provide an appropriate tool for researchers in reliability engineering.
+
+The remaining sections of this study are organized as follows: Section 2 briefly reviews the concepts and principles of maximum likelihood estimation for three-parameter Weibull distribution, the Correlation Coefficient Method, Newton’s gradient method, and particle swarm optimization. The fundamental computational steps of the proposed metaheuristic optimization algorithm based on Adaptive Gradient Optimization theory are elaborated in Section 3. In Section 4, the performance of the proposed methodology for Weibull parameter estimation is provided and compared with traditional methods. Section 5 examines the reliability evaluation of two cases of real aero-engine failure life data to demonstrate the implementation of the proposed method. Finally, the conclusions of this study are briefly summarized in Section 6.
+
+# 2. Preliminaries
+
+To investigate a novel approach that ensures the validity of location parameter estimates, thereby enhancing the estimation precision of Weibull parameters. In the following sections, the principles and concepts of traditional Newton’s gradient method and PSO are elaborated. A brief review of the likelihood equations for Weibull distribution is provided in Section 2.1. The Correlation Coefficient Method, Newton’s gradient method, and PSO algorithm are elaborated in Section 2.2 to Section 2.4, respectively.
+
+# 2.1. Fundamental of maximum likelihood estimation for three-parameter Weibull distribution
+
+Estimation theory plays a significant role in statistical analysis and methodologies for estimating the life distribution parameters of aeroengines. Specifically, for reliability assessment under the threeparameter Weibull distribution, MLE has emerged as an acceptable parameter estimation method due to its strong asymptotic properties and high estimation accuracy. The fundamental concept of MLE is that life distribution parameters exhibit an intuitive correlation with the observed life data. It is widely recognized that the general characteristics of aero-engines can be partially reflected in the failure data [23]. More precisely, when a set of life data from the population is available, the life distribution parameters of the population should correspond to the optimal values that maximize the occurrence probability of the set. In one sense, it is implied that MLE is a method for estimating the life distribution parameters based on the collected life data of the aero-engine. Therefore, it has broad applications in estimating the life distribution parameters for aero-engine failure data [54].
+
+The PDF of the aero-engine component life distribution is denoted as $f ( t ; \theta : \theta \in \Theta )$ , where $\theta$ is the parameter of the PDF. Suppose that $t _ { i } ( i = 1 , 2 , . . . , n )$ represents a set of observation data values from the population T. The joint PDF for all sample data can be calculated as
+
+$$
+f (t _ {1}; \theta) \cdot f (t _ {2}; \theta), \dots , f (t _ {n}; \theta) = \prod_ {i = 1} ^ {n} f (t _ {i}; \theta) \tag {3}
+$$
+
+$\mathrm { L e t } L = \prod _ { i = 1 } ^ { n } f ( t _ { i } ; \theta ) .$ , according to the principle of maximum likelihood,
+
+it is necessary to determine the value of $\widehat { \theta }$ corresponding to the maximum value of L. To achieve maximum likelihood estimation of Weibull parameter of three-parameter Weibull distribution, it has been stated that the partial derivative of the log-likelihood function concerning the Weibull parameter is calculated and set to zero. At this time, the optimization problem in the reliability evaluation of failure data is thereby derived as
+
+$$
+\begin{array}{l} \max  \left\{\ln \left[ L \left(t _ {1}, t _ {2}, \dots , t _ {n}\right) \right] \right\} = n \ln \beta - n \ln \eta + (\beta - 1) \sum_ {i = 1} ^ {n} \ln \left(\frac {t _ {i} - \gamma}{\eta}\right) \\ - \sum_ {i = 1} ^ {n} \left(\frac {t _ {i} - \gamma}{\eta}\right) ^ {\beta} \tag {4} \\ \end{array}
+$$
+
+Notably, partial derivative equations are complex nonlinear equations. It is difficult to obtain satisfactory solutions through numerical methods. Consequently, the efficient optimization algorithm emerges as a practical and effective strategy for solving the maximum likelihood estimate of the three-parameter Weibull distribution. It is worth noting that conventional methods are confronted with the difficulty of identifying the optimal solution [55,56].
+
+# 2.2. Fundamental of the correlation coefficient method
+
+Despite the outstanding statistical properties of MLE in parameter estimation, there is a constraint of convergence difficulty when solving nonlinear equations for the three-parameter Weibull distribution. It is susceptible to getting trapped in local optima or encountering solving difficulties without a reasonable solution method. To overcome this limitation, the Weibull plot with the sample correlation coefficient has been introduced [17], derived from the Weibull plot method. The location parameter of the three-parameter Weibull distribution is estimated by maximizing the sample correlation function, and the scale parameter and shape parameter are further estimated using the LSE. Park et al. [17] validated the results of this method by comparing sample correlations, p-values, and the Anderson-Darling test. In contrast to MLE, this method is characterized by conceptual clarity and simplicity of implementation. Therefore, it is also widely adopted to estimate the
+
+parameters of the three-parameter Weibull distribution.
+
+The correlation coefficient method estimates parameters by maximizing the linear correlation between failure data and corresponding failure probabilities. It is assumed that the failure times collected from reliability tests of $n$ aero-engines are denoted as $t _ { i } ( i = 1 , 2 , . . . , n )$ . The empirical distribution function of the three-parameter Weibull distribution is expressed in a linear form.
+
+$$
+\ln \left[ - \ln \left(1 - F _ {n} \left(t _ {i}\right)\right) \right] = \beta \ln \left(t _ {i} - \gamma\right) - \beta \ln \eta \tag {5}
+$$
+
+where $F _ { n } ( t _ { i } )$ is the empirical distribution function. For failure data with a small sample size, the empirical distribution function can be calculated by
+
+$$
+F _ {n} \left(t _ {i}\right) = \frac {i - 0 . 3}{n + 0 . 4} \quad (i = 1, 2, 3, \dots , n) \tag {6}
+$$
+
+Let $x _ { i } = \ln ( t _ { i } - \gamma )$ , and $y _ { i } = \ln [ - \ln ( 1 - F _ { n } ( t _ { i } ) ) ]$ . The correlation coefficient can be expressed as
+
+$$
+R _ {x y} = \frac {\sum_ {i = 1} ^ {n} \left(x _ {i} - \bar {x}\right) \sum_ {i = 1} ^ {n} \left(y _ {i} - \bar {y}\right)}{\left[ \sum_ {i = 1} ^ {n} \left(x _ {i} - \bar {x}\right) ^ {2} \sum_ {i = 1} ^ {n} \left(y _ {i} - \bar {y}\right) ^ {2} \right] ^ {1 / 2}} \tag {7}
+$$
+
+where $\textstyle { \overline { { x } } } = \sum _ { i = 1 } ^ { n } x _ { i } / n , { \overline { { y } } } = \sum _ { i = 1 } ^ { n } y _ { i } / n$ . The correlation coefficient $R _ { x , y } = 1$ implies the optimal linear fit for the three-parameter Weibull distribution. Therefore, maximizing the correlation coefficient is adopted as the optimization objective function, with the optimization problem for the location parameter under the correlation coefficient method formulated as follows:
+
+$$
+\gamma = \underset {0 \leq \gamma \leq \min  (t _ {i})} {\operatorname {a r g m a x}} R _ {x, y} (\gamma) \tag {8}
+$$
+
+The LSE is subsequently applied to solve for the scale parameter and shape parameter. If there is a linear correlation $y = a x + b$ between the two variables, the optimal parameter estimate should minimize the sum of the cumulative distances between all sample points $\left( x _ { i } , y _ { i } \right)$ and the corresponding points $( x _ { i } , a x _ { i } + b )$ on the line, i.e., $D =$ $\begin{array} { r } { \operatorname* { m i n } \sum _ { i = 1 } ^ { n } { ( y _ { i } - a x _ { i } - b ) ^ { 2 } } } \end{array}$ . The shape and scale parameters, derived by minimizing the sum of squared fitting errors, are denoted as follows, respectively:
+
+$$
+\widehat {\beta} _ {C} = \frac {n \sum_ {i = 1} ^ {n} x _ {i} \widehat {y} _ {i} - \sum_ {i = 1} ^ {n} x _ {i} \sum_ {i = 1} ^ {n} \widehat {y} _ {i}}{n \sum_ {i = 1} ^ {n} x _ {i} ^ {2} - \left(\sum_ {i = 1} ^ {n} x _ {i}\right) ^ {2}} \tag {9}
+$$
+
+$$
+\widehat {\eta} _ {C} = \exp \left[ - \frac {1}{n \beta} \left(\sum_ {i = 1} ^ {n} \widehat {y} _ {i} - \widehat {a} \sum_ {i = 1} ^ {n} x _ {i}\right) \right] \tag {10}
+$$
+
+It can be observed that all three parameters are solved as singlevariable functions, avoiding the issue of converging to local optimal solutions and computational challenges inherent in MLE. Moreover, existing literature has validated that the parameter estimates obtained via this method are reasonable [16]. To simplify the presentation, the correlation coefficient method is abbreviated as CCLSE.
+
+# 2.3. Fundamental of Newton’s gradient method
+
+Newton’s gradient method, also known as Newton’s iteration or Newton-Raphson method, is a powerful algorithm for solving numerical equations proposed by Newton in the 17th century [57–59]. Newton’s gradient method is herein simplified to be expressed as Newton’s method, and abbreviated as Newton. The method adopts the root-finding optimization technique based on the initial term of the Taylor series, starting from an initial value $\vartheta _ { 0 }$ . The Taylor series at the previous point is employed to estimate the next nearby point, and the
+
+process continues iteratively until the final solution is achieved. It is extended to the three-parameter Weibull distribution followed by aero-engine life. The Newton’s method is used to solve the nonlinear equation corresponding to the log-likelihood function of failure data, which can be defined as:
+
+$$
+\left\{ \begin{array}{l} l _ {\gamma} ^ {L N} (\gamma , \eta , \beta) = - (\beta - 1) \sum_ {i = 1} ^ {n} \left(\frac {1}{t _ {i} - \gamma}\right) + \frac {\beta}{\eta} \sum_ {i = 1} ^ {n} \left(\frac {t _ {i} - \gamma}{\eta}\right) ^ {\beta - 1} = 0 \\ l _ {\eta} ^ {L N} (\gamma , \eta , \beta) = - \frac {n \beta}{\eta} + \frac {\beta}{\eta} \sum_ {i = 1} ^ {n} \left(\frac {t _ {i} - \gamma}{\eta}\right) ^ {\beta} = 0 \\ l _ {\beta} ^ {L N} (\gamma , \eta , \beta) = \frac {n}{\beta} + \sum_ {i = 1} ^ {n} \ln \left(\frac {t _ {i} - \gamma}{\eta}\right) - \sum_ {i = 1} ^ {n} \left(\frac {t _ {i} - \gamma}{\eta}\right) ^ {\beta} \ln \left(\frac {t _ {i} - \gamma}{\eta}\right) = 0 \end{array} \right. \tag {11}
+$$
+
+Regarding $L ^ { L N } ( \vartheta ) = \Bigl ( l _ { \gamma } ^ { L N } ( \vartheta ) , l _ { \eta } ^ { L N } ( \vartheta ) , l _ { \beta } ^ { L N } ( \vartheta ) \Bigr ) ^ { T } , \vartheta = ( \gamma , \eta , \beta ) ^ { T } .$ . Thus, the nonlinear equation can be expressed as $L ^ { L N } ( \vartheta ) = 0$ . It is assumed that both the independent variable and the function are real-valued. Let $\vartheta _ { k }$ represent the value at the $k - \operatorname { t h }$ iteration. The first-order Taylor expansion at $\vartheta _ { k }$ is expressed as
+
+$$
+L ^ {L N} (\vartheta) \approx L ^ {L N} \left(\vartheta_ {k}\right) + L ^ {L N ^ {\prime}} \left(\vartheta_ {k}\right) \left(\vartheta - \vartheta_ {k}\right) = 0 \tag {12}
+$$
+
+The parameter iteration formula derived from Newton’s method is written as
+
+$$
+\vartheta_ {k + 1} = \vartheta_ {k} - \frac {L ^ {L N} \left(\vartheta_ {k}\right)}{L ^ {L N ^ {\prime}} \left(\vartheta_ {k}\right)}, k = 0, 1, 2, \dots . \tag {13}
+$$
+
+$$
+L ^ {L N ^ {\prime}} \left(\vartheta_ {k}\right) = \left( \begin{array}{l} \nabla l _ {\gamma} ^ {L N} \left(\vartheta_ {k}\right) ^ {T} \\ \nabla l _ {\eta} ^ {L N} \left(\vartheta_ {k}\right) ^ {T} \\ \nabla l _ {\beta} ^ {L N} \left(\vartheta_ {k}\right) ^ {T} \end{array} \right) = \left( \begin{array}{c c c} \partial l _ {\gamma} ^ {L N} \left(\vartheta_ {k}\right) / \gamma & \partial l _ {\gamma} ^ {L N} \left(\vartheta_ {k}\right) / \eta & \partial l _ {\gamma} ^ {L N} \left(\vartheta_ {k}\right) / \beta \\ \partial l _ {\eta} ^ {L N} \left(\vartheta_ {k}\right) / \gamma & \partial l _ {\eta} ^ {L N} \left(\vartheta_ {k}\right) / \eta & \partial l _ {\eta} ^ {L N} \left(\vartheta_ {k}\right) / \beta \\ \partial l _ {\beta} ^ {L N} \left(\vartheta_ {k}\right) / \gamma & \partial l _ {\beta} ^ {L N} \left(\vartheta_ {k}\right) / \eta & \partial l _ {\beta} ^ {L N} \left(\vartheta_ {k}\right) / \beta \end{array} \right) \tag {14}
+$$
+
+Assuming that the initial value of the Weibull parameters is $\mathsf { W D } ( \gamma _ { 0 } , \eta _ { 0 }$ $\beta _ { 0 } ^ { \mathrm { ~ ~ } } )$ ), then $\boldsymbol { \vartheta } _ { 0 } = ( \gamma _ { 0 } , \eta _ { 0 } , \beta _ { 0 } ) ^ { T }$ . Newton’s method is used for iteration and can be generated as
+
+$$
+\vartheta_ {i} = \vartheta_ {i - 1} - \frac {L ^ {L N} \left(\vartheta_ {i - 1}\right)}{L ^ {L N ^ {\prime}} \left(\vartheta_ {i - 1}\right)}, \vartheta_ {i - 1} = \left(\gamma_ {i - 1}, \eta_ {i - 1}, \beta_ {i - 1}\right) ^ {T} \tag {15}
+$$
+
+As mentioned above, the iteration is executed continuously until the accuracy of the iteration results attains the predetermined value. The final iteration result, $\widehat { \pmb { \vartheta } } = ( \widehat { \gamma } _ { N } , \widehat { \eta } _ { N } , \widehat { \beta } _ { N } )$ , serves as the Newton estimate for Weibull parameters.
+
+# 2.4. Fundamental of the particle swarm optimization
+
+The PSO algorithm, initially proposed by Kennedy et al. [60,61], is an optimization algorithm inspired by the collective behavior of bird flocks [62,63]. As illustrated in Fig. 1, each particle is represented by a set of parameters in the PSO algorithm, corresponding to a point in the multi-dimensional parameter space. The entire group of particles is referred to as the particle swarm. Each particle within the swarm operates independently according to the same management principles and converges progressively toward the optimal value through information sharing.
+
+Initially, the direction of movement and velocity vectors are assigned to the set of randomly generated particles. Each particle adjusts its position depending on its own experience and the experience of other neighboring particles. Following the generation of new particles in each iteration, all particles evaluate the fitness (i.e., the objective function value) and move towards the best position. The velocity of each particle is a random variable that can be adjusted according to the distance to the optimal position. The aforementioned process is repeated until the convergence condition for iteration is satisfied. The local and global search mechanisms are effectively implemented by adjusting the
+
+![](images/ef5cfee752e319d842bb0a718f395a762bfa8028ed493e684cd80d04b37e3a3d.jpg)  
+Fig. 1. Schematic of the PSO algorithm.
+
+trajectory of each particle to its optimal position and moving towards the globally optimal solution of the entire particle swarm in each iteration.
+
+As depicted in Fig. 1, it is supposed that $N$ particles form a particle swarm within a p-dimensional parameter space. The position of the $k -$ th particle is represented by $X _ { j } ^ { k } = \left( x _ { 1 } ^ { k } , x _ { 2 } ^ { k } , . . . , x _ { p } ^ { k } \right)$ and the velocity of the $k$ − th particle is denoted by $V _ { j } ^ { k } = \left( \nu _ { 1 } ^ { k } , \nu _ { 2 } ^ { k } , . . . , \nu _ { p } ^ { k } \right)$ . The position of each particle is subsequently updated by calculating two extreme values. One is the individual extreme value (Pbest), indicating the optimal position of the particle. The other is the global best value (Gbest), representing the optimal position of the entire particle swarm. The definitions of Pbest and Gbest are as follows:
+
+$$
+P b e s t _ {j} ^ {k} = \left(x _ {1} ^ {k}, x _ {2} ^ {k}, \dots , x _ {p} ^ {k}\right) \tag {16}
+$$
+
+$$
+G b e s t _ {j} ^ {\mathrm {g}} = \left(x _ {1} ^ {\mathrm {g}}, x _ {2} ^ {\mathrm {g}}, \dots , x _ {p} ^ {\mathrm {g}}\right) \tag {17}
+$$
+
+At the beginning of the algorithm, the initial particle swarm is generated randomly. Each particle in a particle swarm has a random velocity. Subsequently, the velocity and position of each particle are updated according to the following equation:
+
+$$
+V _ {j + 1} ^ {k} = w V _ {j} ^ {k} + c _ {1} r _ {1} \left(P b e s t _ {j} ^ {k} - X _ {j} ^ {k}\right) + c _ {2} r _ {2} \left(G b e s t _ {j} ^ {g} - X _ {j} ^ {k}\right) \tag {18}
+$$
+
+$$
+X _ {j + 1} ^ {k} = X _ {j} ^ {k} + V _ {j + 1} ^ {k} \tag {19}
+$$
+
+where w is a non-negative inertia weight, $c _ { 1 }$ and $c _ { 2 }$ are the acceleration coefficients, $r _ { 1 }$ and $r _ { 2 }$ are random numbers within the interval (0,1), $V _ { j } ^ { k }$ and $X _ { j } ^ { k }$ represent the velocity and position vectors of the particle $k$ at the
+
+Table 1 Pseudo code of the PSO algorithm.   
+
+<table><tr><td colspan="2">Step 1: Initialization</td></tr><tr><td colspan="2">Input parameters: wmax, wmin, c1, c2, particle size, iteration number, failure time ti</td></tr><tr><td colspan="2">Calculate cost ln(L) of ti</td></tr><tr><td colspan="2">for each article: random positions xjk and vk</td></tr><tr><td colspan="2">Step 2: PSO</td></tr><tr><td colspan="2">While maximum iterations or minimum error criteria are not attained</td></tr><tr><td colspan="2">Find the particle with the best fitness value (max(ln(L)))</td></tr><tr><td colspan="2">Record the Pbestjk and Gbestg</td></tr><tr><td colspan="2">for each article</td></tr><tr><td colspan="2">Update particle velocity according to Eq. (18)</td></tr><tr><td colspan="2">Update particle position according to Eq. (19)</td></tr><tr><td colspan="2">end</td></tr><tr><td colspan="2">end</td></tr><tr><td colspan="2">Step 3: Record</td></tr><tr><td colspan="2">Record the global best particle as the Weibull parameters (γps0, ηps0, βps0)</td></tr></table>
+
+j − th iteration, respectively. The velocity update of a particle comprises three components. The first component represents the inertia of the particle, implying that the particle continues to travel in the previous direction. The second component denotes self-knowledge, indicating that each particle travels towards a local optimal position. The third component becomes social knowledge, signifying that each particle accesses the global optimal position. The pseudo-code of the PSO algorithm is presented in Table 1.
+
+# 3. Proposed methodology
+
+To address the issues mentioned above, this study proposes a metaheuristic optimization algorithm on account of adaptive gradient optimization theory for estimating the life distribution parameters in the context of the three-parameter Weibull distribution. Indeed, the maximization of the likelihood function is considered as the objective function in the optimization problem. In other words, it can also be interpreted that MLE of Weibull distribution parameters is implemented utilizing the adaptive gradient optimization algorithm. It is worth emphasizing that the primary objective of the proposed method is to enhance the accuracy and reliability of Weibull distribution parameter estimation. The following sections provide a detailed description of the fundamental computational process of the proposed Adaptive Gradientbased Optimization (ADGBO) algorithm.
+
+# 3.1. Initialization of adaptive parameter search space
+
+The initial conditions of the parameter space should be defined before starting the optimization computational procedure. The quality of the initial conditions is an evident factor that directly affects the property of the optimization algorithm. The algorithm is allowed to converge rapidly to the global optimum under a suitable initial condition. In current studies, the search space is typically determined randomly based on the range of common parameters [64–66]. There may be issues that the parameter configuration remains unreasonable when handling various failure data [47,67]. This section proposes a method for determining an adaptive parameter search space. The correlation coefficient method and the parametric Bootstrap method are employed to calculate the initial confidence intervals for Weibull parameters. Thus, the initial search space for the parameters is determined. In particular, the initial value $( \widehat { \gamma } _ { C } , \widehat { \eta } _ { C } , \widehat { \beta } _ { C } )$ of the Weibull parameter is derived through the correlation coefficient method. Given that $( { \widehat { \theta } } - \theta ) / { \sqrt { \operatorname { v a r } ( { \widehat { \theta } } ) } }$ approximately follows normal distribution, where $\widehat { \theta }$ represents $\widehat { \gamma } _ { C } , \widehat { \eta } _ { C }$ and ${ \widehat { \beta } } _ { C }$ respectively. The confidence interval for the Weibull parameter at the confidence level ${ \boldsymbol { 1 } } - { \boldsymbol { \alpha } }$ is given by
+
+$$
+\widehat {\gamma} _ {C} - \mathbf {z} _ {\alpha / 2} s e \left(\widehat {\gamma} _ {C}\right) <   \widehat {\gamma} _ {C} <   \widehat {\gamma} _ {C} + \mathbf {z} _ {\alpha / 2} s e \left(\widehat {\gamma} _ {C}\right) \tag {20}
+$$
+
+$$
+\widehat {\eta} _ {C} - \mathbf {z} _ {\alpha / 2} s e (\widehat {\eta} _ {C}) <   \widehat {\eta} _ {C} <   \widehat {\eta} _ {C} + \mathbf {z} _ {\alpha / 2} s e (\widehat {\eta} _ {C}) \tag {21}
+$$
+
+$$
+\widehat {\beta} _ {C} - \mathbf {z} _ {\alpha / 2} s e (\widehat {\beta} _ {C}) <   \widehat {\beta} _ {C} <   \widehat {\beta} _ {C} + \mathbf {z} _ {\alpha / 2} s e (\widehat {\beta} _ {C}) \tag {22}
+$$
+
+where $z _ { \alpha / 2 }$ is the upper $\alpha / 2$ quantile of the standard normal distribution, $s e ( \widehat { \gamma } _ { C } )$ , $s e ( \widehat { \eta } _ { C } )$ and $s e ( \widehat { \beta } _ { C } )$ denote the standard deviations of the Weibull parameter estimates derived from the Bootstrap samples. The specific solution process is elaborated in Table 2.
+
+where $n$ denotes the number of samples in each Bootstrap sample, and $B$ refers to the sampling number of B times.
+
+Notably, the correlation coefficient method is employed in this context, owing to its straightforward solution procedure and high computational efficiency. Moreover, it may be possible to encounter cases where the initial estimate of the location parameter $\widehat { \gamma } _ { C }$ is 0 due to the randomness of the small samples [27]. In this case, the initial search space for the location parameter is adjusted to $[ 0 , \operatorname* { m i n } ( t _ { i } ) ]$ . Given that the scale parameter estimate tends to be large under the two-parameter Weibull distribution, the initial search space for the location parameter is adjusted to  0, $\widehat { \eta } _ { C } + z _ { \alpha / 2 } s e ( \widehat { \eta } _ { C } ) ]$ . Analogously, as the shape parameter for typical mechanical products ranges from 0.5 to 5.5 [68], the lower and upper limits of the search space for the shape parameter are defined as 0.5 and ${ \widehat { \beta } } _ { C } + z _ { \alpha / 2 } s e ( { \widehat { \beta } } _ { C } )$ , respectively. Owing to the fact that this search interval is dynamic with respect to the sample, it is termed an adaptive search space.
+
+# 3.2. Initialization of particle parameters
+
+In mathematics, a sequence of numbers that exhibits greater advancement and uniformity is referred to as a low-discrepancy sequence. Such a sequence reveals that the distribution of points within the set $\Omega$ is closely related to the size of the set Ω. The method used to generate the low-discrepancy sequence, or the quasi-random, is extensively applied. For instance, the Sobol initialization method [69], Latin Hypercube initialization method [70], Halton initialization method [71,72], and Hammersley initialization method [73] are common initialization techniques. Compared to the original optimization algorithms, it is found that the optimization algorithm based on Halton and Sobol methods exhibits superior convergence efficiency and computational accuracy [74]. As a consequence, the Halton random initialization method is incorporated to initialize the parameters.
+
+The implication of the method is that any positive integer a can be represented as a sequence of digits $d _ { m } ( a ) . . . d _ { 2 } ( a ) d _ { 1 } ( a )$ [75]. The inverse function $\phi _ { b }$ implies reversing the sequence of digits in base b, and adding zero at the front. It can be converted into a decimal representation as follows
+
+Table 2 Pseudo code of the Bootstrap algorithm.   
+
+<table><tr><td colspan="2">Step 1. Initialization
+Compute (γC, ηC, βC) based on the original sample by using Eq. (8)</td></tr><tr><td colspan="2">Step 2. Bootstrap sample
+While (b ≤ B)
+Obtain the bootstrap sample tib obeying WD(γC, ηC, βC) by using the Monte-Carlo method
+Compute (γC, ηC, βC) of tib by using CCLSE
+Recording the results (γC, ηC, βC)</td></tr><tr><td>b = b + 1</td><td>end</td></tr><tr><td colspan="2">Step 3. Standard deviation
+Obtaining Weibull parameter estimates (γC1, γC2, ..., γC), (θC1, θC2, ..., θC), and (βC1, βC2, ..., βC)</td></tr><tr><td colspan="2">Compute the standard deviations se(γC), se(θC), and se(βC), respectively.</td></tr><tr><td colspan="2">Step 4. Return se(γC), se(θC), and se(βC)</td></tr></table>
+
+$$
+\phi_ {b} (a) = 0. d _ {1} (a) d _ {2} (a)... d _ {m} (a) \tag {23}
+$$
+
+The purpose of the inverse function $\phi _ { b }$ is to convert the positive integer a into a fraction number in base b within the interval [0, 1). The generated sequence of inverse functions is denoted as
+
+$$
+x _ {a} = \left(\phi_ {2 b}, \phi_ {3 b}, \phi_ {5 b} \dots \phi_ {p b}\right) \tag {24}
+$$
+
+where $p$ is the dimension of random numbers. To further elucidate the disparity between the Halton sequence and pseudo-random sequences, 1000 two-dimensional random numbers within the range of 0-1 were generated using both methods, as shown in Fig. 2. A comparison of the two plots reveals that the Halton sequence can effectively avoid the clustering of certain particles observed in Fig. 2(b). It should be noted that the points remain well-spaced across all dimensions of the sample vectors, avoiding initialization clustering.
+
+To investigate the impact of Sobol and Halton sequences random initialization on the convergence behavior of the algorithm, we performed 1000 sampling iterations with a sample size of 20, taking the Weibull parameter combination WD(2,2,2) as the representative example. The effects of the two initialization techniques on the convergence rate of the proposed ADGBO algorithm and the reliability assessment of samples are compared by statistically evaluating the time required for convergence, the frequency of convergence, and the values of the log-likelihood function corresponding to the optimal Weibull parameters. The corresponding results are presented in Fig. 3.
+
+As observed in Fig. 3, the convergence rates of the Halton and Sobol sequences are close to each other. It is found from further comparison that the Halton sequence reveals a smaller average frequency of convergence and a shorter convergence time. To quantify the indicator, we calculated the average frequency of convergence for the two initialization techniques to be 33.135 and 31.913, respectively, and the time required for convergence to be 0.3447 s and 0.3413 s, respectively. It can be noticed that the two initialization techniques demonstrate slight differences in convergence speed. It can also be seen from Fig. 3 that the performance of the proposed ADGBO algorithm under the two initialization techniques applied separately in finding the log-likelihood function value is approximate, achieving satisfactory convergence to the optimal value. Therefore, the parameter initialization can be implemented in the Halton method in this study.
+
+# 3.3. Rule of control particle gradient direction
+
+The principle of this paper primarily concentrates on the implementation of the log-likelihood function maximization within the maximum likelihood estimation method for the Weibull distribution. Hence, the objective function is characterized as:
+
+$$
+\left. \max  \left[ n \ln \beta - n \ln \eta + (\beta - 1) \sum_ {i = 1} ^ {n} \ln \left(\frac {t _ {i} - \gamma}{\eta}\right) - \sum_ {i = 1} ^ {n} \left(\frac {t _ {i} - \gamma}{\eta}\right) ^ {\beta} \right] \right. \tag {25}
+$$
+
+The global best particle $x _ { b e s t } ^ { m }$ and the worst particle $x _ { w o r s t } ^ { m }$ can be identified according to the objective function and the initial positions of the particles. Subsequently, the next position of the particles is determined by the known particles to obtain the gradient search direction. At this stage, it is questionable to characterize the search behavior utilizing conventional methods. Evidently, the particles become extremely disoriented in the search space, hindering the discovery of the optimal solution. It directly affects the search speed and accuracy of optimization algorithms in the later stages. Therefore, a new search strategy is incorporated into the gradient direction control rule. The optimization efficiency and stability of the algorithm are improved to ensure that the algorithm can effectively estimate the Weibull parameters.
+
+The Gradient Search Rule (GSR) is introduced to control the search direction of particles. The GSR operator is inspired by Newton’s method [76–78]. Given the fact that many optimization problems are
+
+![](images/5eb774a22f4eb588ae7a084f7523ff1b3efbf207aa6e9fab080826147e204678.jpg)  
+(a) Halton sequence
+
+![](images/2ee29e6fb8107175b122472064e181ddadae1307668e4a246e3dea86b047800c.jpg)  
+(b) Pseudo-random sequences
+
+![](images/429ecb108e2458da3b5063a21fac5d3b7544443be9658a77cf4edcb73703c667.jpg)  
+Fig. 2. Comparison diagram between Halton sequence and pseudo-random sequences.   
+(a) Convergence time
+
+![](images/7dee281b6496f55f05d10e2c6932b2a9d4d07a675a782fb5935f971a7b4b2c1b.jpg)  
+(b)Frequency of convergence
+
+![](images/17027f4d8bb130a8ffda6123332d917d71fe2acdf7a75df2f89103c3eb3d27ca.jpg)  
+(c) Log-likelihood Scatter   
+Fig. 3. Comparison of the convergence performance between Halton sequence and Sobol sequence.
+
+nondifferentiable or have difficulty in finding derivatives. GSR employs numerical gradients to substitute for the derivative or differential of the function. During the search process, the GSR operator integrates the position in the population of the best particle, the worst particle, and the current particle to determine the next iteration position. Simultaneously, the hyperparameter $\rho _ { 1 }$ is incorporated into the GSR operator to balance exploration and acquire new search directions. The definitions of the particle gradient direction control rule GSR and hyperparameter $\rho _ { 1 }$ are formulated as follows, respectively:
+
+$$
+G S R = r a n d n \cdot \rho_ {1} \cdot \frac {2 \Delta x \cdot x _ {k} ^ {m}}{x _ {\text {w o r s t}} - x _ {\text {b e s t}} + \varepsilon} \tag {26}
+$$
+
+$$
+\rho_ {1} = 2 \cdot \text {r a n d} \cdot \alpha - \alpha \tag {27}
+$$
+
+$$
+\Delta x = \operatorname {r a n d} (1: N) \cdot | \text {s t e p} | \tag {28}
+$$
+
+$$
+\operatorname {s t e p} = \frac {\mathbf {x} _ {\text {b e s t}} - \mathbf {x} _ {r 1} ^ {m} + \delta}{2} \tag {29}
+$$
+
+$$
+\delta = 2 \cdot r a n d \cdot \left(\left| \frac {\mathbf {x} _ {r 1} ^ {m} + \mathbf {x} _ {r 2} ^ {m} + \mathbf {x} _ {r 3} ^ {m} + \mathbf {x} _ {r 4} ^ {m}}{4} \right| - x _ {k} ^ {m}\right) \tag {30}
+$$
+
+$$
+\alpha = \left| \vartheta \cdot \sin \left(\frac {3 \pi}{2} + \sin \left(\vartheta \cdot \frac {3 \pi}{2}\right)\right) \right| \tag {31}
+$$
+
+$$
+\vartheta = \vartheta_ {\min } + \left(\vartheta_ {\max } - \vartheta_ {\min }\right) \left(1 - \left(\frac {m}{M}\right) ^ {3}\right) ^ {2} \tag {32}
+$$
+
+where randn represents a random number following the standard normal distribution. $x _ { w o r s t }$ and $x _ { b e s t }$ denote the worst and best particle positions, respectively, during the optimization process of the algorithm. $\varepsilon$ is a value within the range [0,0.1]. rand is a random number within the range [0, 1]. $r a n d ( 1 : N )$ is a random number with dimension $N$ , where $N$ is the number of particles in the population. step denotes the step size determined by $x _ { b e s t }$ and $x _ { r 1 } ^ { m }$ . r1, r2, r3 and $r 4 ( r 1 \neq r 2 \neq r 3 \neq r 4 \neq k )$ are randomly selected integers from the range $[ 1 , N ]$ . $\vartheta _ { \mathrm { m i n } }$ and $\vartheta _ { \mathrm { m a x } }$ are hyperparameters, typically set to 0.2 and 1.2. m and M are the number of current iterations and total iterations, respectively.
+
+Additionally, the vector known as the direction of movement (DM) is incorporated into the GSR operator to optimize the information in the vicinity of the particles and facilitate the exploration of the global optimal solution, while avoiding local optima. DM is employed as the optimal vector direction responsible for determining the search direction of particles. Accordingly, an appropriate local search tendency is
+
+established to accelerate the convergence speed of the algorithm [33]. The gradient direction DM can be defined as
+
+$$
+D M = \operatorname {r a n d} \cdot \rho_ {2} \cdot \left(x _ {\text {b e s t}} - x _ {k} ^ {m}\right) \tag {33}
+$$
+
+where $\rho _ { 2 }$ is an adaptive hyperparameter updated by the sine function, satisfying $\rho _ { 2 } = 2 { \cdot } r a n d { \cdot } \alpha - \alpha .$ . Utilizing the GSR and DM, the iterated function for the new particle positions is updated as follows
+
+$$
+x 1 _ {k} ^ {m} = x _ {k} ^ {m} - G S R + D M \tag {34}
+$$
+
+Furthermore, the update function can be revised as
+
+$$
+x 1 _ {k} ^ {m} = x _ {k} ^ {m} - \left(r a n d n \cdot \rho_ {1} \cdot \frac {2 \Delta x \cdot x _ {k} ^ {m}}{x _ {\text {w o r s t}} - x _ {\text {b e s t}} + \varepsilon}\right) + \left(r a n d n \cdot \rho_ {2} \cdot \left(x _ {\text {b e s t}} - x _ {k} ^ {m}\right)\right) \tag {35}
+$$
+
+The current particle position $x _ { k } ^ { m }$ in Eq. (35) is replaced by the best particle position $x _ { b e s t }$ . The new particle position $x 2 _ { k } ^ { m }$ is obtained as
+
+The LEO employs the best position $x _ { b e s t : }$ , particle positions $x 1 _ { k } ^ { m }$ and $x 2 _ { k } ^ { m }$ , random particle positions $x _ { r 1 } ^ { m }$ and $x _ { r 2 } ^ { m }$ , and a new random particle $x _ { k } ^ { m }$ to generate the superior position $x _ { L E O } ^ { m }$ . During this process, LEO conducts the continuous evolution of the particles from the previous step by utilizing the information on the particle positions. It is significant that altering the particle position of the optimal solution can greatly enhance optimization efficiency and enable more accurate convergence to the optimal Weibull parameters estimate. Consequently, the LEO algorithm can significantly enhance the convergence efficiency and the capacity of the algorithm to solve complex problems. The improvement scheme for the LEO operator in updating the position of the algorithm is revised as follows:
+
+(1) The probability pr is typically set as 0.5, and a random number rand within the range [0, 1] is generated.   
+(2) When rand $< 0 . 5$ , the new particle position is calculated according to Eq. (41). Otherwise, the particle position is updated according to Eq. (42).
+
+$$
+\left\{ \begin{array}{c} x _ {L E O} ^ {m} = x _ {k} ^ {m + 1} + f _ {1} \left(u _ {1} x _ {\text {b e s t}} - u _ {2} x _ {k} ^ {m}\right) + f _ {2} \rho_ {1} \left(u _ {3} \left(x 2 _ {k} ^ {m} - x 1 _ {k} ^ {m}\right) + u _ {2} \left(x _ {r 1} ^ {m} - x _ {r 2} ^ {m}\right)\right) / 2 \\ x _ {k} ^ {m + 1} = x _ {L E O} ^ {m} \end{array} \right. \tag {41}
+$$
+
+$$
+\left\{ \begin{array}{c} x _ {L E O} ^ {m} = x _ {b e s t} + f _ {1} \left(u _ {1} x _ {b e s t} - u _ {2} x _ {k} ^ {m}\right) + f _ {2} \rho_ {1} \times \left(u _ {3} \left(x 2 _ {k} ^ {m} - x 1 _ {k} ^ {m}\right) + u _ {2} \left(x _ {r 1} ^ {m} - x _ {r 2} ^ {m}\right)\right) / 2 \\ x _ {k} ^ {m + 1} = x _ {L E O} ^ {m} \end{array} \right. \tag {42}
+$$
+
+$$
+x 2 _ {k} ^ {m} = x _ {\text {b e s t}} - \operatorname {r a n d n} \cdot \rho_ {1} \cdot \frac {2 \Delta x \cdot x _ {k} ^ {m}}{y p _ {k} ^ {m} - y q _ {k} ^ {m} + \varepsilon} + \operatorname {r a n d n} \cdot \rho_ {2} \cdot \left(x _ {r 1} ^ {m} - x _ {r 2} ^ {m}\right) \tag {36}
+$$
+
+$$
+y p _ {k} ^ {m} = \operatorname {r a n d} \cdot \left(\frac {\left[ z _ {k + 1} + x _ {k} \right]}{2} + \operatorname {r a n d} \cdot \Delta x\right) \tag {37}
+$$
+
+$$
+y q _ {k} ^ {m} = \operatorname {r a n d} \cdot \left(\frac {\left[ z _ {k + 1} + x _ {k} \right]}{2} - \operatorname {r a n d} \cdot \Delta x\right) \tag {38}
+$$
+
+$$
+z _ {k + 1} = x _ {k} ^ {m} - \operatorname {r a n d n} \cdot \frac {2 \Delta x \cdot x _ {k} ^ {m}}{x _ {\text {w o r s t}} - x _ {\text {b e s t}} + \varepsilon} \tag {39}
+$$
+
+Finally, based on the particle positions $x 1 _ { k } ^ { m }$ , $x 2 _ { k } ^ { m }$ , and the current position $\boldsymbol { x } _ { k } ^ { m }$ , the new position $x _ { k } ^ { m + 1 }$ for the subsequent iteration is determined as
+
+$$
+x _ {k} ^ {m + 1} = r _ {a} \cdot \left(r _ {b} \cdot x 1 _ {k} ^ {m} \cdot \left(1 - r _ {b}\right) \cdot x 2 _ {k} ^ {m}\right) + \left(1 - r _ {a}\right) \cdot x 3 _ {k} ^ {m} \tag {40}
+$$
+
+where $r _ { a }$ and $r _ { b }$ are random numbers within the range [0, 1].
+
+# 3.4. Optimal particle improvement strategy
+
+Once the current position $x _ { k } ^ { m + 1 }$ is obtained, the algorithm enters the improvement phase of the optimal particle. Indeed, this stage mainly concerns the local search to prevent the gradient optimization algorithm from causing the loss of the global optimum under certain circumstances, particularly for solving complex problems such as the likelihood function of the Weibull distribution. Therefore, the local escaping operator (LEO) is applied to increase optimization efficiency [79,80].
+
+where $f _ { 1 }$ refers to a random number within the range $[ - \ 1 , 1 ] , f _ { 2 }$ is a random number following the standard normal distribution $N ( 0 , 1 )$ . $u _ { 1 }$ , $u _ { 2 }$ and $u _ { 3 }$ are denoted as three random numbers intended to promote the diversity of the population and prevent it from becoming trapped in local optima, specifically expressed as
+
+$$
+u _ {1} = 2 L _ {1} \cdot r a n d + (1 - L _ {1}) \tag {43}
+$$
+
+$$
+u _ {2} = L _ {1} \cdot r a n d + (1 - L _ {1}) \tag {44}
+$$
+
+$$
+u _ {3} = L _ {1} \cdot r a n d + (1 - L _ {1}) \tag {45}
+$$
+
+where $L _ { 1 }$ denotes a binary system parameter. When a random number rand in the range [0, 1] is less than 0.5, the value of $L _ { 1 }$ is taken as 1, otherwise, the value of $L _ { 1 }$ is set to 0. As mentioned above, induced by multiple particles, the particles evolve towards optimal positions in the LEO operator, thereby enhancing the capability of the algorithm to obtain the global optimal solution.
+
+# 3.5. Framework for the ADGBO algorithm estimating three-parameter Weibull distribution procedure
+
+The gradient-based optimization method proposed in this paper is based on adaptive initialization of the parameter search space to acquire the optimal particle of the population by taking the maximum likelihood function as the objective function, thereby prompting all particles to converge to the optimal position. The optimization process is carried out
+
+until all particles converge near the optimal parameter value or the predetermined number of iterations is reached. The fundamental procedures for estimating the parameters of three-parameter Weibull distribution employing the adaptive gradient-based optimization algorithm are outlined as follows:
+
+(1) The initial estimates of Weibull parameters are obtained by using the correlation coefficient method based on the failure data $t _ { i }$ . The confidence intervals of the Weibull parameters are determined by combining the Bootstrap standard deviation, and then the initial search space of the particle parameters is acquired.   
+(2) Configure the parameters for the adaptive gradient optimization algorithm, encompassing the maximum number of iterations M, precision ε, number of particles $m$ , particle dimension, and hyperparameters pr, $\vartheta _ { \mathrm { m i n } }$ , and $\vartheta _ { \mathrm { m a x } }$ ;   
+(3) The Halton method is conducted to initialize parameters and determine the initial positions of all particles;   
+(4) Iterate over all particles to identify the best particle $x _ { b e s t } ^ { m }$ and the worst particle $x _ { w o r s t } ^ { m }$ on account of the objective function;   
+(5) According to the particle gradient directions control rules, the direction of particle movement is calculated, and the position of the particle is updated $x _ { k } ^ { m + 1 }$ ;   
+(6) The LEO operator is leveraged to update particle positions $x _ { L E O } ^ { m }$   
+(7) Repeat steps (4) to (6) until the predetermined maximum number of iterations is achieved.
+
+In the case of the three-parameter Weibull distribution, the objective function is specified in Eq. (25). The framework of the Weibull parameter estimation procedure is illustrated in Fig. 4. Among them, the right side of Fig. 4 illustrates the convergence process of Weibull parameter estimation for a random sample of size 30. The sample is drawn from a Weibull distribution with parameters WD(2,2,2). Fig. 4 depicts the particle positions and the direction of particle movement as they change with each iteration. The red concentration point represents the optimal solution. It can be intuitively observed that as the iteration count increases, all particles gradually approach the optimal value and eventually converge near the true value. The visualization provides an intuitive
+
+insight into the convergence behavior of the proposed ADGBO algorithm in estimating the parameters of the three-parameter Weibull distribution.
+
+# 4. Implementation and evaluation of proposed methodology
+
+Based on the above analysis in the previous chapter, this section primarily utilizes failure data generated from comprehensive Monte Carlo simulations to evaluate the performance of the proposed method in estimating Weibull parameters. In the first phase, a substantial amount of life data with known true Weibull parameters is generated based on the Monte Carlo method. Subsequently, the proposed method is employed to estimate the Weibull parameters of the sample. The estimated parameters are compared with the true values to validate the performance of the proposed method. To evaluate the applicability of the proposed method, Weibull parameters are estimated by conventional techniques, including the Correlation Coefficient method (CCLSE), Newton’s method (Newton), and Particle Swarm Optimization (PSO), and compared with the proposed ADGBO method. The simulation experiments were conducted on a computer with an i7 CPU, 16 GB of RAM, a clock speed of 3.6 GHz, running on Windows 10. All simulations were executed in Matlab2020. The MATLAB basic packages utilized in this study are summarized as follows:
+
+The function “wblrnd” is the random function for generating random variables that obey a three-parameter Weibull distribution. The function “norminv” is to compute the percentiles of the normal distribution, which is applied to determine the adaptive search space. The function “sort” is a sorting function. The “min/max” is a package for finding the maximum and minimum values. Additionally, the authors developed customized function packages for the proposed ADGBO algorithm.
+
+# 4.1. Experimental setup
+
+Before generating simulation samples, it is noted that the settings for relevant Monte-Carlo parameters, including the location parameter, scale parameter, shape parameter, and sample sizes, should be specified. Referring to previous application cases of intelligent optimization algorithms on Weibull parameter estimation [81,82], Weibull parameters
+
+![](images/c2b01a75a64b6a20cb8b83da7b8226e621ff2f270acae8c27ef323513ebccb2c.jpg)  
+Fig. 4. Illustration of the framework for estimating three-parameter Weibull distribution parameters by the proposed ADGBO algorithm.
+
+were configured as WD(2,2,2), WD(4,3,2), and WD(5,2,3), respectively. To evaluate the performance of different sample sizes, the sample sizes were sequentially set to 10, 20, 50, and 100. In addition, for the parameters of the ADGBO algorithm, the particle dimension is 3, the hyperparameter pr was denoted as 0.5, and the hyperparameters $\vartheta _ { \mathrm { m i n } }$ and $\vartheta _ { \mathrm { m a x } }$ were taken as 0.2 and 1.2, respectively. Each parameter combination was executed 1000 times. The failure data were generated based on the Monte Carlo method, and reliability assessment was performed. The solution equations for estimating parameters by the CCLSE method are all single-variable equations. The estimation of the location parameters terminates when the convergence of the correlation coefficients satisfies an accuracy of $1 0 ^ { - 5 }$ . Likewise, Newton’s method, PSO, and ADGBO converge with an accuracy of $1 0 ^ { - 5 }$ . Moreover, referring to the classical parameter settings of metaheuristic algorithms in the existing literature, the maximum number of iterations for the PSO algorithm and ADGBO algorithm were set to 200, and the number of particles was considered to 100. The algorithm terminates when either the maximum number of iterations or the convergence accuracy is satisfied, yielding the final value of the Weibull parameter.
+
+The LEO is employed to improve the optimization efficiency of the proposed ADGBO algorithm. The particles from the previous step are continuously guided by applying information of these particles. Wherein the particle update information includes the optimal particle position $x _ { b e s t }$ and the obtained particle gradient information $x _ { k } ^ { j + 1 }$ . To further increase the stochastic optimization capability of the algorithm, the direction of particle optimization is divided into two improvement strategies by comparing the magnitude of rand and pr. Therefore, pr generally takes the value of 0.5. Furthermore, the hyperparameter inertia weights are implicated in the proposed ADGBO and PSO algorithms, which are crucial in meta-heuristic optimization algorithms. It modulates the influence of historical velocity on the current velocity, thereby achieving a dynamic balance between global and local exploration capabilities. It is expected that the application of appropriate inertia weights can effectively balance the performance of the algorithm so as to achieve the global optimal solution quickly. Generally, the characteristics of simulated annealing are adopted to adjust the inertia weight. Consequently, the inertia weights are generally adopted in a linear decaying parameter framework from maximum to minimum values. It is found that the algorithm is only able to explore a limited range when the inertia weight exceeds 1.2. In the “particleswarm” function provided by MATLAB, the inertia weight ranges from 0.1 to 1.1. In the gradient optimization algorithm, the convergence performs better when the maximum and minimum weights are set to 1.2 and 0.2, respectively. Furthermore, it is considered that the range of weights should be from 0.2 to 1.0 in the reliability assessment of civil aircraft. It is primarily to promote the convergence efficiency of the Weibull parameter estimation under MLE by introducing the gradient optimization algorithm. To facilitate the consistency of the parameter estimation results across different algorithms, the maximum and minimum inertia weights in PSO are set to 0.2 and 1.2, respectively. To further validate the variations in convergence performance under these hyperparameter settings, we choose the WD(4,3,2) parameter combination to examine the convergence performance of the proposed algorithm under the range of inertia weight settings from 0.2 to 1.2, from 0.1 to 1.1, and from 0.2 to 1.0, as outlined in Fig. 5.
+
+According to the standard deviation and mean results of the convergence frequency recorded in Fig. 5, the inertia weights range from 0.2 to 1.2 exhibit faster convergence efficiency and superior computational performance compared to the other two settings. The convergence rate and stability of the algorithm can be significantly improved by appropriate inertia weight settings. It is further confirmed that the setting of inertia weights proposed by Ahmadianfar [33]. Therefore, the inertia weight range is determined from 0.2 to 1.2 in the proposed ADGBO algorithm.
+
+![](images/21e104c3be6f236e2fbbf5454598c6d95e19ab5f22c58b3a4a2a6a8cec1e7266.jpg)  
+Fig. 5. Comparison of standard deviations and mean value of convergence frequency obtained by the proposed algorithms under three types of different inertial weight settings.
+
+# 4.2. Results and discussion
+
+Each parameter scheme was simulated 1000 times, resulting in 1000 sets of Weibull parameter estimates $( \widehat { \gamma } , \widehat { \eta } , \widehat { \beta } )$ . To facilitate observation, the absolute deviations of the Weibull parameter estimates corresponding to each parameter combination were calculated separately. Taking the location parameter as an example, the scatterplots of the absolute deviations for the location parameters estimated under three Weibull parameter cases using the proposed method are displayed in Fig. 6. The scatter points within the circles indicate the absolute deviations of the 1000 sets of location parameter estimates relative to the true value. The coordinate axes within the circle represent the sequence numbers of the location parameters. The distance from the scattered points to the center represents the absolute deviation of the location parameters from the true value, corresponding to the vertical axis outside the circles. The blue, green, and orange scatter points from left to right in Fig. 6 represent the three Weibull parameter combinations of WD(2,2,2), WD(4,3,2), and WD(5,2,3), respectively.
+
+As can be seen from Fig. 6, the distributions of the absolute deviations for the location parameter estimates across the three Weibull parameter combinations are practically identical for the same sample size, fluctuating around the central point. It can be observed that the closer the points are to the central position, the smaller the deviations of the Weibull parameter estimates are. Furthermore, a more concentrated distribution of scatter points reflects higher accuracy of the estimation method. Comparing the estimation results of location parameters across different sample sizes, it can be found that as the sample size increases, the points are predominantly concentrated in the central region, with fewer points in the marginal areas. It indicates that the estimation results of Weibull location parameters have higher precision for large sample sizes. Given that the location parameter estimation results are similar across the three schemes, WD(4,3,2) was taken as an example to examine the distribution of location parameter estimates under different methods, with the results presented in Fig. 7.
+
+The gray dashed line in Fig. 7 depicts the true value of the location parameter, i.e., $\gamma { = } 4 .$ . Fig. 7 depicts that the location parameters derived from various methods are distinctly clustered around the actual values. With a sample size of 10, some of the estimated location parameters are either zero or concentrated at approximately zero. Moreover, the likelihood of this occurrence diminishes as the sample size increases. Notably, it is illustrated that this phenomenon occurs at only relatively few points in the proposed ADGBO method. Furthermore, it should be noted that the distribution of the location parameter obtained from the proposed ADGBO is closer to the true value and exhibits a narrower
+
+![](images/50fba0236d40818c45aeff6391388e5ccb1bcad96c25628937483925d7f6848c.jpg)  
+Fig. 6. Comparison of the absolute deviation distributions of the location parameters obtained by utilizing the proposed ADGBO algorithm with three combinations of Weibull parameters under different sample sizes.
+
+distribution interval. Besides, when the sample size is 50 and 100, all location parameter estimates are reasonable. It can be concluded that in cases of small sample size, employing traditional MLE and CCLSE to estimate Weibull parameters may result in unreasonable location parameter estimates. Particularly, when the sample size is 50 and 100, the distribution of location parameters computed by the PSO algorithm
+
+is relatively concentrated and approximates that of ADGBO.
+
+To further elaborate on the performance of the proposed ADGBO algorithm in parameter estimation under different sample sizes, the proposed algorithm is applied to sample sizes of 10, 20, 50, and 100, respectively. Three-dimensional cone plots are employed to compare the mean absolute deviation of the location parameter estimates for
+
+![](images/3d1384e5edf485fc7fdf6772c95c2e0e8578bc970e637d7c9c49480d93270d9f.jpg)  
+(a)n=10
+
+![](images/d6fda3cdcbe5ff4b76416d0792ce7defcdbe751562d4c19c941f59c722477db5.jpg)  
+(b)n=20
+
+![](images/6a4f8bdd93dc8cb3625e67a5f8da42b2e00aad0f18c5fbc93131be1370d108ce.jpg)  
+(c) n=50
+
+![](images/ae6c713fdb1c1a64f5977f4a43133d7a5b986f1b7a3e862fc8e21967372fadfd.jpg)  
+(d) n=100   
+Fig. 7. Comparison of the distributions of the location parameters estimation results obtained by the four different computational methods at Weibull parameter combinations of WD(4,3,2), corresponding to different sample sizes.
+
+different samples, as shown in Fig. 8. The heights of the cones in Fig. 8 reflect the mean absolute deviation of location parameter estimates for different sample sizes under each parameter combination. Meanwhile, the variation in the mean absolute deviation of location parameter estimates under three distinct conditions with respect to sample size was
+
+![](images/ce0b87605db5658821cf457bc4ef31cf1095b54c93a8ce02f0aada27163a6f63.jpg)  
+Fig. 8. Three-dimensional cone plots for comparing the mean absolute deviation of the estimated location parameters obtained by the proposed ADGBO algorithm under three combinations of Weibull parameter datasets, corresponding to different sample sizes.
+
+compared, thereby validating the performance of the proposed ADGBO algorithm across multiple datasets.
+
+As can be observed in Fig. 8, the height of the cones exhibits a gradual decrease as the sample size increases from 10 to 100 across three different datasets. It indicates that the mean absolute deviations of the location parameter estimates by the proposed method exhibit a trend of gradually decreasing as the sample size increases across different Weibull parameter combinations. In accordance with the connection lines of the cone vertices, it was revealed that the mean absolute deviation of the three datasets showed a gradually decreasing trend between sample sizes 50 and 100. It suggests that the ADGBO algorithm demonstrates a degree of adaptability to variations in sample size. However, the ADGBO algorithm suffers from a sensitivity to small sample sizes. While the performance of the algorithm is further improved for large sample sizes, the estimation results are more stable and accurate. The Weibull parameter combinations of WD(2,2,2) and WD(4,3,2) declined significantly more steeply in the sample size ranging from 10 to 50 than that ranging from 50 to 100. However, the mean absolute deviation decreases more gently for WD(5,2,3) between sample sizes of 10 and 20 compared to the other two datasets. It implies that the proposed ADGBO algorithm demonstrates greater stability for the WD(5,2,3) in Weibull parameter estimation applied to small samples. Thus, it can be concluded from the results that the ADGBO algorithm maintains superior performance consistency across different datasets and can effectively provide preferable parameter estimation accuracy and stability.
+
+To visualize this phenomenon directly and contrast the fluctuation of the location parameter estimates around the true value, a statistical summary is conducted separately on the Weibull parameter estimates of
+
+each parameter combination. The boxplots are utilized to depict the fluctuating trends of the location parameter, scale parameter, and shape parameter for 1000 sets of Weibull distributions estimated under each data distribution according to four algorithms, including CCLSE, Newton, PSO, and the proposed ADGBO, as exhibited in Figs. 9-11. The gray dashed lines in the figures represent the true values of the Weibull distribution parameters for each dataset. The greater the height of the box, the greater the dispersion of the estimates within this region. The black solid line inside the box identifies the average of the estimates and serves as an indicator of the overall trend of the estimates.
+
+As shown in Fig. 9, it is clear that the location parameters calculated based on the ADGBO and PSO methods have a significant advantage in terms of box interval width compared to those for the Newton and CCSLE methods. Further comparison reveals that the location parameters calculated using ADGBO have the narrowest interval width. On the other hand, comparison analysis is conducted on the mean values of location parameters determined by various methods. It is evident that the mean values of location parameters computed by the proposed ADGBO are most approximated to the actual values, followed by the PSO method. Additionally, a comparison of location parameter estimates under different sample sizes implies that all methods under large sample size produce narrower box interval widths of the location parameter estimates, and the mean value is also close to the true value. When the sample size reaches 100, the differences in location parameters derived
+
+from the four methods in terms of the distribution box interval widths and mean values are comparatively small. While the sample size is small, the location parameters calculated by the proposed ADGBO and PSO methods are superior to the parameter estimation results of the CCSLE and Newton in terms of box interval width and mean value. Likewise, the results depicted in Figs. 10 and 11 are boxplots of the shape and scale parameters, resembling the results of the analysis of the location parameters. Overall, it can be deduced from the above observations that the proposed method performs better in tackling the problem of maximizing the log-likelihood function of the MLE, further confirming that MLE achieves considerably higher accuracy in estimating Weibull distribution parameters [83]. In conclusion, applying the ADGBO method proposed herein to estimate the Weibull parameters demonstrates superior performance compared to the Newton, PSO, and CCLSE methods in terms of box interval width and mean value.
+
+According to the above analysis, it can be proved that the Weibull parameters estimated using the ADGBO method are characterized by the narrowest distribution interval and the closest mean to the true value. To further elucidate, the Relative Average Absolute Error (RAAE) and the Root Mean Square Error (RMSE) are employed to evaluate the Weibull parameter estimates under various schemes.
+
+$$
+R A A E _ {\theta} = \frac {1}{1 0 0 0} \sum_ {i = 1} ^ {1 0 0 0} \frac {| \widehat {\theta} - \theta |}{\theta} \tag {46}
+$$
+
+![](images/348e85e84fbc195882731ae8bb3524c8657bb794790901fcaadb10e8bfce9ece.jpg)  
+Distribution (a)n=10
+
+![](images/f0a0817dad793e7b424454d6cb80751c048a69c4e2162ab3a51f69dcb95295b0.jpg)  
+Distribution (b)n=20
+
+![](images/ba32abc33ddb101e10e14c4df6d112ed45615b6a17e671e400c625dfdac58733.jpg)  
+Distribution (c)n=50
+
+![](images/6cb63d6084009d451d7eb81a95b6fbeeed5de2baa453a3851dac6a1e63718ce9.jpg)  
+Distribution (d)n=100   
+Fig. 9. Box plots for comparing the distribution of the location parameter estimates obtained by the four different computational methods for different combinations of Weibull parameters, corresponding to different sample sizes.
+
+![](images/b58aebf3c65ed0cc6519187e41576260d28274880287ece8c81aa3bbe964149a.jpg)  
+(a)n=10
+
+![](images/c9db2752542321e609cafc323afe650a655e706e4257d77a9ca5610ea2366f76.jpg)  
+(b)n=20
+
+![](images/969906c2b258a035eb5b6a9cdf4b7175f010e198e17abc06c6aad18e5b03d69b.jpg)  
+(c)n=50
+
+![](images/3f42dd5abe05a3d4cebaf7e030db6f66d797d11b1a3276beb25ac866d642cf29.jpg)  
+(d)n=100   
+Fig. 10. Box plots for comparing the distribution of the scale parameter estimates obtained by the four different computational methods for different combinations of Weibull parameters, corresponding to different sample sizes.
+
+$$
+R M S E _ {\theta} = \frac {1}{1 0 0 0} \sum_ {i = 1} ^ {1 0 0 0} (\widehat {\theta} - \theta) ^ {2} \tag {47}
+$$
+
+where $\widehat { \theta }$ represents the estimated value of the parameter, $\theta$ denotes the true value of the parameter. θ represents $\gamma , ~ \eta$ and $\beta$ for the threeparameter Weibull distribution, respectively. In this study, the error statistics results across all methodologies were visualized as heatmaps, as reported in Figs. 12 and 13. These heatmaps serve as a visual representation where the hue of each cell corresponds to a specific data point, enabling the assessment of error sensitivity to the parameters.
+
+Figs. 12 and 13 intuitively present the RMSE and RAAE of Weibull parameter estimates obtained from four methods under various distribution parameter configurations. Particularly, the color intensity corresponds to the magnitude of the RMSE and RAAE associated with the Weibull parameter estimates. The variation in color intensity is represented by the color scale on the right side. Obviously, it is evident from the heatmaps that the RAAE and RMSE of Weibull parameters calculated with the ADGBO and PSO methods are minimal in most cases, while the RAAE and RMSE of Newton are comparatively higher. Furthermore, compared to the parameter estimates from the traditional PSO method, the ADGBO method exhibits the smallest RMSE and RAAE. Notably, when the sample size is 10 and 20, the proposed ADGBO method significantly outperforms the PSO. This observation confirms that the
+
+estimation accuracy of Weibull parameters can be significantly enhanced by the proposed gradient-based optimization algorithm, as characterized by adaptive search space and low-discrepancy sequence random initialization.
+
+Additionally, for a sample size of 100, the differences in RAAE and RMSE among the methods are relatively small. This conclusion aligns with the patterns shown in Figs. 6-13, suggesting that the proposed ADGBO method exhibits a more significant advantage when the sample size is less than 100. It is worth noting that the heatmaps also reveal that as the sample size increases, the errors in the Weibull parameter estimations from the four methods decrease, corresponding to more accurate estimations.
+
+In the framework of maximum likelihood estimation for Weibull parameters, it should be mentioned that the objective of the optimization algorithm is to identify the Weibull parameter values that maximize the log-likelihood function, corresponding to the global optimum. To enhance comprehension of the optimization algorithms, further statistical analysis is conducted on the log-likelihood function values of Newton, PSO, and ADGBO, as listed in Fig. 14.
+
+As observed in Fig. 14, the Newton method yields the smallest loglikelihood value, indicating that conventional gradient-based methods are prone to getting trapped in local optima. A comparison of the loglikelihood values between the PSO and ADGBO methods demonstrates that the proposed ADGBO yields the largest log-likelihood value in most
+
+![](images/aa023e75774454517d00c4f4339a047486ea5503efa1d9f432f35b40c359068b.jpg)
+
+![](images/04f760eaecf0bf5f69e4bcff42c9414d857a85eba20abfb1dfe967ab5b7f0dc8.jpg)
+
+![](images/37a247eb3b70fcc10b5cccd6f9efbc091df9aa7af41383f72c752578e6e4ed5e.jpg)
+
+![](images/bc7f190b38b6027e9c2044abfcf9559799db6ec5d14acb6f8521589e27af4fcb.jpg)  
+Fig. 11. Box plots for comparing the distribution of the shape parameter estimates obtained by the four different computational methods for different combinations of Weibull parameters, corresponding to different sample sizes.
+
+cases. Nevertheless, for the Weibull parameter cases WD(2,2,2) and WD (4,3,2) with the sample sizes of 50 and 100, the log-likelihood values calculated by ADGBO and PSO are identical. It should be emphasized that the proposed ADGBO offers a more pronounced advantage in searching for the global optimum of Weibull parameters under a smaller sample size.
+
+Likewise, the average computing time required by the three methods to estimate the Weibull parameters is recorded in Fig. 15. It is apparent that the average computing time of all methods is less than 1.2 s, which is considered computationally acceptable. The computing time increases with an increase in sample size. To be specific, the computing time for Newton’s method shows an unapparent trend with sample size, whereas the average computing time of the proposed ADGBO is more sensitive to changes in sample size. Combined with the log-likelihood function analysis shown above, Newton’s method requires the least computation time, while yielding the smallest log-likelihood value. It should be remarked that although Newton’s method is fast, it tends to converge to local optima and fails to further search for the global optimum. However, the ADGBO method requires more computational time than Newton’s method. This is mainly attributed to the fact that the proposed ADGBO requires more time to determine the initial search space for the parameters. Despite this, the proposed ADGBO provides a larger loglikelihood value, demonstrating the significant advantage of ADGBO in dealing with the maximization of the log-likelihood function, thereby more effectively achieving the global optimum for Weibull parameters.
+
+In summary, the absolute deviations of parameter estimates using the proposed ADGBO method under different sample sizes are statistically analyzed to validate the accuracy of the proposed method. The errors and log-likelihood function analysis results are visualized by comparing the Weibull parameter estimates from four methods with the true values. It can be deduced from the observation that the ADGBO method proposed herein outperforms the PSO, Newton, and CCLSE in terms of the distribution interval width and mean value accuracy of Weibull parameter estimates, especially for small sample size.
+
+To further elaborate, this superiority is primarily attributed to the following factors. Initially, the initial parameter space of ADGBO is derived from the correlation coefficient method and the Bootstrap method, representing a deterministic method for adaptive parameter search space. As a result, ADGBO has a narrower search space compared to the traditional Newton and PSO methods. It is implied that ADGBO focuses more on finding the optimal solution within a specific region, minimizing the risk of converging to a suboptimal solution [64–66]. Besides, ADGBO employs Halton low-discrepancy sequence initialization, which helps avoid initialization clustering and falling into local optima. Ultimately, the ADGBO method improves the convergence efficiency of the algorithm through the incorporation of LEO and DM. It should be noted that the ADGBO contributes to escaping local optima and enhances global search capability, enabling the algorithm to obtain superior Weibull parameters. Overall, it is concluded that the proposed ADGBO method provides adequate advantages in determining Weibull
+
+![](images/86df25352009ed23438b5c661305aa930861bc12016a4c63c267c4ac2bf8a0f9.jpg)
+
+![](images/1a43f33a485c652744054e92e1f9207327bb82482ff76482c758a55b2d58ac6f.jpg)
+
+![](images/aba662ac8103b20988270fbaebb8a2ab41854885578cd4a7901784aad5404b30.jpg)
+
+![](images/500dfdbe8dc1c78f2b43e3cb08e60ae919624c207ccc2329b63d8a4696f3efc3.jpg)
+
+![](images/5885b7f08156b0910b1f31009aec198e0988e9167c7ebed92dafddb2facb551d.jpg)
+
+![](images/d436209e9bc7238cdf0f2b8990c838039e0817a739bbd5d9d6b165aaf01ae2ea.jpg)
+
+![](images/d283fa517addb636f7de23f521d4c604f987367f2532e7b632025cd90427dd03.jpg)  
+(a) Location parameter
+
+![](images/3803bd70d6af5a5ec9130420ebcfbf7381e2fa1d5742563ff54a02ae0ac06304.jpg)  
+(b) Scale parameter
+
+![](images/2e8a71b9d13895ae5551ea7eaca2161cdd981d391ad9ec894eda9962d8d224e0.jpg)  
+(c) Shape parameter   
+Fig. 12. Heatmaps for comparing the variation of RAAE with sample size of the Weibull parameter estimates for four methods under three combinations of Weibull parameter settings.
+
+parameters and confirms that introducing more efficient optimization algorithms is imperative for solving the maximum likelihood function.
+
+# 4.3. Parameter estimation performance under noisy data
+
+To evaluate the performance of the proposed ADGBO algorithm under smaller dataset containing noisy environments and to compare it with other algorithms, we performed the analysis with the parameter setting of WD(2,2,2) and sample sizes of 10, 20, and 50, respectively. Various degrees of Gaussian noise are incorporated into the simulated failure data generated by the Monte Carlo method. The distribution parameters of the failure data are subsequently estimated. For a given failure data $t _ { i }$ , noisy datasets with various noise levels can be generated according to the following:
+
+$$
+\bar {t} _ {i} = t _ {i} + \widehat {\varepsilon} _ {i} \tag {48}
+$$
+
+where $\widehat { \varepsilon } _ { i }$ is random noise that obeys a standard Gaussian distribution. Random noise is modeled using a proportional noise scaling model as follows
+
+$$
+\widehat {\varepsilon} _ {i} = k _ {\varepsilon} \cdot t _ {i}. r a n d o m (N) \tag {49}
+$$
+
+where $k _ { \varepsilon }$ represents the noise level. To assess the sensitivity of various methods to noise, we designed noisy datasets with three different noise levels. $k _ { \varepsilon }$ is set to 0.1, 0.05, and 0.01, respectively. random $( N )$ refers to
+
+random numbers sampled from the standard Gaussian distribution [84]. Specifically, various algorithms were applied to estimate the parameters of the noisy datasets, and the relative absolute deviation was calculated to evaluate the accuracy of parameter estimation, as given in Fig. 16.
+
+As noticed in Fig. 16, it is apparent that the higher the noise level, the higher the relative absolute deviation of the four methods. It indicates that the performance of the estimated parameters is degraded significantly. Furthermore, the proposed ADGBO algorithm achieves the minimum relative absolute deviation variation compared to the other three methods across all noise level datasets. It is also evident that reducing the sample size causes an increasing relative absolute deviation of the estimated parameters. However, the ADGBO algorithm exhibits higher estimation accuracy than the other three methods on smaller samples with noisy datasets. It adequately implies that the proposed ADGBO algorithm still provides a superior ability to deal with smaller samples with noisy datasets for parameter estimation to a certain extent.
+
+# 5. Application of aero-engine reliability assessment
+
+The aero-engine is a highly complex mechatronic system that requires accurate life and reliability assessment to ensure flight safety and refine maintenance schedules [5,6]. Therefore, accurate life and reliability evaluation is particularly crucial. To further illustrate the application of the proposed ADGBO algorithm in reliability assessment, this study adopted two cases of failure data from a certain aero-engine
+
+![](images/3a39a3f6bc672797dc709a830f487f69a346e3e53fb86255666051814df55d6a.jpg)
+
+![](images/9e777fcd8b83bef9b1fa6b81475011ef388a211756356ca3911d23eaada18cb6.jpg)
+
+![](images/10757f325da839c38338e0ce86667f6edbf9dc4febe2d629f815ab5dc6548a18.jpg)
+
+![](images/191d72709fa0c73d554116333d15a0f53df3cf5bcd596893cbbce49dc84ef1c8.jpg)
+
+![](images/96bb4a7c290a5225aded389684c1a8085ccc567c98d097d6606cf1b6f5d1d693.jpg)
+
+![](images/5c108755fcc0056e63b0d1ac4763a9910d9c8128cacc2d944b5021a19cad8157.jpg)
+
+![](images/a7a0fab5607143908d48ba6d6394baf7f551efb4f9c7162904cc9eeb42c3bebf.jpg)  
+(a) Location parameter
+
+![](images/8ed06d2c1e03d49b6e1f824335a9ce14248110950f927e7161a464e44f977ad7.jpg)  
+(b) Scale parameter
+
+![](images/b04cdab9e4324d46070d4406666a818dd14a2123ceef7f3af0bd83026e6ef9d2.jpg)  
+(c) Shape parameter   
+Fig. 13. Heatmaps for comparing the variation of RMSE with sample size of the Weibull parameter estimates for four methods under three combinations of Weibull parameter settings.
+
+provided by Yuan [12], and the failure data of another certain type of aero-engine collected by the group. The two cases of Aero-engine failure data are listed in detail in Tables 3 and 4.
+
+Furthermore, to verify the validity of the selected life distribution model, this section employs the normal distribution, log-normal distribution, and two-parameter Weibull distribution models to fit the data, and calculates the corresponding likelihood function values. The parameter estimation results for all models are tabulated in detail in Tables 5 and 6. Moreover, the Kolmogorov-Smirnov test (K-S) was employed to conduct a goodness-of-fit test on the parameter estimation for the two cases.
+
+For case-1, the Kolmogorov-Smirnov statistic and its respective pvalue are 0.1576 and 0.2529 for the normal distribution, 0.1956 and 0.1383 for the lognormal distribution, 0.2154 and 0.0435 for the twoparameter Weibull distribution, and 0.1268 and 0.4918 for the threeparameter Weibull distribution, respectively.
+
+For case-2, the Kolmogorov-Smirnov statistic and its respective pvalue are 0.1651 and 0.7405 for the normal distribution, 0.1673 and 0.7122 for the lognormal distribution, 0.2369 and 0.1571 for the twoparameter Weibull distribution, and 0.162 and 0.7633 for the threeparameter Weibull distribution, respectively.
+
+It is evident from the goodness-of-fit tests of the two application cases that the three-parameter Weibull distribution provides the best results in terms of goodness-of-fit and the parameter estimates. Note
+
+from Tables 5 and 6, with respect to the log-likelihood values, the priority of life distribution models is the three-parameter Weibull distribution, followed by the log-normal distribution, and then the twoparameter Weibull distribution, and ultimately the normal distribution. Therefore, the selection of the three-parameter Weibull distribution as the model for the lifetime distribution performed superior fitting ability compared to the two-parameter Weibull distribution, confirming the significance of incorporating location parameters.
+
+The Weibull parameters of the failure data are estimated using the ADGBO algorithm, traditional PSO algorithm, and Newton method. The differences in estimation accuracy and log-likelihood function values among the three methods are compared. Further analysis of the loglikelihood values associated with the Weibull parameter estimates obtained through the Newton, PSO, and ADGBO reveals that the proposed ADGBO method yields the highest log-likelihood value. Consequently, the ADGBO proposed in this study can effectively find the global optimal solution to the log-likelihood equation for aero-engine failure data, achieving the optimal estimation of Weibull parameters under the maximum likelihood theory.
+
+Eventually, a reliability assessment of the aero-engine is conducted based on the estimated Weibull parameters. To visualize the fitting effectiveness of the proposed algorithm on the data of the two cases, the cumulative distribution function (CDF) curves are plotted in Figs. 17 and 18, respectively. As noticed from Figs. 17(a) and 18(a), the CDF curve
+
+![](images/f4ea7b1dc4fc044366b57df6d33b6ce20bfa7cfae6c15222f792548d78760023.jpg)
+
+![](images/4c99b442826c83f6607bd5efa85c7faf2e0662a4aa5a39614b6bce239270d602.jpg)  
+(a)n=10   
+(c) n=50
+
+![](images/2d90045458ec3c90d1c8243ef6fe52b88131f82b42aad4ebc9e06992106932eb.jpg)
+
+![](images/50e9cb4f446a875d04c7d640dc83ade8fff09d9bf01b688577603449e2348d3d.jpg)  
+(b)n=20   
+(d)n=100
+
+![](images/19638914dbf7713879104dd18557dca3231e49d1c004900a9b4028d2e6ce67bf.jpg)  
+Fig. 14. Comparison of log-likelihood function values obtained by different methods for estimating the Weibull parameter with different parameter combinations.   
+Fig. 15. Comparison of the average computing time required to estimate the Weibull parameter under different sample sizes employing the three methods, corresponding to the different parameter combinations.
+
+fitted by the proposed ADGBO algorithm demonstrates minimal discrepancy from the true lifetime data. Hence, the proposed algorithm exhibits relatively good fit properties of the life data. It is further verified that the lifetime data of the aero-engine approximately obeys the threeparameter Weibull distribution.
+
+Additionally, the median life, characteristic life, and mean time to failure (MTTF) reliability index are added to the CDF curve in Figs. 17(a) and 18(a). It is observable from the CDF curve that the cumulative failure probability of the aero-engine increases and the reliability declines gradually as the engine operating time increases. The aero-engine experiences a rapid increase in cumulative failure probability and a rapid decrease in reliability during the initial break-in period. Apparently, the CDF curve of the aero-engine can roughly reflect the reliability of the aero-engine at a given operating time, facilitating the implementation of a preventive maintenance strategy.
+
+The Mean Residual Life (MRL) is a critical reliability index for mechanical systems. As illustrated in Figs. 17(b) and 18(b), the MRL progressively decreases as the operating time increases. This signifies that the aero-engine should undergo prompt maintenance following a period of trouble-free operation.
+
+Moreover, the failure rate curves of the aero-engine are presented in Figs. 17(c) and 18(c). It is apparent from the figures that the failure rate is characterized by increasing gradually with time. Besides, aero-engines are generally guaranteed to be $9 5 \%$ reliability when the lives of the two cases of aero-engine are 2121.2 h and $3 8 2 8 . 6 \mathrm { ~ h ~ }$ , respectively. Consequently, quantitative analysis of reliability facilitates the conversion of field maintenance from scheduled maintenance to on-condition maintenance. It is feasible to reduce the possibility of aero-engine failures and enhance reliability by implementing preventive maintenance or replacement measures.
+
+Overall, the algorithm proposed in this study provides a framework
+
+![](images/c06677bee26925a1c37594467159015ab0e55e942b63c4c7bab8118f7cc00fd8.jpg)
+
+![](images/0148b8c2e8c87ac09102563ebb5e88b2d669831fc105b641c825aff14606bbbb.jpg)
+
+![](images/1109440b5a468a416ed99d77392718f7230cf2231e464e29bdbdaf2ca805b435.jpg)  
+(a) Relative absolute deviations of location parameter
+
+![](images/552e7c5b86660aef2bea78f76f6a5a351cc6618d17d14bdea919599c0929e715.jpg)
+
+![](images/17c2b9ef502a262a4e19321b1e7da6defb5d7ffb309a405d7604967b407257a6.jpg)
+
+![](images/167f4a726acca62235cff2b0f7e7dc682820eff51876d9407319ad398eb5cf36.jpg)
+
+![](images/1ee6c36bd3aad34a5f304d22a648390fcb4f699c80dc8de3a94c9dea8a4e7a31.jpg)
+
+![](images/2ab62d283c94101da832b6111604a132c3b4ce487a6b19b7eec3f939dab9660e.jpg)
+
+![](images/a944486d4139bc522bde8c7c39e1100d6984acc2d220a280ad6dec57d21f3924.jpg)  
+Fig. 16. Comparison of relative absolute deviations obtained by four different algorithms for estimating the Weibull parameter under datasets with different noise levels and sample sizes.
+
+Table 3 Failure data of case-1 aero-engine.   
+
+<table><tr><td>Failure life index</td><td>Aero-engine Failure life/h</td><td>Failure life index</td><td>Aero-engine Failure life/h</td><td>Failure life index</td><td>Aero-engine Failure life/h</td></tr><tr><td>1</td><td>3453</td><td>11</td><td>5462</td><td>21</td><td>7392</td></tr><tr><td>2</td><td>3856</td><td>12</td><td>5653</td><td>22</td><td>7613</td></tr><tr><td>3</td><td>3894</td><td>13</td><td>5742</td><td>23</td><td>7795</td></tr><tr><td>4</td><td>4085</td><td>14</td><td>5794</td><td>24</td><td>8161</td></tr><tr><td>5</td><td>4119</td><td>15</td><td>6075</td><td>25</td><td>8856</td></tr><tr><td>6</td><td>4541</td><td>16</td><td>6299</td><td>26</td><td>9745</td></tr><tr><td>7</td><td>4675</td><td>17</td><td>6429</td><td>27</td><td>9846</td></tr><tr><td>8</td><td>4924</td><td>18</td><td>6479</td><td>28</td><td>9873</td></tr><tr><td>9</td><td>5055</td><td>19</td><td>6715</td><td>29</td><td>9901</td></tr><tr><td>10</td><td>5194</td><td>20</td><td>6851</td><td>30</td><td>9975</td></tr></table>
+
+Table 4 Failure data of case-2 aero-engine.   
+
+<table><tr><td>Failure life index</td><td>Aero-engine Failure life/ h</td><td>Failure life index</td><td>Aero-engine Failure life/ h</td></tr><tr><td>1</td><td>2016.311</td><td>6</td><td>2969.381</td></tr><tr><td>2</td><td>2525.431</td><td>7</td><td>3294.128</td></tr><tr><td>3</td><td>2640.732</td><td>8</td><td>3342.465</td></tr><tr><td>4</td><td>2841.105</td><td>9</td><td>4218.482</td></tr><tr><td>5</td><td>2913.35</td><td>10</td><td>4893.918</td></tr></table>
+
+for the effective exploitation of aero-engine failure data to assess reliability. Likewise, the reliability life of specific engines can be determined with a given reliability. The proposed method demonstrates substantial practical engineering value in the aviation industry, making it of considerable significance for the performance evaluation of an aeroengine. The ADGBO algorithm proposed in this study is not only
+
+Table 5 Fitted results of common distribution models for case-1 aero-engine.   
+
+<table><tr><td rowspan="2">Distribution parameters</td><td rowspan="2">Normal distribution</td><td rowspan="2">Lognormal distribution</td><td rowspan="2">2P-Weibull distribution</td><td colspan="3">3P-Weibull distribution</td></tr><tr><td>Newton</td><td>PSO</td><td>ADGBO</td></tr><tr><td>Parameter 1</td><td>6481.730</td><td>8.729</td><td>-</td><td>2995.572</td><td>3198.512</td><td>3282.98</td></tr><tr><td>Parameter 2</td><td>2000.280</td><td>0.310</td><td>7213.170</td><td>3981.003</td><td>3668.376</td><td>3554.091</td></tr><tr><td>Parameter 3</td><td>-</td><td>-</td><td>3.526</td><td>1.585</td><td>1.657</td><td>1.585</td></tr><tr><td>lnL</td><td>-270.599</td><td>-269.348</td><td>-270.429</td><td>-268.815</td><td>-268.198</td><td>-268.172</td></tr></table>
+
+Table 6 Fitted results of common distribution models for case-2 aero-engine.   
+
+<table><tr><td rowspan="2">Distribution parameters</td><td rowspan="2">Normal distribution</td><td rowspan="2">Lognormal distribution</td><td rowspan="2">2P-Weibull distribution</td><td colspan="3">3P-Weibull distribution</td></tr><tr><td>Newton</td><td>PSO</td><td>ADGBO</td></tr><tr><td>Parameter 1</td><td>3279.69</td><td>8.0636</td><td>-</td><td>1504.621</td><td>2010.1</td><td>1905.741</td></tr><tr><td>Parameter 2</td><td>793.585</td><td>0.2601</td><td>3588.13</td><td>1930.406</td><td>2430.803</td><td>1399.767</td></tr><tr><td>Parameter 3</td><td>-</td><td>-</td><td>4.5619</td><td>1.8511</td><td>0.8363</td><td>1.5872</td></tr><tr><td>lnL</td><td>-80.955</td><td>-81.359</td><td>-81.014</td><td>-80.7017</td><td>-80.1574</td><td>-80.0084</td></tr></table>
+
+![](images/cd4563700aa70cdd8851c8e49c290c4b0547a6692bb4d6b5b71e8ad13dc483e9.jpg)
+
+![](images/3983044e30257e4cc4ca2d95549992ade91f5c4f53a40e70067e4deb5c4e7deb.jpg)  
+(b)
+
+![](images/b358b9acfd6a2e652324aa8174bd576aecf4f422d303157f3b67c38e4c3360a1.jpg)
+
+![](images/14ffcc3d636b03e265df5adbb59a79e6e00df6409d67c5352c95b2e0df9b946e.jpg)  
+Fig. 17. The reliability assessment of case-1 aero-engine failure life data (a) Cumulative distribution function curve; (b) Mean residual life curve; (c) Hazard rate curve.
+
+![](images/92ed078861b9be6bf9e8289a16b70d941ae4d68a677291a2b8ee496a847b6407.jpg)  
+(b)
+
+![](images/67c134e8b87b8e9906dd40fd6efd04b1f57bd841fb891dd7a03da530165ef45d.jpg)  
+（c）  
+Fig. 18. The reliability assessment of case-2 aero-engine failure life data (a) Cumulative distribution function curve; (b) Mean residual life curve; (c) Hazard rate curve.
+
+applicable to aero-engines, but also offers valuable insights for the reliability assessment of other long-life and high-reliability products with small sample characteristics.
+
+# 6. Conclusions
+
+Considering the relevance of parameter estimation for the threeparameter Weibull distribution for reliability assessment, the principle of the project is to accurately estimate the optimal parameters of the
+
+Weibull distribution of the maximum likelihood function. In certain cases, obtaining the maximum likelihood estimate may be complicated due to the complexity of nonlinear equations. Therefore, this study proposes a Weibull parameter estimation method that adopts adaptive gradient-based optimization to enhance the estimation accuracy of Weibull parameters under the maximum likelihood principle by preventing the algorithm from getting stuck in local optima. In contrast to current optimization algorithms, the investigation derives the initial confidence interval for Weibull parameters according to the samples and
+
+proposes an adaptive search space that adjusts with the sample size. Meanwhile, utilizing the Halton low-discrepancy sequence to initialize particle positions can effectively eliminate the issues associated with the pseudo-randomness initialization of conventional methods. Moreover, the GSR rule and LEO operator are incorporated to comprehensively improve the efficiency of exploring the global optimum, thereby minimizing the risk of the algorithm falling into local optima and providing a foundation for obtaining the global optimal Weibull parameters.
+
+Monte Carlo simulation cases were conducted to validate the effectiveness of the proposed method. In addition, the Weibull parameter estimation results derived from ADGBO were compared with those ob tained from traditional methods, including CCLSE, Newton, and PSO methods. The comparison results indicate that the Weibull parameters estimated by the proposed ADGBO method are concentrated in the vicinity of the true values. Furthermore, the proposed ADGBO method exhibits superior performance to other methodologies in the distribution interval width of the estimated Weibull parameter and can also significantly enhance efficiency. While the method requires more computational time than other methods, it is considered acceptable. Particularly, the Weibull parameters calculated by the proposed ADGBO method achieve the maximum log-likelihood function value. This study also investigates the superiority of ADGBO in identifying the global optimum of Weibull parameters under a relatively small sample size. The Weibull parameters estimated by the proposed ADGBO exhibit the smallest relative average absolute error and the root mean square error. It reveals that the proposed ADGBO algorithm offers superior performance in maximum likelihood estimation of Weibull parameters and can effectively solve nonlinear equation problems. Finally, reliability assessment is conducted on two real failure data cases of aero-engines to demonstrate that the proposed ADGBO algorithm can be appropriately applied to maximize the log-likelihood function corresponding to the failure data of aero-engines.
+
+In future work, exploring the applicability of the proposed ADGBO algorithm to other long-life and high-reliability products remains a requirement. Furthermore, we recommend further research on extending the proposed optimization algorithm to incorporate ensemble learning techniques for estimating distribution parameters may be an attractive future exploration direction.
+
+# Funding source
+
+All authors gratefully acknowledge the selfless support from the National Science and Technology Major Project J2019-V-0009-0103 and the National Key Research and Development Program of China 2019YFB1704500, and the National Natural Foundation of China U1708255.
+
+# CRediT authorship contribution statement
+
+Zinan Wang: Writing – original draft, Methodology, Conceptualization. Xiangwei Kong: Writing – review & editing, Supervision, Methodology, Funding acquisition. Jin Guo: Visualization, Validation, Software, Data curation. Bingfeng Zhao: Writing – review & editing, Supervision, Methodology. Liyang Xie: Writing – review & editing, Supervision, Methodology. Ningxiang Wu: Writing – review & editing, Supervision, Methodology.
+
+# Declaration of competing interest
+
+The authors declare that the work described has not been published previously, that it is not under consideration for publication elsewhere, that its publication is approved by all authors, and that, if accepted, it will not be published elsewhere in the same form, in English or any other language, without the written consent of the Publisher. The authors also declare that they have no known competing financial interests or personal relationships with other people or organizations that can
+
+inappropriately influence their work, and there is no professional or other personal interest of any nature or kind in any product, service and/ or company that could be construed as influencing the position presented in, or the review of, the manuscript entitled, "An improved adaptive gradient-based optimization algorithm for estimating the parameters of three-parameter Weibull distribution: an application of aero-engine reliability assessment".
+
+# Acknowledgments
+
+The authors acknowledge Dr. Liu Cheng and Dr. Chengying Zhao for their assistance in visualizing and writing. All authors gratefully acknowledge the selfless support from the National Science and Technology Major Project J2019-V-0009-0103 and the National Key Research and Development Program of China 2019YFB1704500, and the National Natural Foundation of China U1708255.
+
+# Data availability
+
+Data will be made available on request.
+
+# References
+
+[1] Li Y, Chen Y, Hu Z, Zhang H. Remaining useful life prediction of aero-engine enabled by fusing knowledge and deep learning models. Reliab Eng Syst Saf 2023; 229. https://doi.org/10.1016/j.ress.2022.108869.   
+[2] Zhang Y, Xin Y, Liu Z-w, Chi M, Ma G. Health status assessment and remaining useful life prediction of aero-engine based on BiGRU and MMoE. Reliab Eng Syst Saf 2022;220. https://doi.org/10.1016/j.ress.2021.108263.   
+[3] Hanachi H, Mechefske C, Liu J, Banerjee A, Chen Y. Performance-based gas turbine health monitoring, diagnostics, and prognostics: a survey. IEEE Trans Reliab 2018; 67(3):1340–63. https://doi.org/10.1109/tr.2018.2822702.   
+[4] Sun C, He Z, Cao H, Zhang Z, Chen X, Zuo MJ. A non-probabilistic metric derived from condition information for operational reliability assessment of aero-engines. IEEE Trans Reliab 2015;64(1):167–81. https://doi.org/10.1109/tr.2014.2336032.   
+[5] Huang M, Zhou Z, Zhang K, Li Z, Li J. Investigation on high-dimensional uncertainty quantification and reliability analysis of aero-engine. Aerosp Sci Technol 2023;142. https://doi.org/10.1016/j.ast.2023.108685.   
+[6] Gan C, Ding S, Qiu T, Liu P, Ma Q. Model-based safety analysis with time resolution (MBSA-TR) method for complex aerothermal-mechanical systems of aero-engines. Reliab Eng Syst Saf 2024;243. https://doi.org/10.1016/j.ress.2023.109864.   
+[7] Wang W, Song H, Si S, Lu W, Cai Z. Data augmentation based on diffusion probabilistic model for remaining useful life estimation of aero-engines. Reliab Eng Syst Saf 2024;252. https://doi.org/10.1016/j.ress.2024.110394.   
+[8] Mo R, Zhou H, Yin H, Si X. A survey on few-shot learning for remaining useful life prediction. Reliab Eng Syst Saf 2025;257. https://doi.org/10.1016/j. ress.2025.110850.   
+[9] Chen R, Chen G, Liu X, Ai X, Zhu H. Reliability prediction method for low-cycle fatigue life of compressor disks based on the fusion of simulation and zero-failure data. Appl Sci Basel 2022;12(9). https://doi.org/10.3390/app12094318.   
+[10] Zhang CW. Weibull parameter estimation and reliability analysis with zero-failure data from high-quality products. Reliab Eng Syst Saf 2021;207. https://doi.org/ 10.1016/j.ress.2020.107321.   
+[11] Wais P. Two and three-parameter Weibull distribution in available wind power analysis. Renew Energy 2017;103:15–29. https://doi.org/10.1016/j. renene.2016.10.041.   
+[12] Yuan Z, Deng J, Wang D. Reliability estimation of aero-engine based on mixed Weibull distribution model. In: Proceedings of the 3rd international conference on advances in energy resources and environment engineering. 113; 2017, 012073.   
+[13] Rinne H. The Weibull distribution: a handbook. New York: Chapman and Hall/ CRC; 2008.   
+[14] Yang X, Xie L, Wang B, Chen J, Zhao B. Inference on the high-reliability lifetime estimation based on the three-parameter Weibull distribution. Probabil Eng Mech 2024;77. https://doi.org/10.1016/j.probengmech.2024.103665.   
+[15] Davies IJ. Unbiased estimation of Weibull modulus using linear least squares analysis-a systematic approach. J Eur Ceram Soc 2017;37(1):369–80. https://doi. org/10.1016/j.jeurceramsoc.2016.07.008.   
+[16] Park C. A note on the existence of the location parameter estimate of the threeparameter weibull model using the Weibull plot. Math Probl Eng 2018;2018. https://doi.org/10.1155/2018/6056975.   
+[17] Park C. Weibullness test and parameter estimation of the three-parameter Weibull model using sample correlation coefficient. Int J Ind Eng Theory Appl Pract 2017; 24(4):376–91.   
+[18] Murthy DNP, Xie M, Jiang R. Weibull models. United States: John Wiley & Sons, Inc.; 2004.   
+[19] Zou Q, Wen J. Stress-strength reliability estimation based on probability weighted moments in small sample scenario with three-parameter Weibull distribution. Reliab Eng Syst Saf 2025;264. https://doi.org/10.1016/j.ress.2025.111340.
+
+[20] Kohansal A, Shoaee S. Bayesian and classical estimation of reliability in a multicomponent stress-strength model under adaptive hybrid progressive censored data. Stat Pap 2021;62(1):309–59. https://doi.org/10.1007/s00362-019-01094-y.   
+[21] Khan MGM, Ahmed MR. Bayesian method for estimating Weibull parameters for wind resource assessment in a tropical region: a comparison between twoparameter and three-parameter Weibull distributions. Wind Energ Sci 2023;8(8): 1277–98. https://doi.org/10.5194/wes-8-1277-2023.   
+[22] Maswadah M. Improved maximum likelihood estimation of the shape-scale family based on the generalized progressive hybrid censoring scheme. J Appl Stat 2022;49 (11):2825–44. https://doi.org/10.1080/02664763.2021.1924638.   
+[23] Teimouri M, Hoseini SM, Nadarajah S. Comparison of estimation methods for the Weibull distribution. Statistics 2013;47(1):93–109. https://doi.org/10.1080/ 02331888.2011.559657 (Ber).   
+[24] Emam W, Tashkandy Y. The Weibull Claim model: bivariate extension, Bayesian, and maximum likelihood estimations. Math Probl Eng 2022;2022. https://doi.org/ 10.1155/2022/8729529.   
+[25] Han F, Li X, Qi S, Wang W, Shi W. Reliability analysis of wind turbine subassemblies based on the 3-P Weibull model via an ergodic artificial bee colony algorithm. Probabil Eng Mech 2023;73. https://doi.org/10.1016/j. probengmech.2023.103476.   
+[26] Ahsan S, Lemma TA, Gebremariam MA. Reliability analysis of gas turbine engine by means of bathtub-shaped failure rate distribution. Process Saf Prog 2020;39. https://doi.org/10.1002/prs.12115.   
+[27] Guo J, Kong X, Wu N, Xie L. Evaluating the lifetime distribution parameters and reliability of products using successive approximation method. Qual Reliab Eng Int 2024;40(6):3280–303. https://doi.org/10.1002/qre.3559.   
+[28] Puthenpura S, Sinha NK. Modified maximum likelihood method for the robust estimation of system parameters from noisy data. Automatica 1986;22(2):231–5.   
+[29] Candelario G, Cordero A, Torregrosa JR, Vassileva MP. An optimal and low computational cost fractional Newton-type method for solving nonlinear equations. Appl Math Lett 2022;124. https://doi.org/10.1016/j.aml.2021.107650.   
+[30] Velasco L, Guerrero H, Hospitaler A. A literature review and critical analysis of metaheuristics recently developed. Arch Comput Methods Eng 2024;31(1):125–46. https://doi.org/10.1007/s11831-023-09975-0.   
+[31] Yonar A, Pehlivan NY. Artificial bee colony with levy flights for parameter estimation of 3-p weibull distribution. Iran J Sci Technol Trans A-Sci 2020;44(3): 851–64. https://doi.org/10.1007/s40995-020-00886-4.   
+[32] Zhou D, Zhuang X, Zuo H. A novel three-parameter weibull distribution parameter estimation using chaos simulated annealing particle swarm optimization in civil aircraft risk assessment. Arab J Sci Eng 2021;46(9):8311–28. https://doi.org/ 10.1007/s13369-021-05467-0.   
+[33] Ahmadianfar I, Bozorg-Haddad O, Chu X. Gradient-based optimizer: a new metaheuristic optimization algorithm. Inf Sci (Ny) 2020;540:131–59. https://doi. org/10.1016/j.ins.2020.06.037.   
+[34] Ismail AA. Estimating the parameters of Weibull distribution and the acceleration factor from hybrid partially accelerated life test. Appl Math Model 2012;36(7): 2916–21. https://doi.org/10.1016/j.apm.2011.09.083.   
+[35] Wang R, Luo Y. Efficient strategy for reliability-based optimization design of multidisciplinary coupled system with interval parameters. Appl Math Model 2019; 75:349–70. https://doi.org/10.1016/j.apm.2019.05.030.   
+[36] Gorjian Jolfaei N, Jin B, van der Linden L, Gunawan I, Gorjian N. A reliability-cost optimisation model for maintenance scheduling of wastewater treatment’s power generation engines. Qual Reliab Eng Int 2022;38(1):2–17. https://doi.org/ 10.1002/qre.2956.   
+[37] Castillo O, Melin P, Ontiveros E, Peraza C, Ochoa P, Valdez F, Soria J. A high-speed interval type 2 fuzzy system approach for dynamic parameter adaptation in metaheuristics. Eng Appl Artif Intell 2019;85:666–80. https://doi.org/10.1016/j. engappai.2019.07.020.   
+[38] Zhao W, Wang L, Zhang Z. Atom search optimization and its application to solve a hydrogeologic parameter estimation problem. Knowl Based Syst 2019;163: 283–304. https://doi.org/10.1016/j.knosys.2018.08.030.   
+[39] Rodriguez L, Castillo O, Soria J, Melin P, Valdez F, Gonzalez CI, Martinez GE, Soto J. A fuzzy hierarchical operator in the grey wolf optimizer algorithm. Appl Soft Comput 2017;57:315–28. https://doi.org/10.1016/j.asoc.2017.03.048.   
+[40] Govindasamy P, Dillibabu R. Development of software reliability models using a hybrid approach and validation of the proposed models using big data. J Supercomput 2020;76(4):2252–65. https://doi.org/10.1007/s11227-018-2457- 8.   
+[41] Kilic MB, Sahin Y, Koca MB. Genetic algorithm approach with an adaptive search space based on EM algorithm in two-component mixture Weibull parameter estimation. Comput Stat 2021;36(2):1219–42. https://doi.org/10.1007/s00180- 020-01044-5.   
+[42] Li S, Chi X, Yu B. An improved particle swarm optimization algorithm for the reliability-redundancy allocation problem with global reliability. Reliab Eng Syst Saf 2022;225. https://doi.org/10.1016/j.ress.2022.108604.   
+[43] Zhang Y, Wang S, Zio E, Zhang C, Dui H, Chen R. Multi-objective maintenance strategy for complex systems considering the maintenance uncertain impact by adaptive multi-strategy particle swarm optimization. Reliab Eng Syst Saf 2025;256. https://doi.org/10.1016/j.ress.2024.110671.   
+[44] Carneiro TC, Melo SP, Carvalho PCM, Braga APdS. Particle swarm optimization method for estimation of Weibull parameters: a case study for the Brazilian northeast region. Renew Energy 2016;86:751–9. https://doi.org/10.1016/j. renene.2015.08.060.   
+[45] Wolters MA. A particle swarm algorithm with broad applicability in shapeconstrained estimation. Comput Stat Data Anal 2012;56(10):2965–75. https://doi. org/10.1016/j.csda.2011.11.009.
+
+[46] Krohling RA, Campos M, Borges P. Bare bones particle swarm applied to parameter estimation of mixed Weibull distribution. In: Proceedings of the 14th online world conference on soft computing in industrial applications. 75; 2010. p. 53–60.   
+[47] Orkcu HH, Ozsoy VS, Aksoy E, Dogan MI. Estimating the parameters of 3-p Weibull distribution using particle swarm optimization: a comprehensive experimental comparison. Appl Math Comput 2015;268:201–26. https://doi.org/10.1016/j. amc.2015.06.043.   
+[48] Handoyo S, Efendi A, Jie F, Widodo A. Implementation of particle swarm optimization (PSO) algorithm for estimating parameter of arma model via maximum likelihood method. Far East J Math Sci 2017;102:1337–63.   
+[49] Acitas S, Aladag CH, Senoglu B. A new approach for estimating the parameters of Weibull distribution via particle swarm optimization: an application to the strengths of glass fibre cheek tor data. Reliab Eng Syst Saf 2019;183:116–27. https://doi.org/10.1016/j.ress.2018.07.024.   
+[50] Aladag CH, Yolcu U, Egrioglu E, Dalar AZ. A new time invariant fuzzy time series forecasting method based on particle swarm optimization. Appl Soft Comput 2012; 12(10):3291–9. https://doi.org/10.1016/j.asoc.2012.05.002.   
+[51] Alptekin B, Acitas S, Senoglu B, Aladag CH. Statistical determination of significant particle swarm optimization parameters: the case of Weibull distribution. Soft Comput 2022;26(22):12623–34. https://doi.org/10.1007/s00500-022-07253-y.   
+[52] Li S, Chi X, Yu B. An improved particle swarm optimization algorithm for the reliability–redundancy allocation problem with global reliability. Reliab Eng Syst Saf 2022;225:108604. https://doi.org/10.1016/j.ress.2022.108604.   
+[53] Richards M, Ventura D. Choosing a starting configuration for particle swarm optimization. IEEE; 2004.   
+[54] Wei Z, Zhao Z, Zhou Z, Ren J, Tang Y, Yan R. A deep reinforcement learning-driven multi-objective optimization and its applications on aero-engine maintenance strategy. J Manuf Syst 2024;74:316–28.   
+[55] Velasco L, Guerrero H, Hospitaler A. A literature review and critical analysis of metaheuristics recently developed. Archives of computational methods in engineering. State Art Rev 2024;31(1):125–46.   
+[56] Yalnkaya A, Enolu B, Yolcu U. Maximum likelihood estimation for the parameters of skew normal distribution using genetic algorithm. Swarm Evol Comput 2018;38: 127–8.   
+[57] Ypma TJ. Historical development of the Newton–Raphson method. Siam Rev 1995; 37(4):531–51.   
+[58] Bazaraa MS, Sherali HD, Shetty CM. Nonlinear programming: theory and algorithms. Technometrics 1994;49(1):105.   
+[59] Madgwick SOH. Estimation of IMU and MARG orientation using a gradient descent algorithm. In: Proceedings of the IEEE international conference on rehabilitation robotics; 2011, 5975336.   
+[60] Eberhart R, Kennedy J. A new optimizer using particle swarm theory. In: Proceedings of the sixth international symposium on micro machine and human science; 1995. p. 39–43.   
+[61] Kennedy J, Eberhart R. Particle swarm optimization. In: Proceedings of the international conference on neural networks4; 1995. p. 1942–8.   
+[62] Lynn N, Suganthan PN. Heterogeneous comprehensive learning particle swarm optimization with enhanced exploration and exploitation. Swarm Evol Comput 2015;24:11–24. https://doi.org/10.1016/j.swevo.2015.05.002.   
+[63] Wang D, Tan D, Liu L. Particle swarm optimization algorithm: an overview. Soft Comput 2018;22(2):387–408. https://doi.org/10.1007/s00500-016-2474-6.   
+[64] Lee ISK, Lau HYK. Adaptive state space partitioning for reinforcement learning. Eng Appl Artif Intell 2004;17(6):577–88. https://doi.org/10.1016/j. engappai.2004.08.005.   
+[65] Nadi F, Khader AT. Managing search in a partitioned search space in GA. In: Proceedings of the IEEE conference on cybernetics and intelligent systems; 2010. p. 114–9.   
+[66] Islam MQ, Tiku ML. Multiple linear regression model under nonnormality. Commun Stat Theory Methods 2004;33(10):2443–67. https://doi.org/10.1081/   
+[67] Najjarzadeh M, Sadjedi H. Implementation of particle swarm optimization algorithm for estimating the innovative parameters of a spike sequence from noisy samples via maximum likelihood method. Digit Signal Process 2020;106:102799. https://doi.org/10.1016/j.dsp.2020.102799.   
+[68] Mao S.S., and Wang L.L. Reliability statistics, Shanghai,1984.   
+[69] Sobol IM. On the distribution of points in a cube and the approximate evaluation of integrals. USSR Comput Math Math Phys 1967;7(4):86–112. https://doi.org/ 10.1016/0041-5553(67)90144-9.   
+[70] McKay MD, Beckman RJ, Conover WJ. A comparison of three methods for selecting values of input variables in the analysis of output from a computer code. Technometrics 2000;42(1):55–61. https://doi.org/10.2307/1271432.   
+[71] Halton, H J. Algorithm 247: radical-inverse quasi-random point sequence. Commun ACM 1964;7(12):701–2.   
+[72] Wang X, Hickernell FJ. Randomized Halton sequences. Math Comput Model 2000; 32(7):887–99. https://doi.org/10.1016/S0895-7177(00)00178-3.   
+[73] Concato J, Feinstein AR. Monte Carlo methods in clinical research: applications in multivariable analysis. J Investig Med 1997;45(6):394–400.   
+[74] Ashraf A, Almazroi AA, Bangyal WH, Alqarni MA. Particle swarm optimization with new initializing technique to solve global optimization problems. Intell Autom Soft Comput 2022;31(1):191–206. https://doi.org/10.32604/iasc.2022.015810.   
+[75] Halton JH. On the efficiency of certain quasi-random sequences of points in evaluating multi-dimensional integrals. Numer Math 1960;2(1):84–90. https://doi. org/10.1007/BF01386213 (Heidelb).   
+[76] Ypma TJ. Historical development of the Newton-Raphson method. Siam Rev 1995; 37(4):531–51. https://doi.org/10.1137/1037125.
+
+[77] Ozban ¨ AY. Some new variants of Newton’s method. Appl Math Lett 2004;17(6): 677–82. https://doi.org/10.1016/j.aml.2003.08.009.   
+[78] Grau-Sanchez M, Grau A, Noguera M. On the computational efficiency index and some iterative methods for solving systems of nonlinear equations. J Comput Appl Math 2011;236(6):1259–66. https://doi.org/10.1016/j.cam.2011.08.008.   
+[79] Houssein EH, Saeed MK, Hu G, Al-Sayed MM. An efficient improved exponential distribution optimizer: application to the global, engineering and combinatorial optimization problems. Clust Comput J Netw Softw Tools Appl 2024;27(7): 9345–80. https://doi.org/10.1007/s10586-024-04382-x.   
+[80] Jia H, Lu C, Wu D, Wen C, Rao H, Abualigah L. An improved reptile search algorithm with ghost opposition-based learning for global optimization problems. J Comput Des Eng 2023;10(4):1390–422. https://doi.org/10.1093/jcde/qwad048.
+
+[81] Abbasi B, Jahromi AHE, Arkat J, Hosseinkouchack M. Estimating the parameters of Weibull distribution using simulated annealing algorithm. Appl Math Comput 2006;183(1):85–93. https://doi.org/10.1016/j.amc.2006.05.063.   
+[82] Orkcu HH, Aksoy E, Dogan MI. Estimating the parameters of 3-p Weibull distribution through differential evolution. Appl Math Comput 2015;251:211–24. https://doi.org/10.1016/j.amc.2014.10.127.   
+[83] Alizadeh M, Rezaei S, Bagheri SF. On the estimation for the Weibull distribution. Ann Data Sci 2015;2(4):373–90. https://doi.org/10.1007/s40745-015-0046-8.   
+[84] Cheng L, Kong X, Zhang Y, Zhu Y, Qi H, Zhang J. A novel causal feature learningbased domain generalization framework for bearing fault diagnosis with a mixture of data from multiple working conditions and machines. Adv Eng Inform 2024;62. https://doi.org/10.1016/j.aei.2024.102622.

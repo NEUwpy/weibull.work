@@ -1,0 +1,33 @@
+{
+  "total_samples": 1200,
+  "failure_count": 394,
+  "failure_rate": 0.3283333333333333,
+  "failure_cause": {
+    "gradient_range不含offset": 394,
+    "gradient_range含offset但未检测到": 0
+  },
+  "parameter_distribution": {
+    "beta": {
+      "1.5": 147,
+      "2.0": 148,
+      "3.0": 99
+    },
+    "gamma": {
+      "0.0": 254,
+      "10.0": 140
+    },
+    "n": {
+      "10": 202,
+      "30": 192
+    }
+  },
+  "gradient_stats": {
+    "grad_min_min": 0.1003758760391531,
+    "grad_min_max": 6.487887811648741,
+    "grad_min_mean": 0.44870628781492145
+  },
+  "fallback_quality": {
+    "ne_mean": "not_computed"
+  },
+  "conclusion": "100% failure samples have grad_min > offset (0.1). The gradient curve never reaches the offset threshold. This is a theoretical limitation of the MDM method for these parameter combinations, not an implementation bug or configuration issue."
+}

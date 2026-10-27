@@ -1,0 +1,242 @@
+[
+  {
+    "id": "max_adequacy",
+    "name": "极大化适配法",
+    "shortName": "MaxAdq",
+    "description": "通过最大化似然函数或乘积间距估计参数。MLE大样本最优，WMLE小样本偏差更小。",
+    "formula": "\\ln L = n \\ln\\beta + (\\beta-1)\\sum_{i=1}^{n}\\ln(t_i-\\gamma) - n\\beta\\ln\\eta - \\sum_{i=1}^{n}\\left(\\frac{t_i-\\gamma}{\\eta}\\right)^\\beta",
+    "children": [
+      {
+        "id": "mle",
+        "name": "极大似然估计",
+        "shortName": "MLE",
+        "slug": "mle",
+        "hasDetail": true,
+        "description": "最常用的方法，解似然方程组。当 β<1 时无界。",
+        "formula": "max ln L(t1,...,tn;β,η,γ)"
+      },
+      {
+        "id": "mmle",
+        "name": "修正极大似然估计",
+        "shortName": "MMLE",
+        "slug": "mmle",
+        "hasDetail": true,
+        "description": "采用 Kundu–Raqab（2009）构造的单样本形式：位置取样本最小值，删除一个最小观测后，对平移样本的剖面形状方程作不动点迭代，再求尺度。",
+        "formula": "\\hat\\gamma=x_{(1)},\\quad y_i=x_{(i)}-\\hat\\gamma\\ (i=2,\\ldots,n),\\quad \\beta_{k+1}=\\frac{n-1+\\beta_k\\sum_{i=2}^{n}\\ln y_i}{(n-1)\\sum_{i=2}^{n}w_i(\\beta_k)\\ln y_i},\\quad w_i(\\beta)=\\frac{y_i^{\\beta}}{\\sum_{j=2}^{n}y_j^{\\beta}}"
+      },
+      {
+        "id": "mps",
+        "name": "最大乘积间距",
+        "shortName": "MPS",
+        "description": "通过最大化分布函数的几何平均间距来估计，比 MLE 更鲁棒。",
+        "formula": "S = 1/m ∑ ln [F(t(i)) - F(t(i-1))]]"
+      },
+      {
+        "id": "wmle",
+        "name": "加权极大似然",
+        "shortName": "WMLE",
+        "slug": "wmle",
+        "hasDetail": true,
+        "description": "采用 Cousineau（2009）的加权方程修正小样本偏差；当前约束、权重处理及核验范围见方法说明。",
+        "formula": "\\{\\hat{\\gamma}, \\hat{\\alpha}\\}_W = \\arg \\min \\left[ \\left(\\frac{W_2}{\\gamma} + ... \\right)^2 + \\left(... - W_3\\right)^2 \\right]"
+      }
+    ]
+  },
+  {
+    "id": "min_adequacy",
+    "name": "极小化适配法",
+    "shortName": "MinAdq",
+    "description": "通过最小化经验分布与理论分布的差异来估计参数。MDM小样本精度优，EIV考虑变量误差。",
+    "formula": "\\min \\sum_{i=1}^{n} \\left[F(t_i) - \\hat{F}_i\\right]^2",
+    "children": [
+      {
+        "id": "lse",
+        "name": "最小二乘估计",
+        "shortName": "LSE",
+        "slug": "lse",
+        "hasDetail": true,
+        "description": "White 顺序统计量期望回归的三参数扩展（Soman & Misra 1992）：对 μ 一维搜索，取 Fisher F 比最大者。适用形状参数 0~3 的 MLE 失效区。",
+        "formula": "\\log(t_i-\\mu) = \\alpha + \\beta X_i, \\quad \\hat{\\mu} = \\arg\\max F(\\mu)"
+      },
+      {
+        "id": "wlse",
+        "name": "加权最小二乘",
+        "shortName": "WLSE",
+        "description": "为不同数据点赋予不同权重的 LSE。",
+        "formula": "∑ wi (Fi - F̂i)^2"
+      },
+      {
+        "id": "mdm",
+        "name": "最小差异法",
+        "shortName": "MDM",
+        "slug": "mdm",
+        "hasDetail": true,
+        "description": "基于统计最小差异原理，通过伪估计量寻找使样本尺度参数差异最小的参数组合。MDM小样本精度优，稳健性强。",
+        "formula": "\\min_{\\beta, \\gamma} \\sigma \\left( \\frac{t_i - \\gamma}{[-\\ln(1-F_i)]^{1/\\beta}} \\right)"
+      },
+      {
+        "id": "eiv",
+        "name": "变量误差法",
+        "shortName": "EIV",
+        "description": "考虑变量本身的误差，最小化失效时间点的残差。",
+        "formula": "∑ (ti - t(i))^2"
+      }
+    ]
+  },
+  {
+    "id": "lre_group",
+    "name": "线性回归法",
+    "shortName": "LRE",
+    "description": "最简单易用的工程方法。线性化威布尔公式，通过最大化相关系数R求解，小样本表现佳。",
+    "formula": "\\ln(-\\ln(1-F)) = \\beta \\ln(t-\\gamma) - \\beta \\ln \\eta",
+    "children": [
+      {
+        "id": "lre",
+        "name": "线性回归",
+        "shortName": "LRE",
+        "slug": "lre",
+        "hasDetail": true,
+        "description": "按 Park（2017）Proposed+Plot：原文分段绘图位置、非负位置相关系数最大化，再用概率图 OLS 求形状与尺度。",
+        "formula": "\\hat{\\gamma} = \\arg\\max_{0\\leq\\gamma<t_{(1)}} \\rho(\\gamma), \\ Y = \\ln(-\\ln(1-p)), \\ X = \\ln(t-\\gamma)"
+      },
+      {
+        "id": "blre",
+        "name": "双线性回归",
+        "shortName": "BLRE",
+        "description": "高精度回归方法，但迭代中可能产生无效负值。",
+        "formula": "yi = a + b xi + εi"
+      }
+    ]
+  },
+  {
+    "id": "moments",
+    "name": "矩方法",
+    "shortName": "Moments",
+    "description": "基于样本矩等于总体矩的思想。计算简单但小样本精度低，PWM对离群点不敏感。",
+    "formula": "E[t^k] = \\int_0^\\infty t^k f(t) dt",
+    "children": [
+      {
+        "id": "mm",
+        "name": "矩估计",
+        "shortName": "MM",
+        "slug": "mm",
+        "hasDetail": true,
+        "description": "Cran (1988) Weibull 矩估计：生存函数幂次积分矩，三参数由低阶样本矩显式解出，无需迭代。快速初估并判断位置参数是否为零。",
+        "formula": "c^* = \\frac{\\ln 2}{\\ln(\\bar{m}_1-\\bar{m}_2)-\\ln(\\bar{m}_2-\\bar{m}_4)}"
+      },
+      {
+        "id": "pwm",
+        "name": "概率加权矩",
+        "shortName": "PWM",
+        "description": "Greenwood 提出，无需复杂迭代，对离群点不敏感。",
+        "formula": "M1,0,k = 1/n ∑ xi (1 - pi)^k"
+      },
+      {
+        "id": "lm",
+        "name": "L-矩",
+        "shortName": "LM",
+        "description": "使用顺序统计量的线性组合，比传统矩更稳健。",
+        "formula": "λr = lr"
+      },
+      {
+        "id": "tlm",
+        "name": "TL-矩",
+        "shortName": "TLM",
+        "description": "修剪 L-矩，对极端值更鲁棒。",
+        "formula": "μ'r = 1/r ∑ (-1)^k Crk E(X...))"
+      }
+    ]
+  },
+  {
+    "id": "grey",
+    "name": "灰色估计法",
+    "shortName": "Grey",
+    "description": "基于灰色系统理论 GM(1,1) 模型。适合小样本，计算快但稳定性较差，仅适用完全样本。",
+    "formula": "t = c e^{-a x} + b \\quad \\text{其中} \\quad \\frac{di(x)}{dx} + a i(x) = u",
+    "children": [
+      {
+        "id": "gm11",
+        "name": "灰色模型 GM(1,1)",
+        "shortName": "GM(1,1)",
+        "description": "通过微分方程模型拟合时间响应序列。",
+        "formula": "di(x)/dx + ai(x) = u"
+      }
+    ]
+  },
+  {
+    "id": "construct_stat",
+    "name": "构造统计量法",
+    "shortName": "ConstStat",
+    "description": "构造独立于某些参数的统计量来简化估计。用于估计单个参数，需结合其他方法完成。",
+    "formula": "T(X) \\perp \\theta \\quad \\text{(统计量独立于某些参数)}",
+    "children": [
+      {
+        "id": "mve",
+        "name": "最小方差无偏估计",
+        "shortName": "MVE",
+        "description": "利用顺序统计量构造线性无偏估计。",
+        "formula": "TjMVE"
+      },
+      {
+        "id": "lsf",
+        "name": "位置尺度无关极大似然",
+        "shortName": "LSF",
+        "description": "使用独立于 γ 和 η 的构造统计量。",
+        "formula": "LSF-MLE"
+      }
+    ]
+  },
+  {
+    "id": "bayesian",
+    "name": "贝叶斯方法",
+    "shortName": "Bayes",
+    "description": "结合先验分布与样本信息估计参数。解决MLE无解问题，适用于小样本和截尾数据。",
+    "formula": "\\pi(\\theta|t) = \\frac{f(t|\\theta)\\pi(\\theta)}{\\int f(t|\\theta)\\pi(\\theta)d\\theta}",
+    "children": [
+      {
+        "id": "gibbs",
+        "name": "Gibbs 采样",
+        "shortName": "Gibbs",
+        "description": "通过马尔可夫链蒙特卡洛 (MCMC) 方法从后验分布抽样。",
+        "formula": "p(θi | θ-i, D)"
+      },
+      {
+        "id": "map",
+        "name": "最大后验估计",
+        "shortName": "MAP",
+        "description": "寻找后验分布最大值的参数点。",
+        "formula": "arg max π(θ|t)"
+      }
+    ]
+  },
+  {
+    "id": "ai",
+    "name": "人工智能方法",
+    "shortName": "AI",
+    "description": "利用机器学习算法进行非线性拟合和参数搜索。PSO搜索最优参数，SVR适合小样本。",
+    "formula": "f(x) = \\sum_{i=1}^{n} w_i \\phi_i(x) \\quad \\text{(通用形式)}",
+    "children": [
+      {
+        "id": "pso",
+        "name": "粒子群优化",
+        "shortName": "PSO",
+        "description": "模拟鸟群觅食行为搜索最优参数。",
+        "formula": "vi^k+1 = w vi^k + c1 r1 (pbest - xi)"
+      },
+      {
+        "id": "svr",
+        "name": "支持向量回归",
+        "shortName": "SVR",
+        "description": "利用核函数进行小样本回归预测。",
+        "formula": "min 1/2||w||^2 + C ∑ ξi"
+      },
+      {
+        "id": "ann",
+        "name": "人工神经网络",
+        "shortName": "ANN",
+        "description": "训练神经网络直接映射样本特征到参数。",
+        "formula": "y = σ(Wx + b)"
+      }
+    ]
+  }
+]

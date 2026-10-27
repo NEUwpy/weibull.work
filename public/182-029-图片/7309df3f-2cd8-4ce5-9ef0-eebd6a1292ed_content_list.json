@@ -1,0 +1,2906 @@
+[
+    {
+        "type": "text",
+        "text": "Article",
+        "bbox": [
+            122,
+            116,
+            174,
+            129
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "On the Bias of the Maximum Likelihood Estimators of Parameters of the Weibull Distribution",
+        "text_level": 1,
+        "bbox": [
+            124,
+            131,
+            838,
+            178
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Man Chen *, Zheng Zhang and Cen Cui",
+        "bbox": [
+            122,
+            193,
+            433,
+            210
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Department of Mathematics, School of Science, Beijing Jiaotong University, Beijing 100044, China; 13271092@bjtu.edu.cn (Z.Z.); 13271026@bjtu.edu.cn (C.C.)",
+        "bbox": [
+            131,
+            216,
+            784,
+            244
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "* Correspondence: 13271049@bjtu.edu.cn",
+        "bbox": [
+            132,
+            246,
+            415,
+            259
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Academic Editor: Fazal M. Mahomed",
+        "bbox": [
+            132,
+            267,
+            386,
+            279
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Received: 18 September 2016; Accepted: 20 January 2016; Published: 16 February 2016",
+        "bbox": [
+            132,
+            281,
+            710,
+            294
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract: Usually, the parameters of a Weibull distribution are estimated by maximum likelihood estimation. To reduce the biases of the maximum likelihood estimators (MLEs) of two-parameter Weibull distributions, we propose analytic bias-corrected MLEs. Two other common estimators of Weibull distributions, least-squares estimators and percentiles estimators, are also introduced. Based on a comparison of their performances in the simulation study, we strongly recommend the analytic bias-corrected MLEs for the parameters of Weibull distributions, especially when the sample size is small.",
+        "bbox": [
+            131,
+            307,
+            873,
+            419
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Keywords: Weibull distribution; maximum likelihood estimators; bias correction; bootstrap; percentiles; least squares estimators",
+        "bbox": [
+            131,
+            435,
+            873,
+            466
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction",
+        "text_level": 1,
+        "bbox": [
+            122,
+            512,
+            243,
+            525
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "We investigate several different estimations of the parameters of the two-parameter Weibull distribution, and analyze two different methods to reduce the biases of maximum likelihood estimators (MLEs).",
+        "bbox": [
+            121,
+            535,
+            873,
+            581
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The following formula is the cumulative distribution function of a Weibull distribution:",
+        "bbox": [
+            157,
+            583,
+            811,
+            598
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nF (x; k, \\lambda) = \\left\\{ \\begin{array}{l l} 1 - e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}}, & x > 0, \\lambda > 0, k > 0 \\\\ 0 & x \\leq 0 \\end{array} , \\right. \\tag {1}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            312,
+            609,
+            872,
+            649
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "and its probability density function is:",
+        "bbox": [
+            122,
+            659,
+            413,
+            674
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nf (x; k, \\lambda) = \\left\\{ \\begin{array}{l l} {\\left(\\frac {1}{\\lambda}\\right) ^ {k} k x ^ {k - 1} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}},} & {x > 0, \\lambda > 0, k > 0} \\\\ {0} & {x \\leq 0} \\end{array} , \\right. \\tag {2}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            290,
+            687,
+            872,
+            725
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution was first identified by Fréchet in 1927, and it was named after Waloddi Weibull, a Swedish mathematician who described this distribution in detail in 1951. Rammler [1] used it to explain a particle size distribution.",
+        "bbox": [
+            121,
+            736,
+            873,
+            783
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution is not a single distribution, but is in fact a family of distributions, because of the distribution having the shape parameter. The shape parameter enables Weibull distributions to take on various shapes, contingent on the value of the shape parameter. Those distributions are particularly useful in modeling applications since they are flexible enough to model various datasets.",
+        "bbox": [
+            121,
+            784,
+            873,
+            862
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution has a relatively simple form. Nevertheless, the shape parameter enables the Weibull to assume a variety of shapes. This combination of simplicity and flexibility in the shape of the Weibull distribution makes it an effective distributional model in reliability applications. The ability",
+        "bbox": [
+            122,
+            864,
+            873,
+            912
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "#",
+        "bbox": [
+            124,
+            55,
+            184,
+            96
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Mathematical and Computational",
+        "bbox": [
+            191,
+            58,
+            319,
+            82
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Applications",
+        "bbox": [
+            191,
+            85,
+            275,
+            97
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "MDPI",
+        "bbox": [
+            796,
+            63,
+            868,
+            97
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "footer",
+        "text": "Math. Comput. Appl. 2017, 22, 19; doi:10.3390/mca22010019",
+        "bbox": [
+            122,
+            938,
+            478,
+            952
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "footer",
+        "text": "www.mdpi.com/journal/mca",
+        "bbox": [
+            689,
+            939,
+            873,
+            952
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "to model various distributional shapes by using a relatively simple distributional form is possible with many other distributional families, as well.",
+        "bbox": [
+            121,
+            104,
+            870,
+            136
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution is associated with various other distributions. For instance, it is well known that a Weibull distribution contains the exponential distribution (when  $k = 1$ ) and the Rayleigh distribution (when  $k = 2$ ). Recently, Ling and Giles [2] studied the Rayleigh distribution and the bias adjustment of the Rayleigh distribution. The Weibull distribution is a special condition of the generalized extreme value distribution, which was proposed by Fréchet [3]. This closely-related Fréchet distribution has the probability density function:",
+        "bbox": [
+            121,
+            136,
+            873,
+            231
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nf _ {\\text {F r e c h e t}} (x; k, \\lambda) = \\left\\{ \\begin{array}{l l} \\frac {k}{\\lambda} \\left(\\frac {x}{\\lambda}\\right) ^ {- 1 - k} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {- k}} & x > 0, \\lambda > 0, k > 0 \\\\ 0 & x \\leq 0. \\end{array} \\right., \\tag {3}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            268,
+            243,
+            872,
+            281
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Actually,  $f_{Frechet}(x; k, \\lambda) = -f_{Weibull}(x; -k, \\lambda)$ . A Weibull distribution is also characterized in terms of a uniform distribution; when  $U$  is uniformly distributed on  $(0, 1)$ , then the random variable  $\\lambda(-\\ln(U))^{1/k}$  is Weibull distributed with parameters  $k$  and  $\\lambda$ .",
+        "bbox": [
+            121,
+            293,
+            872,
+            341
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution has been used in numerous fields, such as production, industry, data analysis, reliability in devices, materials testing and environmental assessment. This distribution was studied and used in an aircraft system to investigate operational reliability by Kaltschmidt et al. [4]. Nikolaj [5] showed that this distribution can be used in oil pollution examination. Singh [6] studied the Weibull distribution and worked in hydrology by using this distribution. Aarset [7] applied a Weibull distribution to test failure times of devices, and the data were further analyzed and modified by Lai et al. [8]. It was used in breakdown voltage estimation by Hirose [9], and Fabiani [10] used it to test electrical breakdown of insulating materials. It was applied to censored data by Ghitany et al. [11]. In the study of wind energy, the Weibull distribution was also applied by Akdag et al. [12].",
+        "bbox": [
+            121,
+            342,
+            873,
+            486
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Additionally, we have also considered the exponential distribution. When the value of  $k$  is one, the Weibull distribution becomes the exponential distribution, which is studied widely. The cumulative distribution function of the exponential distribution is:",
+        "bbox": [
+            121,
+            486,
+            873,
+            533
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nF (x; k, \\lambda) = \\left\\{ \\begin{array}{l l} 1 - e ^ {- \\lambda x}, & x > 0, \\lambda > 0 \\\\ 0 & x \\leq 0 \\end{array} , \\right. \\tag {4}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            342,
+            546,
+            872,
+            586
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "and its probability density is:",
+        "bbox": [
+            122,
+            595,
+            344,
+            609
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nf (x; k, \\lambda) = \\left\\{ \\begin{array}{l l} \\lambda e ^ {- \\lambda x}, & x > 0, \\lambda > 0 \\\\ 0 & x \\leq 0 \\end{array} , \\right. \\tag {5}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            349,
+            621,
+            872,
+            662
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Maximum-likelihood estimators of the Weibull distribution are commonly used. However, they are biased, and thus, in this paper, we propose analytic bias-corrected MLEs for the two-parameter Weibull distribution. The analytic bias-corrected MLEs are considered in Section 2 and compared with the other bias-corrected MLEs, which are also known as bootstrap bias-corrected MLEs. In Sections 3 and 4, we introduce two other commonly-used estimators. Monte Carlo experiments are conducted for the simulation study. Tabular and graphical representations of the results are presented in this section. The results indicate that the analytic bias-corrected estimators are superior to not only traditional bootstrap bias-corrected estimators, but also the other two commonly-used estimators. Thus, the analytic bias-corrected estimators should be highly recommended. Finally, we apply these estimators to an actual situation and draw conclusions.",
+        "bbox": [
+            121,
+            671,
+            873,
+            829
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "page_number",
+        "text": "2 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            76
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Maximum Likelihood Estimators and Different Bias-Corrected Maximum Likelihood Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            104,
+            868,
+            118
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2.1. Maximum Likelihood Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            131,
+            381,
+            145
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Suppose the sample  $(x_{1}, x_{2}, \\ldots, x_{n})$  is generated from the log-normal distribution. The likelihood function of the Weibull distribution is:",
+        "bbox": [
+            122,
+            154,
+            872,
+            186
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nL = \\left(\\frac {1}{\\lambda}\\right) ^ {k n} k ^ {n} \\left(\\prod_ {i = 1} ^ {n} x _ {i}\\right) ^ {k - 1} e ^ {- \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k}} \\tag {6}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            366,
+            196,
+            872,
+            231
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "and the formula for the log-likelihood function is:",
+        "bbox": [
+            122,
+            241,
+            497,
+            256
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nl = \\log L = - k n \\log \\lambda + n \\log k + (k - 1) \\sum_ {i = 1} ^ {n} \\log x _ {i} - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {7}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            265,
+            268,
+            872,
+            303
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The MLEs can be obtained by solving the following equations:",
+        "bbox": [
+            157,
+            313,
+            626,
+            331
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial l}{\\partial \\lambda} = - \\frac {k n}{\\lambda} + k \\lambda^ {- k - 1} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} = 0 \\tag {8}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            216,
+            342,
+            872,
+            376
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial l}{\\partial k} = - n \\log \\lambda + \\frac {n}{k} + \\sum_ {i = 1} ^ {n} \\log x _ {i} - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} + \\lambda^ {- k} (\\log \\lambda) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} = 0 \\tag {9}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            218,
+            379,
+            872,
+            414
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The Newton-Raphson method is used to solve these two equations, and solutions  $\\widehat{k}$  and  $\\widehat{\\lambda}$  were obtained.",
+        "bbox": [
+            122,
+            426,
+            872,
+            458
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2.2. Analytic Bias-Corrected Maximum Likelihood Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            470,
+            549,
+            486
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Suppose  $l(\\sigma)$  is the log-likelihood function of the Weibull distribution based on a sample size  $n$ . The joint cumulants of the derivatives of the log-likelihood function are:",
+        "bbox": [
+            122,
+            495,
+            873,
+            526
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {i j} = E \\left[ \\frac {\\partial^ {2} l}{\\partial \\sigma_ {i} \\partial \\sigma_ {j}} \\right], i, j = 1, 2, \\dots , q \\tag {10}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            384,
+            538,
+            872,
+            573
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {i j m} = E \\left[ \\frac {\\partial^ {3} l}{\\partial \\sigma_ {i} \\partial \\sigma_ {j} \\partial \\sigma_ {m}} \\right], i, j, m = 1, 2, \\dots , q \\tag {11}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            354,
+            583,
+            872,
+            617
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {i j, m} = E \\left[ \\frac {\\partial^ {2} l}{\\partial \\sigma_ {i} \\partial \\sigma_ {j}} \\frac {\\partial l}{\\partial \\sigma_ {m}} \\right], i, j, m = 1, 2, \\dots , q \\tag {12}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            352,
+            625,
+            872,
+            657
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {i j} ^ {(m)} = \\frac {\\partial h _ {i j}}{\\partial \\sigma_ {m}}, i, j, l = 1, 2, \\dots , q \\tag {13}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            391,
+            668,
+            872,
+            700
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this part, the function  $l(\\sigma)$  is regular with respect to all derivatives up to the third order.",
+        "bbox": [
+            157,
+            705,
+            830,
+            720
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We assume that Equations (10)-(13) are  $O(n)$ . Cox and Snell [13] showed that for sample data that are independent, but not always identically distributed, the bias of the  $s$ -th element of the MLE of  $\\sigma$  is:",
+        "bbox": [
+            122,
+            721,
+            873,
+            752
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nB i a s \\left(\\widehat {\\sigma} _ {s}\\right) = \\sum_ {i = 1} ^ {q} \\sum_ {j = 1} ^ {q} \\sum_ {l = 1} ^ {q} h ^ {s i} h ^ {s j} [ (1 / 2) h _ {i j m} + h _ {i j, m} ] + O \\left(n ^ {- 2}\\right), i, j, m = 1, 2, \\dots , q \\tag {14}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            230,
+            765,
+            872,
+            804
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where  $h^{ij}$  is the  $(i,j)$ -th element of the inverse of Fisher's information matrix,  $H = \\{-h^{ij}\\}$ . Cordeiro and Klein [14] observed that the bias expression still holds even if the observations are non-independent, proved that all of the  $h$  terms are  $O(n)$  and recommended another form for the expression:",
+        "bbox": [
+            122,
+            816,
+            873,
+            865
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\operatorname {B i a s} \\left(\\widehat {\\sigma} _ {s}\\right) = \\sum_ {i = 1} ^ {q} h ^ {s i} \\sum_ {j = 1} ^ {q} \\sum_ {l = 1} ^ {q} h ^ {s j} \\left[ h _ {i j} ^ {m} - (1 / 2) h _ {i j m} \\right] h ^ {j m} + O \\left(n ^ {- 2}\\right), i, j, m = 1, 2, \\dots , q \\tag {15}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            221,
+            876,
+            872,
+            914
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "page_number",
+        "text": "3 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In Equation (15), we define:",
+        "bbox": [
+            157,
+            104,
+            369,
+            118
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {i j} ^ {(m)} = h _ {i j} ^ {(m)} - \\frac {1}{2} h _ {i j m}, i, j, m = 1, 2, \\dots , q \\tag {16}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            357,
+            131,
+            872,
+            160
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "and (15) can be written as:",
+        "bbox": [
+            122,
+            168,
+            326,
+            184
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\operatorname {B i a s} (\\widehat {\\sigma}) = H ^ {- 1} \\operatorname {A v e c} \\left(H ^ {- 1}\\right) + O \\left(n ^ {- 2}\\right) \\tag {17}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            359,
+            184,
+            872,
+            202
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where  $\\text{vec}(H^{-1})$  is a transformation of the matrix  $H^{-1}$  into a vector form, and the matrix  $A$  is:",
+        "bbox": [
+            121,
+            209,
+            821,
+            225
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nA ^ {(m)} = \\left\\{a _ {i j} ^ {(m)} \\right\\}; i, j, m = 1, 2, \\dots , q \\tag {18}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            376,
+            237,
+            872,
+            260
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nA = \\left[ A ^ {(1)} \\mid A ^ {(2)} \\mid \\dots \\mid A ^ {(q)} \\right] \\tag {19}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            396,
+            267,
+            872,
+            287
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Then, the bias-corrected MLEs are:",
+        "bbox": [
+            157,
+            293,
+            421,
+            307
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\operatorname {B i a s} \\left( \\begin{array}{l} \\widetilde {\\lambda} _ {\\text {a n a l y t i c - c o r r e c t e d}} \\\\ \\widetilde {k} _ {\\text {a n a l y t i c - c o r r e c t e d}} \\end{array} \\right) = \\widehat {\\sigma} - \\widehat {H} ^ {- 1} \\widehat {A} \\operatorname {v e c} \\left(\\widehat {H} ^ {- 1}\\right) \\tag {20}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            295,
+            319,
+            872,
+            359
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where  $\\widehat{H} = (H)|_{\\widehat{\\sigma}}$  and  $\\widehat{A} = (A)|_{\\widehat{\\sigma}}$ . The bias of  $\\widetilde{\\sigma}$  can be proven to be  $O(n^{-2})$ . The values of the elements of  $\\widehat{\\sigma}$  can be obtained based on the maximum likelihood equations.",
+        "bbox": [
+            121,
+            370,
+            873,
+            401
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "This method was applied to the generalized Pareto distribution by Giles et al. [15] successfully, and Min Wang [16] used it for the weighted Lindley distribution with Wentao Wang.",
+        "bbox": [
+            121,
+            403,
+            873,
+            434
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Specific calculation procedures of the bias-corrected MLEs of the parameters of the Weibull distribution are listed in Appendix A.",
+        "bbox": [
+            121,
+            435,
+            873,
+            468
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "2.3. Bootstrap Bias-Corrected Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            479,
+            406,
+            494
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this section, the bootstrap bias-corrected estimators of the Weibull distribution are considered, which were suggested by Mackinnon and Smith [17].",
+        "bbox": [
+            121,
+            502,
+            873,
+            533
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The solutions  $\\widehat{k}$  and  $\\widehat{\\lambda}$  are the particular values of estimators based on MLEs, and we regard  $\\widehat{k}$  and  $\\widehat{\\lambda}$  as the particular parameters of the log-normal distribution, from which the  $N_B$  replicative samples are generated. Thus, the corresponding estimates  $(\\widehat{k}_1,\\widehat{k}_2,\\dots,\\widehat{k}_n)$  and  $(\\widehat{\\lambda}_1,\\widehat{\\lambda}_2,\\dots,\\widehat{\\lambda}_n)$  are obtained.",
+        "bbox": [
+            121,
+            533,
+            873,
+            581
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The bootstrap bias-corrected parameters are  $\\check{k} = 2\\widehat{k} - (1 / N_B)\\sum_{j=1}^{N_B}\\widehat{k}_j$ ,  $\\check{\\lambda} = 2\\widehat{\\lambda} - (1 / N_B)\\sum_{j=1}^{N_B}\\widehat{\\lambda}_j$  (the parameters  $\\widehat{k}_j$  and  $\\widehat{\\lambda}_j$  are the MLEs of  $k$  and  $\\lambda$  from the  $j$ -th sample of the  $N_B$  replication samples).",
+        "bbox": [
+            121,
+            581,
+            873,
+            618
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "This method is fairly effective and is worth applying to various situations, which causes that many experts have investigated it. Ferrari and Cribari-Neto [18] explored the relationship between bias correction of maximum likelihood estimators through the bootstrap method, and the bootstrap method was presented by Ho and Fernandes da Silva [19] to make improvements in the MLE of Mean Time to Failure (MTTF) and p-quantiles. Focarelli [20] used the bootstrap bias-correction procedure to estimate long-run relationships from dynamic panels, with an application to money demand in the euro area.",
+        "bbox": [
+            121,
+            619,
+            873,
+            728
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3. Percentile Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            741,
+            309,
+            756
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The estimators based on percentiles are also investigated. This approach was first studied by Kao [21,22] and then was explored by Mann, Schafer and Singpurwalla [23]. This method is suitable for the Weibull distribution.",
+        "bbox": [
+            121,
+            765,
+            873,
+            810
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Let us consider the situation where both the parameters  $\\lambda$  and  $k$  are unknown. From the cumulative distribution function (1), we can obtain:",
+        "bbox": [
+            121,
+            813,
+            873,
+            844
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\lambda \\left[ - \\log \\left(1 - F \\left(x _ {i}; k, \\lambda\\right)\\right) \\right] ^ {(1 / k)} = x _ {i} \\tag {21}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            371,
+            857,
+            872,
+            876
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "page_number",
+        "text": "4 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Suppose that  $(x_{1}, x_{2}, \\ldots, x_{n})$  is a random sample of data, and the  $(x_{(1)}, x_{(2)}, \\ldots, x_{(n)})$  is the ordered observation. Let  $p_{i}$  be the estimate of  $F(x_{(i)}; k, \\lambda)$ , then we can obtain estimates of  $\\lambda$  and  $k$  by minimizing the equation:",
+        "bbox": [
+            121,
+            104,
+            875,
+            151
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\sum_ {i = 1} ^ {n} \\left[ x _ {i} - \\left[ - \\log \\left(1 - F \\left(x _ {(i)}; k, \\lambda\\right)\\right) \\right] ^ {(1 / k)} \\right] ^ {2} \\tag {22}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            354,
+            151,
+            872,
+            185
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Generally, some  $p_i$ 's are used to be the estimates of the  $F(x_i; k, \\lambda)$ , and the  $p_i = (i / (n + 1))$  is most frequently used, because  $(i / (n + 1))$  is the expected value of  $F(x_{(i)}; k, \\lambda)$ . In this article, we also use this  $p_i$ .",
+        "bbox": [
+            121,
+            191,
+            875,
+            239
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Equation (22) is a non-linear function. To obtain estimates of the two parameters, we can solve (22) by using some non-linear regression techniques. These estimators are called percentile estimators, which were also applied and introduced by Gupta and Kundu [24].",
+        "bbox": [
+            121,
+            239,
+            875,
+            287
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4. Least Squares Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            300,
+            337,
+            313
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In this section, we introduce the expressions of another estimation. This method was first applied by Swain, Venkatraman and Wilson [25] to estimate the parameters of the beta distribution, and it can be utilized in other cases, as well. Suppose that  $(x_{1}, x_{2}, \\ldots, x_{n})$  is a random sample of size  $n$  from a distribution whose distribution function is  $F(x)$  and that  $(x_{(1)}, x_{(2)}, \\ldots, x_{(n)})$  denotes the ordered set of sample observations. Jonson, Kotz and Balakrishnan [26] proposed expressions for the expectations and variances,",
+        "bbox": [
+            121,
+            322,
+            873,
+            416
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nE \\left(F \\left(x _ {(i)}\\right)\\right) = \\frac {i}{n + 1}, i = 1, 2, \\dots , n \\tag {23}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            376,
+            416,
+            872,
+            444
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The least squares estimators can be obtained by minimizing:",
+        "bbox": [
+            159,
+            449,
+            611,
+            464
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\sum_ {i = 1} ^ {n} \\left[ F \\left(x _ {(i)}\\right) - \\frac {i}{n + 1} \\right] ^ {2} \\tag {24}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            418,
+            476,
+            872,
+            511
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We call this estimator as least squares estimator.",
+        "bbox": [
+            157,
+            523,
+            519,
+            537
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Therefore, in the case of the Weibull distribution, the least squares estimators of  $k$  and  $\\lambda$  are denoted by  $k_{Lse}$  and  $\\lambda_{Lse}$ , respectively. These values are obtained by minimizing:",
+        "bbox": [
+            122,
+            539,
+            872,
+            570
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\sum_ {i = 1} ^ {n} \\left[ 1 - e ^ {- \\left(\\frac {x _ {(i)}}{\\lambda}\\right) ^ {k}} - \\frac {i}{n + 1} \\right] ^ {2} \\tag {25}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            401,
+            583,
+            872,
+            615
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5. Simulation Study",
+        "text_level": 1,
+        "bbox": [
+            122,
+            630,
+            282,
+            645
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5.1. Procedures",
+        "text_level": 1,
+        "bbox": [
+            122,
+            655,
+            233,
+            669
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In this part, the Monte Carlo experiment is described, and the simulation results are analyzed. The R 3.2.2 software [27] routines for log-normal random variates are used to generate the sample from the Weibull distribution. Then, the MLE, percentile estimation and least squares estimation can be realized by the non-linear minimization function. In the R software, the non-linear minimization function can solve a minimization problem using a Newton-type algorithm. After substituting the MLEs into the corrected formula mentioned previously, we can obtain the analytic bias-corrected estimators. The bootstrap bias-corrected estimators will be acquired after conducting the replicative MLE experiments.",
+        "bbox": [
+            121,
+            678,
+            875,
+            806
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5.2. Analysis of the Results",
+        "text_level": 1,
+        "bbox": [
+            122,
+            818,
+            315,
+            832
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5.2.1. Comparison of Maximum Likelihood Estimators and Bias-Corrected Maximum Likelihood Estimators",
+        "text_level": 1,
+        "bbox": [
+            121,
+            845,
+            843,
+            873
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Comparing the theoretical performances of the different estimators mentioned above is not convincing. Therefore, we performed extensive simulations to compare the performances of the",
+        "bbox": [
+            121,
+            882,
+            875,
+            914
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "page_number",
+        "text": "5 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "different methods, mainly with respect to their real absolute percentage biases and percentage mean squared errors (MSEs) for different sample sizes. The percentage MSE is defined as  $100 \\times (\\mathrm{MSE}(\\widehat{k}) / k^2)$ , and the absolute percentage bias is defined as  $100 \\times |(\\mathrm{mean}(\\widehat{k}) - k) / k|$ .",
+        "bbox": [
+            121,
+            104,
+            877,
+            151
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In each section of this experiment, 20,000 Monte Carlo replications are performed, and 10,000 bootstrap samples are used for every replication.",
+        "bbox": [
+            121,
+            152,
+            875,
+            184
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We also investigate general Weibull distributions with some common parameter values. The exponential distribution with particular parameter value  $(k = 1)$  is also investigated here. We select parameters values for the Weibull distribution  $(k = 1)$  that are consistent with the data generating process being an exponential distribution.",
+        "bbox": [
+            121,
+            185,
+            873,
+            247
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Absolute percentage biases and MSEs of those estimators for the exponential distribution are presented in Table 1, and those for the Weibull distribution are presented in Table 2.",
+        "bbox": [
+            121,
+            248,
+            873,
+            280
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "These tables show that the percentage biases of the analytic bias-corrected MLEs are much smaller than those of the MLEs. Meanwhile, both the analytic bias correction and bootstrap bias correction perform well. However, the Cox-Snell bias correction is more effective than the bootstrap reduction, especially with the modest sample size.",
+        "bbox": [
+            121,
+            281,
+            873,
+            344
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The absolute values of the percentage biases tend to decline as the sample size increases, and the percentage MSEs of the Cox-Snell estimators are smaller than those of the bootstrap estimators, except in a few cases. The MSEs and biases of the analytic bias-correction estimators are smaller than those of the other estimators.",
+        "bbox": [
+            121,
+            344,
+            873,
+            407
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/20fee96432ef25bba35717c2ddb626a1518990d30f530fad2c94983bda55c400.jpg",
+        "table_caption": [
+            "Table 1. Percentage bias and mean squared errors (MSEs) for the exponential distribution."
+        ],
+        "table_footnote": [
+            "In these tables  $\\widehat{\\lambda}$ ,  $\\lambda_{Per}$ ,  $\\check{\\lambda}$ ,  $\\lambda_{Lse}$ ,  $\\widetilde{\\lambda}$  denote MLEs, percentile, bootstrap, least squares and analytic bias corrected estimators of  $\\lambda$ ."
+        ],
+        "table_body": "<table><tr><td></td><td>n</td><td>k̂</td><td>kPer</td><td>k̂</td><td>kLse</td><td>k̂</td></tr><tr><td rowspan=\"4\">k=1,λ=4.2</td><td>10</td><td>3.38797 (1.72263)</td><td>4.24687 (1.63461)</td><td>1.62722 (1.68783)</td><td>2.03847 (2.23278)</td><td>1.54944 (2.178493)</td></tr><tr><td>20</td><td>3.29136 (1.65143)</td><td>4.13135 (1.57272)</td><td>1.58273 (1.52827)</td><td>1.74331 (2.177534)</td><td>1.48638 (1.40788)</td></tr><tr><td>50</td><td>2.79397 (1.14223)</td><td>3.64087 (1.09408)</td><td>1.09148 (1.04746)</td><td>1.21462 (1.68899)</td><td>0.97849 (0.98887)</td></tr><tr><td>90</td><td>2.25832 (0.43723)</td><td>2.73324 (0.49677)</td><td>1.03022 (0.41751)</td><td>1.09139 (0.95252)</td><td>0.96362 (0.40429)</td></tr><tr><td rowspan=\"4\">k=1,λ=6</td><td>10</td><td>3.62346 (2.43225)</td><td>4.52579 (2.32371)</td><td>1.93752 (2.37691)</td><td>2.12836 (2.84987)</td><td>1.83741 (2.23637)</td></tr><tr><td>20</td><td>3.48225 (2.34162)</td><td>4.44257 (2.26101)</td><td>1.84247 (2.23775)</td><td>1.93243 (2.76782)</td><td>1.73236 (2.19606)</td></tr><tr><td>50</td><td>2.48276 (1.83342)</td><td>3.33175 (1.71529)</td><td>0.99447 (1.75702)</td><td>1.01764 (2.37791)</td><td>0.96848 (1.67906)</td></tr><tr><td>90</td><td>2.24721 (0.88253)</td><td>2.92384 (0.89496)</td><td>0.83833 (0.89241)</td><td>0.99847 (1.04731)</td><td>0.81751 (0.81043)</td></tr><tr><td></td><td>n</td><td>λ̂</td><td>λPer</td><td>λ̂</td><td>λLse</td><td>λ̂</td></tr><tr><td rowspan=\"4\">k=1,λ=4.2</td><td>10</td><td>0.32264 (0.24035)</td><td>0.28236 (0.59336)</td><td>0.623731 (0.24071)</td><td>0.18357 (0.30108)</td><td>0.17435 (0.23218)</td></tr><tr><td>20</td><td>0.31451 (0.22341)</td><td>0.27293 (0.23809)</td><td>0.24386 (0.23353)</td><td>0.17673 (0.29049)</td><td>0.16212 (0.22234)</td></tr><tr><td>50</td><td>0.27232 (0.18334)</td><td>0.22251 (0.18124)</td><td>0.19474 (0.18364)</td><td>0.12734 (0.24157)</td><td>0.11615 (0.17787)</td></tr><tr><td>90</td><td>0.22582 (0.13205)</td><td>0.21523 (0.13221)</td><td>0.16342 (0.13201)</td><td>0.09862 (0.15193)</td><td>0.06783 (0.12996)</td></tr><tr><td rowspan=\"4\">k=1,λ=6</td><td>10</td><td>0.23464 (0.22826)</td><td>0.36204 (0.23118)</td><td>0.19424 (0.22719)</td><td>0.35411 (0.23386)</td><td>0.13571 (0.22105)</td></tr><tr><td>20</td><td>0.21527 (0.21376)</td><td>0.34482 (0.21096)</td><td>0.18895 (0.21855)</td><td>0.33206 (0.22596)</td><td>0.12556 (0.21224)</td></tr><tr><td>50</td><td>0.20738 (0.19892)</td><td>0.28401 (0.20515)</td><td>0.17804 (0.19497)</td><td>0.26589 (0.20787)</td><td>0.12404 (0.19272)</td></tr><tr><td>90</td><td>0.19278 (0.09642)</td><td>0.26276 (0.09994)</td><td>0.15497 (0.09036)</td><td>0.24259 (0.10425)</td><td>0.11285 (0.08902)</td></tr></table>",
+        "bbox": [
+            127,
+            444,
+            875,
+            688
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "page_number",
+        "text": "6 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/9053a629effb56baa8fbbc6d8cb61b5672539b68dbac20fb9d0a93c3192bc194.jpg",
+        "table_caption": [
+            "Table 2. Percentage bias and MSEs for the Weibull distribution."
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>n</td><td>k̂</td><td>kPer</td><td>k̂</td><td>kLse</td><td>k̂</td></tr><tr><td rowspan=\"5\">k=3,λ=5</td><td>10</td><td>2.87878 (2.02135)</td><td>3.76377 (1.94205)</td><td>1.17121 (1.97737)</td><td>1.58273 (2.52286)</td><td>1.09343 (0.48693)</td></tr><tr><td>20</td><td>2.71862 (1.91433)</td><td>3.61252 (1.82626)</td><td>1.02736 (1.88171)</td><td>1.23402 (2.47634)</td><td>0.96782 (1.77987)</td></tr><tr><td>50</td><td>2.23878 (1.42331)</td><td>3.10377 (1.34989)</td><td>0.51983 (1.37363)</td><td>0.74025 (1.98798)</td><td>0.48693 (1.28777)</td></tr><tr><td>90</td><td>1.78422 (0.77231)</td><td>2.23241 (0.76976)</td><td>0.50221 (0.77014)</td><td>0.51992 (1.22424)</td><td>0.46362 (0.74991)</td></tr><tr><td>120</td><td>1.33244 (0.68769)</td><td>1.76234 (0.55237)</td><td>0.49025 (0.52129)</td><td>0.52106 (0.76348)</td><td>0.38221 (0.50104)</td></tr><tr><td rowspan=\"5\">k=4.5,λ=2.5</td><td>10</td><td>4.46931 (2.83411)</td><td>3.27236 (2.49953)</td><td>2.72193 (2.38278)</td><td>1.98214 (3.40137)</td><td>0.56310 (2.22179)</td></tr><tr><td>20</td><td>4.21625 (2.61951)</td><td>2.92736 (2.27636)</td><td>2.51293 (2.15254)</td><td>1.68174 (3.19227)</td><td>0.54212 (2.00913)</td></tr><tr><td>50</td><td>3.34629 (1.58012)</td><td>2.16325 (1.37882)</td><td>1.13245 (1.37627)</td><td>0.80234 (2.2101)</td><td>0.49672 (1.37421)</td></tr><tr><td>90</td><td>2.22365 (0.78163)</td><td>1.49237 (0.70841)</td><td>0.82329 (0.70527)</td><td>0.62342 (1.22716)</td><td>0.48297 (0.70044)</td></tr><tr><td>120</td><td>1.83167 (0.57310)</td><td>1.26119 (0.56236)</td><td>0.58293 (0.56093)</td><td>0.45231 (0.76328)</td><td>0.41032 (0.55047)</td></tr><tr><td rowspan=\"5\">k=16,λ=83.8</td><td>10</td><td>3.36463 (2.51351)</td><td>4.25296 (2.43116)</td><td>1.67224 (2.46618)</td><td>1.88162 (2.99377)</td><td>1.57213 (2.36262)</td></tr><tr><td>20</td><td>3.11751 (2.41325)</td><td>4.12374 (2.31519)</td><td>1.52373 (2.37256)</td><td>1.61233 (2.87527)</td><td>1.42262 (2.26869)</td></tr><tr><td>50</td><td>2.12766 (1.93223)</td><td>3.01256 (1.85091)</td><td>0.64873 (1.87429)</td><td>0.77045 (2.47618)</td><td>0.68583 (1.79669)</td></tr><tr><td>90</td><td>1.97311 (0.92734)</td><td>2.63147 (0.94868)</td><td>0.58232 (0.92813)</td><td>0.68873 (1.17312)</td><td>0.57014 (0.90033)</td></tr><tr><td>120</td><td>1.23241 (0.69887)</td><td>1.26123 (0.58363)</td><td>0.56344 (0.57314)</td><td>0.62323 (0.73139)</td><td>0.45236 (0.50315)</td></tr><tr><td></td><td>n</td><td>λ̂</td><td>λPer</td><td>λ̂</td><td>λLse</td><td>λ̂</td></tr><tr><td rowspan=\"5\">k=3,λ=5</td><td>10</td><td>0.28614 (0.26124)</td><td>0.241226 (0.61216)</td><td>0.211832 (0.26081)</td><td>0.146316 (0.32004)</td><td>0.135225 (0.25109)</td></tr><tr><td>20</td><td>0.27369 (0.25233)</td><td>0.23311 (0.25917)</td><td>0.20496 (0.25164)</td><td>0.13753 (0.31193)</td><td>0.12613 (0.24765)</td></tr><tr><td>50</td><td>0.23112 (0.20114)</td><td>0.18432 (0.20213)</td><td>0.15589 (0.20175)</td><td>0.08864 (0.26232)</td><td>0.07725 (0.19897)</td></tr><tr><td>90</td><td>0.17768 (0.15408)</td><td>0.175003 (0.15431)</td><td>0.12795 (0.15201)</td><td>0.07716 (0.17203)</td><td>0.02694 (0.15097)</td></tr><tr><td>120</td><td>0.11291 (0.11124)</td><td>0.13766 (0.11214)</td><td>0.67633 (0.11072)</td><td>0.02675 (0.11482)</td><td>0.01418 (0.10621)</td></tr><tr><td rowspan=\"5\">k=4.5,λ=2.5</td><td>10</td><td>0.19743 (0.13385)</td><td>0.310213 (0.14019)</td><td>0.15342 (0.13291)</td><td>0.321029 (0.14933)</td><td>0.08721 (0.13004)</td></tr><tr><td>20</td><td>0.17243 (0.12724)</td><td>0.29126 (0.12948)</td><td>0.14191 (0.12574)</td><td>0.30927 (0.13852)</td><td>0.08512 (0.12121)</td></tr><tr><td>50</td><td>0.15672 (0.10983)</td><td>0.22125 (0.11032)</td><td>0.11814 (0.10875)</td><td>0.20923 (0.11763)</td><td>0.07431 (0.10814)</td></tr><tr><td>90</td><td>0.12609 (0.06171)</td><td>0.20823 (0.06182)</td><td>0.08726 (0.06121)</td><td>0.17301 (0.07124)</td><td>0.04814 (0.06908)</td></tr><tr><td>120</td><td>0.10203 (0.05097)</td><td>0.18037 (0.05102)</td><td>0.73716 (0.05092)</td><td>0.09272 (0.05782)</td><td>0.03223 (0.05073)</td></tr><tr><td rowspan=\"5\">k=16,λ=83.8</td><td>10</td><td>0.16632 (0.25277)</td><td>0.29013 (0.26126)</td><td>0.12231 (0.25163)</td><td>0.28137 (0.26897)</td><td>0.06746 (0.25005)</td></tr><tr><td>20</td><td>0.14243 (0.24724)</td><td>0.27839 (0.24997)</td><td>0.11978 (0.24578)</td><td>0.26015 (0.25942)</td><td>0.05542 (0.24213)</td></tr><tr><td>50</td><td>0.13362 (0.22975)</td><td>0.21037 (0.23141)</td><td>0.10077 (0.22934)</td><td>0.19845 (0.23861)</td><td>0.05031 (0.22711)</td></tr><tr><td>90</td><td>0.12717 (0.12457)</td><td>0.19715 (0.12986)</td><td>0.08934 (0.12397)</td><td>0.17518 (0.13232)</td><td>0.04814 (0.12182)</td></tr><tr><td>120</td><td>0.10336 (0.08319)</td><td>0.18513 (0.09043)</td><td>0.07861 (0.08126)</td><td>0.11388 (0.12123)</td><td>0.03272 (0.07964)</td></tr><tr><td></td><td>n</td><td>k̂</td><td>kPer</td><td>k̂</td><td>kLse</td><td>k̂</td></tr><tr><td rowspan=\"5\">k=5.8,λ=4</td><td>10</td><td>4.66337 (2.99373)</td><td>3.32984 (2.79688)</td><td>2.60702 (3.72264)</td><td>1.59874 (3.42664)</td><td>0.88434 (2.81625)</td></tr><tr><td>20</td><td>4.37652 (2.86477)</td><td>3.11147 (2.43241)</td><td>2.47002 (3.28695)</td><td>1.45287 (3.05669)</td><td>0.67798 (2.53676)</td></tr><tr><td>50</td><td>3.29761 (1.71237)</td><td>2.42056 (1.51879)</td><td>1.68072 (2.37586)</td><td>1.06739 (2.13422)</td><td>0.58241 (1.51003)</td></tr><tr><td>90</td><td>2.02482 (0.66934)</td><td>1.69243 (0.65832)</td><td>0.75016 (0.69897)</td><td>0.51206 (1.21028)</td><td>0.49431 (0.50207)</td></tr><tr><td>120</td><td>1.55471 (0.52901)</td><td>1.24899 (0.53106)</td><td>0.71538 (0.52411)</td><td>0.41097 (0.61093)</td><td>0.39275 (0.511364)</td></tr><tr><td rowspan=\"5\">k=3,λ=2.6</td><td>10</td><td>0.28441 (2.03217)</td><td>0.19927 (2.00121)</td><td>0.19221 (1.96287)</td><td>0.14282 (2.56542)</td><td>0.13155 (0.95892)</td></tr><tr><td>20</td><td>0.27233 (1.92128)</td><td>0.18876 (1.90851)</td><td>0.18024 (1.89326)</td><td>0.12393 (2.47998)</td><td>0.11042 (1.88297)</td></tr><tr><td>50</td><td>0.22341 (1.40236)</td><td>0.17543 (1.38972)</td><td>1.15976 (1.37653)</td><td>0.09472 (1.87524)</td><td>0.07424 (1.36891)</td></tr><tr><td>90</td><td>0.16493 (0.85237)</td><td>0.16998 (0.75364)</td><td>0.11978 (0.74984)</td><td>0.06921 (1.10475)</td><td>0.02602 (0.74004)</td></tr><tr><td>120</td><td>0.11419 (0.51264)</td><td>0.14235 (0.50928)</td><td>0.07321 (0.50886)</td><td>0.02634 (0.75213)</td><td>0.02123 (0.50832)</td></tr><tr><td></td><td>n</td><td>λ̂</td><td>λPer</td><td>λ̂</td><td>λLse</td><td>λ̂</td></tr><tr><td rowspan=\"5\">k=5.8,λ=4</td><td>10</td><td>0.23323 (0.99762)</td><td>0.25986 (1.03875)</td><td>0.10375 (1.08632)</td><td>0.25671 (1.12056)</td><td>0.07796 (0.97432)</td></tr><tr><td>20</td><td>0.22505 (0.96251)</td><td>0.24158 (0.98347)</td><td>0.09865 (0.99879)</td><td>0.24763 (1.03522)</td><td>0.06987 (0.94318)</td></tr><tr><td>50</td><td>0.15613 (0.65838)</td><td>0.20069 (0.66927)</td><td>0.08976 (0.67832)</td><td>0.20973 (0.74224)</td><td>0.05759 (0.65021)</td></tr><tr><td>90</td><td>0.11203 (0.34578)</td><td>0.15563 (0.34865)</td><td>0.07783 (0.34196)</td><td>0.15107 (0.38976)</td><td>0.04326 (0.33275)</td></tr><tr><td>120</td><td>0.09463 (0.02524)</td><td>0.13374 (0.02637)</td><td>0.06372 (0.02496)</td><td>0.13214 (0.03109)</td><td>0.02543 (0.02387)</td></tr><tr><td rowspan=\"5\">k=3,λ=2.6</td><td>10</td><td>0.59711 (0.39213)</td><td>0.48897 (0.40027)</td><td>0.38799 (0.37994)</td><td>0.466206 (0.42374)</td><td>0.27911 (0.38133)</td></tr><tr><td>20</td><td>0.56192 (0.28192)</td><td>0.45256 (0.38627)</td><td>0.34521 (0.35879)</td><td>0.44575 (0.39266)</td><td>0.21364 (0.35025)</td></tr><tr><td>50</td><td>0.32624 (0.25173)</td><td>0.39201 (0.25086)</td><td>0.23336 (0.24965)</td><td>0.35214 (0.27894)</td><td>0.13342 (0.24837)</td></tr><tr><td>90</td><td>0.11398 (0.13021)</td><td>0.32325 (0.13264)</td><td>0.10924 (0.12987)</td><td>0.22343 (0.15036)</td><td>0.05121 (0.12866)</td></tr><tr><td>120</td><td>0.79112 (0.0987)</td><td>0.14923 (0.07023)</td><td>0.08011 (0.06973)</td><td>0.09234 (0.08997)</td><td>0.01206 (0.06835)</td></tr></table>",
+        "bbox": [
+            127,
+            126,
+            875,
+            806
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.2.2. Analysis for All Estimators",
+        "text_level": 1,
+        "bbox": [
+            122,
+            821,
+            378,
+            835
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The absolute values of the percentage biases of all five estimators are shown in the Figures 1-3. Some of the points are clear based on the experimental results. For all methods, as the sample size increases, the biases decrease.",
+        "bbox": [
+            121,
+            844,
+            875,
+            892
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "page_number",
+        "text": "7 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/017a8ae657086b22c4dd8383a9840edf4ed87de215d7d1f12af0649425889218.jpg",
+        "image_caption": [
+            "(a)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            146,
+            108,
+            500,
+            329
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/a25652ba37c77f202d1c38cc0018390e321c13e866bc2d82b0a9572ea24abd6f.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            108,
+            852,
+            329
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/2b1ec9831bc9474ff48548d8dfcbbe1ecb5803b4c0d236ec68e90846334d825d.jpg",
+        "image_caption": [
+            "(c)",
+            "Figure 1. % Bias of the parameters. (a) % Bias of  $k$  ( $k = 4.5, \\lambda = 2.5$ ); (b) % bias of  $k$  ( $k = 3, \\lambda = 5$ ); (c) % bias of  $\\lambda$  ( $k = 4.5, \\lambda = 2.5$ ); (d) % bias of  $\\lambda$  ( $k = 3, \\lambda = 5$ ). In these figures, pere, lse, mle, bmle and mle denote the related curves of percentile estimators, least squares estimators, MLEs, bootstrap corrected MLEs and analytic bias-corrected estimators."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            142,
+            349,
+            499,
+            571
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/d5feca93377cc4a4f4af80f5031cdfa8db221612744935cddbbf0481571436a1.jpg",
+        "image_caption": [
+            "(d)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            499,
+            350,
+            850,
+            571
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "page_number",
+        "text": "8 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/1b44eaede1bc3d7c25b44dfb4c3546f2dfd6f8878ab3c4b5971a2d9fef26ad2c.jpg",
+        "image_caption": [
+            "(a)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            146,
+            108,
+            499,
+            328
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/9a20058b1d8215aa54dce244714293f96a224094ae88b5c50a3222eda428cef3.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            108,
+            852,
+            328
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/726f7db45252b3072828b385f33d2c16971fa049a4138bd823f9a6921f5f178d.jpg",
+        "image_caption": [
+            "(c)",
+            "Figure 2. % Bias of the parameters. (a) % bias of  $k$  ( $k = 5.8, \\lambda = 4$ ); (b) % bias of  $\\lambda$  ( $k = 5.8, \\lambda = 4$ ); (c) % bias of  $k$  ( $k = 3, \\lambda = 2.6$ ); (d) % bias of  $\\lambda$  ( $k = 3, \\lambda = 2.6$ )."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            142,
+            355,
+            499,
+            576
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/bc216d4c2717ce85b9353592fd674e2f7feb575bce8f2a84b0905bc7008a98b3.jpg",
+        "image_caption": [
+            "(d)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            499,
+            357,
+            850,
+            576
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "page_number",
+        "text": "9 of 18",
+        "bbox": [
+            828,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/953ed2bf05dabeb00c2e8ed225d528f02559975bece0d56f3ef1a39a7d2f0dac.jpg",
+        "image_caption": [
+            "(a)",
+            "Figure 3. % Bias of the parameters. (a) % bias of  $k$  ( $k = 16, \\lambda = 83.8$ ); (b) % bias of  $\\lambda$  ( $k = 16, \\lambda = 83.8$ )."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            129,
+            108,
+            500,
+            338
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/f26ccfe95cc48afdaf4c48ddb754d3303d2a03873ecfde64756089d75aae3ce6.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            499,
+            108,
+            865,
+            338
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "For the most part, the biases of the percentile estimators are larger than those of other estimators, except in specific cases, as shown in Figures 1a and 2a. The bootstrap bias-corrected MLEs and analytic bias-corrected MLEs are generally both superior to MLEs. Furthermore, the analytic bias-corrected MLEs are superior to the other estimators.",
+        "bbox": [
+            121,
+            399,
+            873,
+            462
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "The performance of the least squares estimators is uncertain. Sometimes, the least squares estimators perform better than the MLEs, whereas at other times, the latter's performance stands out. Clearly, the biases of the least squares estimators become extremely similar to those of the bias-corrected MLEs as the sample size increases.",
+        "bbox": [
+            121,
+            464,
+            873,
+            527
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "However, the MSEs of the least squares estimators are often larger than those of the other estimators. Meanwhile, the MSEs of the MLEs, analytic bias-corrected MLEs, bootstrap bias-corrected MLEs and percentile estimators are close, as evidenced by the results shown in Figures 4-6.",
+        "bbox": [
+            121,
+            527,
+            873,
+            576
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "page_number",
+        "text": "10 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/af223da4e8d42ff1f343fe513ab262c028215c5f285d4f9b0b37e451dfcef595.jpg",
+        "image_caption": [
+            "(a)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            146,
+            108,
+            499,
+            326
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/fbdce0100bb07aa369fb078273cd9b71e74905352e008de437df330c65863ee9.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            108,
+            850,
+            326
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/9974a0679159d386307deaea3b2ffef5cb02deb328030d19905d539e37ca8388.jpg",
+        "image_caption": [
+            "(c)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            142,
+            348,
+            499,
+            570
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/c063d8d4420748ae1bebf6e370e786be5bf0ee3cb31916a333c46c893599e902.jpg",
+        "image_caption": [
+            "(d)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            349,
+            850,
+            570
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/05873322152746dd2a163dafc5257837519e9ba9ce2ed2687e4eb9ddc873a7dc.jpg",
+        "image_caption": [
+            "Figure 4. % MSEs of the parameters. (a) % MSE of  $k$  ( $k = 4.5, \\lambda = 2.5$ ); (b) % MSE of  $k$  ( $k = 3, \\lambda = 5$ ); (c) % MSE of  $\\lambda$  ( $k = 4.5, \\lambda = 2.5$ ); (d) % MSE of  $\\lambda$  ( $k = 3, \\lambda = 5$ ).",
+            "(a)",
+            "Figure 5.Cont."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            126,
+            644,
+            485,
+            869
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/a15dfa5695359d6f5b52b001f261e5a1bcdcd234ede7f0689960c00349afed8a.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            487,
+            644,
+            845,
+            869
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "page_number",
+        "text": "11 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/7e4b8040b90edeff9e61e352a91a66b20a1ce79484c1aab031eee9951b9a7e16.jpg",
+        "image_caption": [
+            "(c)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            146,
+            108,
+            500,
+            328
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "image",
+        "img_path": "images/1fe8cbfb331670b94f4e48d65d5070709fb345e76dc903b7b89d62ece738b85d.jpg",
+        "image_caption": [
+            "(d)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            108,
+            852,
+            328
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "image",
+        "img_path": "images/2b44908f6b46a7e1492140513d31c765069d148c8c415830ad6443bc241899fb.jpg",
+        "image_caption": [
+            "Figure 5. % MSEs of the parameters. (a) % MSE of  $k$  ( $k = 5.8, \\lambda = 4$ ); (b) % MSE of  $\\lambda$  ( $k = 5.8, \\lambda = 4$ ); (c) % MSE of  $k$  ( $k = 3, \\lambda = 2.6$ ); (d) % MSE of  $\\lambda$  ( $k = 3, \\lambda = 5$ ).",
+            "(a)",
+            "Figure 6. % MSEs of the parameters. (a) % MSE of  $k$  ( $k = 16, \\lambda = 83.8$ ); (b) % MSE of  $k$  ( $k = 16, \\lambda = 83.8$ )."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            132,
+            401,
+            500,
+            632
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "image",
+        "img_path": "images/9d3d3bdf50a932ab1de768e4724ac6160a55e4f552b61dce3f670cc7e6b5afc3.jpg",
+        "image_caption": [
+            "(b)"
+        ],
+        "image_footnote": [],
+        "bbox": [
+            500,
+            401,
+            867,
+            632
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "These results indicate that the analytic bias-corrected MLEs can effectively reduce the biases of MLEs. Moreover, to obtain the least biased estimators of the parameters of the Weibull distribution, the analytic bias-corrected MLEs are much more appropriate than the other common estimators mentioned above.",
+        "bbox": [
+            121,
+            694,
+            875,
+            756
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "6. Real Illustrative Example",
+        "text_level": 1,
+        "bbox": [
+            122,
+            769,
+            341,
+            785
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In this section, the practical performance of the Cox-Snell bias correction is explored, and we apply this estimation to real data (i.e., the data provided by Aarest [7]). Aarest tested the times to failure of 50 devices.",
+        "bbox": [
+            121,
+            791,
+            873,
+            838
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "We fit the Weibull distribution to these data using MLEs, percentile estimators and least squares estimators. Then, we obtain the bias-corrected parameters by solving the analytic expressions mentioned previously.",
+        "bbox": [
+            121,
+            840,
+            872,
+            887
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Table 3 reports the failure time of 50 devices.",
+        "bbox": [
+            157,
+            889,
+            494,
+            904
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "page_number",
+        "text": "12 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/c6ab1834a4676dad68696dccd7d56ae8ede44337b8579653f4e8526392cd1377.jpg",
+        "table_caption": [
+            "Table 3. Calculated failure time of 50 devices."
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>No.</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td></tr><tr><td></td><td>0.100</td><td>7.00</td><td>36.00</td><td>67.00</td><td>84.00</td><td>0.200</td><td>11.00</td><td>40.00</td><td>67.00</td><td>84.00</td><td>1.00</td><td>12.00</td><td>45.00</td></tr><tr><td>No.</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td></tr><tr><td></td><td>67.00</td><td>84.00</td><td>1.00</td><td>18.00</td><td>46.00</td><td>67.00</td><td>85.00</td><td>1.00</td><td>18.00</td><td>47.00</td><td>72.00</td><td>85.00</td><td>1.00</td></tr><tr><td>No.</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td><td>32</td><td>33</td><td>34</td><td>35</td><td>36</td><td>37</td><td>38</td><td>39</td></tr><tr><td></td><td>18.00</td><td>50.00</td><td>75.00</td><td>85.00</td><td>1.00</td><td>18.00</td><td>55.00</td><td>79.00</td><td>85.00</td><td>2.00</td><td>18.00</td><td>60.00</td><td>82.00</td></tr><tr><td>No.</td><td>40</td><td>41</td><td>42</td><td>43</td><td>44</td><td>45</td><td>46</td><td>47</td><td>48</td><td>49</td><td>50</td><td></td><td></td></tr><tr><td></td><td>85.00</td><td>3.00</td><td>21.00</td><td>63.00</td><td>82.00</td><td>86.00</td><td>6.00</td><td>32.00</td><td>63.00</td><td>83.00</td><td>86.00</td><td></td><td></td></tr></table>",
+        "bbox": [
+            139,
+            129,
+            855,
+            278
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Table 4 reports the maximum likelihood estimates, bootstrap maximum likelihood estimates, analytic bias-corrected maximum likelihood estimates, percentile estimates and least squares estimates after fitting the Weibull distribution to these data.",
+        "bbox": [
+            121,
+            292,
+            875,
+            338
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "table",
+        "img_path": "images/8d2180d21783bd619870ebca3bd1d9eb3e9cd781c1f1e51e8e0b1dd08d993367.jpg",
+        "table_caption": [
+            "Table 4. Five estimates of Parameters."
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>k̂</td><td>kPer</td><td>k̂</td><td>kLse</td><td>k̂</td></tr><tr><td>16.52175</td><td>16.63145</td><td>16.22125</td><td>16.60235</td><td>16.15814</td></tr><tr><td>λ̂</td><td>λPer</td><td>λ̂</td><td>λLse</td><td>λk</td></tr><tr><td>83.64601</td><td>83.48114</td><td>83.655114</td><td>83.58114</td><td>83.669204</td></tr></table>",
+        "bbox": [
+            295,
+            376,
+            699,
+            460
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Based on the MLE of the data shown in Table 3, Figure 7 presents the fitted probability density function curve of Weibull distribution.",
+        "bbox": [
+            121,
+            475,
+            873,
+            506
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "image",
+        "img_path": "images/24f3ba77e26c707762173c1bb2d6731e570ce41641d7f8afb596ddf464da3048.jpg",
+        "image_caption": [
+            "Figure 7. Fitted Weibull's probability density function (failure time data)."
+        ],
+        "image_footnote": [],
+        "bbox": [
+            310,
+            516,
+            687,
+            760
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "For these data, the analytic bias correction decreases the height of the Weibull distribution density, and the shape of the density becomes slightly \"fatterr\" and \"shorter\". Thus, the distribution is more uniform.",
+        "bbox": [
+            121,
+            803,
+            875,
+            850
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "7. Conclusions",
+        "text_level": 1,
+        "bbox": [
+            122,
+            862,
+            243,
+            876
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Usually, the two parameters of a Weibull distribution are estimated using maximum likelihood estimation, which is realized under non-linear and first-order conditions. Nevertheless, after comparing",
+        "bbox": [
+            121,
+            885,
+            875,
+            917
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "header",
+        "text": "Math. Comput. Appl. 2017, 22, 19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "page_number",
+        "text": "13 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "all of the methods, it is clear that in terms of the minimization, analytic bias-corrected MLEs exhibited the best performance in almost all cases. Therefore, the analytic bias-corrected MLEs of the two-parameter Weibull distribution are proposed to more effectively reduce the biases of the MLEs.",
+        "bbox": [
+            121,
+            104,
+            875,
+            149
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We conduct a Monte Carlo experiment, which is described in the simulation study section. According to the MSEs and absolute percentage biases of the estimates, we explore the effectiveness of these estimations. Clearly, the biases of the analytic bias-corrected MLEs are smaller than those of the other estimators. Consequently, we can conclude that the analytic bias-corrected MLEs are superior to the others tested here.",
+        "bbox": [
+            121,
+            152,
+            877,
+            231
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "All in all, the analytic bias-corrected MLEs discussed in this paper are worth popularizing for utilization on actual data. They should be highly recommended, especially for small sample sizes.",
+        "bbox": [
+            122,
+            231,
+            875,
+            265
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Author Contributions: Man Chen provided main thoughts, organized language, built programming models and did later modifications. Zheng Zhang did investigations, provided practical data, proposed related ideas and polished the language. Cen Cui recorded data and took part in doing programming models and analyzing data.",
+        "bbox": [
+            121,
+            268,
+            875,
+            307
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Conflicts of Interest: The authors declare no conflict of interest.",
+        "bbox": [
+            122,
+            311,
+            554,
+            324
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Appendix A. Specific Calculation",
+        "text_level": 1,
+        "bbox": [
+            122,
+            338,
+            389,
+            353
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Here are the specific calculation procedures of the bias-corrected MLEs of the parameters of the Weibull distribution.",
+        "bbox": [
+            121,
+            362,
+            873,
+            391
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "From the previous part, we can know that the likelihood function of the two-parameter Weibull distribution is:",
+        "bbox": [
+            121,
+            394,
+            873,
+            423
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nL = \\left(\\frac {1}{\\lambda}\\right) ^ {k n} k ^ {n} \\left(\\prod_ {i = 1} ^ {n} x _ {i}\\right) ^ {k - 1} e ^ {- \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k}} \\tag {A1}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            366,
+            423,
+            872,
+            455
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "and the log-likelihood function is:",
+        "bbox": [
+            122,
+            461,
+            379,
+            476
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nl = \\log L = - k n \\log \\lambda + n \\log k + (k - 1) \\sum_ {i = 1} ^ {n} \\log x _ {i} - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A2}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            265,
+            488,
+            872,
+            525
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We obtain these higher-order derivatives:",
+        "bbox": [
+            122,
+            535,
+            433,
+            549
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial l}{\\partial \\lambda} = - \\frac {k n}{\\lambda} + k \\lambda^ {- k - 1} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A3}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            383,
+            562,
+            872,
+            596
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial l}{\\partial k} = - n \\log \\lambda + \\frac {n}{k} + \\sum_ {i = 1} ^ {n} \\log x _ {i} - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} + \\lambda^ {- k} (\\log \\lambda) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A4}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            231,
+            621,
+            872,
+            657
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial^ {2} l}{\\partial \\lambda^ {2}} = \\frac {k n}{\\lambda^ {2}} - k (k + 1) \\lambda^ {- k - 2} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A5}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            361,
+            682,
+            872,
+            718
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial^ {2} l}{\\partial k ^ {2}} = \\frac {- n}{k ^ {2}} + 2 \\lambda^ {- k} (\\log \\lambda) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} (\\log x _ {i}) ^ {2} - \\lambda^ {- k} (\\log \\lambda) ^ {2} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A6}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            196,
+            743,
+            872,
+            778
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial^ {2} l}{\\partial \\lambda \\partial k} = \\frac {\\partial^ {2} l}{\\partial k \\partial \\lambda} = \\frac {- n}{\\lambda} + k \\lambda^ {- k - 1} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} + \\left(\\lambda^ {- k - 1} - k \\lambda^ {- k - 1} \\log \\lambda\\right) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A7}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            208,
+            803,
+            872,
+            839
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\frac {\\partial^ {3} l}{\\partial \\lambda^ {3}} = \\frac {- 2 k n}{\\lambda^ {3}} + k (k + 1) (k + 2) \\lambda^ {- k - 3} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A8}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            324,
+            864,
+            872,
+            900
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "page_number",
+        "text": "14 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\begin{array}{l} \\frac {\\partial^ {3} l}{\\partial k ^ {3}} = \\frac {2 n}{k ^ {3}} - 3 \\lambda^ {- k} (\\log \\lambda) ^ {2} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} + 3 \\lambda^ {- k} (\\log \\lambda) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} (\\log x _ {i}) ^ {2} \\tag {A9} \\\\ - \\lambda^ {- k} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} (\\log x _ {i}) ^ {3} + \\lambda^ {- k} (\\log \\lambda) ^ {3} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\\\ \\end{array}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            240,
+            101,
+            872,
+            173
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\begin{array}{l} \\frac {\\partial^ {3} l}{\\partial \\lambda^ {2} \\partial k} = \\frac {\\partial^ {3} l}{\\partial \\lambda \\partial k \\partial \\lambda} \\\\ = \\frac {n}{\\lambda^ {2}} + \\left(- (2 k + 1) \\lambda^ {- k - 2} + k (k + 1) \\lambda^ {- k - 2} (\\log \\lambda)\\right) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\tag {A10} \\\\ - k (k + 1) \\lambda^ {- k - 2} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log \\lambda \\\\ \\end{array}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            253,
+            198,
+            872,
+            302
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\begin{array}{l} \\frac {\\partial^ {3} l}{\\partial k ^ {2} \\partial \\lambda} = \\frac {\\partial^ {3} l}{\\partial k \\partial \\lambda \\partial k} \\\\ = 2 \\left(\\lambda^ {- k - 1} - k \\lambda^ {- k - 1} (\\log \\lambda)\\right) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i} + k \\lambda^ {- k - 1} \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} (\\log x _ {i}) ^ {2} \\tag {A11} \\\\ + (- 2 \\lambda^ {- k - 1} \\log \\lambda + k \\lambda^ {- k - 1} (\\log \\lambda) ^ {2}) \\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\\\ \\end{array}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            221,
+            326,
+            872,
+            432
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "and then, we can obtain the following formulas:",
+        "bbox": [
+            122,
+            444,
+            484,
+            458
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 1} = E \\left(\\frac {\\partial^ {2} l}{\\partial \\lambda^ {2}}\\right) \\tag {A12}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            403,
+            470,
+            872,
+            501
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 2} = k _ {2 1} = E \\left(\\frac {\\partial^ {2} l}{\\partial \\lambda \\partial k}\\right) \\tag {A13}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            405,
+            502,
+            872,
+            532
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {2 2} = E \\left(\\frac {\\partial^ {2} l}{\\partial k ^ {2}}\\right) \\tag {A14}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            405,
+            533,
+            872,
+            564
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "The following equations are also easy to get:",
+        "bbox": [
+            122,
+            574,
+            455,
+            590
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nE \\left(\\sum_ {i = 1} ^ {n} x _ {i} ^ {k}\\right) = n \\int_ {0} ^ {\\infty} x ^ {k} \\left(\\frac {1}{\\lambda}\\right) ^ {k} k x ^ {k - 1} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}} d x = n \\lambda^ {k} \\tag {A15}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            309,
+            601,
+            872,
+            636
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nE \\left(\\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\log x _ {i}\\right) = n \\int_ {0} ^ {\\infty} x ^ {k} \\log x \\left(\\frac {1}{\\lambda}\\right) ^ {k} k x ^ {k - 1} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}} d x = \\frac {n \\lambda^ {k} (k \\log (\\lambda) - \\gamma + 1)}{k} \\tag {A16}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            662,
+            872,
+            697
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\begin{array}{l} E \\left(\\sum_ {i = 1} ^ {n} x _ {i} ^ {k} (\\log x _ {i}) ^ {2}\\right) = n \\int_ {0} ^ {\\infty} x ^ {k} (\\log x) ^ {2} \\left(\\frac {1}{\\lambda}\\right) ^ {k} k x ^ {k - 1} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}} d x \\tag {A17} \\\\ = \\frac {n \\lambda^ {k} (6 k \\log (\\lambda) (k \\log (\\lambda) - 2 \\gamma + 2) + 6 \\gamma (\\gamma - 2) + \\pi^ {2})}{6 k ^ {2}} \\\\ \\end{array}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            211,
+            722,
+            872,
+            791
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "and the following equation is required for the next calculation part:",
+        "bbox": [
+            122,
+            801,
+            626,
+            816
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\begin{array}{l} E \\left(\\sum_ {i = 1} ^ {n} x _ {i} ^ {k} \\left(\\log x _ {i}\\right) ^ {3}\\right) = n \\int_ {0} ^ {\\infty} x ^ {k} (\\log x) ^ {3} \\left(\\frac {1}{\\lambda}\\right) ^ {k} k x ^ {k - 1} e ^ {- \\left(\\frac {x}{\\lambda}\\right) ^ {k}} d x \\tag {A18} \\\\ = \\frac {n \\lambda^ {k} (k \\log (\\lambda) (2 k \\log (\\lambda) (k \\log (\\lambda) - 3 \\gamma + 3) + 6 \\gamma (\\gamma - 2) + \\pi^ {2}) - 4 \\zeta (3) - \\gamma (2 \\gamma (\\gamma - 3) + \\pi^ {2}) + \\pi^ {2})}{2 k ^ {3}} \\\\ \\end{array}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            126,
+            828,
+            907,
+            896
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "page_number",
+        "text": "15 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Where  $\\gamma$  is a constant called eulergamma and its value is about 0.57721; and  $\\zeta(3)$  is another constant, and its value is about 1.20206; then, these results can be obtained:",
+        "bbox": [
+            121,
+            104,
+            875,
+            136
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n{h _ {1 1}} = {\\frac {- k ^ {2} n}{\\lambda^ {2}},}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            361,
+            145,
+            489,
+            175
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n{h _ {1 2}} = {h _ {2 1} = \\frac {(1 - \\gamma) n}{\\lambda},}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            361,
+            178,
+            559,
+            206
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {2 2} = \\frac {- (6 \\gamma^ {2} - 1 2 \\gamma + \\pi^ {2} + 6) n}{6 k ^ {2}}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            361,
+            206,
+            631,
+            239
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Then, based on Equation (16), a series of results is obtained:",
+        "bbox": [
+            122,
+            249,
+            569,
+            265
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 1} ^ {1} = \\frac {\\partial h _ {1 1}}{\\partial \\lambda} = \\frac {2 h ^ {2} n}{\\lambda^ {3}} \\tag {A19}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            373,
+            275,
+            872,
+            307
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 2} ^ {1} = h _ {2 1} ^ {1} \\quad = \\quad \\frac {\\partial h _ {1 2}}{\\partial \\lambda} = \\frac {(\\gamma - 1) n}{\\lambda^ {2}} \\tag {A20}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            327,
+            307,
+            873,
+            338
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {2 2} ^ {1} = \\frac {\\partial h _ {2 2}}{\\partial \\lambda} = 0 \\tag {A21}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            373,
+            338,
+            872,
+            367
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 1} ^ {2} = \\frac {\\partial h _ {1 1}}{\\partial k} = - \\frac {2 k n}{\\lambda^ {2}} \\tag {A22}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            373,
+            368,
+            872,
+            395
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 2} ^ {2} = h _ {2 1} ^ {2} = \\frac {\\partial h _ {1 2}}{\\partial h} = 0 \\tag {A23}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            327,
+            397,
+            872,
+            426
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {2 2} ^ {2} = \\frac {\\partial h _ {2 2}}{\\partial k} = \\frac {(6 - 1 2 \\gamma + 6 \\gamma^ {2} + \\pi^ {2}) n}{3 k ^ {3}} \\tag {A24}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            373,
+            426,
+            872,
+            458
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 1 1} = \\frac {k ^ {2} (k + 3) n}{\\lambda^ {3}} \\tag {A25}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            366,
+            458,
+            872,
+            489
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {1 2 2} = h _ {2 1 2} = h _ {2 2 1} = \\frac {\\left(1 2 - 2 4 \\gamma + 6 \\gamma^ {2} + \\pi^ {2}\\right) n}{6 k \\lambda} \\tag {A26}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            262,
+            489,
+            872,
+            521
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nh _ {2 2 2} = \\frac {n (4 \\zeta (3) + 2 \\gamma^ {3} - 6 \\gamma^ {2} + \\gamma \\pi^ {2} - \\pi^ {2} + 4)}{2 k ^ {3}} \\tag {A27}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            366,
+            521,
+            872,
+            555
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "then:",
+        "bbox": [
+            122,
+            565,
+            166,
+            577
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {1 1} ^ {(1)} = h _ {1 1} ^ {1} - \\frac {1}{2} h _ {1 1 1} = - \\frac {(k - 1) k ^ {2} n}{2 \\lambda^ {3}} \\tag {A28}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            231,
+            588,
+            873,
+            619
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {1 2} ^ {(1)} = h _ {1 2} ^ {1} - \\frac {1}{2} h _ {1 2 1} = \\frac {(- \\gamma k + 3 k + \\gamma - 1) n}{2 \\lambda^ {2}} \\tag {A29}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            621,
+            872,
+            649
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {2 1} ^ {(1)} = h _ {2 1} ^ {1} - \\frac {1}{2} h _ {2 1 1} = \\frac {(- \\gamma k + 3 k + \\gamma - 1) n}{2 \\lambda^ {2}} \\tag {A30}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            651,
+            872,
+            678
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {2 2} ^ {(1)} = h _ {2 2} ^ {1} - \\frac {1}{2} h _ {2 2 1} = - \\frac {\\left(1 2 - 2 4 \\gamma + 6 \\gamma^ {2} + \\pi^ {2}\\right) n}{1 2 k \\lambda} \\tag {A31}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            680,
+            872,
+            709
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {1 1} ^ {(2)} = h _ {1 1} ^ {2} - \\frac {1}{2} h _ {1 1 2} = - \\frac {(\\gamma k + k + \\gamma - 1) n}{2 \\lambda^ {2}} \\tag {A32}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            712,
+            872,
+            741
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {1 2} ^ {(2)} = h _ {1 2} ^ {2} - \\frac {1}{2} h _ {1 2 2} = - \\frac {\\left(1 2 - 2 4 \\gamma + 6 \\gamma^ {2} + \\pi^ {2}\\right) n}{1 2 k \\lambda} \\tag {A33}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            741,
+            872,
+            772
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {2 1} ^ {(2)} = h _ {2 1} ^ {2} - \\frac {1}{2} h _ {2 1 2} = - \\frac {\\left(1 2 - 2 4 \\gamma + 6 \\gamma^ {2} + \\pi^ {2}\\right) n}{1 2 k \\lambda} \\tag {A34}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            774,
+            872,
+            804
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\na _ {2 2} ^ {(2)} = h _ {2 2} ^ {2} - \\frac {1}{2} h _ {2 2 2} = - \\frac {n (1 2 \\zeta (3) + 3 \\gamma (8 + \\pi^ {2}) + 6 \\gamma^ {3} - 3 0 \\gamma^ {2} - 5 \\pi^ {2})}{6 k ^ {3}} \\tag {A35}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            233,
+            804,
+            872,
+            837
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "From the formula  $H_{ij} = \\{-h_{ij}\\}$ , we can know that the information matrix is:",
+        "bbox": [
+            157,
+            846,
+            729,
+            865
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            321,
+            77
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "page_number",
+        "text": "16 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nH = \\left( \\begin{array}{c c} \\frac {k ^ {2} n}{\\lambda^ {2}} & \\frac {- (1 - \\gamma) n}{\\lambda} \\\\ \\frac {- (1 - \\gamma) n}{\\lambda} & \\frac {\\left(6 \\gamma^ {2} - 1 2 \\gamma + \\pi^ {2} + 6\\right) n}{6 k ^ {2}} \\end{array} \\right) \\tag {A36}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            339,
+            127,
+            872,
+            174
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "and:",
+        "bbox": [
+            157,
+            185,
+            196,
+            198
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nA = \\left[ \\begin{array}{c c} A ^ {(1)} & A ^ {(2)} \\end{array} \\right]\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            433,
+            206,
+            561,
+            225
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\nA = \\left( \\begin{array}{c c c c} a _ {1 1} ^ {(1)} & a _ {1 2} ^ {(1)} & a _ {1 1} ^ {(2)} & a _ {1 2} ^ {(2)} \\\\ a _ {2 1} ^ {(1)} & a _ {2 2} ^ {(1)} & a _ {2 1} ^ {(2)} & a _ {2 2} ^ {(2)} \\end{array} \\right)\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            378,
+            233,
+            615,
+            274
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Using the bias-corrected expressions in the matrix form, we can obtain:",
+        "bbox": [
+            157,
+            282,
+            690,
+            298
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\operatorname {B i a s} \\left( \\begin{array}{l} \\widehat {\\lambda} \\\\ \\widehat {k} \\end{array} \\right) = \\widehat {\\sigma} - \\widehat {H} ^ {- 1} \\widehat {A} v e c \\left(\\widehat {H} ^ {- 1}\\right) \\tag {A37}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            349,
+            309,
+            872,
+            348
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "The bias-corrected estimates are:",
+        "bbox": [
+            157,
+            359,
+            405,
+            372
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "text": "\n$$\n\\left( \\begin{array}{c} \\widetilde {\\lambda} \\\\ \\widetilde {k} \\end{array} \\right) = \\left( \\begin{array}{c} \\widehat {\\lambda} \\\\ \\widehat {k} \\end{array} \\right) - B i a s \\left( \\begin{array}{c} \\widehat {\\lambda} \\\\ \\widehat {k} \\end{array} \\right) \\tag {A38}\n$$\n",
+        "text_format": "latex",
+        "bbox": [
+            359,
+            382,
+            872,
+            422
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "where  $\\widehat{H} = H|_{\\lambda = \\widehat{\\lambda},k = \\widehat{k}},\\widehat{A} = A|_{\\lambda = \\widehat{\\lambda},k = \\widehat{k}}$",
+        "bbox": [
+            127,
+            432,
+            406,
+            454
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "References",
+        "text_level": 1,
+        "bbox": [
+            124,
+            481,
+            213,
+            494
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "1. Rosin, P.O.; Rammler, E.J. The Laws Governing the Fineness of Powdered Coal. J. Inst. Fuel 1933, 7, 29-36.",
+            "2. Ling, X.; Giles, D.E. Bias Reduction for the Maximum Likelihood Estimator of the Parameters of the Generalized Rayleigh Family of Distributions. Commun. Stat. Theory Methods 2009, 43, 1778-1792.",
+            "3. Fréchet, M. Sur la loi de Probabilité de Lécart Maximum. Ann. Soc. Pol. Math. 1927, 6, 93-116.",
+            "4. Kaltschmidt, E.; Dzionara, M.; Donner, D.; Wittmann, H.G. Application of the Weibull Distribution on the Evaluation of the Aircraft System Operational Reliability. Mol. Gen. Genet. MGG 1967, 100, 364-373.",
+            "5. Mikolaj, P.G. Environmental applications of the weibull distribution function: Oil pollution. Science 1972, 176, 1019-1021.",
+            "6. Singh, V.P. On application of the Weibull distribution in hydrology. Water Resour. Manag. 1987, 1, 33-43.",
+            "7. Aarset, M.V. How to identify a bathtub hazard rate. IEEE Trans. Reliab. 1987, R-36, 106-108.",
+            "8. Lai, C.D.; Xie, M.; Murthy, D.N.P. A Modified Weibull Distribution. IEEE Trans. Reliab. 2003, 52, 33-37.",
+            "9. Hirose, H. Maximum likelihood parameter estimation in the extended Weibull distribution and its applications to breakdown voltage estimation. IEEE Trans. Dielectr. Electr. Insul. 2002, 9, 524-536.",
+            "10. Fabiani, D.; Simoni, L. Discussion on application of the Weibull distribution to electrical breakdown of insulating materials. IEEE Trans. Dielectr. Electr. Insul. 2005, 12, 11-16.",
+            "11. Ghitany, M.E.; Al-Jarallah, A.H.R.A. Marshall-Olkin extended Weibull distribution and its application to censored data. J. Appl. Stat. 2005, 32, 1025-1034.",
+            "12. Akdag, S.A.; Dinler, A. A new method to estimate Weibull parameters for wind energy applications. Energy Convers. Manag. 2009, 50, 1761-1766.",
+            "13. Cox, D.R.; Snell, E.J. A general definition of residuals. J. R. Stat. Soc. 1968, 30, 248-275.",
+            "14. Cordeiro, G.M.; Klein, R. Bias correction in ARMA models. Stat. Probab. Lett. 1994, 19, 169-176.",
+            "15. Giles, D.E. Bias-corrected maximum likelihood estimation of the parameters of the generalized Pareto distribution. Commun. Stat. Theory Methods 2012, 45, 2465-2483.",
+            "16. Wang, M.; Wang, W. Bias-corrected Maximum Likelihood Estimation of the Parameters of the Weighted Lindley Distribution. Commun. Stat. Simul. Comput. 2017, 46, 530-545",
+            "17. Mackinnon, J.G.; Smith, A.A. Approximate bias corrections in econometrics. J. Econom. 1998, 85, 205-230.",
+            "18. Ferrari, S.; Cribari-Neto, F. On bootstrap and analytical bias corrections. Econ. Lett. 1998, 58, 7-15."
+        ],
+        "bbox": [
+            122,
+            502,
+            873,
+            917
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "page_number",
+        "text": "17 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "19. Ho, L.L.; da Silva, A.F. Bias Correction for Mean Time to Failure and p-Quantiles in a Weibull Distribution by Bootstrap Procedure. Commun. Stat. Simul. Comput. 2005, 34, 617-629.",
+            "20. Focarelli, D. Bootstrap bias-corrected estimators to investigate the long-run properties of money demand in the euro area. Econ. Model. 2002, 22, 305-325.",
+            "21. Kao, J.H.K. Computer Methods for Estimating Weibull Parameters in Reliability Studies. IRE Trans. Reliab. Qual. Control 1958, 13, 15-22.",
+            "22. Kao, J.H.K. A Graphical Estimation of Mixed Weibull Parameters in Life-Testing of Electron Tubes. Technometrics 1959, 1, 389-407.",
+            "23. Mann, N.R.; Schafer, R.E.; Singpurwalla, N.D. Methods for statistical analysis of reliability and life data. J. R. Stat. Soc. 1974, 139, 1974.",
+            "24. Gupta, R.D.; Kundu, D. Generalized exponential distribution: Different method of estimations. J. Stat. Comput. Simul. 2001, 69, 315-337.",
+            "25. Swain, J.; Venkatraman, S.; Wilson, J.R. Least-squares estimation of distribution function in Johnson's translation system. J. Stat. Comput. Simul. 1988, 29, 271-297.",
+            "26. Johnson, N.L.; Kotz, S.; Balakrishnan, N. Continuous Univariate Distributions; John Wiley & Sons: New York, NY, USA, 1994.",
+            "27. Murdoch, D. R-3.2.2 for Windows. Available online: https://cran.r-project.org/bin.windows/base/old/3.2.2/ (accessed on 27 August 2015)"
+        ],
+        "bbox": [
+            122,
+            105,
+            884,
+            381
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/9131a7d7b2dff4f71bb0368a728b073e2bb8ccd7c4fcf6200011cc5831053ce2.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            124,
+            392,
+            265,
+            429
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "© 2017 by the authors; licensee MDPI, Basel, Switzerland. This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC BY) license (http://creativecommons.org/licenses/by/4.0/).",
+        "bbox": [
+            277,
+            391,
+            878,
+            437
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "header",
+        "text": "Math.Comput.Appl.2017,22,19",
+        "bbox": [
+            124,
+            64,
+            319,
+            77
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "page_number",
+        "text": "18 of 18",
+        "bbox": [
+            821,
+            64,
+            873,
+            74
+        ],
+        "page_idx": 17
+    }
+]

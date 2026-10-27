@@ -1,0 +1,189 @@
+{
+  "id": "review-html-structure-discussion",
+  "title": "HTML Skill修改讨论：整体问题的处理方案",
+  "document": true,
+  "revision": 9,
+  "review_complete": false,
+  "units": [
+    {
+      "id": "purpose",
+      "title": "这一版要解决什么",
+      "mode": "content",
+      "options": [
+        {
+          "id": "purpose-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "purpose-current-text",
+              "kind": "text",
+              "html": "<p>在审阅细节时，允许重新讨论全文结构和原先目标。已确认的结构是当前依据，发现问题仍可调整。</p><p><strong>提交预览与存档预览现已实现：</strong>先审阅、编辑，再确认发送。发散启发也已接入。整体意见入口和右侧结构栏仍待实现。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overall-entry",
+      "title": "1　页面增加“整体意见”入口",
+      "mode": "content",
+      "inline": true,
+      "selected": "entry-in-page",
+      "options": [
+        {
+          "id": "entry-in-page",
+          "label": "页面增加“整体意见”（建议）",
+          "blocks": [
+            {
+              "id": "entry-in-page-text",
+              "kind": "text",
+              "html": "<p>在标题附近增加一个轻量入口，展开后写自由意见，与本轮局部批注一起提交。它针对全文、跨部分关系或目标，<strong>不必挂在某一段，也不用先选问题类别。</strong></p><p>“先讨论，不改正文”或“按这个想法直接调整”都直接写在意见中，不再增加处理菜单。</p>"
+            }
+          ]
+        }
+      ],
+      "state": "converged"
+    },
+    {
+      "id": "divergence-inspiration",
+      "title": "2　发散时可以补充启发",
+      "mode": "content",
+      "options": [
+        {
+          "id": "inspiration-current",
+          "label": "发散启发方案",
+          "blocks": [
+            {
+              "id": "inspiration-text",
+              "kind": "text",
+              "html": "<p>点击某一处的“继续发散”图标，<strong>直接复用文字批注浮层</strong>，在对话框里补充探索方向、例子或启发；不在正文展开输入框。</p><p>浮层只有“发散”和“取消”：点击发散，保存启发并标记继续发散；取消只关闭，不改变原状态。已启用时再点发散图标即可撤销；启发文字保留为草稿，撤销后不作为本轮发散要求发送。</p><p>启发跟对应部分一起交给Agent。提交预览会把它整理进可编辑的回复。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "submission-confirmation",
+      "title": "3　提交先预览，确认后才发送（已实现）",
+      "mode": "content",
+      "options": [
+        {
+          "id": "confirmation-current",
+          "label": "发送前确认方案",
+          "blocks": [
+            {
+              "id": "confirmation-text",
+              "kind": "text",
+              "html": "<p>点击底部“提交”，先打开可编辑的<strong>提交预览</strong>，整理本轮选择、批注与发散启发。你可修改最终要交给Agent的文字，点“确认提交”才真正发送。</p><p>返回修改或刷新会保留你编辑的预览；选择或批注后来有变化，也不会覆盖你的文字，会提醒核对。预览期间不通知Agent、不写提交记录。</p><p><strong>最终确认文字优先。</strong>原始选择和批注用于定位；若预览被改写，程序保留候选，由Agent理解最终要求后处理。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "archive-preview",
+      "title": "存档也先审阅具体操作（已实现）",
+      "mode": "content",
+      "options": [
+        {
+          "id": "archive-preview-current",
+          "label": "存档预览",
+          "blocks": [
+            {
+              "id": "archive-preview-text",
+              "kind": "text",
+              "html": "<p>每个任务根据实际产出准备存档操作，不统一理解成“存一份HTML”。点击“落地存档”先显示具体保存位置、版本、旧文件怎样处理；可直接修改，确认后才执行。</p><p>例如上半部分：保存为<strong>报告上（方法分类）-v0.2.md</strong>，将v0.1移到<strong>其他/历史版本/</strong>，并更新相关入口和相对链接。具体绝对路径在它的存档预览中完整显示。</p><p>确认前不写新稿、不移动旧文件。确认后先显示请求已送达，实际操作完成并核验后才显示“已落地存档”。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structure-response",
+      "title": "4　右侧层级栏也可以用来讨论结构",
+      "mode": "content",
+      "inline": true,
+      "selected": "response-outline",
+      "options": [
+        {
+          "id": "response-outline",
+          "label": "右侧结构栏的共同设计",
+          "blocks": [
+            {
+              "id": "response-outline-text",
+              "kind": "text",
+              "html": "<p><strong>可行。右侧栏既帮助看清全文层级，也让结构意见有明确的落点。</strong>它从实际章节标题生成，折叠显示；点击标题定位正文，在节点旁对该部分或它包含的子部分提意见。全文目标、跨多个部分的意见仍可写进“整体意见”。</p><p>结构意见跟着章节ID走，而不是只记标题文字；改标题、调顺序后仍能知道原来指哪一部分。若意见牵动结构，Agent先说明问题、建议骨架和受影响的图文，再调整内容。</p>"
+            },
+            {
+              "id": "structure-sidebar-sketch",
+              "kind": "visual",
+              "html": "<figure style=\"margin:12px 0\"><figcaption style=\"font-size:13px;color:#6b7280;margin-bottom:8px\">侧栏示意：用报告的部分结构举例，当前仍在讨论功能</figcaption><div style=\"display:grid;grid-template-columns:1.1fr 1fr;border:1px solid #d5ddd9;border-radius:9px;overflow:hidden\"><div style=\"padding:18px\"><strong>正文</strong><h3 style=\"margin:16px 0 8px;font-size:17px\">方法之间的关系</h3><p style=\"margin:0;color:#68736c;font-size:14px\">阅读当前内容，细节照常选中文字批注。</p></div><div style=\"padding:18px;background:#f3f7f5;border-left:1px solid #d5ddd9\"><strong>结构</strong><div style=\"font-size:14px;line-height:1.9;margin-top:12px\">▾ 第一部分：方法<br>　方法分类<br><span style=\"color:#286252;font-weight:700\">　沿袭与关联　✎</span><br>　代表方法</div><div style=\"margin-top:9px;padding:9px;border-left:3px solid #43806b;background:white;font-size:13px\">结构意见：分类和沿袭放在一张总图里，会不会更清楚？</div></div></div></figure>"
+            }
+          ]
+        }
+      ],
+      "state": "open"
+    },
+    {
+      "id": "structure-sidebar-editing",
+      "title": "已确定：侧栏可编辑建议结构",
+      "mode": "content",
+      "inline": true,
+      "options": [
+        {
+          "id": "sidebar-proposed-outline",
+          "label": "可编辑的建议骨架",
+          "blocks": [
+            {
+              "id": "sidebar-proposed-outline-text",
+              "kind": "text",
+              "html": "<p><strong>侧栏编辑建议结构，正文的相应修改分情况处理：</strong></p><ul><li><strong>调整顺序或层级：</strong>章节绑定原正文，整节连同图表一起移动，可在页面预览。</li><li><strong>合并、拆分或改变章节职责：</strong>提交后由Agent结合新旧结构与现有正文重组内容，包括去重、补过渡、安排图表；改法不明确时先讨论内容归属。</li><li><strong>新增、删除章节：</strong>先记录为结构建议，不立即删除原正文；提交后再补写或处理相关内容。</li></ul><p>你可改标题、调顺序或层级、增删建议节点，并对节点加意见。原版保留，建议中的变化单独显示。预览回复列出改前、改后的结构及意见，你确认发送后再交给Agent。</p><p><strong>侧栏负责表达结构意图，Agent负责给出结构与正文一致的新一版。</strong>先用简洁的标题列表编辑，拖拽交互可后补。</p>"
+            }
+          ]
+        }
+      ],
+      "selected": "sidebar-proposed-outline",
+      "state": "converged"
+    },
+    {
+      "id": "preservation",
+      "title": "调整结构时，已有内容怎样处理",
+      "mode": "content",
+      "options": [
+        {
+          "id": "preservation-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "preservation-current-text",
+              "kind": "text",
+              "html": "<p>原先确认的结构是当前依据，后续发现问题可以重新讨论；不必把工作固定成只能向前走的阶段。</p><p>移动章节尽量复用原文字、图和批注。拆分、合并时说明对应关系；旧批注不能无声贴到已经改写的内容上。沿用同一任务目录，用Git保留修订。</p><p>你不需要先判断问题属于“目的、结构还是细节”。Agent应先说明影响范围，并遵从“先讨论”或“直接改”的具体要求。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "title": "形成的工作流",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-current",
+          "label": "当前建议",
+          "blocks": [
+            {
+              "id": "result-current-text",
+              "kind": "text",
+              "html": "<p><strong>选择、批注与发散启发 → 提交预览 → 你编辑并确认 → Agent继续处理。</strong></p><p><strong>落地存档 → 存档预览 → 你编辑具体操作并确认 → Agent执行文件保存和版本归档 → 核验后标记完成。</strong></p><p>当前本任务归档的是Skill工作流方案；上半部分的独立任务已配置保存v0.2讲稿、旧版移入历史文件夹的操作预览，尚未执行。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "last_applied_submission_id": "8a605c8a-590b-4390-88ed-54180d63911a",
+  "processing": false,
+  "require_confirmation": true,
+  "archive_plan": "接受当前HTML Skill交互方案与实现状态。\n1. 保存当前任务内容源：\nD:\\weibull\\reviewbyhtml\\HTML-Skill修改讨论\\board.json\n以及对应审阅页：\nD:\\weibull\\reviewbyhtml\\HTML-Skill修改讨论\\index.html\n2. 保留本任务的已提交批注与历史记录，提交本轮相关Git修改。\n本次落地对象是这份Skill工作流方案；上半部分报告使用其独立任务的存档操作。"
+}

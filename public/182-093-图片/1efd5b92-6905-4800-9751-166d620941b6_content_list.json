@@ -1,0 +1,2202 @@
+[
+    {
+        "type": "text",
+        "text": "On the existence of the nonlinear weighted least squares estimate for a three-parameter Weibull distribution✩ ",
+        "text_level": 1,
+        "bbox": [
+            71,
+            196,
+            931,
+            247
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Dragan Jukic´ ∗, Mirta Bensiˇ c, Rudolf Scitovski ´ ",
+        "bbox": [
+            273,
+            264,
+            726,
+            284
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Department of Mathematics, University of Osijek, Trg Ljudevita Gaja 6, HR-31 000 Osijek, Croatia ",
+        "bbox": [
+            205,
+            296,
+            795,
+            309
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Received 20 February 2008; received in revised form 3 March 2008; accepted 4 March 2008 Available online 8 March 2008 ",
+        "bbox": [
+            227,
+            318,
+            773,
+            343
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            386,
+            136,
+            398
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The problem of nonlinear weighted least squares fitting of the three-parameter Weibull distribution to the given data $( w _ { i } , t _ { i } , y _ { i } )$ , $i = 1 , \\ldots , n$ , is considered. The part $w _ { i } ~ > ~ 0$ of the data stands for the data weights. It is shown that the best least squares estimate exists provided that the data satisfy just the following two natural conditions: (i) $0 < t _ { 1 } < t _ { 2 } < \\cdots < t _ { n }$ and (ii) $0 < y _ { 1 } < y _ { 2 } < \\cdot \\cdot \\cdot < y _ { n } < 1$ . To support this, an illustrative numerical example is given. ",
+        "bbox": [
+            68,
+            412,
+            931,
+            471
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "$\\circledcirc$ 2008 Elsevier B.V. All rights reserved. ",
+        "bbox": [
+            69,
+            471,
+            349,
+            486
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            513,
+            196,
+            528
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "In this paper we consider the nonlinear weighted least squares fitting problem for the three-parameter Weibull distribution (model) ",
+        "bbox": [
+            68,
+            543,
+            931,
+            575
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (t; \\alpha , \\beta , \\eta) = \\left\\{ \\begin{array}{l l} 1 - \\mathrm {e} ^ {- \\left(\\frac {t - \\alpha}{\\eta}\\right) ^ {\\beta}}, & t > \\alpha \\\\ 0, & t \\leq \\alpha \\end{array} \\right. \\tag {1}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            584,
+            931,
+            626
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "where $\\alpha ~ \\geq ~ 0$ is a location parameter, $\\eta ~ > ~ 0$ the scale, and $\\beta ~ > ~ 0$ the shape parameter (Weibull, 1951). The corresponding density function is given by ",
+        "bbox": [
+            68,
+            634,
+            930,
+            668
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "equation",
+        "text": "$$\nf (t; \\alpha , \\beta , \\eta) = \\left\\{ \\begin{array}{l l} \\frac {\\beta}{\\eta} \\left(\\frac {t - \\alpha}{\\eta}\\right) ^ {\\beta - 1} \\mathrm {e} ^ {- \\left(\\frac {t - \\alpha}{\\eta}\\right) ^ {\\beta}} & t > \\alpha \\\\ 0, & t \\leq \\alpha . \\end{array} \\right. \\tag {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            677,
+            931,
+            730
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "If $\\alpha = 0$ , the resulting distribution is called the two-parameter Weibull distribution. A nonnegative random variable T is said to follow the three-parameter Weibull distribution if its probability density function (PDF) and the cumulative distribution function (CDF) are given by (2) and (1), respectively. We refer the reader to an excellent survey book by Murthy et al. (2004), in which various Weibull models are classified into seven different groups. ",
+        "bbox": [
+            66,
+            737,
+            931,
+            801
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "",
+        "bbox": [
+            71,
+            55,
+            172,
+            122
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "ELSEVIER ",
+        "bbox": [
+            73,
+            123,
+            172,
+            138
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Available online at www.sciencedirect.com ",
+        "bbox": [
+            316,
+            53,
+            632,
+            68
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "ScienceDirect ",
+        "bbox": [
+            345,
+            70,
+            604,
+            103
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Computational Statistics and Data Analysis 52 (2008) 4502–4511 ",
+        "bbox": [
+            279,
+            126,
+            667,
+            140
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "COMPUTATIONAL STATISTICS & DATA ANALYSIS ",
+        "bbox": [
+            775,
+            68,
+            930,
+            122
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "www.elsevier.com/locate/csda ",
+        "bbox": [
+            751,
+            142,
+            931,
+            152
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "page_footnote",
+        "text": "✩ This work was supported by the Ministry of Science, Education and Sports, Republic of Croatia, through research grants 235-2352818-1034 and 235-2352818-1039. ",
+        "bbox": [
+            69,
+            828,
+            931,
+            854
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "page_footnote",
+        "text": "∗ Corresponding author. Tel.: +385 31 224 800; fax: +385 31 224 801. ",
+        "bbox": [
+            88,
+            855,
+            500,
+            867
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "page_footnote",
+        "text": "E-mail addresses: jukicd@mathos.hr (D. Jukic), ´ mirta@mathos.hr (M. Bensiˇ c), ´ scitowsk@mathos.hr (R. Scitovski). ",
+        "bbox": [
+            95,
+            867,
+            781,
+            880
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "footer",
+        "text": "0167-9473/$ - see front matter $\\circledcirc$ 2008 Elsevier B.V. All rights reserved. doi:10.1016/j.csda.2008.03.001 ",
+        "bbox": [
+            69,
+            894,
+            501,
+            920
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Named in honour of its inventor Waloddi Weibull who introduced it for the first time in 1939 in connection with his studies on the strength of materials (see Weibull (1939)), this distribution is widely used as a model in reliability and lifetime studies (see Lawless (1982); Murthy et al. (2004); Nelson (1982)). There are many applications of the Weibull distribution in medicine, biology, agriculture, forestry and engineering sciences. In addition, the Weibull distribution has found applications as a trend curve in much applied research (see Banks (1994); Ross (1990); Seber and Wild (1989)). The reliability function $R ( t )$ and the hazard (instantaneous failure rate) function $h ( t )$ for the Weibull distribution are given by ",
+        "bbox": [
+            60,
+            84,
+            926,
+            198
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\nR (t; \\alpha , \\beta , \\eta) = \\mathrm {e} ^ {- (\\frac {t - \\alpha}{\\eta}) ^ {\\beta}}, \\quad t > \\alpha\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            206,
+            365,
+            227
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            62,
+            239,
+            97,
+            253
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\nh (t; \\alpha , \\beta , \\eta) = \\frac {f (t ; \\alpha , \\beta , \\eta)}{1 - F (t ; \\alpha , \\beta , \\eta)} = \\frac {\\beta}{\\eta} \\left(\\frac {t - \\alpha}{\\eta}\\right) ^ {\\beta - 1}, t > \\alpha .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            260,
+            575,
+            299
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The Weibull distribution hazard function is monotone increasing if $\\beta > 1$ , decreasing if $0 < \\beta < 1$ , and constant for $\\beta = 1$ . When $\\beta = 1$ , the Weibull distribution reduces to an exponential distribution. ",
+        "bbox": [
+            60,
+            305,
+            926,
+            339
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The most common way of estimating the parameters of the density function from the observed data is the maximum likelihood (ML) method. Assuming $n$ independent observations $t _ { 1 } , \\ldots , t _ { n }$ from the density, the likelihood function of this sample is given by $\\begin{array} { r } { L ( \\pmb \\theta ) = \\prod _ { i = 1 } ^ { n } p ( t _ { i } ; \\pmb \\theta ) } \\end{array}$ , where $p ( t ; \\pmb \\theta )$ is the underlying density. The maximum likelihood estimate (MLE) of parameters $\\pmb \\theta$ is the value $\\hat { \\pmb { \\theta } }$ that maximizes the likelihood function. But MLE does not necessarily exist, and it is not necessarily unique. For the two-parameter Weibull distribution, the results of Pratt (1981) and Burridge (1981) guarantee the existence of a unique MLE. However, our focus of attention here is on the case when $\\alpha$ is unknown. In this case many additional difficulties arise. For example, there is no standard MLE for any observation $t _ { 1 } , \\ldots , t _ { n }$ from density (2) (see e.g. Lawless (1982)). In order to verify this, we may assume, without loss of generality, that $t _ { 1 } ~ = ~ \\operatorname* { m i n } \\{ t _ { 1 } , \\dots , t _ { n } \\}$ . Fix $\\beta ~ \\in ~ ( 0 , 1 )$ and $\\eta ~ \\in ~ ( 0 , \\infty )$ . Then $f ( t _ { 1 } ; \\alpha , \\beta , \\eta ) = ( \\beta / \\eta ) ( ( t _ { 1 } - \\alpha ) / \\eta ) ^ { \\beta - 1 } \\exp ( - ( ( t _ { 1 } - \\alpha ) / \\eta ) ^ { \\beta } ) \\to \\infty$ as $\\alpha  t _ { 1 }$ from the left, whereas if $t _ { i } > t _ { 1 }$ then f (ti ; α, β, η) = (β $\\begin{array} { r } { \\prime \\eta ) ( ( t _ { i } - \\alpha ) / \\eta ) ^ { \\beta - 1 } \\exp ( - ( ( t _ { i } - \\alpha ) / \\eta ) ^ { \\beta } ) \\to ( \\beta / \\eta ) ( ( t _ { i } - t _ { 1 } ) / \\eta ) ^ { \\beta - 1 } \\exp ( - ( ( t _ { i } - t _ { 1 } ) / \\eta ) ^ { \\beta } ) > 0 , } \\end{array}$ and hence MLE does not exist. In the literature, considerable effort has been devoted to such difficulties with the maximum likelihood approach (Cheng and Iles, 1990; Smith and Naylor, 1987). There are several other statistical methods for estimating model parameters such as the method of moments, the method of percentiles and the Bayesian method. Unfortunately, none of these methods (excluding the Bayesian one) is appropriate for small data sets (see Lawless (1982); Murthy et al. (2004); Nelson (1982)). ",
+        "bbox": [
+            60,
+            340,
+            928,
+            599
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "A very popular method for parameter estimation is the least squares (LS) method. Numerical methods for solving the nonlinear LS problem are described in Dennis and Schnabel (1996); Gill et al. (1981). Before the iterative minimization of the sum of squares it is still necessary to ask whether the least squares estimate (LSE) exists. In the case of nonlinear LS problems it is still extremely difficult to answer this question (see Bates and Watts (1988); Bjorck¨ (1996); Demidenko (2006, 2000); Hadeler et al. (2007); Jukic´ et al. (2004, 1999)). ",
+        "bbox": [
+            60,
+            601,
+            926,
+            681
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Surprisingly, in spite of the many papers on Weibull models, we have not managed to find any paper dealing with the existence problem for a solution to a nonlinear LS problem for the three-parametric Weibull distribution. ",
+        "bbox": [
+            60,
+            683,
+            926,
+            716
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The structure of the paper is as follows. In Section 2 we present our main result (Theorem 1) which guarantees the existence of the LSE for the three-parametric Weibull distribution. An illustrative numerical example is given in Section 3. To avoid nonnecessary technicalities at an early stage, all proofs are given in Section 4. ",
+        "bbox": [
+            60,
+            716,
+            926,
+            765
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. The LS existence theorem ",
+        "text_level": 1,
+        "bbox": [
+            62,
+            787,
+            294,
+            801
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The LS method can be described as follows: Suppose we are given the data $( w _ { i } , t _ { i } , y _ { i } ) , i = 1 , \\dots , n , n > 3$ , where ",
+        "bbox": [
+            82,
+            824,
+            926,
+            842
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\n0 <   t _ {1} <   t _ {2} <   \\dots <   t _ {n} \\tag {3}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            851,
+            926,
+            869
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "denote the values of the independent variable (observations of the nonnegative Weibull random variable $T$ ), ",
+        "bbox": [
+            60,
+            878,
+            856,
+            894
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\n0 <   y _ {1} <   y _ {2} <   \\dots <   y _ {n} <   1 \\tag {4}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            905,
+            926,
+            923
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            235,
+            57,
+            722,
+            71
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "page_number",
+        "text": "4503 ",
+        "bbox": [
+            891,
+            57,
+            926,
+            68
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "are the respective estimates of the empirical CDF and $w _ { i } ~ > ~ 0$ are the data weights which describe the assumed relative accuracy of the data. The unknown parameters $\\alpha$ , $\\beta$ and $\\eta$ of function (1) have to be estimated by minimizing the functional ",
+        "bbox": [
+            66,
+            84,
+            935,
+            134
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} S (\\alpha , \\beta , \\eta) = \\sum_ {i = 1} ^ {n} w _ {i} [ F (t _ {i}; \\alpha , \\beta , \\eta) - y _ {i} ] ^ {2} \\\\ = \\sum_{\\substack{i = 1\\\\ t_{i} <   \\alpha}}^{n}w_{i}y_{i}^{2} + \\sum_{\\substack{i = 1\\\\ t_{i}\\geq \\alpha}}^{n}w_{i}\\left[1 - \\mathrm{e}^{-\\left(\\frac{t_{i} - \\alpha}{\\eta}\\right)^{\\beta}} - y_{i}\\right]^{2} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            138,
+            538,
+            238
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "on the set $\\mathcal { P } : = \\big \\{ ( \\alpha , \\beta , \\eta ) \\in \\mathbb { R } ^ { 3 } : \\alpha \\ge 0 ; \\beta , \\eta > 0 \\big \\}$ . A point $( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) \\in \\mathcal { P }$ such that ",
+        "bbox": [
+            68,
+            245,
+            713,
+            265
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS (\\alpha^ {\\star}, \\beta^ {\\star}, \\eta^ {\\star}) = \\inf  _ {(\\alpha , \\beta , \\eta) \\in \\mathcal {P}} S (\\alpha , \\beta , \\eta)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            272,
+            384,
+            299
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "is called the least squares estimate (LSE), if it exists (see Bjorck ¨ (1996); Gill et al. (1981); Ross (1990); Seber and Wild (1989)). ",
+        "bbox": [
+            66,
+            305,
+            931,
+            338
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "If the problem of weighted LS estimation for the Weibull distribution is considered, $y _ { i }$ comes from the empirical CDF and conditions (3) and (4) are natural. But, if the analogue LS estimation procedure is considered from the nonlinear regression curve fitting point of view, then there is no reason to expect that the conditions (3) and (4) are naturally fulfilled. The main result of this paper, which follows, can be applied in both cases. ",
+        "bbox": [
+            66,
+            339,
+            933,
+            405
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Theorem 1. If the data $( w _ { i } , t _ { i } , y _ { i } )$ $( w _ { i } , t _ { i } , y _ { i } ) , i \\ = \\ 1 , \\ldots , n , n \\ > \\ 3 ,$ $i = 1 , \\ldots , n$ $n > 3$ , satisfy the conditions (3) and (4), then the LSE for the three-parametric Weibull distribution exists. ",
+        "bbox": [
+            68,
+            416,
+            935,
+            450
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Numerical illustration ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            464,
+            273,
+            479
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The three-parameter Weibull distribution has been extensively used in modelling failure times. For example, consider a real data set from Murthy et al. (2004, p. 291) concerning failure of a photocopier cleaning web (Table 1). ",
+        "bbox": [
+            68,
+            495,
+            933,
+            530
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/4c284cf2936884a770e3796b367cbca7e8ce51fd3bb2fe7420558f878898bddc.jpg",
+        "table_caption": [
+            "Table 1 Cleaning web failures "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Counter</td><td>Day</td><td>Counter</td><td>Day</td></tr><tr><td>60 152</td><td>29</td><td>900 362</td><td>1356</td></tr><tr><td>132 079</td><td>128</td><td>933 785</td><td>1412</td></tr><tr><td>365 075</td><td>397</td><td>938 100</td><td>1448</td></tr><tr><td>427 056</td><td>563</td><td>994 597</td><td>1514</td></tr><tr><td>501 550</td><td>722</td><td>1045 893</td><td>1583</td></tr><tr><td>597 739</td><td>916</td><td>1068 124</td><td>1609</td></tr><tr><td>675 841</td><td>1016</td><td>1077 537</td><td>1640</td></tr><tr><td>716 636</td><td>1111</td><td></td><td></td></tr></table>",
+        "bbox": [
+            69,
+            571,
+            935,
+            714
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/c2b2192f74bdfaa1b911f27b405966044e02d69de4af378091fd055dc941dc68.jpg",
+        "table_caption": [
+            "Table 2 Failure times $t _ { i }$ and the order statistics $t _ { ( i ) }$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>i</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td></tr><tr><td>ti</td><td>99</td><td>269</td><td>166</td><td>159</td><td>194</td><td>100</td><td>95</td><td>245</td><td>56</td><td>36</td><td>66</td><td>69</td><td>26</td><td>31</td></tr><tr><td>t(i)</td><td>26</td><td>31</td><td>36</td><td>56</td><td>66</td><td>69</td><td>95</td><td>99</td><td>100</td><td>159</td><td>166</td><td>194</td><td>245</td><td>269</td></tr></table>",
+        "bbox": [
+            69,
+            773,
+            933,
+            826
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The column “Counter” gives the number of copies made at the time of replacement of the cleaning web and the column “Day” gives the corresponding day (measured from the moment the machine was put into operation). ",
+        "bbox": [
+            66,
+            840,
+            931,
+            874
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Suppose that the failure time $T$ is a random variable following a Weibull distribution (1). Let $t _ { i }$ denote the ith failure time. The difference between the two successive values in the column “Day” gives the observed failure times, which are displayed in Table 2. ",
+        "bbox": [
+            66,
+            874,
+            933,
+            923
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "page_number",
+        "text": "4504 ",
+        "bbox": [
+            71,
+            57,
+            104,
+            68
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511´ ",
+        "bbox": [
+            273,
+            56,
+            759,
+            72
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/c6a2eb0b36e2955a1e90483e72bb0a0c7bfd2b8299f3eefe88eeea1fb49aca94.jpg",
+        "table_caption": [
+            "Table 3 Least squares parameter estimates based on failure times "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Approach</td><td>Parameter estimates</td><td>Sum of squares (SS)</td></tr><tr><td>Mean rank</td><td>α* = 17.6472, β* = 0.92226, η* = 125.76</td><td>SS = 0.0128999</td></tr><tr><td>Median rank</td><td>α* = 20.2553, β* = 0.96439, η* = 119.412</td><td>SS = 0.0149556</td></tr><tr><td>Benard</td><td>α* = 19.1602, β* = 0.94733, η* = 122.007</td><td>SS = 0.0140659</td></tr></table>",
+        "bbox": [
+            62,
+            115,
+            928,
+            188
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/fe187173590ff7983f10d471eab82a3c096846757b412098701e4d8acc680f90.jpg",
+        "image_caption": [
+            "Fig. 1. The data, —- $F ( t ; \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) , \\dots F ( t ; \\hat { \\alpha } , \\hat { \\beta } , \\hat { \\eta } ) .$ "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            268,
+            207,
+            718,
+            404
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "There are many different ways of computing empirical distribution function $\\hat { F }$ corresponding to the sample data $t _ { 1 } , \\ldots , t _ { n }$ . They all involve arranging the data in ascending order so that $t _ { ( 1 ) } < t _ { ( 2 ) } < \\cdot \\cdot \\cdot < t _ { ( n ) }$ , which is also shown in Table 2. The most commonly used estimators can be expressed in the following form (see Lawless (1982); Nelson (1982)): ",
+        "bbox": [
+            60,
+            443,
+            926,
+            506
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {F} \\left(t _ {(i)}\\right) = \\frac {i - c}{n + 1 - 2 c} =: y _ {i}, \\quad 0 \\leq c <   1. \\tag {5}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            516,
+            926,
+            549
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Some alternatives are as follows: ",
+        "bbox": [
+            62,
+            557,
+            308,
+            571
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "list",
+        "sub_type": "text",
+        "list_items": [
+            "• $\\textstyle y _ { i } = { \\frac { i } { n + 1 } }$ (mean rank estimator, $c = 0$ ",
+            "• yi = i−0.5 $\\begin{array} { r } { y _ { i } = \\frac { i - 0 . 5 } { n } } \\end{array}$ n (median rank estimator, $c = 0 . 5$ ), ",
+            "• yi = $\\begin{array} { r } { y _ { i } = \\frac { i - 0 . 3 } { n + 0 . 4 } } \\end{array}$ (Benard’s median rank estimator, $c = 0 . 3$ ). "
+        ],
+        "bbox": [
+            66,
+            579,
+            490,
+            638
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Our data for least squares estimation are $\\left( w _ { i } , t _ { ( i ) } , y _ { i } \\right)$ $\\big ( w _ { i } , t _ { ( i ) } , y _ { i } \\big ) , i = 1 , \\dots , 1 4 _ $ $i = 1 , \\ldots , 1 4$ , where $w _ { i } > 0$ are data weights, $t _ { ( i ) }$ are the values from Table 2 and $y _ { i }$ are calculated by using (5). It is easy to verify that these data satisfy the conditions of Theorem 1; therefore an LSE exists. ",
+        "bbox": [
+            60,
+            645,
+            926,
+            692
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Numerical methods for minimizing the sum of squares require an initial approximation $( \\alpha _ { 0 } , \\beta _ { 0 } , \\eta _ { 0 } ) \\in \\mathcal { P }$ , which needs to be as good as possible. We suggest doing this in the following way: For $\\alpha _ { 0 }$ take $t _ { ( 1 ) } / 2$ , and then calculate $\\beta _ { 0 }$ and $\\eta _ { 0 }$ by transforming Weibull distribution $F ( t ; \\alpha _ { 0 } , \\beta , \\eta )$ to the form ",
+        "bbox": [
+            60,
+            692,
+            926,
+            742
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\ny = \\ln \\left\\{\\ln \\left[ \\frac {1}{1 - F (t ; \\alpha_ {0} , \\beta , \\eta)} \\right] \\right\\} = \\beta \\ln (t - \\alpha_ {0}) - \\beta \\ln \\eta\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            749,
+            542,
+            785
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "and then fit a straight line $y$ on $\\ln ( t - \\alpha _ { 0 } )$ using least squares. ",
+        "bbox": [
+            62,
+            792,
+            518,
+            808
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this numerical illustration we are going to use mean rank, median rank and Benard’s approach. For all weights $w _ { i }$ we took 1. Our results obtained by using the Levenberg–Marquardt method (see Dennis and Schnabel (1996)) are given in Table 3. ",
+        "bbox": [
+            60,
+            809,
+            926,
+            855
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "To estimate the unknown parameters, Murthy et al. (2004) used a mean rank estimator and obtained the following estimates of the unknown parameters: $\\hat { \\alpha } ~ = ~ 2 1 . 1$ , $\\hat { \\beta } ~ = ~ 0 . 9 5 3$ , $\\hat { \\eta } ~ = ~ 1 0 1$ . The corresponding sum of squares $S S = 0 . 0 4 0 4 0 9 6$ is greater than the one that we obtained. The reason for this is that they used the so-called Weibull probability plot. ",
+        "bbox": [
+            60,
+            857,
+            926,
+            923
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            237,
+            57,
+            722,
+            71
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "page_number",
+        "text": "4505 ",
+        "bbox": [
+            891,
+            57,
+            926,
+            68
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In Fig. 1 we show the data $\\Big ( t _ { ( i ) } , \\hat { F } ( t _ { ( i ) } ) \\Big ) , i = 1 , \\ldots , 1 4 ,$ , calculated by using a mean rank estimator, the graph of function $F ( t ; \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } )$ and the graph of function $F ( t ; \\hat { \\alpha } , \\hat { \\beta } , \\hat { \\eta } )$ . ",
+        "bbox": [
+            68,
+            84,
+            937,
+            126
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4. Proof of the theorem ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            141,
+            261,
+            157
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Before starting the proof of Theorem 1, we need some preliminary results. ",
+        "bbox": [
+            90,
+            173,
+            641,
+            188
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Lemma 2. Suppose we are given the data $( w _ { i } , t _ { i } , y _ { i } )$ , $i = 1 , \\ldots , n$ , $n > 3$ , such that $0 < t _ { 1 } < t _ { 2 } < \\cdots < t _ { n }$ , $0 < y _ { 1 } < y _ { 2 } < \\cdot \\cdot \\cdot < y _ { n } < 1$ and $w _ { i } > 0$ , $i = 1 , \\ldots , n$ . Given any real number $\\theta \\geq 0$ , let ",
+        "bbox": [
+            66,
+            203,
+            933,
+            235
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\bar {y} _ {\\theta} := \\frac {\\sum_ {t _ {i} > \\theta} w _ {i} y _ {i}}{\\sum_ {t _ {i} > \\theta} w _ {i}}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            241,
+            235,
+            301
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            69,
+            308,
+            104,
+            320
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\Sigma_ {\\theta} := \\sum_ {t _ {i} <   \\theta} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\theta} w _ {i} (y _ {i} - \\bar {y} _ {\\theta}) ^ {2}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            327,
+            391,
+            362
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Then, ",
+        "bbox": [
+            69,
+            369,
+            115,
+            382
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "list",
+        "sub_type": "text",
+        "list_items": [
+            "(i) if $\\mathbf { \\nabla } \\cdot \\theta = t _ { n - 1 }$ , then there exists a point in $\\mathcal { P }$ at which functional S attains a value equal to $\\begin{array} { r } { \\sum _ { t _ { n - 1 } } = \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } } \\end{array}$ ",
+            "(ii) $f \\theta \\neq t _ { n - 1 }$ , then there exists a point in $\\mathcal { P }$ at which functional S attains a value less than $\\Sigma _ { \\theta }$ . "
+        ],
+        "bbox": [
+            69,
+            390,
+            904,
+            425
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The summation $\\scriptstyle \\sum _ { t _ { i } > \\theta }$ (or $\\textstyle \\sum _ { t _ { i } < \\theta } )$ is to be understood as follows: The sum over those indices $i \\leq n$ for which $t _ { i } > \\theta$ (or $t _ { i } < \\theta$ ). If there are no such points $t _ { i }$ , the sum is empty; following the usual convention, we define it to be zero. ",
+        "bbox": [
+            68,
+            433,
+            931,
+            466
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Proof. First, suppose that $0 < \\theta \\leq t _ { n - 1 }$ . Let $k \\in \\{ 1 , \\ldots , n \\}$ be such that ",
+        "bbox": [
+            69,
+            475,
+            604,
+            491
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\theta \\in \\left(t _ {k - 1}, t _ {k} \\right], \\tag {6}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            500,
+            931,
+            516
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $t _ { 0 } = 0$ by definition. Define ",
+        "bbox": [
+            69,
+            524,
+            327,
+            540
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\bar {y} _ {t _ {k}} := \\frac {\\sum_ {t _ {i} > t _ {k}} w _ {i} y _ {i}}{\\sum_ {t _ {i} > t _ {k}} w _ {i}} \\quad \\text {a n d} \\quad l := \\min  \\{i: y _ {i} \\geq \\bar {y} _ {t _ {k}} \\}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            545,
+            468,
+            603
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Since the sequence $\\{ y _ { i } \\} _ { i = 1 } ^ { n }$ strictly increases and $y _ { n } < 1$ , it is easy to show that $y _ { k } < \\bar { y } _ { t _ { k } } < 1$ and $k < l$ . Now, define ",
+        "bbox": [
+            68,
+            610,
+            926,
+            628
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\tau_ {l} := \\left\\{ \\begin{array}{l l} t _ {l}, & \\text {i f} y _ {l} = \\bar {y} _ {t _ {k}} \\\\ \\frac {t _ {l - 1} + t _ {l}}{2}, & \\text {i f} y _ {l} > \\bar {y} _ {t _ {k}}. \\end{array} \\right.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            634,
+            351,
+            681
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Note that $t _ { k } < \\tau _ { l }$ , because $k < l$ . ",
+        "bbox": [
+            69,
+            687,
+            314,
+            700
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Now, we are first going to construct a class of Weibull distributions whose graph will contain points $( t _ { k } , y _ { k } )$ and $( \\tau _ { l } , \\bar { y } _ { t _ { k } } )$ and will vanish at all points $t _ { 1 } , \\ldots , t _ { k - 1 }$ . For this purpose, we first define a function $K : ( 0 , \\infty ) \\to ( 0 , \\infty )$ using the formula ",
+        "bbox": [
+            68,
+            702,
+            933,
+            750
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\nK (\\beta) := \\frac {\\left(\\frac {\\ln (1 - y _ {k})}{\\ln (1 - \\bar {y} _ {t _ {k}})}\\right) ^ {1 / \\beta}}{1 - \\left(\\frac {\\ln (1 - y _ {k})}{\\ln (1 - \\bar {y} _ {t _ {k}})}\\right) ^ {1 / \\beta}}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            757,
+            334,
+            820
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Since $t _ { k } > 0$ and ",
+        "bbox": [
+            69,
+            824,
+            200,
+            840
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {\\beta \\rightarrow 0} K (\\beta) = 0, \\tag {7}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            115,
+            849,
+            931,
+            874
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "there exists a sufficiently small $\\beta _ { 0 } > 0$ such that ",
+        "bbox": [
+            69,
+            881,
+            431,
+            897
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\nt _ {k} - K (\\beta) \\left(\\tau_ {l} - t _ {k}\\right) > t _ {k - 1} \\geq 0, \\quad \\beta \\in (0, \\beta_ {0}),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            905,
+            463,
+            921
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "page_number",
+        "text": "4506 ",
+        "bbox": [
+            71,
+            57,
+            104,
+            68
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            273,
+            57,
+            757,
+            71
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "so that ",
+        "bbox": [
+            62,
+            84,
+            117,
+            98
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n(\\alpha (\\beta), \\beta , \\eta (\\beta)) := \\left(t _ {k} - K (\\beta) \\left(\\tau_ {l} - t _ {k}\\right), \\beta , \\frac {\\tau_ {l} - t _ {k} + K (\\beta) \\left(\\tau_ {l} - t _ {k}\\right)}{\\left(\\ln \\left(\\frac {1}{1 - \\bar {y} _ {t _ {k}}}\\right)\\right) ^ {1 / \\beta}}\\right) \\in \\mathcal {P}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            103,
+            672,
+            165
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "for all $\\beta \\in ( 0 , \\beta _ { 0 } )$ . Let us now associate with each real $\\beta \\in ( 0 , \\beta _ { 0 } )$ a Weibull distribution ",
+        "bbox": [
+            62,
+            169,
+            720,
+            185
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (t; \\alpha (\\beta), \\beta , \\eta (\\beta)) = \\left\\{ \\begin{array}{l l} 1 - \\mathrm {e} ^ {- \\ln \\left(\\frac {1}{1 - \\bar {y} _ {t _ {k}}}\\right) \\left(\\frac {t - t _ {k} + K (\\beta) (\\tau_ {l} - t _ {k})}{\\tau_ {l} - t _ {k} + K (\\beta) (\\tau_ {l} - t _ {k})}\\right) ^ {\\beta}}, & t > t _ {k} - K (\\beta) (\\tau_ {l} - t _ {k}) \\\\ 0, & t \\leq t _ {k} - K (\\beta) (\\tau_ {l} - t _ {k}). \\end{array} \\right.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            192,
+            737,
+            243
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "It is not difficult to show that ",
+        "bbox": [
+            62,
+            250,
+            281,
+            262
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (t _ {k}; \\alpha (\\beta), \\beta , \\eta (\\beta)) = y _ {k},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            273,
+            310,
+            289
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (\\tau_ {l}; \\alpha (\\beta), \\beta , \\eta (\\beta)) = \\bar {y} _ {t _ {k}}, \\tag {8}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            108,
+            293,
+            924,
+            309
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF \\left(t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)\\right) = 0, \\quad i = 1, \\dots , k - 1\n$$",
+        "text_format": "latex",
+        "bbox": [
+            108,
+            314,
+            444,
+            330
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            62,
+            339,
+            95,
+            351
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {\\beta \\rightarrow 0} F (t; \\alpha (\\beta), \\beta , \\eta (\\beta)) = \\bar {y} _ {t _ {k}}, \\quad t > t _ {k}. \\tag {9}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            108,
+            362,
+            924,
+            386
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "(i) If $\\theta = t _ { n - 1 }$ , then $k = n - 1$ , $\\bar { y } _ { t _ { k } } = y _ { n } , l = n$ and $\\tau _ { l } = t _ { n }$ . Thus, from (8) it follows that ",
+        "bbox": [
+            62,
+            394,
+            724,
+            411
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS (\\alpha (\\beta), \\beta , \\eta (\\beta)) = \\sum_ {i = 1} ^ {n} w _ {i} [ F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) - y _ {i} ] ^ {2} = \\sum_ {i = 1} ^ {n - 2} w _ {i} y _ {i} ^ {2} = \\Sigma_ {t _ {n - 1}}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            420,
+            674,
+            460
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "for all $\\beta \\in ( 0 , \\beta _ { 0 } )$ , and therefore claim (i) follows. ",
+        "bbox": [
+            62,
+            467,
+            437,
+            482
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Now, we are going to prove claim (ii). If $\\theta \\in ( 0 , t _ { n - 2 } ]$ , because of assumption (6) we have ",
+        "bbox": [
+            82,
+            483,
+            750,
+            500
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\Sigma_ {\\theta} = \\sum_ {t _ {i} <   \\theta} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\theta} w _ {i} (y _ {i} - \\bar {y} _ {\\theta}) ^ {2} \\geq \\sum_ {i = 1} ^ {k - 1} w _ {i} y _ {i} ^ {2} + \\sum_ {i = k + 1} ^ {n} w _ {i} (y _ {i} - \\bar {y} _ {\\theta}) ^ {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            506,
+            628,
+            549
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "whereby the equality holds only if $\\theta = t _ { k }$ . Due to this and the fact that the quadratic function $\\textstyle x \\mapsto \\sum _ { i = 1 } ^ { p } w _ { i } ( x _ { i } - x ) ^ { 2 }$ attains its minimum $\\textstyle \\sum _ { i = 1 } ^ { p } w _ { i } ( x _ { i } - { \\bar { x } } ) ^ { 2 }$ at point $\\textstyle { \\bar { x } } = \\sum _ { i = 1 } ^ { p } w _ { i } x _ { i } / \\sum _ { i = 1 } ^ { p } w _ { i }$ , we obtain ",
+        "bbox": [
+            62,
+            557,
+            924,
+            595
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\Sigma_ {\\theta} \\geq \\sum_ {i = 1} ^ {k - 1} w _ {i} y _ {i} ^ {2} + \\sum_ {i = k + 1} ^ {n} w _ {i} \\left(y _ {i} - \\bar {y} _ {t _ {k}}\\right) ^ {2}. \\tag {10}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            605,
+            926,
+            648
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The function $t \\mapsto F ( t ; \\alpha ( \\beta ) , \\beta , \\eta ( \\beta ) ) .$ , $\\beta \\in ( 0 , \\beta _ { 0 } )$ , is strictly increasing on the interval $( t _ { k } - K ( \\beta ) ( \\tau _ { l } - t _ { k } ) , \\infty )$ Due to this fact, (7) and (9), we may assume that $\\beta _ { 0 } > 0$ is sufficiently small, so that for all $\\beta \\in ( 0 , \\beta _ { 0 } )$ , ",
+        "bbox": [
+            62,
+            654,
+            924,
+            685
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\ny _ {i} <   F \\left(t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)\\right) <   \\bar {y} _ {t _ {k}}, \\quad \\text {i f} t _ {k} <   t _ {i} <   \\tau_ {l}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            694,
+            476,
+            711
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\ny _ {i} = F \\left(t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)\\right) = \\bar {y} _ {t _ {k}}, \\quad \\text {i f} t _ {i} = \\tau_ {l} \\tag {11}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            108,
+            715,
+            926,
+            731
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\bar {y} _ {t _ {k}} <   F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) <   y _ {i}, \\quad \\text {i f} \\tau_ {l} <   t _ {i} \\leq t _ {m}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            108,
+            735,
+            483,
+            750
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Since $k \\leq n - 2$ , there are at least two indices $i$ for which $t _ { i } ~ > ~ t _ { k }$ . Furthermore, since the sequence $\\{ y _ { i } \\} _ { i = 1 } ^ { n }$ is strictly increasing, the equality $y _ { i } = \\bar { y } _ { t _ { k } }$ can hold for at most one index i. Hence, for every $\\beta \\in ( 0 , \\beta _ { 0 } )$ , it follows from (11) that ",
+        "bbox": [
+            60,
+            758,
+            926,
+            805
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\sum_ {t _ {i} > t _ {k}} w _ {i} \\left[ F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) - y _ {i} \\right] ^ {2} <   \\sum_ {i = k + 1} ^ {n} w _ {i} \\left(y _ {i} - \\bar {y} _ {t _ {k}}\\right) ^ {2}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            814,
+            547,
+            855
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Therefore, for any such $\\beta$ we have ",
+        "bbox": [
+            62,
+            861,
+            321,
+            877
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS (\\alpha (\\beta), \\beta , \\eta (\\beta)) = \\sum_ {i = 1} ^ {n} w _ {i} [ F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) - y _ {i} ] ^ {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            885,
+            525,
+            925
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            235,
+            57,
+            722,
+            71
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "page_number",
+        "text": "4507 ",
+        "bbox": [
+            891,
+            57,
+            926,
+            68
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} = \\sum_ {t _ {i} <   t _ {k}} w _ {i} [ F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) - y _ {i} ] ^ {2} + \\sum_ {t _ {i} > t _ {k}} w _ {i} [ F (t _ {i}; \\alpha (\\beta), \\beta , \\eta (\\beta)) - y _ {i} ] ^ {2} \\\\ <   \\sum_ {i = 1} ^ {k - 1} w _ {i} y _ {i} ^ {2} + \\sum_ {i = k + 1} ^ {n} w _ {i} \\left(y _ {i} - \\bar {y} _ {l _ {k}}\\right) ^ {2}. \\tag {12} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            244,
+            80,
+            935,
+            164
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "From (10) and (12) it follows that $S ( \\alpha ( \\beta ) , \\beta , \\eta ( \\beta ) ) < { \\varSigma } _ { \\theta } .$ . If $\\theta = 0$ , then $\\mathcal { \\Sigma } _ { 0 } > \\mathcal { \\Sigma } _ { t _ { 1 } / 2 }$ ",
+        "bbox": [
+            68,
+            171,
+            702,
+            187
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "If $\\theta \\in ( t _ { n - 2 } , t _ { n - 1 } ) \\cup ( t _ { n - 1 } , \\infty )$ , then $\\begin{array} { r } { \\sum _ { \\theta } > \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } = \\sum _ { t _ { n - 1 } } . } \\end{array}$ . As shown in the proof of claim (i), there exists a point in $\\mathcal { P }$ at which functional $s$ attains the value $\\textstyle \\sum _ { t _ { n - 1 } }$ . This completes the proof. \u0003 ",
+        "bbox": [
+            68,
+            188,
+            933,
+            223
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Proof of Theorem 1. Since functional $s$ is nonnegative, there exists $\\begin{array} { r } { S ^ { \\star } : = \\operatorname* { i n f } _ { ( \\alpha , \\beta , \\eta ) \\in { \\mathcal { P } } } S ( \\alpha , \\beta , \\eta ) . } \\end{array}$ . It should be shown that there exists a point $( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) \\in \\mathcal { P }$ such that $S ( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) = S ^ { \\star }$ . ",
+        "bbox": [
+            68,
+            231,
+            931,
+            264
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "According to Lemma 2(i), there exists a point $( \\alpha _ { 0 } , \\beta _ { 0 } , \\eta _ { 0 } ) \\in \\mathcal { P }$ such that $\\begin{array} { r } { S ( \\alpha _ { 0 } , \\beta _ { 0 } , \\eta _ { 0 } ) = \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } , } \\end{array}$ . Therefore, $\\begin{array} { r } { S ^ { \\star } \\le \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } } \\end{array}$ . If $\\begin{array} { r } { S ^ { \\star } = \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } } \\end{array}$ , to complete the proof it is enough to set $( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) = ( \\alpha _ { 0 } , \\beta _ { 0 } , \\eta _ { 0 } )$ . Hence, we can further assume that ",
+        "bbox": [
+            68,
+            264,
+            933,
+            315
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS ^ {\\star} <   \\sum_ {i = 1} ^ {n - 2} w _ {i} y _ {i} ^ {2}. \\tag {13}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            324,
+            935,
+            367
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Let $( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } )$ be a sequence in $\\mathcal { P }$ , such that ",
+        "bbox": [
+            90,
+            374,
+            433,
+            390
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} S ^ {\\star} = \\lim  _ {k \\rightarrow \\infty} S (\\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\rightarrow \\infty} \\sum_ {i = 1} ^ {n} w _ {i} [ F (t _ {i}; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) - y _ {i} ] ^ {2} \\\\ = \\lim  _ {k \\rightarrow \\infty} \\left[ \\sum_ {t _ {i} <   \\alpha_ {k}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} \\geq \\alpha_ {k}} w _ {i} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}} - y _ {i}\\right) ^ {2} \\right]. \\tag {14} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            398,
+            935,
+            495
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Without loss of generality, in further consideration we may assume that sequences $( \\alpha _ { k } )$ , $( \\beta _ { k } )$ and $( \\eta _ { k } )$ are monotone. This is possible because the sequence $( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } )$ has a subsequence $( \\alpha _ { l _ { k } } , \\beta _ { l _ { k } } , \\eta _ { l _ { k } } )$ , such that all its component sequences $( \\alpha _ { l _ { k } } )$ , $( \\beta _ { l _ { k } } )$ and $( \\eta _ { l _ { k } } )$ ) are monotone; and since $\\begin{array} { r l } { \\mathrm { l i m } _ { k \\to \\infty } S ( \\alpha _ { l _ { k } } , \\beta _ { l _ { k } } , \\eta _ { l _ { k } } ) } & { = } \\end{array}$ $\\begin{array} { r } { \\operatorname* { l i m } _ { k \\to \\infty } S ( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } ) = S ^ { \\star } } \\end{array}$ . ",
+        "bbox": [
+            68,
+            502,
+            933,
+            567
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Since each monotone sequence of real numbers converges in the extended real number system $\\bar { \\mathbb { R } }$ , define ",
+        "bbox": [
+            90,
+            567,
+            860,
+            583
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\alpha^ {\\star} := \\lim  _ {k \\rightarrow \\infty} \\alpha_ {k}, \\quad \\beta^ {\\star} := \\lim  _ {k \\rightarrow \\infty} \\beta_ {k}, \\quad \\eta^ {\\star} := \\lim  _ {k \\rightarrow \\infty} \\eta_ {k}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            110,
+            591,
+            529,
+            615
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Note that $0 \\leq \\alpha ^ { \\star }$ , $\\beta ^ { \\star }$ , $\\eta ^ { \\star } \\leq \\infty$ , because $( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } ) \\in \\mathcal { P }$ . ",
+        "bbox": [
+            68,
+            623,
+            496,
+            638
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "To complete the proof it is enough to show that $( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) \\in \\mathcal { P }$ , i.e. that $0 \\leq \\alpha ^ { \\star } < \\infty$ and $\\beta ^ { \\star } , \\eta ^ { \\star } \\in ( 0 , \\infty )$ . The continuity of the functional $s$ will then imply that $\\begin{array} { r } { S ^ { \\star } = \\operatorname* { l i m } _ { k \\to \\infty } S ( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } ) = S ( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) } \\end{array}$ . ",
+        "bbox": [
+            68,
+            638,
+            931,
+            671
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "It remains to show that $( \\alpha ^ { \\star } , \\beta ^ { \\star } , \\eta ^ { \\star } ) \\in \\mathcal { P }$ . The proof will be done in five steps. In step 1 we will show that $\\alpha ^ { \\star } \\leq t _ { n - 2 }$ . In step 2 we will show that $\\eta ^ { \\star } \\neq \\infty$ . The proof that $\\eta ^ { \\star } \\neq 0$ will be done in step 3. In step 4 we prove that $\\beta ^ { \\star } \\neq \\infty$ . Finally, in step 5 we show that $\\beta ^ { \\star } \\neq 0$ . ",
+        "bbox": [
+            68,
+            672,
+            933,
+            721
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Step 1. If $\\alpha ^ { \\star } > t _ { n - 2 }$ , from (14) it follows that $\\begin{array} { r } { S ^ { \\star } \\geq \\sum _ { i = 1 } ^ { n - 2 } w _ { i } y _ { i } ^ { 2 } } \\end{array}$ , which contradicts assumption (13). Thus, we have proved that $\\alpha ^ { \\star } \\leq t _ { n - 2 }$ . ",
+        "bbox": [
+            68,
+            723,
+            931,
+            757
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "By taking an appropriate subsequence of $( \\alpha _ { k } , \\beta _ { k } , \\eta _ { k } )$ , if necessary, we may assume that if $t _ { i } < \\alpha ^ { \\star }$ , then $t _ { i } < \\alpha _ { k }$ for every $k \\in \\mathbb N$ . Similarly, if $t _ { i } > \\alpha ^ { \\star }$ , we may assume that $t _ { i } > \\alpha _ { k }$ for every $k \\in \\mathbb N$ . Due to this, now it is easy to show that from (14) it follows that ",
+        "bbox": [
+            68,
+            758,
+            933,
+            805
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS ^ {\\star} \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\lim  _ {k \\rightarrow \\infty} \\left[ \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}} - y _ {i}\\right) ^ {2} \\right]. \\tag {15}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            814,
+            933,
+            867
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Step 2. Let us show that $\\eta ^ { \\star } \\neq \\infty$ . We prove this by contradiction. Suppose on the contrary that $\\eta ^ { \\star } = \\infty$ . Then only one of the following two cases can occur: (i) $\\eta ^ { \\star } = \\infty$ and $\\beta ^ { \\star } > 0$ or (ii) $\\eta ^ { \\star } = \\infty$ and $\\beta ^ { \\star } = 0$ . Now, we are going to show that functional S cannot attain its infimum in either of these two cases, which will prove that $\\eta ^ { \\star } \\neq \\infty$ . ",
+        "bbox": [
+            68,
+            873,
+            933,
+            923
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "page_number",
+        "text": "4508 ",
+        "bbox": [
+            71,
+            57,
+            104,
+            68
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            272,
+            57,
+            757,
+            71
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Case (i): $\\eta ^ { \\star } = \\infty$ and $\\beta ^ { \\star } > 0$ . Since $\\alpha ^ { \\star } \\leq t _ { n - 2 } < t _ { n }$ , in this case we would have ",
+        "bbox": [
+            84,
+            84,
+            681,
+            101
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} F (t _ {i}; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\rightarrow \\infty} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}}\\right) = 0, \\quad t _ {i} \\geq \\alpha^ {\\star}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            107,
+            593,
+            150
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "and hence from (14) it would follow that ",
+        "bbox": [
+            62,
+            157,
+            367,
+            173
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS ^ {\\star} = \\lim  _ {k \\rightarrow \\infty} S (\\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\sum_ {i = 1} ^ {n} w _ {i} y _ {i} ^ {2} > \\sum_ {i = 1} ^ {n - 2} w _ {i} y _ {i} ^ {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            181,
+            474,
+            223
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "which contradicts assumption (13). ",
+        "bbox": [
+            62,
+            231,
+            325,
+            247
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Case (ii): $\\eta ^ { \\star } = \\infty$ and $\\beta ^ { \\star } = 0$ . Since $\\eta _ { k } \\to \\infty$ , for every sufficiently great $k \\in \\mathbb N$ , $0 < ( 1 / \\eta _ { k } ) ^ { \\beta _ { k } } < 1 .$ . This means that the sequence $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }$ is bounded. We may assume that it is convergent. Let $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }  L \\in [ 0 , 1 ]$ . Since in this case we have ",
+        "bbox": [
+            60,
+            247,
+            926,
+            293
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} F (t _ {i}; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\rightarrow \\infty} \\left(1 - \\mathrm {e} ^ {- (\\frac {1}{\\eta_ {k}}) ^ {\\beta_ {k}} (t _ {i} - \\alpha_ {k}) ^ {\\beta_ {k}}}\\right) = 1 - \\mathrm {e} ^ {- L}, \\quad t _ {i} > \\alpha^ {\\star}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            301,
+            681,
+            335
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "and since the quadratic function $\\begin{array} { r } { x \\mapsto \\sum _ { t _ { i } > \\alpha ^ { \\star } } w _ { i } ( x - y _ { i } ) ^ { 2 } } \\end{array}$ attains its minimum $\\begin{array} { r } { \\sum _ { t _ { i } > \\alpha ^ { \\star } } w _ { i } ( \\bar { y } _ { \\alpha ^ { \\star } } - y _ { i } ) ^ { 2 } } \\end{array}$ at point $\\begin{array} { r } { \\bar { y } _ { \\alpha ^ { \\star } } = \\sum _ { t _ { i } > \\alpha ^ { \\star } } w _ { i } y _ { i } / \\sum _ { t _ { i } > \\alpha ^ { \\star } } w _ { i } } \\end{array}$ , by using (15) we obtain ",
+        "bbox": [
+            62,
+            343,
+            926,
+            380
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} S ^ {\\star} \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} \\left(1 - e ^ {- L} - y _ {i}\\right) ^ {2} \\\\ \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} (\\bar {y} _ {\\alpha^ {\\star}} - y _ {i}) ^ {2} = \\Sigma_ {\\alpha^ {\\star}}. \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            386,
+            452,
+            463
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Due to the fact that $\\alpha ^ { \\star } \\leq t _ { n - 2 } < t _ { n - 1 }$ , according to Lemma 2(ii) there exists a point in $\\mathcal { P }$ at which functional $s$ attains a value smaller than $\\Sigma _ { \\alpha ^ { \\star } }$ . This means that in this case functional $s$ cannot attain its infimum. ",
+        "bbox": [
+            60,
+            471,
+            926,
+            502
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Step 3. Now, we are going to show that $\\eta ^ { \\star } \\neq 0$ . We prove this by contradiction. Suppose $\\eta ^ { \\star } = 0$ . Then, without loss of generality, we may assume that $1 / \\eta _ { k } > 1$ for all $k \\in \\mathbb N$ . Since in that case $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } } \\ge 1$ , only one of the following can occur: (i) $\\eta ^ { \\star } = 0$ and $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }  \\infty$ or (ii) $\\eta ^ { \\star } = 0$ and $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }  L \\in [ 1 , \\infty )$ . Let us show that functional $s$ cannot attain its infimum in either of these two cases, which will prove that $\\eta ^ { \\star } \\neq 0$ . ",
+        "bbox": [
+            60,
+            508,
+            926,
+            572
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Case (i): $\\eta ^ { \\star } = 0$ and $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }  \\infty$ . In this case we have ",
+        "bbox": [
+            84,
+            572,
+            516,
+            588
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}} = \\infty , \\quad t _ {i} > \\alpha^ {\\star}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            595,
+            373,
+            634
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "and therefore ",
+        "bbox": [
+            62,
+            641,
+            165,
+            654
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} F (t _ {i}; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\rightarrow \\infty} \\left(1 - e ^ {- \\left(\\frac {t - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}}\\right) = 1, \\quad t _ {i} > \\alpha^ {\\star}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            661,
+            591,
+            704
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Indeed, if $t _ { i } > \\alpha ^ { \\star }$ and $\\beta ^ { \\star } = 0$ , then ",
+        "bbox": [
+            62,
+            711,
+            327,
+            727
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}} = \\lim  _ {k \\rightarrow \\infty} \\left(\\frac {1}{\\eta_ {k}}\\right) ^ {\\beta_ {k}} (t _ {i} - \\alpha_ {k}) ^ {\\beta_ {k}} = \\infty \\cdot 1 = \\infty .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            734,
+            571,
+            772
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "If $t _ { i } > \\alpha ^ { \\star }$ and $\\beta ^ { \\star } > 0$ , then obviously ",
+        "bbox": [
+            62,
+            780,
+            345,
+            796
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim _ {k \\to \\infty} \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}} = \\infty .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            803,
+            297,
+            842
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Case (ii): $\\eta ^ { \\star } = 0$ and $( 1 / \\eta _ { k } ) ^ { \\beta _ { k } }  L \\in [ 1 , \\infty )$ . In this case, sequence $( \\beta _ { k } )$ must converge to 0, because by assumption $\\eta _ { k }  0$ . Therefore, ",
+        "bbox": [
+            60,
+            850,
+            926,
+            882
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\rightarrow \\infty} F (t _ {i}; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\rightarrow \\infty} \\left(1 - \\mathrm {e} ^ {- (\\frac {1}{\\eta_ {k}}) ^ {\\beta_ {k}} (t _ {i} - \\alpha_ {k}) ^ {\\beta_ {k}}}\\right) = 1 - \\mathrm {e} ^ {- L}, \\quad t _ {i} > \\alpha^ {\\star}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            890,
+            683,
+            925
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            235,
+            57,
+            722,
+            71
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "page_number",
+        "text": "4509 ",
+        "bbox": [
+            891,
+            57,
+            926,
+            68
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Arguing now similarly to in case (ii) from step 2, in both cases we obtain ",
+        "bbox": [
+            68,
+            84,
+            608,
+            101
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS ^ {\\star} \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} (\\bar {y} _ {\\alpha^ {\\star}} - y _ {i}) ^ {2} = \\Sigma_ {\\alpha^ {\\star}}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            103,
+            459,
+            138
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "As we have already shown that there exists a point in $\\mathcal { P }$ at which functional $s$ attains a valuer smaller than $\\Sigma _ { \\alpha ^ { \\star } }$ , this means that in this way $( \\eta ^ { \\star } = 0$ ) functional $s$ cannot attain its infimum. ",
+        "bbox": [
+            68,
+            144,
+            933,
+            175
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "So far, we have shown that $0 \\leq \\alpha ^ { \\star } \\leq t _ { n - 2 }$ and $0 < \\eta ^ { \\star } < \\infty$ . By using this, in the next two steps we will show that $0 < \\beta ^ { \\star } < \\infty$ . ",
+        "bbox": [
+            68,
+            176,
+            933,
+            208
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Step 4. Let us show that $\\beta ^ { \\star } \\neq \\infty$ . To see this, suppose on the contrary that $\\beta ^ { \\star } = \\infty$ . Then, ",
+        "bbox": [
+            68,
+            210,
+            740,
+            227
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lim  _ {k \\to \\infty} F (t; \\alpha_ {k}, \\beta_ {k}, \\eta_ {k}) = \\lim  _ {k \\to \\infty} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}}\\right) = \\left\\{ \\begin{array}{l l} 0, & \\text {i f} \\alpha^ {\\star} \\leq t <   \\alpha^ {\\star} + \\eta^ {\\star} \\\\ 1, & \\text {i f} t > \\alpha^ {\\star} + \\eta^ {\\star} \\end{array} \\right.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            110,
+            231,
+            691,
+            276
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "so that from (15) it follows that ",
+        "bbox": [
+            68,
+            280,
+            306,
+            293
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} S ^ {\\star} \\geq \\lim  _ {k \\rightarrow \\infty} \\left[ \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {\\alpha^ {\\star} <   t _ {i} <   \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}} - y _ {i}\\right) ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}} - y _ {i}\\right) ^ {2} \\right] \\\\ = \\sum_ {t _ {i} <   \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} (1 - y _ {i}) ^ {2}. \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            300,
+            913,
+            388
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Arguing now like in case (ii) from step 2, it can be shown that ",
+        "bbox": [
+            69,
+            394,
+            529,
+            409
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS ^ {\\star} \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star} + \\eta^ {\\star}} w _ {i} (y _ {i} - \\bar {y} _ {\\alpha^ {\\star} + \\eta^ {\\star}}) ^ {2} = \\Sigma_ {\\alpha^ {\\star} + \\eta^ {\\star}},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            413,
+            556,
+            448
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "where $\\begin{array} { r } { \\bar { y } _ { \\alpha ^ { \\star } + \\eta ^ { \\star } } = \\sum _ { t _ { i } > \\alpha ^ { \\star } + \\eta ^ { \\star } } w _ { i } y _ { i } / \\sum _ { t _ { i } > \\alpha ^ { \\star } + \\eta ^ { \\star } } w _ { i } . } \\end{array}$ . Due to assumption (13), $\\alpha ^ { \\star } + \\eta ^ { \\star } \\ne t _ { n - 1 }$ . Hence, according to i Lemma 2(ii), there exists a point in $\\mathcal { P }$ i at which functional $s$ attains a value smaller than $\\Sigma _ { \\alpha ^ { \\star } + \\eta ^ { \\star } }$ . In this way $\\beta ^ { \\star } = \\infty$ ) functional S cannot attain its infimum. Thus, we have proved that $\\beta ^ { \\star } < \\infty$ . ",
+        "bbox": [
+            68,
+            454,
+            933,
+            502
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Step 5. It remains to be shown that $\\beta ^ { \\star } \\neq 0$ . If $\\beta _ { k } \\to 0$ , then by using (15) we would obtain ",
+        "bbox": [
+            68,
+            505,
+            740,
+            521
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} S ^ {\\star} \\geq \\lim  _ {k \\rightarrow \\infty} \\left[ \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} \\left(1 - \\mathrm {e} ^ {- \\left(\\frac {t _ {i} - \\alpha_ {k}}{\\eta_ {k}}\\right) ^ {\\beta_ {k}}} - y _ {i}\\right) ^ {2} \\right] \\\\ = \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} \\left(1 - e ^ {- 1} - y _ {i}\\right) ^ {2} \\\\ \\geq \\sum_ {t _ {i} <   \\alpha^ {\\star}} w _ {i} y _ {i} ^ {2} + \\sum_ {t _ {i} > \\alpha^ {\\star}} w _ {i} (y _ {i} - \\bar {y} _ {\\alpha^ {\\star}}) ^ {2} = \\Sigma_ {\\alpha^ {\\star}}. \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            526,
+            571,
+            656
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "According to Lemma 2(ii), in this way functional $s$ cannot attain its infimum. Thus, we have proved that $\\beta ^ { \\star } > 0$ and completed the proof. \u0003 ",
+        "bbox": [
+            68,
+            661,
+            933,
+            694
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Remark 3. Given $1 \\leq p < \\infty$ , let ",
+        "bbox": [
+            69,
+            706,
+            330,
+            722
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nS _ {p} (\\alpha , \\beta , \\eta) = \\sum_ {i = 1} ^ {n} w _ {i} | F (t _ {i}; \\alpha , \\beta , \\eta) - y _ {i} | ^ {p}.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            113,
+            727,
+            441,
+            766
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Arguing like in the proofs of Lemma 2 and Theorem 1, it can be easily shown that there exists a point $( \\alpha _ { p } ^ { \\star } , \\beta _ { p } ^ { \\star } , \\eta _ { p } ^ { \\star } ) \\in \\mathcal { P }$ such that $\\begin{array} { r } { S _ { p } ( \\alpha _ { p } ^ { \\star } , \\beta _ { p } ^ { \\star } , \\eta _ { p } ^ { \\star } ) = \\operatorname* { i n f } _ { ( \\alpha , \\beta , \\eta ) \\in \\mathcal { P } } S _ { p } ( \\alpha , \\beta , \\eta ) } \\end{array}$ . ",
+        "bbox": [
+            68,
+            774,
+            933,
+            809
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Acknowledgment ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            822,
+            211,
+            836
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "We would like to thank the referees for useful comments, which led to us improving the paper significantly. ",
+        "bbox": [
+            90,
+            850,
+            880,
+            866
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            69,
+            878,
+            161,
+            893
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Banks, R.B., 1994. Growth and Diffusion Phenomena: Mathematical Frameworks and Applications. Springer-Verlag, Berlin. ",
+        "bbox": [
+            68,
+            905,
+            806,
+            919
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "page_number",
+        "text": "4510 ",
+        "bbox": [
+            71,
+            57,
+            104,
+            68
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            273,
+            57,
+            757,
+            71
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "Bates, D.M., Watts, D.G., 1988. Nonlinear Regression Analysis and its Applications. Wiley, New York. ",
+            "Bjorck, ¨ A., 1996. Numerical Methods for Least Squares Problems. SIAM, Philadelphia. ˚ ",
+            "Burridge, J., 1981. A note on maximum likelihood estimation for regression models using grouped data. J. R. Stat. Soc. Ser. B 43, 41–45. ",
+            "Cheng, R.C.H., Iles, T.C., 1990. Embedded models in three-parameter distributions and their estimation. J. R. Stat. Soc. Ser. B 52, 135–149. ",
+            "Demidenko, E.Z., 2006. Criteria for global minimum of sum of squares in nonlinear regression. Comput. Statis. Data Anal. 51, 1739–1753. ",
+            "Demidenko, E.Z., 2000. Is this the least squares estimate? Biometrika 87, 437–452. ",
+            "Dennis, J.E., Schnabel, R.B., 1996. Numerical Methods for Unconstrained Optimization and Nonlinear Equations. SIAM, Philadelphia. ",
+            "Gill, P.E., Murray, W., Wright, M.H., 1981. Practical Optimization. Academic Press, London. ",
+            "Hadeler, K.P., Jukic, D., Sabo, K., 2007. Least squares problems for Michaelis Menten kinetics. Math. Meth. Appl. Sci. 30, 1231–1241.´ ",
+            "Jukic, D., Kralik, G., Scitovski, R., 2004. Least squares fitting Gompertz curve. J. Comput. Appl. Math. 169, 359–375.´ ",
+            "Jukic, D., Scitovski, R., Sp ´ ath, H., 1999. Partial linearization of one class of the nonlinear total least squares problem by using the inverse model ¨ function. Computing 62, 163–178. ",
+            "Lawless, J.F., 1982. Statistical Models and Methods for Lifetime Data. Wiley, New York. ",
+            "Murthy, D.N.P., Xie, M., Jiang, R., 2004. Weibull Models. Wiley, New York. ",
+            "Nelson, W., 1982. Applied Life Data Analysis. Wiley, New York. ",
+            "Pratt, J.W., 1981. Concavity of the log likelihood. J. Amer. Statist. Assoc. 76, 103–106. ",
+            "Ross, G.J.S., 1990. Nonlinear Estimation. Springer, New York. ",
+            "Seber, G.A.F., Wild, C.J., 1989. Nonlinear Regression. Wiley, New York. ",
+            "Smith, R.L., Naylor, J.C., 1987. A comparison of maximum likelihood and Bayesian estimators for the three-parameter Weibull distribution. Biometrika 73, 67–90. ",
+            "Weibull, W., 1939. A statistical theory of the strength of material. Ingen. Vetensk. Acad. Handl. 151, 1–45. ",
+            "Weibull, W., 1951. A statistical distribution function of wide applicability. J. Appl. Mech. 18, 293–296. "
+        ],
+        "bbox": [
+            64,
+            86,
+            924,
+            382
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "header",
+        "text": "D. Jukic et al. / Computational Statistics and Data Analysis 52 (2008) 4502–4511 ´ ",
+        "bbox": [
+            237,
+            57,
+            722,
+            70
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "page_number",
+        "text": "4511 ",
+        "bbox": [
+            891,
+            57,
+            922,
+            68
+        ],
+        "page_idx": 9
+    }
+]

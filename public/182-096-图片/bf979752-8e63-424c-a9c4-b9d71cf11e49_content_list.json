@@ -1,0 +1,2696 @@
+[
+    {
+        "type": "text",
+        "text": "Comparison of Estimators of the Weibull Distribution ",
+        "text_level": 1,
+        "bbox": [
+            218,
+            150,
+            775,
+            197
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "MUHAMMAD AKRAM1 AND AZIZ HAYAT2 ",
+        "bbox": [
+            208,
+            225,
+            672,
+            241
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1Department of Epidemiology and Preventive Medicine, Monash University, Melbourne, Australia ",
+        "bbox": [
+            206,
+            252,
+            815,
+            284
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "2School of Accounting, Economics, and Finance, Deakin University, Waurn Ponds, Victoria, Australia ",
+        "bbox": [
+            206,
+            284,
+            813,
+            318
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "We compare the small sample performance (in terms of bias and root mean squared error) of the L-moment estimator of a three-parameter Weibull distribution with maximum likelihood estimation (MLE), moment estimation (MoE), least-square estimation (LSE), the modified MLE (MMLE), the modified MoE (MMoE), and the maximum product of spacing (MPS). Overall, the LM method has a tendency to perform well as it is almost always close to the best method of estimation. The ML performance is remarkable even at a small sample size of $n = 1 0$ when the shape parameter $\\beta$ lies in the [1.5, 4] range. The MPS estimator dominates others when $0 . 5 \\leq \\beta < 1 . 5$ . For large $\\beta \\geq 6$ , MMLE outweighs others in samples of size $n \\geq 5 0$ , whereas LM is preferred in samples of size $n \\leq 2 0$ . ",
+        "bbox": [
+            228,
+            345,
+            859,
+            484
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "AMS Subject Classification: 62F10; 62F86. ",
+        "bbox": [
+            230,
+            497,
+            551,
+            512
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Keywords: Weibull distribution; Order statistics; L-moment estimation; Maximum likelihood estimation; Methods of moments; Maximum product of spacing. ",
+        "bbox": [
+            230,
+            525,
+            857,
+            554
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            584,
+            313,
+            602
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Maximum likelihood estimation (MLE) is generally a starting point when it comes to estimating the three-parameter Weibull distribution. However, there are other estimation methods developed over time for the Weibull, which are based on different methodologies, such as moment estimation (MoE), the L-moment (LM) method, probability weighted moment estimators (PWM), and least-squares estimation (LSE). Hosking (1990) proposed a class of moments called L-moments (LM), which are defined for the Weibull by Goda et al. (2010) and applied by Lana et al. (2008). Following Jing et al. (1989), Bartoluccia et al. (1999) derived the PWM of the three-parameter Weibull distribution. ",
+        "bbox": [
+            134,
+            611,
+            859,
+            743
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The literature on Weibull estimation further developed in two ways: One is to improve upon the MLE and the other is to supply a solution for estimation when MLE fails. The methods of estimation that attempt to improve estimation over MLE are the modified MLE (MMLE) and modified MoE (MMoE) of Cohen and Whitten (1982) and perhaps ",
+        "bbox": [
+            134,
+            744,
+            859,
+            812
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Received 22 August 2012; accepted 22 August 2013. ",
+        "bbox": [
+            170,
+            831,
+            555,
+            845
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Address correspondence to: Aziz Hayat, School of Accounting, Economics, 2nd Finance, Deakin University, Waurn-Ponds, Victoria 3125, Australia. Email: Aziz.Hayat@deakin.edu.au ",
+        "bbox": [
+            134,
+            845,
+            855,
+            875
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Color versions of one or more of the figures in the article can be found online at www. tandfonline.com/ujsp. ",
+        "bbox": [
+            134,
+            875,
+            855,
+            904
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Journal of Statistical Theory and Practice, 8:238–259, 2014 ",
+        "bbox": [
+            136,
+            56,
+            523,
+            70
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "Copyright $^ ©$ Grace Scientific Publishing, LLC ",
+        "bbox": [
+            138,
+            72,
+            436,
+            83
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "ISSN: 1559-8608 print / 1559-8616 online ",
+        "bbox": [
+            138,
+            84,
+            410,
+            95
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "DOI: 10.1080/15598608.2014.847771 ",
+        "bbox": [
+            138,
+            95,
+            382,
+            106
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "header",
+        "text": "GSP ",
+        "bbox": [
+            763,
+            59,
+            855,
+            118
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "page_number",
+        "text": "238 ",
+        "bbox": [
+            484,
+            920,
+            519,
+            934
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "the method due to McCool (1998). The estimation methods, which provide solution when MLE fails to converge, are the Bayesian procedure of Smith and Naylor (1987) and the maximum product of spacing (MPS) estimators of Cheng and Amin (1983). ",
+        "bbox": [
+            134,
+            91,
+            857,
+            141
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Now we have a stream of estimation methods available for the three-parameter Weibull distribution, methods that are well researched on the theoretical aspect of the estimation method individually. However, the small sample comparison in terms of bias and root mean squared error (RMSE) of L-moment estimator vis-à-vis other popular estimators is not documented in the literature. We attempt to fill this gap up by comparing the LM estimation method with other methods, namely, MLE, MMLE, LSE, MoE, MMoE, and the MPS. Thereby the main aim of the article becomes developing a guideline of choosing the best estimation method for the three-parameter Weilbull distribution, which we think would be of deep interest to applied statisticians. ",
+        "bbox": [
+            138,
+            141,
+            859,
+            291
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The reason for leaving out PWM is based on Bartoluccia et al. (1999), who conclude that the best use of PWM is for initializing the MLE method, because the PWM estimators are not as accurate as the ML method. Likewise, the Bayesian is a more subjective approach as it requires specifying a suitable prior distribution, which is reported to be a difficult task apart from the lack of interpretability of the estimation results. ",
+        "bbox": [
+            134,
+            291,
+            859,
+            375
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "We see L-moments having the theoretical advantages over conventional moments of (i) being able to characterize a wider range of distributions, and (ii) when estimated from a sample, being more robust to the presence of outliers in the data. Parameter estimates obtained from L-moments may be more accurate than MoE and ML and/or their variants in small samples since they have less bias and are less affected by outliers. ML estimates may be biased in small samples since the ML methodology is based on asymptotic (large sample) theory. These motivated us to compare L-moment estimators with that of others. ",
+        "bbox": [
+            134,
+            375,
+            859,
+            505
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The rest of the article is organized as follows. In the next section, we introduce the Weibull distribution. The estimation methods and procedures are covered in section 3. Using Monte Carlo simulations, the bias and RMSE in the estimation methods are analyzed and the guideline for the best estimation method is laid down in section 4. In section 5, we provide examples of choosing the best estimation method using the guidelines developed in previous section. In the last section, we summarize the work presented in this article. ",
+        "bbox": [
+            134,
+            506,
+            859,
+            625
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Weibull Distribution ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            662,
+            386,
+            681
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Weibull (1951) derived the generalization of the exponential distribution that now bears his name. Since that publication, the Weibull distribution has proved to be a successful model for many product failure mechanisms because it is a flexible distribution (given that it can, for example, take the form of either the exponential distribution or the approximate normal distribution, and can be skewed either positively or negatively), with a wide variety of possible failure rate curve shapes. However, Lloyd (1967), Ku et al. (1972), Hammitt (2004), and McCool (1998), among others, have extended the use of the Weibull distribution to other branches of statistics, such as reliability, risks, and quality control work. ",
+        "bbox": [
+            134,
+            688,
+            859,
+            820
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "A distribution with a general probability density function (pdf) of ",
+        "bbox": [
+            170,
+            822,
+            698,
+            840
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "text": "$$\nf (x) = \\frac {\\beta}{\\eta} \\left(\\frac {x - v}{\\eta}\\right) ^ {\\beta - 1} \\exp \\left(- \\left(\\frac {x - v}{\\eta}\\right) ^ {\\beta}\\right) x > v, \\beta > 0, \\eta > 0 \\tag {1}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            234,
+            859,
+            859,
+            905
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            636,
+            75
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "page_number",
+        "text": "239 ",
+        "bbox": [
+            823,
+            59,
+            857,
+            73
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "is known as a three-parameter Weibull distribution. Its cumulative distribution function $F ( x )$ and quantile function $x ( F )$ are defined as ",
+        "bbox": [
+            134,
+            91,
+            857,
+            125
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nF (x) = 1 - \\exp \\left(- \\left(\\frac {x - v}{\\eta}\\right) ^ {\\beta}\\right) \\tag {2}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            143,
+            853,
+            184
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            136,
+            202,
+            172,
+            216
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nx (F) = \\eta (- \\ln (1 - F (x))) ^ {1 / \\beta} + v, \\tag {3}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            361,
+            238,
+            853,
+            255
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "respectively. The parameters ν, β, and $\\eta$ determine the location, shape, and scale of the distribution, respectively. For example, if we set the shape parameter $\\beta = 1$ and the location parameter $\\nu = 0$ , the distribution changes its shape (say, from skewed when $\\beta = 1 . 5$ to exponential). The location for the two-parameter Weibull distribution is the origin, that is, $\\nu = 0$ . ",
+        "bbox": [
+            134,
+            275,
+            857,
+            356
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Methods of Estimation ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            386,
+            410,
+            402
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this section, we discuss the LM estimators in detail, followed by MPS estimation. The MLE method and the MoE methods and their variants due to Cohen and Whitten (1982) are discussed briefly, each followed by the procedure adopted for the estimation. ",
+        "bbox": [
+            134,
+            413,
+            857,
+            463
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.1. L-Moment (LM) ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            491,
+            355,
+            509
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "It is standard statistical practice to summarize a probability distribution or an observed data set by its moments or cumulants. Moment-based methods, although they have long been established in statistics, are not always satisfactory. It is sometimes difficult to reach a conclusion about the shape of the distribution based on its higher order moments. The alternative approach for describing the shape of a probability distribution can be based on quantiles, known as L-moments, and was introduced by Hosking (1990). Historically, it arose from modifications of the “probability weighted moments” of Greenwood et al. (1979). ",
+        "bbox": [
+            134,
+            518,
+            857,
+            650
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Let $X$ be a real-valued random variable with cumulative distribution function $F ( x )$ and quantile function $x ( F )$ , as defined in Eqs. (2) and (3), respectively, and let $X _ { 1 : n } \\leq X _ { 2 : n } \\leq$ $\\cdots \\leq X _ { n : n }$ be the order statistics of a random sample of size $n$ drawn from the distribution of $X$ . The L-moments of $X$ are then defined as the quantities ",
+        "bbox": [
+            134,
+            651,
+            857,
+            716
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {r} \\equiv r ^ {- 1} \\sum_ {k = 0} ^ {r - 1} (- 1) ^ {k} \\left( \\begin{array}{c} r - 1 \\\\ k \\end{array} \\right) E (X _ {r - k: r}), \\text {w h e r e} r = 1, 2, \\ldots .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            255,
+            734,
+            740,
+            780
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The L in “L-moments” emphasizes the fact that $\\lambda _ { r }$ is a linear function of the expected order statistics. The natural estimator of $\\lambda _ { r }$ based on an observed sample of data is a linear combination of the ordered data values, i.e., L-statistics. Following David and Nagaraja (2003), the expectation of an order statistic can be written as ",
+        "bbox": [
+            134,
+            795,
+            857,
+            863
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE \\left(X _ {j: r}\\right) = \\frac {r !}{(j - 1) ! (r - j) !} \\int x (F (x)) ^ {j - 1} (1 - F (x)) ^ {r - j} d F (x). \\tag {4}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            269,
+            881,
+            853,
+            915
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "page_number",
+        "text": "240 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The first few (population) L-moments $( \\lambda _ { 1 } , \\lambda _ { 2 } , \\ldots )$ of a distribution are defined as ",
+        "bbox": [
+            136,
+            91,
+            785,
+            108
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {1} = E (X) = \\int_ {0} ^ {1} x (F) d F,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            166,
+            122,
+            380,
+            161
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {2} = \\frac {1}{2} E \\left(X _ {2: 2} - X _ {1: 2}\\right) = \\int_ {0} ^ {1} x (F) (2 F - 1) d F, \\tag {5}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            166,
+            170,
+            855,
+            223
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {3} = \\frac {1}{3} E (X _ {3: 3} - 2 X _ {2: 3} + X _ {1: 3}) = \\int_ {0} ^ {1} x (F) (6 F ^ {2} - 6 F + 1) d F,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            166,
+            222,
+            654,
+            259
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {4} = \\frac {1}{4} E (X _ {4: 4} - 3 X _ {3: 4} + 3 X _ {2: 4} - X _ {1: 4}) = \\int_ {0} ^ {1} x (F) (2 0 F ^ {3} - 3 0 F ^ {2} + 1 2 F - 1) d F.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            166,
+            270,
+            807,
+            309
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, the L-moment ratios are defined as $\\tau _ { 3 } = \\lambda _ { 3 } / \\lambda _ { 2 }$ and $\\tau _ { 4 } = \\lambda _ { 4 } / \\lambda _ { 2 }$ , where $\\tau _ { 3 }$ and $\\tau _ { 4 }$ measure L-skewness and L-kurtosis, respectively. ",
+        "bbox": [
+            136,
+            320,
+            857,
+            352
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Of course, the L-moments just defined are for a probability distribution, while in practice they are often estimated from a finite sample. Estimation is based on a sample of size $n$ , arranged in order of ascending magnitude. Let $X _ { 1 : n } \\leq X _ { 2 : n } \\leq . ~ . ~ \\leq X _ { n : n }$ be the ordered sample, which can be characterized better by the estimator of the probability weighted moment $\\beta _ { r }$ . Following Hosking and Wallis (1997), an unbiased estimator of $\\beta _ { r }$ based on ordered samples is defined as ",
+        "bbox": [
+            134,
+            354,
+            859,
+            454
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\nb _ {r} = n ^ {- 1} \\binom {n - 1} {r} ^ {- 1} \\sum_ {j = r + 1} ^ {n} \\binom {j - 1} {r} X _ {j: n}. \\tag {6}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            327,
+            466,
+            859,
+            513
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The corresponding sample L-moments $( \\ell _ { 1 } , \\ell _ { 2 } , \\dots . )$ can then be defined from their population counterparts in Eq. (5). They are found to appear as ",
+        "bbox": [
+            136,
+            527,
+            857,
+            561
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {1} = b _ {0},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            580,
+            442,
+            597
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {2} = 2 b _ {1} - b _ {0},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            609,
+            494,
+            627
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {3} = 6 b _ {2} - 6 b _ {1} + b _ {0},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            641,
+            545,
+            658
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {4} = 2 0 b _ {3} - 3 0 b _ {2} + 1 2 b _ {1} - b _ {0},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            670,
+            628,
+            688
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "and in general ",
+        "bbox": [
+            136,
+            704,
+            257,
+            720
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {r + 1} = \\sum_ {k = 0} ^ {r} p _ {r, k} b _ {k}, \\mathrm {f o r} r = 0, 1, \\ldots , n - 1,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            327,
+            734,
+            668,
+            779
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where ",
+        "bbox": [
+            136,
+            791,
+            192,
+            806
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\np _ {r, k} = (- 1) ^ {r - k} \\left( \\begin{array}{c} r \\\\ k \\end{array} \\right) \\left( \\begin{array}{c} r + 1 \\\\ k \\end{array} \\right).\n$$",
+        "text_format": "latex",
+        "bbox": [
+            365,
+            822,
+            628,
+            859
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The first three population L-moments of the three-parameter Weibull distribution, as per Eq. (5), are found to be ",
+        "bbox": [
+            134,
+            872,
+            859,
+            905
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "page_number",
+        "text": "241 ",
+        "bbox": [
+            823,
+            59,
+            861,
+            73
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {1} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) + \\nu ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            333,
+            102,
+            529,
+            138
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {2} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) \\left(1 - \\frac {1}{2 ^ {1 / \\beta}}\\right), \\text {a n d}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            333,
+            151,
+            640,
+            188
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {3} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) \\left(1 - \\frac {3}{2 ^ {1 / \\beta}} + \\frac {2}{3 ^ {1 / \\beta}}\\right),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            333,
+            200,
+            660,
+            237
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\Gamma$ stands for gamma functions. ",
+        "bbox": [
+            136,
+            252,
+            438,
+            268
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Analogously to the usual method of moments, the L-moment method also consists of equating the first few population L-moments $\\left( \\lambda _ { r } \\right)$ to the corresponding sample L-moments $( \\ell _ { r } )$ , thus obtaining as many equations as are needed to solve for the unknown population parameters, that is, ",
+        "bbox": [
+            134,
+            270,
+            859,
+            334
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\lambda_ {r} = \\ell_ {r}, \\quad r = 1, 2, \\dots , p,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            386,
+            358,
+            605,
+            375
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "for the $p$ parameters. ",
+        "bbox": [
+            136,
+            394,
+            305,
+            409
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Since we aim to estimate the three-parameter Weibull distribution, we require three equations for this purpose. As was mentioned earlier, the equations can be obtained by equating the first three population L-moments to the corresponding first three sample Lmoments, that is, $\\lambda _ { 1 } = \\ell _ { 1 }$ , $\\lambda _ { 2 } = \\ell _ { 2 }$ , and $\\lambda _ { 3 } = \\ell _ { 3 }$ . Substituting the values of the population L-moments $\\lambda _ { 1 } , \\lambda _ { 2 }$ , and $\\lambda _ { 3 }$ for the sample L-moments, we get ",
+        "bbox": [
+            134,
+            409,
+            859,
+            491
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {1} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) + v \\tag {7}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            398,
+            509,
+            855,
+            545
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {2} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) \\left(1 - \\frac {1}{2 ^ {1 / \\beta}}\\right) \\tag {8}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            365,
+            552,
+            855,
+            590
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\ell_ {3} = \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) \\left(1 - \\frac {3}{2 ^ {1 / \\beta}} + \\frac {2}{3 ^ {1 / \\beta}}\\right). \\tag {9}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            329,
+            595,
+            857,
+            633
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Solving these equations does not yield an explicit solution for the estimates of parameters. Following Goda et al. (2010), we used the L-skewness measure to estimate $\\beta$ : ",
+        "bbox": [
+            136,
+            663,
+            855,
+            697
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\tau_ {3} = \\frac {\\lambda_ {3}}{\\lambda_ {2}} = \\frac {1 - \\frac {3}{2 ^ {1 / \\beta}} + \\frac {2}{3 ^ {1 / \\beta}}}{1 - \\frac {1}{2 ^ {1 / \\beta}}}. \\tag {10}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            384,
+            713,
+            855,
+            756
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Goda et al. (2010) estimates the parameters of Weibull distribution by fitting a polynomial functional relation of $\\tau _ { 3 }$ with $\\beta$ . The fitting error in estimating the $\\beta$ was set to $0 . 3 \\%$ for $0 . 6 < \\beta < 3 . 0$ . The estimate of $\\beta$ using Eq. (10) is very similar to Goda’s estimate of $\\beta$ . The L-moment estimate of the $\\beta$ is actually the iterative solution of the preceding nonlinear equation, where $\\tau _ { 3 }$ is replaced by its sample counterpart, $\\hat { \\tau } _ { 3 } = \\hat { \\ell } _ { 3 } / \\hat { \\ell } _ { 2 }$ . Also note that the Weibull distribution can be rewritten as a generalized extreme-value (GEV) distribution, and approximations for the Weibull $\\beta$ can be obtained from those for expressions for the GEV shape parameter given by Hosking et al. (1985) and Donaldson (1996). ",
+        "bbox": [
+            134,
+            772,
+            859,
+            905
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "page_number",
+        "text": "242 ",
+        "bbox": [
+            138,
+            58,
+            170,
+            70
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            58,
+            609,
+            73
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "After estimating $\\beta$ (say, $\\hat { \\beta }$ ) iteratively, the estimators of $\\eta$ and $\\nu$ can easily be obtained by substituting the value of $\\hat { \\beta }$ in Eqs. (7) and (8), respectively, to give: ",
+        "bbox": [
+            134,
+            90,
+            861,
+            126
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\eta} = \\frac {\\ell_ {2}}{\\Gamma \\left(\\frac {1}{\\hat {\\beta}} + 1\\right) \\left(1 - \\frac {1}{2 ^ {1 / \\hat {\\beta}}}\\right)} \\tag {11}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            384,
+            140,
+            861,
+            187
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            136,
+            186,
+            172,
+            201
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\hat {\\nu} = \\ell_ {1} - \\hat {\\eta} \\Gamma \\left(\\frac {1}{\\hat {\\beta}} + 1\\right). \\tag {12}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            396,
+            206,
+            859,
+            245
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "It is of interest to compare the method of L-moments with the asymptotically optimal method of maximum likelihood. The method of L-moments is usually computationally more tractable than the method of maximum likelihood, and requires less frequent recourse to iterative procedures. Following Hosking (1990), the asymptotic standard errors of Lmoment estimators usually show the method of L-moments to be reasonably efficient, compared to maximum likelihood estimators. ",
+        "bbox": [
+            134,
+            259,
+            861,
+            362
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "3.2. Maximum Likelihood Estimators (MLE) ",
+        "text_level": 1,
+        "bbox": [
+            134,
+            384,
+            593,
+            405
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The ML estimators are inconsistent and inefficient when $\\beta \\leq 1$ . The ML method gives estimators that are asymptotically normal and efficient when $\\beta \\leq 2$ , and is usually preferred for estimating all three of the parameters when $\\beta > 1$ (see, e.g., Cheng and Amin 1983; Johnson and Haskell 1983; Smith 1985). Using the density of $x _ { \\ast }$ , as defined in Eq. (1), the log-likelihood function for the Weibull distributed independent data observations $x _ { 1 } , x _ { 2 } , \\ldots , x _ { n }$ can be written as ",
+        "bbox": [
+            134,
+            412,
+            861,
+            512
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\begin{array}{l} L \\left(x _ {1}, x _ {2}, \\dots , x _ {n}; v, \\beta , \\eta\\right) = n \\left(\\log \\beta - \\beta \\log \\eta\\right) + (\\beta - 1) \\\\ \\sum_ {i = 1} ^ {n} \\log (x _ {i} - v) - \\frac {1}{\\eta^ {\\beta}} \\sum_ {i = 1} ^ {n} (x _ {i} - v) ^ {\\beta}, \\tag {13} \\\\ \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            240,
+            527,
+            855,
+            604
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The function in Eq. (13) can be maximized with respect to the parameters $\\nu , \\beta$ , and $\\eta$ , using a routine optimization criteria such as, for example, the free quasi-Newton algorithm. However, the convergence issues with the MLE (where the function in Eq. (13) is flat at the optimal parameter values) are well documented; see, for instance, Zanakis (1979), for details. In certain cases, the ML method may not have a solution; that is, the likelihood function in Eq. (13) may have no stationary point for estimates to converge to. In other cases, the estimates of the likelihood may converge to a saddle point, rather than the maximum of the likelihood function (for details see Rockette et al. 1974). ",
+        "bbox": [
+            134,
+            618,
+            861,
+            751
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The likelihood function in Eq. (13) has no local maximum when $\\beta < 1$ , that is, from Eq. (13) we have ",
+        "bbox": [
+            134,
+            751,
+            859,
+            787
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {\\partial L}{\\partial \\nu} = (1 - \\beta) \\sum_ {i} \\frac {1}{x _ {i} - \\nu} + \\beta \\eta^ {- \\beta} \\sum_ {i} (x _ {i} - \\nu) ^ {\\beta - 1} \\tag {14}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            299,
+            800,
+            859,
+            841
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "which contains only positive terms when $\\beta < 1$ and $\\nu < m i n \\left( x _ { i } \\right)$ . Thus, there is no local maximum of the likelihood function in the region $\\beta < 1$ , and it is not possible to obtain an MLE that has $\\beta < 1$ . ",
+        "bbox": [
+            134,
+            855,
+            861,
+            906
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            58,
+            638,
+            75
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "page_number",
+        "text": "243 ",
+        "bbox": [
+            823,
+            59,
+            861,
+            73
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "3.3. Maximum Product of Spacing (MPS) ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            88,
+            561,
+            109
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The MPS estimation technique is based on maximizing the geometric mean of identically distributed spacing of the sample $y _ { i }$ , where $\\begin{array} { r } { y _ { i } = F ( x _ { i } ) = 1 - \\exp \\left( - \\left( \\frac { x _ { i } - \\nu } { \\eta } \\right) ^ { \\beta } \\right) } \\end{array}$ for Weibull distributed ordered sample $x _ { 1 } < x _ { 2 } < . ~ . ~ . < x _ { n }$ . The method is documented in Cheng and Amin (1983). The spacings are defined as: ",
+        "bbox": [
+            136,
+            116,
+            859,
+            198
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\nD _ {i} = y _ {i} - y _ {i - 1} = \\int_ {x _ {i - 1}} ^ {x _ {i}} f (x, \\Theta) d x \\quad (i = 1, 2, \\dots , n + 1)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            273,
+            213,
+            720,
+            251
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "where $x _ { 0 } = F ^ { - 1 } ( 0 )$ , $x _ { n + 1 } = F ^ { - 1 } ( 1 )$ , and the $\\sum D _ { i } = 1$ . The $x _ { 0 }$ and $x _ { n + 1 }$ can depend on the parameters of the distribution $\\Theta$ , which includes β, η, and $\\nu$ . The $x _ { 0 }$ and $x _ { n + 1 }$ are the endpoints of the distribution; in fact they can be any values such that $F ( x _ { 0 } ) = 0$ and $F ( x _ { n + 1 } ) = 1$ , so they could be defined as $x _ { 0 } = - \\infty$ and $x _ { n + 1 } = \\infty$ . The MPS method is to choose the parameter values to maximize the geometric mean of the spacings ",
+        "bbox": [
+            136,
+            268,
+            859,
+            352
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\nG = \\left\\{\\prod_ {i = 1} ^ {n + 1} D _ {i} \\right\\} ^ {1 / (n + 1)} \\tag {15}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            410,
+            366,
+            855,
+            419
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "or equivalently, the sum of the logarithms of the spacing; we estimated the Weibull parameters by maximizing the logarithm of the preceding equation. ",
+        "bbox": [
+            136,
+            434,
+            857,
+            469
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "3.4. Modified Maximum Likelihood Estimators (MMLE) ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            495,
+            706,
+            515
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Cohen and Whitten (1982) document the modified maximum likelihood estimators, which aim to produce satisfactory estimates of Wiebull’s parameters when MLE fails to do so. These are based on the modified log-likelihood function and the modified moments conditions and hence they referred to the new estimators as the modified estimators. We discuss their various modified estimators briefly here. ",
+        "bbox": [
+            136,
+            522,
+            859,
+            606
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "3.4.1. MMLE1. In this case, the log-likelihood function in Eq. (13) is maximized with respect to the parameters $\\nu , \\beta$ , and $\\eta$ by imposing the constraint ",
+        "bbox": [
+            136,
+            625,
+            857,
+            659
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE [ F (x _ {r}) ] = F (x _ {r}),\n$$",
+        "text_format": "latex",
+        "bbox": [
+            422,
+            680,
+            571,
+            698
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "where $E ( . )$ is the usual expectation, $x _ { r }$ is the $r ^ { \\mathrm { t h } }$ order statistic in a random sample of size $n$ , and $F ( x _ { r } )$ is the associated value of the cumulative distribution. Since $E [ F ( x _ { r } ) ] = r / ( n + 1 )$ , the preceding equation becomes ",
+        "bbox": [
+            136,
+            715,
+            857,
+            766
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n1 - \\exp \\left(- \\left(\\frac {x _ {r} - v}{\\eta}\\right) ^ {\\beta}\\right) = r / (n + 1).\n$$",
+        "text_format": "latex",
+        "bbox": [
+            339,
+            781,
+            654,
+            827
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "As per Cohen and Whitten (1982), restricting $r = 1$ reduces the preceding equation to ",
+        "bbox": [
+            136,
+            841,
+            823,
+            859
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "text": "$$\n- \\ln \\left(\\frac {n}{n + 1}\\right) = \\left(\\frac {x _ {1} - v}{\\eta}\\right) ^ {\\beta}. \\tag {16}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            376,
+            876,
+            855,
+            916
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "page_number",
+        "text": "244 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Maximizing the log-likelihood function in Eq. (13) by imposing this constraint is the basic methodology of Cohen and Whitten’s computational procedure. ",
+        "bbox": [
+            134,
+            91,
+            861,
+            125
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "3.4.2. MMLE2. In this method, the constraint given in Eq. (16) is replaced by ",
+        "bbox": [
+            136,
+            144,
+            771,
+            162
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (x _ {1}) = x _ {1},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            448,
+            183,
+            547,
+            201
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "which becomes ",
+        "bbox": [
+            136,
+            218,
+            267,
+            234
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\nu + \\left(\\frac {\\eta}{n ^ {1 / \\beta}}\\right) \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) = x _ {1}. \\tag {17}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            373,
+            250,
+            859,
+            288
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "3.4.3. MMLE3. Likewise, the constraint given in Eq. (16) is replaced by ",
+        "bbox": [
+            136,
+            302,
+            728,
+            320
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE (x) = \\bar {x}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            458,
+            340,
+            537,
+            356
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "which thus becomes ",
+        "bbox": [
+            136,
+            375,
+            305,
+            391
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\nu + \\eta \\Gamma \\left(\\frac {1}{\\beta} + 1\\right) = \\bar {x}. \\tag {18}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            402,
+            408,
+            859,
+            447
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "3.5. Moment Estimators (MoEs) ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            470,
+            470,
+            490
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "The Weibull parameters cannot be expressed explicitly as functions of the conventional raw moments. However, the parameters can easily be derived by using central moments. The mean $( \\mu )$ and the second and third central moments $\\dot { \\mu } _ { 2 }$ and $\\mu _ { 3 }$ ) as functions of the Weibull parameters are given here. ",
+        "bbox": [
+            134,
+            497,
+            861,
+            566
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\mu = \\nu + \\eta \\Gamma_ {1} \\tag {19}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            438,
+            584,
+            859,
+            602
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\mu_ {2} = \\eta^ {2} \\left[ \\Gamma_ {2} - \\Gamma_ {1} ^ {2} \\right] \\tag {20}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            418,
+            620,
+            857,
+            641
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\mu_ {3} = \\eta^ {3} \\left[ \\Gamma_ {3} - 3 \\Gamma_ {1} \\Gamma_ {2} + 2 \\Gamma_ {1} ^ {3} \\right] \\tag {21}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            376,
+            658,
+            857,
+            680
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "where $\\begin{array} { r } { \\Gamma _ { k } = \\Gamma \\left( 1 + \\frac { k } { \\beta } \\right) } \\end{array}$ . Interestingly, the coefficient of skewness $( s k )$ , given next, is invariant to location and scale transformation of the data. As can be seen, it does not depend on the location parameter $\\nu$ or the scale parameter $\\eta$ . ",
+        "bbox": [
+            134,
+            698,
+            861,
+            755
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "equation",
+        "text": "$$\ns k = \\sqrt {\\frac {\\mu_ {3} ^ {2}}{\\mu_ {2} ^ {3}}} = \\sqrt {\\frac {\\left[ \\Gamma_ {3} - 3 \\Gamma_ {1} \\Gamma_ {2} + 2 \\Gamma_ {1} ^ {3} \\right] ^ {2}}{\\left[ \\Gamma_ {2} - \\Gamma_ {1} ^ {2} \\right] ^ {3}}} \\tag {22}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            337,
+            770,
+            857,
+            825
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "The shape parameter $\\beta$ can be estimated by finding the roots of Eq. (22) by replacing $s k$ with its sample counterpart. Once the parameter $\\beta$ is known (estimated), the other parameters can easily be estimated using Eqs. (19) and (20). Moment estimators are easy to compute but are less efficient than MLE (see Bartoluccia et al. 1999). ",
+        "bbox": [
+            134,
+            838,
+            861,
+            906
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            58,
+            638,
+            75
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "page_number",
+        "text": "245 ",
+        "bbox": [
+            823,
+            59,
+            861,
+            73
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "3.6. Modified Moments Estimators (MMoEs) ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            88,
+            591,
+            109
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "3.6.1. MMoE1. Following Cohen and Whitten (1982), Eq. (22) is replaced by ",
+        "bbox": [
+            136,
+            116,
+            771,
+            134
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE [ F (x _ {r}) ] = F (x _ {r})\n$$",
+        "text_format": "latex",
+        "bbox": [
+            426,
+            154,
+            569,
+            170
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "As in the case of MMLE1, $r$ is restricted to 1, and the preceding equation becomes ",
+        "bbox": [
+            136,
+            190,
+            795,
+            206
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n- \\ln \\left(\\frac {n}{n + 1}\\right) = \\left(\\frac {x _ {1} - v}{\\eta}\\right) ^ {\\beta} \\tag {23}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            380,
+            223,
+            855,
+            263
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Solving Eqs. (19), (20), and (23), we obtain ",
+        "bbox": [
+            136,
+            277,
+            488,
+            295
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {\\mu_ {2}}{(\\mu - x _ {1}) ^ {2}} = \\frac {\\Gamma_ {2} - \\Gamma_ {1} ^ {2}}{\\left[ \\Gamma_ {1} - (- l n (n / (n + 1))) ^ {1 / \\beta} \\right] ^ {2}}, \\tag {24}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            323,
+            312,
+            855,
+            356
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "The $\\beta$ can be estimated by solving Eq. (24). Once the parameter $\\beta$ is estimated, the other parameters follow from Eqs. (19) and (20). ",
+        "bbox": [
+            136,
+            370,
+            857,
+            405
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "3.6.2. MMoE2. In this case, Eq. (22) is replaced by ",
+        "bbox": [
+            136,
+            425,
+            563,
+            441
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nE \\left[ x _ {1} \\right] = x _ {1},\n$$",
+        "text_format": "latex",
+        "bbox": [
+            446,
+            463,
+            547,
+            481
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "which reduces to ",
+        "bbox": [
+            136,
+            500,
+            277,
+            515
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\nu + \\frac {\\eta \\Gamma_ {1}}{n ^ {1 / \\beta}} = x _ {1}. \\tag {25}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            432,
+            531,
+            855,
+            566
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Solving Eqs. (19), (20), and (25), we obtain ",
+        "bbox": [
+            136,
+            581,
+            488,
+            598
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {\\mu_ {2}}{(\\mu - x _ {1}) ^ {2}} = \\frac {\\Gamma_ {2} - \\Gamma_ {1} ^ {2}}{\\left[ \\Gamma_ {1} \\left(1 - n ^ {- 1 / \\beta}\\right) \\right] ^ {2}}. \\tag {26}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            613,
+            855,
+            656
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Equation (26) can be solved for $\\beta$ by replacing $\\mu$ and $\\mu _ { 2 }$ with their sample counterparts. The other parameters, $\\nu$ and $\\eta$ , follow from Eqs. (19) and (20). ",
+        "bbox": [
+            136,
+            673,
+            855,
+            706
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "3.6.3. MMoE3. In this modification, Eq. (22) is replaced by ",
+        "bbox": [
+            136,
+            727,
+            630,
+            745
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nM e d i a n = x _ {m e}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            436,
+            766,
+            555,
+            781
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "where $x _ { m e }$ is a sample median, which reduces to ",
+        "bbox": [
+            136,
+            801,
+            523,
+            816
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\nv + \\eta (l n 2) ^ {1 / \\beta} = x _ {m e} \\tag {27}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            412,
+            837,
+            855,
+            856
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Solving Eqs. (19), (20), and (27), we obtain ",
+        "bbox": [
+            136,
+            875,
+            488,
+            891
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "page_number",
+        "text": "246 ",
+        "bbox": [
+            138,
+            59,
+            174,
+            72
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "equation",
+        "text": "$$\n\\frac {\\mu_ {2}}{(\\mu - x _ {m e}) ^ {2}} = \\frac {\\Gamma_ {2} - \\Gamma_ {1} ^ {2}}{\\left[ \\Gamma_ {1} - (l n 2) ^ {1 / \\beta} \\right] ^ {2}}. \\tag {28}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            102,
+            855,
+            141
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Equation (28) can be solved for $\\beta$ after its left-hand parameters are replaced by their sample counterparts. The remaining parameters $\\overset { \\cdot } { \\boldsymbol { \\nu } }$ and $\\eta$ ) follow from Eqs. (19) and (20). ",
+        "bbox": [
+            134,
+            155,
+            859,
+            188
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "4. Monte Carlo Simulations ",
+        "text_level": 1,
+        "bbox": [
+            134,
+            213,
+            434,
+            231
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "To establish the small sample performance of various estimators, we conducted a simulation study. We chose parameter values that were consistent with most of the applications in various fields, including quality control, engineering, actuarial sciences, and finance. The parameter values used in simulations are reported in the simulation design of Table 1. The effect of various shape parameter values on the distribution is depicted in Figure 1. We opted for eight values of the shape parameter, $\\beta = 0 . 5$ , 0.75, 1.0, 1.5, 3, 4, 6, and 9, to cover the cases where the distribution is positively skewed (for $\\beta \\leq 3$ , generally in both the engineering and finance cases, see, e.g., Corrado 1996; Corrado and Su 1996; Corrado and Su 1997), and negatively skewed for $\\beta \\geq 4$ . ",
+        "bbox": [
+            134,
+            238,
+            859,
+            388
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "We considered $\\nu = 9 0$ and kept the scale parameter $\\eta$ constant at 100, for consistency. The sample sizes $( n )$ considered are 10, 20, 50, and 100, in order to cover the small, medium, and large sample sizes encountered in real-life data. ",
+        "bbox": [
+            134,
+            388,
+            857,
+            438
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "In MLE, there is no guarantee that the location parameter, ν, will remain nonnegative (see, e.g., Green et al. 1994; Smith and Naylor 1987). Green et al. (1994) examined profile of the log-likelihood function to investigate why ML yields negative estimates of ν. Smith and Naylor (1987) imposed the constraint of $0 < \\nu \\leq X _ { 1 : n }$ in their estimation procedure. We imposed the same constraint on $\\nu$ for MLE and also for other estimation methods for comparison purposes. We used MoE estimates as starting values for the ML method, and used MLE estimates as starting values for the modified versions of the ML method. For the MPS method we used both MLE and MoE estimates as starting values; the results did not depend on the choice of starting values. ",
+        "bbox": [
+            134,
+            438,
+            861,
+            590
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "table",
+        "img_path": "images/688d0cd1f19d767090f71e8260d0a20a7e8b919c52d94b6f558c6d6831c9e4fe.jpg",
+        "table_caption": [
+            "Table 1 True parameters for simulation design "
+        ],
+        "table_footnote": [
+            "Note. For each of the preceding parameter combinations, we computed the bias and root mean squared errors (RMSE) for sample sizes of ${ \\mathrm { ~ n ~ } } = 1 0$ , 20, 50, and 100. The results are based on 5000 simulations. "
+        ],
+        "table_body": "<table><tr><td rowspan=\"2\">Application</td><td colspan=\"4\">Parameters</td></tr><tr><td>Distribution shape</td><td>β</td><td>η</td><td>ν</td></tr><tr><td>Quality control</td><td>Positively skewed</td><td>0.5</td><td>100</td><td>90</td></tr><tr><td>Quality control</td><td>Positively skewed</td><td>0.75</td><td>100</td><td>90</td></tr><tr><td>Quality control</td><td>Positively skewed</td><td>1.0</td><td>100</td><td>90</td></tr><tr><td>Quality control</td><td>Positively skewed</td><td>1.5</td><td>100</td><td>90</td></tr><tr><td>Finance</td><td>Positively skewed</td><td>3</td><td>100</td><td>90</td></tr><tr><td>Finance</td><td>Negatively skewed</td><td>4</td><td>100</td><td>90</td></tr><tr><td>Finance</td><td>Negatively skewed</td><td>6</td><td>100</td><td>90</td></tr><tr><td>Finance</td><td>Negatively skewed</td><td>9</td><td>100</td><td>90</td></tr></table>",
+        "bbox": [
+            138,
+            655,
+            859,
+            858
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            58,
+            638,
+            75
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "page_number",
+        "text": "247 ",
+        "bbox": [
+            823,
+            58,
+            861,
+            73
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/73eda1d62599b13f7da9c5d418d4f28ba38b0eda8aee229565da1a300aa48d06.jpg",
+        "image_caption": [
+            "Figure 1. Weibull density at various values of shape parameter $\\beta$ with $\\eta = 1 0 0$ and $\\nu = 9 0$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            230,
+            90,
+            757,
+            419
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "4.1. Simulation Design ",
+        "text_level": 1,
+        "bbox": [
+            134,
+            495,
+            378,
+            516
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "For each sample size $( n )$ and the specified values of the parameters (see Table 1), 5000 data sets are generated from the Weibull distribution, as per Eq. (1). From each data set, the estimates of the parameters $( \\beta , \\eta , \\nu )$ are obtained by the methods listed in section 3. For comparing the small sample performance of the estimators, as discussed earlier, we considered bias and the RMSE. We compute the bias of an estimator as the difference between an estimator’s expectation and the true value of the parameter being estimated. Since the bias is the difference between the estimated and true values of the parameter, it does not take the variation in estimates into account, which is measured by the standard deviation of an estimator. If an estimator is biased, then the minimum variance of an estimator does not make it the best estimator. Thus, in such a situation, the RMSE is used to compare the different estimators, rather than using the unbiasedness and minimum variance. The RMSE of an estimator is one way of quantifying the difference between an estimator and the true value of the quantity being estimated. We take the RMSE as the square root of the sum of the variance and the squared bias of an estimator, that is, $\\mathrm { R M S E } = \\sqrt { \\mathrm { V a r } + \\mathrm { B i a s } ^ { 2 } }$ , and thus assesses the quality of an estimator in terms of its variation and unbiasedness together. This incorporates both the variance of an estimator and its bias. For an unbiased estimator, the RMSE is simply its standard deviation. The RMSE will only be small when both the variance and the bias of an estimator are small. ",
+        "bbox": [
+            136,
+            523,
+            859,
+            825
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "In simulations, we considered only those cases where ML converged and the sample L-skewness was $\\geq - 0 . 1 6 9 9$ . This effectively limits the computations to samples for which all of the competing estimation methods can be used, and provides a fair comparison of the small sample performance of the various estimators. ",
+        "bbox": [
+            134,
+            825,
+            859,
+            891
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "page_number",
+        "text": "248 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "4.2. Findings ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            88,
+            283,
+            109
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "We initially considered 12 methods of estimation. Of all the methods, LSE, MMoE2, MMoE3, and MMLE3 showed the worst small-sample performance. Thus, we removed these methods from our presentation. The methods (along with the simulation results) reported in Tables 2–9 are MLE, LM, MMLE1, MMLE2, MoE, MMoE1, and MPS. Good estimators have small bias and RMSE. The choice of the estimator in the finite sample largely depends on estimating the shape parameter (β) accurately and precisely (jointly measured by the RMSE). When the RMSE of two methods is close, we preferred the method that had lower bias. Keeping this in view, we analyzed the results. Also, for $\\beta < ~ 1$ , we omitted the simulation of the MLE altogether, since the method can not give reliable results in these cases for the reason given in section 3.2. The key findings are as follows: ",
+        "bbox": [
+            134,
+            116,
+            859,
+            283
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "• $\\beta = 0 . 5$ : MPS estimator is the best choice. Interestingly, LM’s $\\eta$ estimator dominates its performance in all sample sizes. Therefore, in applications where the scale parameter is of deep interest, LM is the preferred method. ",
+        "bbox": [
+            170,
+            306,
+            859,
+            356
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/bdcdf1af2f1cb0851e001f6effdfc0da5d32faa924b2e782178a1a6b46030693.jpg",
+        "table_caption": [
+            "Table 2 True parameters are $\\beta = 0 . 5 , \\eta = 1 0 0 , \\nu = 9 0$ $\\beta = 0 . 5$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.17</td><td>0.38</td><td>0.09</td><td>0.20</td><td>0.04</td><td>0.11</td><td>0.02</td><td>0.07</td></tr><tr><td>η</td><td>23.39</td><td>107.94</td><td>17.40</td><td>70.61</td><td>10.03</td><td>39.44</td><td>6.77</td><td>27.06</td></tr><tr><td>\\( \\hat{v} \\)</td><td>-14.22</td><td>27.14</td><td>-8.12</td><td>14.51</td><td>-4.24</td><td>6.56</td><td>-2.79</td><td>4.05</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>0.88</td><td>3.47</td><td>0.60</td><td>2.55</td><td>0.51</td><td>1.38</td><td>0.66</td><td>1.32</td></tr><tr><td>η</td><td>93.37</td><td>150.73</td><td>95.05</td><td>129.37</td><td>84.91</td><td>103.63</td><td>72.73</td><td>89.47</td></tr><tr><td>\\( \\hat{v} \\)</td><td>-1.22</td><td>10.21</td><td>-1.73</td><td>6.55</td><td>-1.88</td><td>3.40</td><td>-2.29</td><td>3.62</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.12</td><td>0.25</td><td>-0.06</td><td>0.16</td><td>0.01</td><td>0.08</td><td>0.07</td><td>0.09</td></tr><tr><td>η</td><td>-86.95</td><td>103.97</td><td>-94.33</td><td>95.50</td><td>-72.52</td><td>81.34</td><td>-12.68</td><td>59.45</td></tr><tr><td>\\( \\hat{v} \\)</td><td>1.56</td><td>5.30</td><td>0.49</td><td>1.18</td><td>0.06</td><td>0.17</td><td>-0.02</td><td>0.06</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>0.63</td><td>0.74</td><td>0.42</td><td>0.49</td><td>0.26</td><td>0.31</td><td>0.19</td><td>0.23</td></tr><tr><td>η</td><td>149.48</td><td>185.75</td><td>140.18</td><td>161.54</td><td>117.42</td><td>131.30</td><td>95.72</td><td>109.18</td></tr><tr><td>\\( \\hat{v} \\)</td><td>-78.26</td><td>80.47</td><td>-77.38</td><td>79.48</td><td>-71.91</td><td>74.66</td><td>-62.36</td><td>66.33</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>0.28</td><td>0.46</td><td>0.16</td><td>0.21</td><td>0.08</td><td>0.13</td><td>0.05</td><td>0.09</td></tr><tr><td>η</td><td>51.20</td><td>117.03</td><td>36.23</td><td>75.75</td><td>22.81</td><td>45.66</td><td>15.63</td><td>32.63</td></tr><tr><td>\\( \\hat{v} \\)</td><td>-7.63</td><td>15.84</td><td>-2.60</td><td>3.81</td><td>-2.38</td><td>3.13</td><td>-2.49</td><td>3.08</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>-0.01</td><td>0.24</td><td>-0.03</td><td>0.11</td><td>-0.02</td><td>0.06</td><td>-0.01</td><td>0.04</td></tr><tr><td>η</td><td>43.22</td><td>110.30</td><td>43.12</td><td>90.91</td><td>53.51</td><td>88.19</td><td>52.52</td><td>80.10</td></tr><tr><td>\\( \\hat{v} \\)</td><td>-0.64</td><td>9.12</td><td>0.15</td><td>1.13</td><td>0.03</td><td>0.15</td><td>0.01</td><td>0.05</td></tr></table>",
+        "bbox": [
+            138,
+            423,
+            859,
+            902
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "page_number",
+        "text": "249 ",
+        "bbox": [
+            823,
+            59,
+            859,
+            73
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/c8429d6845979776d9f707e6ac69ac39a408e1226a4e7be8a65ace6be3e24dd1.jpg",
+        "table_caption": [
+            "Table 3 True parameters are $\\beta = 0 . 7 5$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.29</td><td>0.72</td><td>0.12</td><td>0.30</td><td>0.05</td><td>0.14</td><td>0.03</td><td>0.09</td></tr><tr><td>η</td><td>16.58</td><td>70.46</td><td>10.16</td><td>43.59</td><td>5.10</td><td>24.76</td><td>4.04</td><td>17.07</td></tr><tr><td>v̂</td><td>-14.81</td><td>30.49</td><td>-7.15</td><td>14.92</td><td>-3.43</td><td>6.42</td><td>-2.37</td><td>4.01</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>1.32</td><td>4.40</td><td>1.71</td><td>4.62</td><td>2.05</td><td>4.17</td><td>2.20</td><td>3.96</td></tr><tr><td>η</td><td>36.28</td><td>84.19</td><td>38.83</td><td>68.16</td><td>25.39</td><td>41.21</td><td>19.06</td><td>32.39</td></tr><tr><td>v̂</td><td>-2.85</td><td>18.30</td><td>-4.32</td><td>12.92</td><td>-6.46</td><td>11.06</td><td>-7.52</td><td>10.73</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.25</td><td>0.53</td><td>-0.22</td><td>0.29</td><td>-0.07</td><td>0.14</td><td>-0.02</td><td>0.07</td></tr><tr><td>η</td><td>-80.30</td><td>94.93</td><td>-93.59</td><td>96.23</td><td>-96.79</td><td>96.98</td><td>-93.74</td><td>93.94</td></tr><tr><td>v̂</td><td>2.35</td><td>13.38</td><td>2.09</td><td>3.73</td><td>0.62</td><td>1.07</td><td>0.23</td><td>0.39</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>0.82</td><td>0.98</td><td>0.51</td><td>0.61</td><td>0.25</td><td>0.34</td><td>0.16</td><td>0.23</td></tr><tr><td>η</td><td>96.57</td><td>120.09</td><td>77.21</td><td>96.36</td><td>46.00</td><td>61.35</td><td>30.98</td><td>43.24</td></tr><tr><td>v̂</td><td>-66.19</td><td>70.73</td><td>-51.60</td><td>57.50</td><td>-30.66</td><td>36.30</td><td>-20.47</td><td>25.22</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>0.43</td><td>0.89</td><td>0.14</td><td>0.27</td><td>0.05</td><td>0.13</td><td>0.03</td><td>0.09</td></tr><tr><td>η</td><td>25.36</td><td>69.87</td><td>9.33</td><td>37.40</td><td>3.39</td><td>21.90</td><td>2.51</td><td>15.66</td></tr><tr><td>v̂</td><td>-14.28</td><td>30.00</td><td>-2.44</td><td>6.24</td><td>-0.65</td><td>1.25</td><td>-0.70</td><td>0.92</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>0.07</td><td>0.58</td><td>-0.03</td><td>0.19</td><td>-0.03</td><td>0.09</td><td>-0.02</td><td>0.06</td></tr><tr><td>η</td><td>15.86</td><td>63.18</td><td>6.93</td><td>36.80</td><td>2.84</td><td>21.74</td><td>2.10</td><td>15.50</td></tr><tr><td>v̂</td><td>-5.19</td><td>21.40</td><td>-0.06</td><td>4.36</td><td>0.12</td><td>0.92</td><td>0.05</td><td>0.33</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            609
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "list",
+        "sub_type": "text",
+        "list_items": [
+            "• $\\beta = 0 . 7 5$ : The MPS estimator surpasses all other estimators for all parameters. ",
+            "• $\\beta = 1$ : The choice of estimator leans more toward the MPS estimation method in terms of bias only but for small samples of size $n = 1 0$ , where MLE is preferred. ",
+            "• $\\beta = 1 . 5$ : The MLE performs the best among all estimation methods in terms of bias even for sample size as small as $n = 1 0$ . However, its performance is very close to that of MPS in terms of RMSE of $\\beta$ . Since other MLE estimators (of $\\eta$ and $\\nu$ ) have smaller bias/RMSE and lower bias in $\\beta$ , we prefer MLE to MPS in this case. ",
+            "• $\\beta = 3$ : With $\\beta$ getting closer to symmetric shape, as expected MLE beats all other estimation methods in bias. Interestingly, MoE offers the lowest RMSE, however, with almost doubling the $\\beta$ bias. ",
+            "• $\\beta = 4$ : MLE clearly surpasses all other estimation methods in bias. MoE still offers the least RMSE but with bias many times larger this time around. ",
+            "• $\\beta = 6$ : We find the positive role of modified MLE when $\\beta$ is large. In large sample of size $n \\geq 5 0$ , MMLE1 outperforms other estimation methods, while LM performance is the best in small samples of sizes $\\mathrm { n } = 1 0$ , 20. "
+        ],
+        "bbox": [
+            170,
+            656,
+            855,
+            904
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "page_number",
+        "text": "250 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "table",
+        "img_path": "images/5f2936c01e49f4de7b15722f8ddb29090462c25d44016c6d14d0df5f7ee7826f.jpg",
+        "table_caption": [
+            "Table 4 True parameters are $\\beta = 1$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.46</td><td>1.00</td><td>0.20</td><td>0.49</td><td>0.10</td><td>0.23</td><td>0.06</td><td>0.15</td></tr><tr><td>η</td><td>18.04</td><td>60.39</td><td>9.28</td><td>37.61</td><td>5.97</td><td>20.77</td><td>4.26</td><td>14.15</td></tr><tr><td>v̂</td><td>-17.40</td><td>36.76</td><td>-8.27</td><td>19.89</td><td>-3.96</td><td>8.61</td><td>-2.60</td><td>5.30</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>-0.10</td><td>0.97</td><td>-0.21</td><td>0.47</td><td>-0.10</td><td>0.23</td><td>-0.04</td><td>0.13</td></tr><tr><td>η</td><td>10.44</td><td>62.17</td><td>3.97</td><td>40.01</td><td>1.42</td><td>21.40</td><td>0.55</td><td>13.48</td></tr><tr><td>v̂</td><td>2.07</td><td>21.70</td><td>3.50</td><td>7.04</td><td>1.70</td><td>2.59</td><td>0.90</td><td>1.31</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>1.40</td><td>4.67</td><td>1.96</td><td>5.45</td><td>1.71</td><td>4.07</td><td>1.28</td><td>2.14</td></tr><tr><td>η</td><td>14.87</td><td>62.75</td><td>8.50</td><td>41.72</td><td>4.18</td><td>23.19</td><td>4.79</td><td>15.94</td></tr><tr><td>v̂</td><td>-4.29</td><td>24.55</td><td>-5.60</td><td>16.49</td><td>-9.38</td><td>17.19</td><td>-10.73</td><td>14.14</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.30</td><td>0.78</td><td>-0.38</td><td>0.47</td><td>-0.30</td><td>0.38</td><td>-0.17</td><td>0.25</td></tr><tr><td>η</td><td>-56.79</td><td>84.95</td><td>-64.61</td><td>82.61</td><td>-65.46</td><td>81.96</td><td>-73.16</td><td>86.15</td></tr><tr><td>v̂</td><td>2.11</td><td>20.91</td><td>3.57</td><td>7.06</td><td>1.76</td><td>2.62</td><td>0.91</td><td>1.31</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>0.93</td><td>1.14</td><td>0.55</td><td>0.74</td><td>0.28</td><td>0.40</td><td>0.17</td><td>0.26</td></tr><tr><td>η</td><td>65.55</td><td>86.04</td><td>43.84</td><td>61.92</td><td>25.55</td><td>37.85</td><td>16.78</td><td>26.26</td></tr><tr><td>v̂</td><td>-50.72</td><td>57.55</td><td>-33.57</td><td>41.48</td><td>-18.34</td><td>24.12</td><td>-11.79</td><td>16.27</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>0.78</td><td>1.40</td><td>0.22</td><td>0.45</td><td>0.08</td><td>0.19</td><td>0.04</td><td>0.12</td></tr><tr><td>η</td><td>32.83</td><td>68.13</td><td>7.93</td><td>32.18</td><td>2.77</td><td>16.89</td><td>1.37</td><td>11.49</td></tr><tr><td>v̂</td><td>-27.22</td><td>46.06</td><td>-5.84</td><td>13.05</td><td>-1.17</td><td>2.94</td><td>-0.41</td><td>1.21</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>0.25</td><td>0.85</td><td>0.04</td><td>0.35</td><td>0.00</td><td>0.15</td><td>0.00</td><td>0.10</td></tr><tr><td>η</td><td>19.56</td><td>56.90</td><td>6.16</td><td>30.34</td><td>3.05</td><td>16.62</td><td>1.74</td><td>11.35</td></tr><tr><td>v̂</td><td>-12.77</td><td>32.45</td><td>-2.54</td><td>10.58</td><td>-0.43</td><td>2.52</td><td>-0.13</td><td>1.10</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "• $\\beta = 9$ : When $\\beta$ is really large, the story is virtually the same as for $\\beta = 6$ . LM performance is dominant over others in small sample of sizes $\\mathsf { n } = 1 0 { , } 2 0$ . The MMLE1 takes the lead in large sample of sizes $\\mathrm { n } = 5 0$ , 100. ",
+        "bbox": [
+            170,
+            709,
+            859,
+            761
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "What we find is that as long as $0 . 5 \\le \\beta < 1 . 5$ , MPS is the preferred estimator in the sense of offering the least bias/MSE of the parameters. The reason may lie in the fact that it works (converges) when MLE fails in this range of $\\beta$ (especially for $\\beta < 1 \\AA$ ). For $1 . 5 \\le \\beta \\le 4$ , MLE is the way forward for estimating the three-parameter Weibull distribution. For large values of shape parameter such as $\\beta = 6$ and 9 and in samples of large size, MMLE1 is the best choice; in small samples, the LM estimator is recommended. ",
+        "bbox": [
+            134,
+            772,
+            859,
+            872
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "For a wide range of $\\beta$ values, the ML performance is quite notable even in small sample sizes. At the outset, we thought that the MLE was a starting choice (among other ",
+        "bbox": [
+            134,
+            872,
+            859,
+            905
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "page_number",
+        "text": "251 ",
+        "bbox": [
+            823,
+            59,
+            855,
+            73
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/b23bb38f22244afbd7d90e648bc9ddb951fe1008a1624c189cfccd7ac18b3ee7.jpg",
+        "table_caption": [
+            "Table 5 True parameters are $\\beta = 1 . 5$ , η = 100, ν = 90 "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.71</td><td>1.40</td><td>0.33</td><td>0.81</td><td>0.10</td><td>0.36</td><td>0.06</td><td>0.22</td></tr><tr><td>η</td><td>23.95</td><td>59.00</td><td>12.20</td><td>37.52</td><td>4.65</td><td>19.15</td><td>2.78</td><td>12.27</td></tr><tr><td>v̂</td><td>-22.76</td><td>46.74</td><td>-10.89</td><td>28.70</td><td>-4.25</td><td>13.26</td><td>-2.47</td><td>7.94</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>0.20</td><td>1.37</td><td>-0.03</td><td>0.66</td><td>-0.06</td><td>0.25</td><td>-0.04</td><td>0.16</td></tr><tr><td>η</td><td>-0.95</td><td>47.21</td><td>-6.65</td><td>27.73</td><td>-5.34</td><td>13.57</td><td>-3.30</td><td>8.86</td></tr><tr><td>v̂</td><td>-0.63</td><td>33.10</td><td>4.61</td><td>16.48</td><td>3.58</td><td>6.85</td><td>2.26</td><td>4.04</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>0.90</td><td>4.23</td><td>0.78</td><td>4.27</td><td>-0.17</td><td>1.27</td><td>-0.20</td><td>0.32</td></tr><tr><td>η</td><td>3.38</td><td>46.82</td><td>-2.64</td><td>27.99</td><td>-2.02</td><td>13.12</td><td>0.23</td><td>8.77</td></tr><tr><td>v̂</td><td>-6.21</td><td>32.79</td><td>-1.30</td><td>18.39</td><td>1.75</td><td>7.47</td><td>1.11</td><td>3.33</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.27</td><td>1.12</td><td>-0.50</td><td>0.81</td><td>-0.51</td><td>0.62</td><td>-0.48</td><td>0.58</td></tr><tr><td>η</td><td>-15.80</td><td>62.48</td><td>-13.25</td><td>42.66</td><td>-3.26</td><td>17.37</td><td>-0.30</td><td>11.19</td></tr><tr><td>v̂</td><td>-0.66</td><td>31.87</td><td>4.77</td><td>16.47</td><td>3.82</td><td>6.96</td><td>2.61</td><td>4.27</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>0.90</td><td>1.11</td><td>0.57</td><td>0.83</td><td>0.26</td><td>0.47</td><td>0.14</td><td>0.29</td></tr><tr><td>η</td><td>36.31</td><td>55.22</td><td>25.93</td><td>42.03</td><td>13.64</td><td>25.37</td><td>8.13</td><td>16.67</td></tr><tr><td>v̂</td><td>-31.17</td><td>42.11</td><td>-21.94</td><td>32.32</td><td>-11.65</td><td>19.14</td><td>-6.86</td><td>12.29</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>1.50</td><td>2.14</td><td>0.48</td><td>0.96</td><td>0.09</td><td>0.29</td><td>0.03</td><td>0.17</td></tr><tr><td>η</td><td>53.80</td><td>78.11</td><td>17.70</td><td>39.12</td><td>2.98</td><td>14.49</td><td>1.09</td><td>8.91</td></tr><tr><td>v̂</td><td>-49.28</td><td>65.86</td><td>-15.33</td><td>30.04</td><td>-2.65</td><td>7.89</td><td>-1.00</td><td>4.00</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>0.52</td><td>1.22</td><td>0.14</td><td>0.64</td><td>-0.02</td><td>0.26</td><td>-0.02</td><td>0.16</td></tr><tr><td>η</td><td>29.32</td><td>59.80</td><td>10.93</td><td>32.10</td><td>2.43</td><td>14.01</td><td>1.15</td><td>8.86</td></tr><tr><td>v̂</td><td>-24.17</td><td>46.35</td><td>-7.58</td><td>22.55</td><td>-1.34</td><td>7.29</td><td>-0.57</td><td>3.86</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "estimators), but now find that it can come on top of other methods for estimating the three-parameter Weibull distribution as long as its estimates see convergence. However, the main issue with the MLE is the nonconvergence of its estimates to true parameter values for $\\beta < 1$ . For instance, with $\\beta = 1 . 5$ for $n = 1 0$ the nonconvergence rate of MLE was about $44 \\%$ . However, the MPS estimator performs well when MLE performs poorly and fails to converge. ",
+        "bbox": [
+            134,
+            706,
+            857,
+            805
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "For researchers less concerned with the maximal accuracy of estimators and not wanting to decide under which circumstances to use MLE or MPS, LM is the good choice. It is not the best but is always close (in terms of bias/RMSE) to its competitor, whether MLE, or MPS, or any other. So, we think the LM estimators for Weibull can be generally recommended. There were only $2 \\%$ of cases in which LM estimation was not possible because the sample L-skewness was less than 0.1699, the lower bound of the theoretical ",
+        "bbox": [
+            134,
+            806,
+            859,
+            905
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "page_number",
+        "text": "",
+        "bbox": [
+            138,
+            59,
+            170,
+            72
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            416,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/1e71d8f033748d48eadc2445c65fe2dc109947c6462fd3fb5883bea5c0136ae5.jpg",
+        "table_caption": [
+            "Table 6 True parameters are $\\beta = 3$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.68</td><td>2.17</td><td>0.52</td><td>1.80</td><td>0.32</td><td>1.22</td><td>0.17</td><td>0.80</td></tr><tr><td>η</td><td>16.85</td><td>58.07</td><td>12.49</td><td>47.59</td><td>7.93</td><td>32.88</td><td>4.23</td><td>22.19</td></tr><tr><td>v̂</td><td>-17.64</td><td>54.47</td><td>-12.83</td><td>44.83</td><td>-7.95</td><td>30.92</td><td>-4.15</td><td>20.80</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>0.13</td><td>2.25</td><td>0.13</td><td>1.77</td><td>0.04</td><td>1.03</td><td>-0.02</td><td>0.62</td></tr><tr><td>η</td><td>-7.63</td><td>52.26</td><td>-4.15</td><td>42.60</td><td>-2.44</td><td>26.13</td><td>-2.22</td><td>16.38</td></tr><tr><td>v̂</td><td>4.58</td><td>47.76</td><td>2.42</td><td>39.38</td><td>1.79</td><td>24.11</td><td>1.94</td><td>14.98</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>-0.27</td><td>2.83</td><td>-0.33</td><td>1.88</td><td>-0.24</td><td>0.99</td><td>-0.12</td><td>0.79</td></tr><tr><td>η</td><td>-3.68</td><td>50.08</td><td>0.35</td><td>41.04</td><td>3.09</td><td>26.53</td><td>3.64</td><td>18.46</td></tr><tr><td>v̂</td><td>0.96</td><td>43.67</td><td>-0.53</td><td>36.46</td><td>-1.86</td><td>23.74</td><td>-2.48</td><td>16.94</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.54</td><td>1.99</td><td>-0.39</td><td>1.62</td><td>-0.33</td><td>1.10</td><td>-0.34</td><td>0.78</td></tr><tr><td>η</td><td>-6.94</td><td>51.49</td><td>-1.35</td><td>42.10</td><td>1.91</td><td>26.62</td><td>2.20</td><td>16.93</td></tr><tr><td>v̂</td><td>4.12</td><td>45.22</td><td>2.04</td><td>37.60</td><td>1.87</td><td>23.64</td><td>2.40</td><td>14.77</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>-0.25</td><td>0.57</td><td>-0.25</td><td>0.57</td><td>-0.11</td><td>0.45</td><td>-0.04</td><td>0.39</td></tr><tr><td>η</td><td>-9.20</td><td>27.19</td><td>-8.48</td><td>21.86</td><td>-4.02</td><td>15.70</td><td>-1.49</td><td>12.47</td></tr><tr><td>v̂</td><td>8.09</td><td>25.01</td><td>7.65</td><td>20.29</td><td>3.64</td><td>14.37</td><td>1.39</td><td>11.40</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>2.67</td><td>3.49</td><td>1.62</td><td>2.72</td><td>0.93</td><td>1.87</td><td>0.49</td><td>1.16</td></tr><tr><td>η</td><td>61.40</td><td>79.69</td><td>38.15</td><td>65.10</td><td>22.68</td><td>45.90</td><td>12.36</td><td>29.01</td></tr><tr><td>v̂</td><td>-60.57</td><td>76.69</td><td>-37.70</td><td>62.53</td><td>-22.26</td><td>43.98</td><td>-11.97</td><td>27.45</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>0.49</td><td>2.01</td><td>0.37</td><td>1.71</td><td>0.24</td><td>1.13</td><td>0.11</td><td>0.69</td></tr><tr><td>η</td><td>24.50</td><td>60.72</td><td>16.66</td><td>49.28</td><td>10.14</td><td>31.73</td><td>5.53</td><td>19.26</td></tr><tr><td>v̂</td><td>-23.68</td><td>57.21</td><td>-16.11</td><td>46.54</td><td>-9.66</td><td>29.80</td><td>-5.12</td><td>17.84</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "L-skewness for a Weibull distribution. Thus, researchers using LM estimation will almost always obtain good results without needing to be concerned about convergence or being unable to fit the distribution. ",
+        "bbox": [
+            134,
+            712,
+            859,
+            763
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "4.3. Discussion ",
+        "text_level": 1,
+        "bbox": [
+            134,
+            787,
+            305,
+            805
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "In some cases it is hard to know a priori whether the location parameter $\\nu$ will be zero— especially when the minimum observation of the observed data set is close to zero, and/or when the standard deviation is large relative to the mean of the data. We provide an example in the application section (from a published study) where the location parameter $\\nu$ was assumed to be zero where it seems not to be zero. In such cases, it may be safer to apply ",
+        "bbox": [
+            134,
+            813,
+            861,
+            900
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "page_number",
+        "text": "253 ",
+        "bbox": [
+            823,
+            59,
+            857,
+            73
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/c448ecf1afd0cf4b73d1cdda6247e5e9e2039f9d772d808e2c1915035654836a.jpg",
+        "table_caption": [
+            "Table 7 True parameters are $\\beta = 4$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>0.49</td><td>2.82</td><td>0.53</td><td>2.44</td><td>0.56</td><td>1.95</td><td>0.38</td><td>1.46</td></tr><tr><td>η</td><td>9.39</td><td>58.14</td><td>10.39</td><td>51.59</td><td>11.70</td><td>42.07</td><td>7.76</td><td>31.53</td></tr><tr><td>ν</td><td>-10.59</td><td>55.85</td><td>-10.96</td><td>49.81</td><td>-11.74</td><td>40.85</td><td>-7.78</td><td>30.54</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>-0.20</td><td>2.93</td><td>0.09</td><td>2.49</td><td>0.25</td><td>1.82</td><td>0.10</td><td>1.21</td></tr><tr><td>η</td><td>-14.42</td><td>55.51</td><td>-5.10</td><td>48.77</td><td>1.96</td><td>36.83</td><td>0.46</td><td>25.13</td></tr><tr><td>ν</td><td>11.47</td><td>52.26</td><td>3.53</td><td>46.60</td><td>-2.40</td><td>35.56</td><td>-0.73</td><td>24.17</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>-0.78</td><td>2.73</td><td>-0.59</td><td>2.05</td><td>-0.26</td><td>1.49</td><td>-0.16</td><td>1.17</td></tr><tr><td>η</td><td>-10.20</td><td>52.42</td><td>-0.68</td><td>46.32</td><td>6.93</td><td>36.53</td><td>6.00</td><td>26.54</td></tr><tr><td>ν</td><td>7.56</td><td>47.39</td><td>0.65</td><td>42.79</td><td>-4.99</td><td>33.62</td><td>-4.08</td><td>24.06</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.85</td><td>2.81</td><td>-0.50</td><td>2.20</td><td>-0.19</td><td>1.70</td><td>-0.23</td><td>1.29</td></tr><tr><td>η</td><td>-12.58</td><td>53.81</td><td>-2.11</td><td>47.16</td><td>6.48</td><td>37.20</td><td>5.29</td><td>26.40</td></tr><tr><td>ν</td><td>10.38</td><td>49.78</td><td>3.12</td><td>44.20</td><td>-2.37</td><td>34.29</td><td>-0.45</td><td>23.86</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>-1.22</td><td>1.31</td><td>-1.17</td><td>1.25</td><td>-1.00</td><td>1.06</td><td>-0.88</td><td>0.92</td></tr><tr><td>η</td><td>-27.76</td><td>34.45</td><td>-26.45</td><td>30.71</td><td>-21.97</td><td>24.44</td><td>-19.19</td><td>20.87</td></tr><tr><td>ν</td><td>25.79</td><td>32.85</td><td>24.88</td><td>29.29</td><td>20.93</td><td>23.44</td><td>18.30</td><td>19.99</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>2.93</td><td>3.86</td><td>2.30</td><td>3.82</td><td>1.70</td><td>2.98</td><td>1.19</td><td>2.34</td></tr><tr><td>η</td><td>53.25</td><td>73.40</td><td>41.96</td><td>70.48</td><td>33.19</td><td>58.97</td><td>23.41</td><td>46.49</td></tr><tr><td>ν</td><td>-53.35</td><td>72.01</td><td>-42.03</td><td>69.03</td><td>-32.93</td><td>57.73</td><td>-23.21</td><td>45.50</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>0.30</td><td>2.62</td><td>0.43</td><td>2.37</td><td>0.56</td><td>1.91</td><td>0.35</td><td>1.36</td></tr><tr><td>η</td><td>17.77</td><td>61.24</td><td>16.39</td><td>54.58</td><td>16.43</td><td>43.30</td><td>10.27</td><td>30.20</td></tr><tr><td>ν</td><td>-17.88</td><td>59.23</td><td>-16.37</td><td>52.90</td><td>-16.11</td><td>42.07</td><td>-10.05</td><td>29.25</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "the three-parameter Weibull distribution than the two-parameter Weibull distribution. Thus, it is important to investigate which of the various estimation methods are good enough at distinguishing the cases where $\\nu$ is zero or close to zero when we fit the three-parameter Weibull distribution. We therefore considered $\\nu = 0 , 1 0$ in order to cover such cases with the same $\\beta$ and $\\eta$ values that appeared in Table 1. The methodology for Monte Carlo simulations is the same as adopted in previous subsection. The results are not shown here for $\\nu = 0$ , 10 but can be provided on request. ",
+        "bbox": [
+            134,
+            722,
+            857,
+            838
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Moreover, it is almost a general practice to assume the location parameter of the Weibull distribution to be positive (rather then zero) as long as ${ \\mathrm { X } } _ { 1 : n } > 0$ (no matter how close the first data observation is to zero); for instance, see Bartoluccia et al. (1999). A priori belief of $\\nu$ to be zero will simply mean the use of two-parameter Weibull distribution. And ",
+        "bbox": [
+            134,
+            838,
+            859,
+            905
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "page_number",
+        "text": "254 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            416,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "table",
+        "img_path": "images/ca7301616c2723e5b61645a4913e2ad125bf616d71e8dde1386e73cd2d54c802.jpg",
+        "table_caption": [
+            "Table 8 True parameters are $\\beta = 6$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>-0.25</td><td>4.13</td><td>0.17</td><td>3.68</td><td>0.68</td><td>3.27</td><td>0.73</td><td>2.82</td></tr><tr><td>η</td><td>-5.66</td><td>58.86</td><td>2.24</td><td>55.63</td><td>9.95</td><td>49.39</td><td>10.85</td><td>42.83</td></tr><tr><td>v</td><td>4.73</td><td>57.44</td><td>-2.73</td><td>54.58</td><td>-10.16</td><td>48.66</td><td>-10.92</td><td>42.29</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>-1.17</td><td>4.44</td><td>-0.41</td><td>3.81</td><td>0.31</td><td>3.20</td><td>0.41</td><td>2.60</td></tr><tr><td>η</td><td>-27.21</td><td>60.64</td><td>-11.79</td><td>55.04</td><td>1.76</td><td>46.56</td><td>4.55</td><td>38.39</td></tr><tr><td>v</td><td>25.01</td><td>58.38</td><td>10.68</td><td>53.64</td><td>-2.19</td><td>45.79</td><td>-4.73</td><td>37.82</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>-1.96</td><td>3.66</td><td>-1.40</td><td>2.95</td><td>-0.54</td><td>2.39</td><td>-0.22</td><td>2.02</td></tr><tr><td>η</td><td>-21.45</td><td>55.76</td><td>-6.26</td><td>51.08</td><td>7.39</td><td>44.41</td><td>10.70</td><td>37.91</td></tr><tr><td>v</td><td>20.25</td><td>52.48</td><td>7.20</td><td>48.77</td><td>-5.13</td><td>42.05</td><td>-7.76</td><td>35.19</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-1.33</td><td>5.14</td><td>-1.03</td><td>3.62</td><td>-0.37</td><td>2.83</td><td>-0.16</td><td>2.42</td></tr><tr><td>η</td><td>-23.81</td><td>57.06</td><td>-7.90</td><td>52.12</td><td>5.36</td><td>45.70</td><td>8.67</td><td>38.87</td></tr><tr><td>v</td><td>22.57</td><td>55.26</td><td>9.54</td><td>50.81</td><td>-1.75</td><td>43.80</td><td>-4.05</td><td>36.66</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>-3.19</td><td>3.22</td><td>-3.17</td><td>3.20</td><td>-2.99</td><td>3.01</td><td>-2.82</td><td>2.84</td></tr><tr><td>η</td><td>-49.82</td><td>51.82</td><td>-48.53</td><td>49.67</td><td>-44.98</td><td>45.61</td><td>-42.00</td><td>42.58</td></tr><tr><td>v</td><td>47.99</td><td>50.31</td><td>46.90</td><td>48.23</td><td>43.56</td><td>44.24</td><td>40.80</td><td>41.37</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>2.45</td><td>4.06</td><td>3.35</td><td>5.92</td><td>2.82</td><td>4.89</td><td>2.47</td><td>4.34</td></tr><tr><td>η</td><td>26.19</td><td>50.05</td><td>41.89</td><td>75.96</td><td>38.21</td><td>67.79</td><td>34.34</td><td>61.15</td></tr><tr><td>v</td><td>-26.48</td><td>49.50</td><td>-42.12</td><td>75.12</td><td>-38.27</td><td>67.21</td><td>-34.28</td><td>60.61</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>-0.21</td><td>4.11</td><td>0.23</td><td>3.68</td><td>0.84</td><td>3.26</td><td>0.89</td><td>2.79</td></tr><tr><td>η</td><td>6.36</td><td>63.63</td><td>11.46</td><td>60.16</td><td>17.61</td><td>52.35</td><td>16.51</td><td>44.00</td></tr><tr><td>v</td><td>-6.62</td><td>62.48</td><td>-11.58</td><td>59.15</td><td>-17.59</td><td>51.68</td><td>-16.41</td><td>43.45</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "the results of the best estimator in the previous section may still be used. However, in situations where a priori belief on ν cannot be established and one would be relying on the three-parameter Weibull distribution, the results of best estimators in the previous section may not hold. We therefore provide a comparison of the performance of previously listed methods under such scenarios of interest, that is, when $\\nu$ is actually zero or close to zero and the researcher still wishes to use three-parameter Weibull distribution. ",
+        "bbox": [
+            134,
+            725,
+            857,
+            825
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Interestingly, the previous findings (of subsection 4.2) do not hold for $\\beta \\geq 3$ . The reason is, this time MMoE1 comes out on top in terms of both bias and the RMSE. This may be because MMoE1 estimates location parameter more accurately than others when it is zero. Thus, it is clear that if the true location parameter is zero or close to zero, the best ",
+        "bbox": [
+            134,
+            825,
+            859,
+            893
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "page_number",
+        "text": "255 ",
+        "bbox": [
+            823,
+            59,
+            857,
+            73
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/4edc0726b58c08d2b2d25a30545248c7e6e7d06438cc392213c9319871a91807.jpg",
+        "table_caption": [
+            "Table 9 True parameters are $\\beta = 9$ , $\\eta = 1 0 0 , \\nu = 9 0$ "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td colspan=\"2\">n = 10</td><td colspan=\"2\">n = 20</td><td colspan=\"2\">n = 50</td><td colspan=\"2\">n = 100</td></tr><tr><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td><td>Bias</td><td>MSE</td></tr><tr><td colspan=\"9\">LM</td></tr><tr><td>β</td><td>-1.74</td><td>6.20</td><td>-1.23</td><td>5.62</td><td>0.38</td><td>5.20</td><td>1.06</td><td>4.85</td></tr><tr><td>η</td><td>-20.03</td><td>62.23</td><td>-13.45</td><td>58.56</td><td>3.64</td><td>54.50</td><td>10.97</td><td>50.92</td></tr><tr><td>v</td><td>19.21</td><td>61.34</td><td>12.79</td><td>57.86</td><td>-3.83</td><td>54.08</td><td>-11.02</td><td>50.60</td></tr><tr><td colspan=\"9\">MLE</td></tr><tr><td>β</td><td>-2.96</td><td>6.91</td><td>-1.88</td><td>5.96</td><td>-0.06</td><td>5.20</td><td>0.72</td><td>4.72</td></tr><tr><td>η</td><td>-39.19</td><td>67.34</td><td>-24.46</td><td>60.86</td><td>-3.40</td><td>53.04</td><td>5.91</td><td>48.56</td></tr><tr><td>v</td><td>37.49</td><td>65.72</td><td>23.38</td><td>59.86</td><td>3.08</td><td>52.58</td><td>-6.02</td><td>48.23</td></tr><tr><td colspan=\"9\">MMLE1</td></tr><tr><td>β</td><td>-3.58</td><td>6.51</td><td>-3.09</td><td>5.10</td><td>-1.45</td><td>4.02</td><td>-0.68</td><td>3.42</td></tr><tr><td>η</td><td>-32.02</td><td>60.75</td><td>-17.75</td><td>55.53</td><td>2.04</td><td>49.81</td><td>10.88</td><td>46.37</td></tr><tr><td>v</td><td>31.98</td><td>59.74</td><td>19.17</td><td>54.49</td><td>0.36</td><td>48.10</td><td>-7.85</td><td>44.13</td></tr><tr><td colspan=\"9\">MMLE2</td></tr><tr><td>β</td><td>-0.95</td><td>8.39</td><td>-1.49</td><td>7.25</td><td>-0.69</td><td>5.29</td><td>-0.15</td><td>4.29</td></tr><tr><td>η</td><td>-36.74</td><td>62.74</td><td>-20.84</td><td>56.24</td><td>0.42</td><td>51.32</td><td>9.96</td><td>47.97</td></tr><tr><td>v</td><td>33.00</td><td>61.02</td><td>20.61</td><td>57.06</td><td>2.29</td><td>51.21</td><td>-5.98</td><td>46.95</td></tr><tr><td colspan=\"9\">MoE</td></tr><tr><td>β</td><td>-6.18</td><td>6.19</td><td>-6.19</td><td>6.20</td><td>-5.96</td><td>5.97</td><td>-5.63</td><td>5.65</td></tr><tr><td>η</td><td>-65.71</td><td>66.43</td><td>-65.01</td><td>65.40</td><td>-61.54</td><td>61.88</td><td>-57.49</td><td>57.93</td></tr><tr><td>v</td><td>64.12</td><td>65.01</td><td>63.41</td><td>63.89</td><td>60.33</td><td>60.68</td><td>56.52</td><td>56.95</td></tr><tr><td colspan=\"9\">MMoE1</td></tr><tr><td>β</td><td>1.46</td><td>5.57</td><td>4.99</td><td>9.23</td><td>4.15</td><td>7.68</td><td>3.95</td><td>7.06</td></tr><tr><td>η</td><td>2.75</td><td>38.67</td><td>39.96</td><td>79.00</td><td>37.77</td><td>72.64</td><td>37.91</td><td>69.00</td></tr><tr><td>v</td><td>-3.13</td><td>38.82</td><td>-40.45</td><td>78.69</td><td>-37.89</td><td>72.32</td><td>-37.92</td><td>68.69</td></tr><tr><td colspan=\"9\">MPS</td></tr><tr><td>β</td><td>-1.32</td><td>6.41</td><td>-0.73</td><td>5.72</td><td>0.86</td><td>5.22</td><td>1.53</td><td>4.92</td></tr><tr><td>η</td><td>-5.53</td><td>67.51</td><td>-0.58</td><td>63.15</td><td>13.74</td><td>57.61</td><td>19.23</td><td>53.75</td></tr><tr><td>v</td><td>5.12</td><td>66.91</td><td>0.16</td><td>62.60</td><td>-13.78</td><td>57.25</td><td>-19.18</td><td>53.42</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            677
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "method of estimation in three-parameter Weibull distribution for any $\\beta$ value is MMoE1. For $\\beta < 3$ , LM performs well overall and MPS performs fairly well. ",
+        "bbox": [
+            134,
+            716,
+            857,
+            751
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "5. Application ",
+        "text_level": 1,
+        "bbox": [
+            136,
+            777,
+            295,
+            798
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "In this section we apply MLE, LM, MoE, MMLE1, MMLE2, MMoE1, and the MPS estimators to the following two examples. The data are taken from published works. ",
+        "bbox": [
+            134,
+            805,
+            855,
+            838
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Data set 1 in Example 1 (see Table 10) is taken from McCool (1998). The data set 1 in Table 10 looks at rolling contact fatigue, and was first used by Ku et al. (1972). In their study, 10 different test machines were employed to evaluate the effects of two lubricants on fatigue life. One lubricant met the specifications of military standard Mil-1-7808, ",
+        "bbox": [
+            134,
+            838,
+            857,
+            905
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "page_number",
+        "text": "256 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            414,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/036f19b8f08daed577a2427ecd3aaa991a2c01a1a0bb5788c6bafcdcb6c20776.jpg",
+        "table_caption": [
+            "Table 10 Parameters estimates under various methods "
+        ],
+        "table_footnote": [
+            "Note. Data sets 1 and 2 are used for parameter estimation in Examples 1 and 2, respectively. "
+        ],
+        "table_body": "<table><tr><td></td><td colspan=\"3\">Example 1</td><td colspan=\"3\">Example 2</td></tr><tr><td></td><td>β</td><td>η</td><td>ν</td><td>β</td><td>η</td><td>ν</td></tr><tr><td>MLE</td><td>0.75</td><td>37.20</td><td>90.40</td><td>1.59</td><td>63.89</td><td>14.87</td></tr><tr><td>LM</td><td>0.95</td><td>37.96</td><td>85.34</td><td>1.44</td><td>60.13</td><td>17.65</td></tr><tr><td>MoE</td><td>1.86</td><td>73.22</td><td>59.20</td><td>1.68</td><td>68.72</td><td>10.87</td></tr><tr><td>MMLE1</td><td>20.34</td><td>53.64</td><td>42.61</td><td>0.99</td><td>67.26</td><td>15.09</td></tr><tr><td>MMLE2</td><td>0.59</td><td>41.79</td><td>89.11</td><td>0.97</td><td>66.94</td><td>15.20</td></tr><tr><td>MMoE1</td><td>1.05</td><td>38.56</td><td>86.33</td><td>1.94</td><td>78.76</td><td>2.38</td></tr><tr><td>MPS</td><td>0.80</td><td>37.11</td><td>88.44</td><td>1.61</td><td>72.87</td><td>8.65</td></tr><tr><td>Data set 1:</td><td colspan=\"6\">90.4, 94.2, 97.8, 101.8, 104.6, 113, 118, 154.9, 181.3, 186.2</td></tr><tr><td>Data set 2:</td><td colspan=\"6\">17.88, 28.92, 33, 41.52, 42.12, 45.6, 48.48, 51.84, 51.96, 54.12, 55.56, 67.80, 68.64, 68.64, 68.88, 84.12, 93.12, 98.64, 105.12, 105.84, 127.92, 128.04, 173.40</td></tr></table>",
+        "bbox": [
+            138,
+            129,
+            859,
+            406
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "while the other met standard Mil-1-23699. Data set 1 is the sorted lives in hours achieved using Mil-1-23699. ",
+        "bbox": [
+            134,
+            452,
+            857,
+            484
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "The data set in Example 2 has been taken from Thoman et al. (1969), who used it to estimate two-parameter Weibull distribution. Their MLE estimate of $\\beta$ reported after adjusting for the small sample bias was 1.976. The data are the results of the tests, in millions of revolutions, of 23 ball bearings. Lieblein and Zelen, (1956) originally gave the results of tests of the endurance of nearly 5000 deep-groove ball bearings. Thoman et al. (1969) basically used the sample data for size 23, given on page 286 of Lieblein and Zelen, (1956). ",
+        "bbox": [
+            134,
+            486,
+            859,
+            601
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "The attempt is made to use our findings of section 4.2 to get the best estimator of $\\beta$ ： (or the true value of $\\beta$ ) from real data in Table 10. The competition boils down to just two, MLE and MPS, as others can easily be ruled out due to $\\beta$ being expected to be not greater than 2 in these examples. In Example 1, we believe that $\\beta$ is less than or equal to 1 and the MPS is the right estimator to use here. The reason is when $\\beta \\leq 1$ (see Tables 2–4), the LM, MoE, and MMoE1 have overestimated $\\beta$ and MLE and MMLE2 underestimated $\\beta$ , and MMLE1 estimate is far off true $\\beta$ on average. The same pattern follows in this sample (Example 1) if we believe true $\\beta$ is less than or equal to 1. Nevertheless, MLE is not the ideal choice when $\\beta \\leq 1$ as the estimator is inconsistent and inefficient and MLE fails to converge. We can get an idea of it from the $\\nu$ estimate, which fails to converge and is replaced by first data observation. Thus, we believe MPS is the right estimation method and that its estimates are more reliable than any others. ",
+        "bbox": [
+            138,
+            602,
+            859,
+            801
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "In Example 2, the choice is a little difficult as this is the value of $\\beta$ (between 1.0 and 2) at which both MLE and MPS are going to perform very closely. We prefer MLE for the reasons that (i) it has converged and (ii) as per our simulation’s findings, its performance is best when $\\beta$ is in the range of [1.5, 4] even for a sample as small as $n = 1 0$ , on average. The sample appears to be drawn from a Weibull distribution whose shape parameter is in the range of values for which the ML method performs reasonably well. ",
+        "bbox": [
+            134,
+            802,
+            859,
+            905
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "page_number",
+        "text": "257 ",
+        "bbox": [
+            823,
+            59,
+            861,
+            73
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "6. Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            90,
+            291,
+            106
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "In this article, we compare the small sample performance (in terms of bias and root mean squared error) of the L-moment (LM) estimation method with other estimation methods in a simulation study for various shape parameter values of three-parameter Weibull distribution. The other estimation methods considered are least squared estimation (LSE), maximum likelihood estimation (MLE), moment estimation (MoE), modified MLE (MMLE), modified MoE (MMoE), and the maximum product of spacing (MPS). In simulations, we considered only those cases in which MLE converged with sample L-skewness $\\geq - 0 . 1 6 9 9$ along with location parameter constraining to $0 < \\nu < X _ { 1 : n }$ for all methods. This provides a fair basis of comparing the small sample performance of LM estimators among others. ",
+        "bbox": [
+            138,
+            116,
+            857,
+            281
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "We found that MPS performs well when the shape parameter $\\beta$ is less than 1.5, the case where MLE is inconsistent and inefficient and may not exist at all. The MLE performs relatively well when $\\beta$ is between 1.5 and 4, inclusive. This is because when $\\beta > 2$ the Fisher information matrix is finite, and the classical properties (consistency and efficiency) hold. For larger values of $\\beta$ , such as 6 and 9, the LM method takes the lead in small samples $n = 1 0$ , 20), and MMLE1 outweighs other estimation methods in large sample size $( n \\geq$ 50). When $\\nu$ is zero or close to zero, the MMoE1 for the three-parameter Weibull performs the best, and the MPS estimator is next best, though the superiority of MMoE1 over MPS and LM is slight. ",
+        "bbox": [
+            138,
+            281,
+            859,
+            431
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Acknowledgment ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            456,
+            319,
+            475
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "We thank the anonymous referees for their helpful, and constructive comments and suggestions on an earlier draft of the article. We are highly indebted to Jonathan R. M. Hosking (Statistical Analysis and Forecasting, IBM T. J. Watson Research Center, USA) for e-mail correspondence and his helpful insights on issues related with the L-moment estimation. ",
+        "bbox": [
+            138,
+            483,
+            857,
+            550
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            579,
+            253,
+            595
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "Bartoluccia, A. A., K. P. Singha, A. D. Bartoluccib, and S. Baea. 1999. Applying medical survival data to estimate the three-parameter Weibull distribution by the method of probability-weighted moments. Math. Comput. Simulation, 48, 385–392. ",
+            "Cheng, R. C. H., and N. A. K. Amin. 1983. Estimating parameters in continuous univariate distributions with a shifted origin. J. R. Stat. Soc. Ser. B (Methodological), 45(3), 394–403. ",
+            "Cohen, A. C., and B. Whitten. 1982. Modified maximum likelihood and modified moment estimators for the three-parameter Weibull distribution. Commun. Stat. Theory Methods, 11(23), 2631–2656. ",
+            "Corrado, C. J. 1996. S&P 500 index option tests of Jarrow and Rudd’s approximate option valuation formula. J. Futures Markets, 16, 611–630. ",
+            "Corrado, C. J., and T. Su. 1996. Skewness and kurtosis in S&P 500 index returns implied by option prices. J. Financial Res., 19, 175–192. ",
+            "Corrado, C. J., and T. Su. 1997. Implied volatility skews and stock index skewness and kurtosis implied by S&P 500 index option prices. J. Derivatives, 4, 8–19. ",
+            "David, H. A. and H. N.. Nagaraja, eds. 2003. Order statistics. New York, NY: John Wiley and Sons. Goda, Y., M. Kudaka, and H. Kawai. 2010. Incorporation of Weibull distribution in L-moments method for regional frequency analysis of peaks-over-threshold wave heights. In Proc. Inte. Conf. Coastal Engineering. http://journals.tdl.org/ICCE/article/viewFile/1154/pdf_42 ",
+            "Green, E. J., F. A. Roesch, A. F. M. Smith, and W. E. Strawderman. 1994. Bayesian estimation for the three-parameter Weibull distribution with tree diameter data. Biometrics, 50, 254–269. "
+        ],
+        "bbox": [
+            138,
+            605,
+            857,
+            909
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "page_number",
+        "text": "258 ",
+        "bbox": [
+            138,
+            59,
+            172,
+            72
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "header",
+        "text": "M. Akram and A. Hayat ",
+        "bbox": [
+            416,
+            59,
+            609,
+            75
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "list",
+        "sub_type": "ref_text",
+        "list_items": [
+            "Greenwood, J. A., J. M. Landwehr, N. C., Matalas, and J. R. Wallis. 1979. Probability weighted moments: Definition and relation to parameters of several distributions expressable in inverse form. Water Resources Res., 15, 1049–1054. ",
+            "Hammitt, J. K. 2004. Effects of disease type and latency on the value of mortality risk. J. Risk Uncertainty, 28, 73–95. ",
+            "Hosking, J. R. M. 1990. L-moments: Analysis and estimation of distributions using linear combinations of order statistics. J. R. Stat. Soc. Ser. B (Methodological), 52, 105–124. ",
+            "Hosking, J. R. M., and J. R. Wallis. 1997. Regional frequency analysis: An approach based on Lmoments. Cambridge, UK: Cambridge University Press. ",
+            "Hosking, J. R. M., J. R. Wallis, and E. F. Wood. 1985. Estimation of the generalized extreme-value distribution by the method of probability-weighted moments. Technometrics, 27(3), 251–261. ",
+            "Jing, D., S. Dedun, Y. Ronfu, and H. Yu. 1989. Expressions relating probability weighted moments to parameters of several distributions inexpressible in inverse form. J. Hydrol., 110, 259–270. ",
+            "Johnson, R. A., and J. H. Haskell. 1983. Sampling properties of estimators of a Weibull distribution of use in the lumber industry. Can. J. Stat./Rev. Can. Stat., 11(2), 155–169. ",
+            "Ku, P. M., E. L. Anderson, and H. J. Carper. 1972. Some considerations in rolling fatigue evaluation. ASLE Trans., 15, 113–129. ",
+            "Lana, X., M. D. Martinez, A. Burgueno, and C. Sorraa. 2008. Return period maps of dry spells for Catalonia. Hydrol. Sci. J., 53(1), 48–64. ",
+            "Lieblein, J., and M. Zelen. 1956. Statistical investigation of the fatigue life of deep-groove ball bearings. J. Res. Nat. Bureau Standards, 47, 273–316. ",
+            "Lloyd, N. S. 1967. Weibull probability paper. Ind. Qua. Control, 23, 452–453. ",
+            "McCool, J. I. 1998. Inference on the Weibull location parameter. J. Qual. Technol., 30, 119–126. ",
+            "Rockette, H., C. Antle, and L. A. Klimko. 1974. Maximum likelihood estimation with the Weibull model. J. Am. Stat. Assoc., 69(345), 246–249. ",
+            "Smith, R. L. 1985. Maximum likelihood estimation in a class of nonregular cases. Biometrika, 72(1), 67–90. ",
+            "Smith, R. L., and J. C. Naylor. 1987. A comparison of maximum likelihood and Bayesian estimators for the three-parameter Weibull distribution. J. R. Stat. Soc. Ser. C (Appl. Stat.), 36, 358–369. ",
+            "Thoman, D. R., L. J. Bain, and C. E. Antle. 1969. Inference on the parameters of the Weibull distribution. Technometrics, 11, 445–460. ",
+            "Weibull, W. 1951. A statistical distribution function of wide applicability. AMSE J. Appl. Mech., 18, 292–297. ",
+            "Zanakis, S. H. 1979. Extended pattern search with transformations for the three-parameter Weibull MLE problem. Manage. Sci., 25, 1149–1161. "
+        ],
+        "bbox": [
+            136,
+            91,
+            857,
+            626
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "header",
+        "text": "Estimators of the Weibull Distribution ",
+        "bbox": [
+            329,
+            59,
+            638,
+            75
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "page_number",
+        "text": "259 ",
+        "bbox": [
+            823,
+            59,
+            861,
+            73
+        ],
+        "page_idx": 21
+    }
+]
