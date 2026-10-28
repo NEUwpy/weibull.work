@@ -3,50 +3,22 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import vm from 'node:vm'
-import { createRequire } from 'node:module'
-import ts from 'typescript'
 import { isContentSlug, resolveContentFile } from '../../src/lib/server/content-files.ts'
 import { getMoonshotClient, hasMoonshotKey } from '../../src/lib/server/moonshot-client.ts'
+import { loadServerModule } from './helpers/load-server-module.mjs'
 
-const require = createRequire(import.meta.url)
-
-const storageSource = ts.transpileModule(fs.readFileSync('src/lib/server/literature.ts', 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
-}).outputText
-const storageModule = { exports: {} }
-vm.runInNewContext(storageSource, {
-  module: storageModule, exports: storageModule.exports, process, TextDecoder,
-  require: name => name === './content-files' ? { isContentSlug, resolveContentFile } : require(name),
-})
+const storage = loadServerModule('src/lib/server/literature.ts')
 
 // Exercise the actual handlers with Next's response objects, without starting a server.
 function loadRoute(relative, overrides = {}, globals = {}) {
-  const file = path.resolve(relative)
-  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
-  }).outputText
-  const module = { exports: {} }
   const dependencies = {
     '@/lib/server/content-files': { isContentSlug, resolveContentFile },
-    '@/lib/server/literature': storageModule.exports,
+    '@/lib/server/literature': storage,
     '@/lib/server/moonshot-client': { getMoonshotClient, hasMoonshotKey },
     '@/lib/config': { getApiBaseUrl: () => 'http://simulation.test' },
     ...overrides,
   }
-  vm.runInNewContext(source, {
-    exports: module.exports,
-    module,
-    require: name => dependencies[name] ?? require(name),
-    process,
-    URL,
-    TextDecoder,
-    TextEncoder,
-    ReadableStream,
-    console,
-    ...globals,
-  }, { filename: file })
-  return module.exports
+  return loadServerModule(relative, dependencies, globals)
 }
 
 test('content identifiers reject paths and permit existing literature names', () => {

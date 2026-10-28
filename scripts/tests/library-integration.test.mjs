@@ -3,28 +3,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import vm from 'node:vm'
 import { createRequire } from 'node:module'
-import ts from 'typescript'
-import { isContentSlug, resolveContentFile } from '../../src/lib/server/content-files.ts'
 import { exportLibrary, checkLibrary, importPapers } from '../library-data.mjs'
+import { loadServerModule as load } from './helpers/load-server-module.mjs'
 
 const require = createRequire(import.meta.url)
-function load(relative, overrides = {}) {
-  const source = ts.transpileModule(fs.readFileSync(relative, 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
-  }).outputText
-  const module = { exports: {} }
-  const dependencies = { './content-files': { isContentSlug, resolveContentFile },
-    '@/lib/server/content-files': { isContentSlug, resolveContentFile }, ...overrides }
-  vm.runInNewContext(source, { module, exports: module.exports,
-    require: name => dependencies[name] ?? require(name), process, console,
-    URL, TextDecoder, TextEncoder, ReadableStream, Uint8Array,
-    setTimeout: (...args) => { const timer = setTimeout(...args); timer.unref(); return timer },
-  }, { filename: relative })
-  return module.exports
-}
-
 function withFixture(run) {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-library-integration-'))
   const root = path.join(parent, 'library')

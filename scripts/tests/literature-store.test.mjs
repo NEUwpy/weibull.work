@@ -3,24 +3,10 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import vm from 'node:vm'
-import { createRequire } from 'node:module'
-import ts from 'typescript'
 import matter from 'gray-matter'
-import * as contentFiles from '../../src/lib/server/content-files.ts'
+import { loadServerModule } from './helpers/load-server-module.mjs'
 
-const require = createRequire(import.meta.url)
-const sourceFile = path.resolve('src/lib/server/literature.ts')
-const source = ts.transpileModule(fs.readFileSync(sourceFile, 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
-}).outputText
-const module = { exports: {} }
-vm.runInNewContext(source, {
-  exports: module.exports, module,
-  require: name => name === './content-files' ? contentFiles : require(name),
-  process, TextDecoder, console,
-}, { filename: sourceFile })
-const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readReferences, resolveLibraryAsset, LibraryConfigurationError } = module.exports
+const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readReferences, resolveLibraryAsset, LibraryConfigurationError } = loadServerModule('src/lib/server/literature.ts')
 
 function fixture(run) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-library-test-'))

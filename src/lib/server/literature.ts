@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
+import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -11,11 +12,12 @@ export class LibraryConfigurationError extends Error {
 }
 
 export interface LibraryPaths {
-  mode: 'embedded' | 'external'
+  mode: 'embedded' | 'external' | 'source'
   root: string
   contentDir: string
   assetsDir: string
   referencesFile: string
+  sourceIndex?: SourceIndex
 }
 
 export interface PaperMetadata {
@@ -83,6 +85,12 @@ export function getLibraryPaths(): LibraryPaths {
     const manifest = resolveEntry(root, ['library.json'], 'file')
     if (!manifest) throw new Error('缺少库内的 library.json')
     const descriptor = JSON.parse(fs.readFileSync(manifest, 'utf8'))
+    if (descriptor?.schema_version === 2 && descriptor.mode === 'source') {
+      const referencesFile = resolveEntry(root, ['references.json'], 'file')
+      if (!referencesFile) throw new Error('源库选择配置须提供 references.json，没有关系时使用 {}')
+      const sourceIndex = indexSourcePapers(descriptor.sources)
+      return { mode: 'source', root, contentDir: root, assetsDir: root, referencesFile, sourceIndex }
+    }
     if (!descriptor || Array.isArray(descriptor) || descriptor.schema_version !== 1) throw new Error('library.json 的 schema_version 必须为 1')
     const contentDir = resolveEntry(root, ['content'], 'directory')
     const assetsDir = resolveEntry(root, ['assets'], 'directory')
@@ -104,8 +112,18 @@ function readText(file: string): string {
   }
 }
 
+// The 100 rename record identifies the former website ID 144-003 as 171-003.
+// This compatibility applies only to source mode and never widens its selection.
+function canonicalSourceSlug(paths: LibraryPaths, slug: string): string {
+  return paths.sourceIndex && slug === '144-003' ? '171-003' : slug
+}
+
 function readFrom(paths: LibraryPaths, slug: string, type: string): string | null {
   if (!isContentSlug(slug) || (type !== '原文' && type !== '翻译')) return null
+  if (paths.sourceIndex) {
+    const paper = paths.sourceIndex.get(canonicalSourceSlug(paths, slug))
+    return paper ? sourceDocument(paper, type)?.raw ?? null : null
+  }
   const file = resolveContentFile(paths.contentDir, `${slug}-pdf${type}.md`)
   return file ? readText(file) : null
 }
@@ -129,7 +147,8 @@ export function listPapers(): PaperMetadata[] {
   const paths = getLibraryPaths()
   if (!fs.existsSync(paths.contentDir)) return []
   const slugs = new Set<string>()
-  for (const file of fs.readdirSync(paths.contentDir)) {
+  if (paths.sourceIndex) for (const slug of Array.from(paths.sourceIndex.keys())) slugs.add(slug)
+  else for (const file of fs.readdirSync(paths.contentDir)) {
     const match = /^(.*)-pdf(?:原文|翻译)\.md$/.exec(file)
     if (match && isContentSlug(match[1])) slugs.add(match[1])
   }
@@ -152,6 +171,8 @@ export function listPapers(): PaperMetadata[] {
 export function readReferences(slug: string): Record<string, string> {
   const paths = getLibraryPaths()
   if (!isContentSlug(slug)) return {}
+  slug = canonicalSourceSlug(paths, slug)
+  if (paths.sourceIndex && !paths.sourceIndex.has(slug)) return {}
   const referencesFile = resolveEntry(path.dirname(paths.referencesFile), [path.basename(paths.referencesFile)], 'file')
   if (!referencesFile) {
     if (paths.mode === 'external') throw new LibraryConfigurationError('无法读取 references.json')
@@ -160,10 +181,14 @@ export function readReferences(slug: string): Record<string, string> {
   try {
     const references = JSON.parse(fs.readFileSync(referencesFile, 'utf8'))
     if (!references || typeof references !== 'object' || Array.isArray(references)) throw new Error('应为文献编号到引用关系的对象')
-    const entries = Object.hasOwn(references, slug) ? references[slug] : undefined
+    // Accept the old source key for existing reference tables, with canonical entries preferred.
+    const key = paths.sourceIndex && slug === '171-003' && !Object.hasOwn(references, slug) ? '144-003' : slug
+    const entries = Object.hasOwn(references, key) ? references[key] : undefined
     if (entries === undefined) return {}
     if (!entries || typeof entries !== 'object' || Array.isArray(entries) || Object.values(entries).some(value => typeof value !== 'string')) throw new Error('引用关系应为字符串键值对象')
-    return entries
+    return paths.sourceIndex ? Object.fromEntries(Object.entries(entries as Record<string, string>)
+      .map(([number, target]) => [number, canonicalSourceSlug(paths, target)])
+      .filter(([, target]) => paths.sourceIndex!.has(target))) : entries
   } catch (error) {
     throw new LibraryConfigurationError(`references.json 格式无效：${(error as Error).message}`)
   }
@@ -183,6 +208,11 @@ export function resolveLibraryAsset(segments: string[]): { path: string; content
   if (!isContentSlug(slug)) return null
   const contentType = assetTypes[path.extname(segments[segments.length - 1]).toLowerCase()]
   if (!contentType) return null
+  if (paths.sourceIndex) {
+    const paper = paths.sourceIndex.get(canonicalSourceSlug(paths, slug))
+    const file = paper ? sourceAsset(paper, segments.slice(1)) : null
+    return file ? { path: file, contentType } : null
+  }
   const file = resolveEntry(paths.assetsDir, segments, 'file')
   return file ? { path: file, contentType } : null
 }
