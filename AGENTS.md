@@ -4,4 +4,6 @@
 
 自动读取 `AGENTS.md` 的工具请立即转到 `README.md`，不要把本文件当作独立规则来源。
 
+文献维护的执行入口见 [`docs/library/AGENTS.md`](docs/library/AGENTS.md)，格式与示例仍集中在文献库 README。
+
 旧版完整内容已归档到 `docs/history/2026-06-25-AGENTS入口旧版归档.md`。

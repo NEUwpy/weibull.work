@@ -1,12 +1,41 @@
 # 可靠性图书馆
 
-本机资料库为 `D:\weibull-data\literature`。文献独立保存，Weibull 网站负责读取、展示和问答取材；新增资料无需提交软件 Git 或重建网站。
+当前本机仍使用 v1 副本库 `D:\weibull-data\literature`。Weibull 网站负责读取、展示和问答取材；资料与程序分别保存、备份。本文同时记录已确认的目标及尚未切换的部分。
 
-## 存放结构
+AI 维护先读 [AGENTS.md](AGENTS.md)；Hermes 的 `upload-to-weibull` 适用于当前 v1 副本导入，源库对齐和 JSON 直读任务按本页执行，不套用复制发布流程。`process-inbox` 仍负责博士源库入库。
+
+## 目标：JSON 书票与一份源正文
+
+软件 Git 保存程序、规范、必要产品样例及轻量 JSON 书票。书票记录编号、公开题录和来源定位；新批量蒙特卡洛数据外置，不进入软件或科研 Git。
+
+论文正文和图片统一在 `D:\博士阶段\100科研文献管理\100科研文献管理`，书籍另设资料位置（路径待定）。既有论文以当前网站已校对版为迁移基线，先将正文、公式、图片、引用和格式修订对齐回 100，链接还原为源库可用的相对路径；保留原始 PDF。对齐验收后，网站直接读取这一份源正文，不再长期维护全文发布副本。网站题录在 JSON 维护；机器路径配置留在本机，不提交凭证或私密笔记。
+
+直读原型仅位于软件仓隔离分支 `codex/source-library-proof-20261028`，`WEIBULL_LIBRARY_ROOT` 指向包含 `library.json` 和 `references.json` 的配置目录。v2 示例：
+
+```json
+{
+  "schema_version": 2,
+  "mode": "source",
+  "sources": [{
+    "root": "D:/博士阶段/100科研文献管理/100科研文献管理",
+    "papers": [{"id": "182-046", "metadata": {
+      "title": "论文实际标题", "author": "实际作者", "year": 2025,
+      "type": "期刊", "tags": ["参数估计"], "summary": "核实后的摘要"
+    }}]
+  }]
+}
+```
+
+`metadata` 使用下节网站字段，优先于原译文 YAML 与笔记题录，未填字段兼容原资料；缺有效标题或年份会报错。源文件沿用 `<编号>-pdf原文.md`、`<编号>-pdf翻译.md`、`<编号>-图片/`，至少一份正文；只读选中编号及对应资源，历史目录不参与选篇，多个活动目录不猜版本。图片相对路径在读取时转换，私人笔记正文不公开。JSON 暂为文件编辑，尚无可视化表单。
+
+**状态**：原型验证了7篇、13份原译文、105个配图地址，78项测试和构建通过，400个相关源文件哈希未变；正文质量差异仍待逐篇对齐。证据在 `D:\weibull-backups\source-library-prototype-20261028`。原型未合入日常 main，100 未批量回写，NAS 未切换，现有 v1 库及内置回退资料保留。NAS 须能访问源资料并配置只读挂载，本机 D 盘不会自动可见。v2 不使用下文仅适用 v1 的 `import/check`。
+
+## 当前 v1 存放结构
 
 ```text
 literature/
 ├── README.md
+├── AGENTS.md                    AI 操作边界与验收要求
 ├── library.json                 内容为 {"schema_version":1}
 ├── references.json              跨文献引用映射，没有则为 {}
 ├── content/182-046-pdf原文.md
@@ -16,7 +45,7 @@ literature/
 
 沿用博士文献编号，不因分类或移动而重编。正文直接放 `content/`，命名为 `<编号>-pdf原文.md` 或 `<编号>-pdf翻译.md`，至少一份；两份都有时默认读译文，元数据也优先取译文。网站地址为 `/library/<编号>`。
 
-## 文献格式与示例
+## 网站字段、正文格式与 v1 示例
 
 使用 UTF-8 Markdown，顶部加 YAML 表头。以下示例需替换为真实信息；原译文的作者、年份等身份信息保持一致。
 
@@ -47,7 +76,7 @@ summary: "论文摘要或简述"
 
 参考文献放全文末尾，以 `## 参考文献` 或 `## References` 开始，每条一行，以 `[数字]` 开头。作者—年份制需核对对应关系后再转号，不能猜测。跨文章跳转写在库根 `references.json`，如 `{"182-046":{"1":"182-088"}}`，表示前者第 1 条引用指向已入库的后者；没有映射时条目仍可显示，不自动按题名或 DOI 匹配。
 
-## 整理、导入与读取
+## 当前 v1 整理、导入与读取
 
 从“博士阶段 100”选择确定版本，复制到独立批次目录，在副本上补表头、调整图片网址并核对正文；源文件不改。批次根直接放原文和/或译文及 `<编号>-图片/`，不套 `content/`、`assets/` 层，不混入历史副本或 OCR 中间文件。然后运行：
 
@@ -60,4 +89,4 @@ node D:\weibull\scripts\library-data.mjs check --root D:\weibull-data\literature
 
 软件本地 `.env.local` 配置 `WEIBULL_LIBRARY_ROOT=D:/weibull-data/literature`，切换路径后重启前端；取消该配置及同名进程环境变量后重启则使用保留的内置库。NAS 使用其自身资料路径和软件的 `docker-compose.library.yml` 只读挂载，本机资料不会自动同步，线上尚未切换。
 
-读取实现参照软件仓 `src/lib/server/literature.ts`，导入工具参照 `scripts/library-data.mjs`；本 README 的版本源为 `docs/library/README.md`。资料备份统一放 `D:\weibull-backups`，库内 `export-manifest.json` 仅记录初次导出，不代替后续备份。
+读取实现参照软件仓 `src/lib/server/literature.ts`，导入工具参照 `scripts/library-data.mjs`；本 README 与 AGENTS.md 的版本源为软件仓 `docs/library/`，两文件一起同步到资料库根。资料备份统一放 `D:\weibull-backups`，库内 `export-manifest.json` 仅记录初次导出，不代替后续备份。

@@ -14,20 +14,22 @@
 
 ## 当前状态快照
 
-> **软件状态更新**: 2026-10-27 · 以本节为软件当前状态权威；研究进度由科研仓维护。
+> **软件状态更新**: 2026-10-28 · 以本节为软件当前状态权威；研究进度由科研仓维护。
 
 **当前开发版本**：[v4.0.0](08-更新日志.md)（2026-10-27）。这是软件与科研分仓后，以软件现状态建立的开发基线；统一包元数据与页面版本标识。本次基线整理不改变算法或已有研究结果，尚未部署。v3.00 及其后已经完成的方法更新均包含在此基线中，原更新记录保留。
 
 **双仓职责（2026-10-27）**：本仓维护网站、API、公共算法、统一蒙特卡洛流程和产品资源；Study、Research、论文与研究专用程序已迁至私有[科研仓 `weibull-research`](https://github.com/NEUwpy/weibull-research)。
 
-**外挂文献库**：本机使用 `D:\weibull-data\literature`，网站通过 `WEIBULL_LIBRARY_ROOT` 读取，新增资料刷新即可显示。目录、文献格式、示例及导入配置统一见[文献库 README](docs/library/README.md)。内置资料保留作回退，NAS 线上尚未切换；[切换记录](coworker/plans/2026-10-27-external-literature.md)。
+**资料与数据边界（2026-10-28）**：软件仓保存程序、规范、必要产品样例及 JSON“书票”（题录与来源定位）。新批量蒙特卡洛结果放独立数据目录，不进入软件或科研 Git；科研仓保存实验程序、配置、结果摘要与数据身份。论文正文和图片统一在博士阶段 100 文献库维护，书籍另存（路径待定），网站按书票读取，避免长期维护两份全文。已有论文以当前网站已校对版为迁移基线，先将正文、公式、配图、引用和格式修订对齐回 100，再启用直读；原始 PDF 保留。详见[文献库 README](docs/library/README.md)和[架构决策 AD-14](06-A-架构决策.md)。
+
+**当前文献状态**：日常仍使用 v1 外挂库 `D:\weibull-data\literature`，由 `WEIBULL_LIBRARY_ROOT` 读取；内置资料保留作回退，NAS 线上尚未切换。[原切换记录](coworker/plans/2026-10-27-external-literature.md)保留。JSON 书票直读原型在隔离分支 `codex/source-library-proof-20261028` 验证：7 篇、13 份原译文、105 个配图地址、78 项测试及构建通过；源稿质量差异仍待对齐，原型未合入日常 main，尚无可视化录入表单。试验记录位于 `D:\weibull-backups\source-library-prototype-20261028`。
 
 | 日常工作 | 本机目录与入口 |
 |---|---|
 | 网站、API、共享算法、产品模型与展示资源 | `D:\weibull`，本 README |
 | 课题、实验、训练、论文、科研测试与证据 | `D:\weibull-research`，[科研 README](https://github.com/NEUwpy/weibull-research#readme) |
 
-科研仓通过 `research.py setup / doctor / run` 集中选择软件路径，直接导入本仓 `python/` 源码，无需启动网站。共享入口是 `methods` 与 `studies.common`；科研的模型和输出写在科研目录。正式实验同时保存两仓提交号、dirty 状态及配置和数据身份；冻结实现与历史结果按原版本使用。新方法在科研仓验证，通过明确的代码或模型交付进入软件仓。
+科研仓通过 `research.py setup / doctor / run` 集中选择软件路径，直接导入本仓 `python/` 源码，无需启动网站。共享入口是 `methods` 与 `studies.common`；科研仓管理专用程序、必要摘要及模型/数据身份，新批量实验输出按科研 README 写入独立数据目录，既有冻结结果保持原路径。正式实验同时保存两仓提交号、dirty 状态及配置和数据身份；冻结实现与历史结果按原版本使用。新方法在科研仓验证，通过明确的代码或模型交付进入软件仓。
 
 软件仓继续使用 [NEUwpy/weibull.work](https://github.com/NEUwpy/weibull.work)，新历史从无父提交的 `v4.0.0`（`6147387f`）开始。完整旧本地 Git 历史已封存至 `D:\weibull-backups\pre-v4.0-20261027\weibull-history.git`；旧公开 GitHub 仓库已改名为 [weibull.work-history-pre-v4-20261027](https://github.com/NEUwpy/weibull.work-history-pre-v4-20261027)并归档，只保留其原有公开历史。未公开的本地旧科研提交保存在本机封存中。所有备份与迁移恢复副本统一放在 `D:\weibull-backups`，使用与恢复步骤见 [v4.0 基线记录](coworker/plans/2026-10-27-v4-baseline.md)。旧 worktree 及历史文档仅用于恢复或追溯。当前科研工作只在科研仓继续，已迁出的 Study/Research 不作为实时镜像维护。
 
@@ -92,7 +94,7 @@
 | `01-A-数据模型与接口.md` | 数据模型、API 端点、渲染管线 | 权威源 |
 | `02-A-适用范围规范.md` | 适用范围模块的分片命名、组件结构 | 专题规范 |
 | `02-B-可信性验证规范.md` | 验证配置格式、组件架构 | 专题规范 |
-| `docs/library/README.md` | 文献库结构、格式示例、导入与配置；外部资料库携带同版 README | 专题规范 |
+| `docs/library/README.md` | 文献库结构、格式示例、导入与配置；AI 执行入口为同目录 `AGENTS.md`；两文件随资料库保存 | 专题规范 |
 | `03-维护.md` | 部署流程、日常维护、故障排查 | 运维手册 |
 | `07-用户手册.md` | 面向终端用户的使用说明 | 用户文档 |
 | `08-更新日志.md` | 版本更新条目（只记事实，不做当前状态判断） | 日志 |
