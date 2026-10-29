@@ -11,6 +11,7 @@ export interface SourcePaper {
   translation?: string
   note?: string
   catalog?: Record<string, any>
+  assetDirectory?: string
 }
 
 export type SourceIndex = Map<string, SourcePaper>
@@ -45,6 +46,12 @@ export function indexSourcePapers(sources: unknown): SourceIndex {
     })
     const root = fs.realpathSync(source.root)
     if (!fs.statSync(root).isDirectory()) throw new Error('源资料 root 必须为目录')
+    if (source.layout !== undefined && source.layout !== 'v1') throw new Error('不支持的资料目录 layout')
+    // Explicitly retained website books use the preserved content/assets
+    // layout. This is a selected source, never an implicit library fallback.
+    const contentRoot = source.layout === 'v1' ? fs.realpathSync(path.join(root, 'content')) : root
+    const assetsRoot = source.layout === 'v1' ? fs.realpathSync(path.join(root, 'assets')) : undefined
+    if (!within(root, contentRoot) || (assetsRoot && !within(root, assetsRoot))) throw new Error('资料目录越过根目录')
     const selected = new Set<string>(entries.map((item: { id: string }) => item.id))
     if (selected.size !== entries.length) throw new Error('选用编号重复')
     for (const id of Array.from(selected)) if (index.has(id)) throw new Error(`选用编号重复：${id}`)
@@ -61,7 +68,8 @@ export function indexSourcePapers(sources: unknown): SourceIndex {
         if (!entry.isFile() || !match || !selected.has(match[1])) continue
         const real = fs.realpathSync(file)
         if (!within(root, real)) throw new Error('源文献越过资料根目录')
-        const paper = found.get(match[1]) ?? { id: match[1], root, directory }
+        const paper: SourcePaper = found.get(match[1]) ?? { id: match[1], root, directory,
+          ...(assetsRoot ? { assetDirectory: path.join(assetsRoot, `${match[1]}-图片`) } : {}) }
         if (paper.directory !== directory) throw new Error(`源文献存在多个目录，需先确认版本：${paper.id}`)
         const key = match[2] === 'pdf原文' ? 'original' : match[2] === 'pdf翻译' ? 'translation' : 'note'
         if (paper[key]) throw new Error(`源文献存在多个版本：${paper.id}`)
@@ -69,7 +77,7 @@ export function indexSourcePapers(sources: unknown): SourceIndex {
         found.set(paper.id, paper)
       }
     }
-    walk(root)
+    walk(contentRoot)
     for (const id of Array.from(selected)) {
       const paper = found.get(id)
       if (!paper || (!paper.original && !paper.translation)) throw new Error(`选用文献没有可读原译文：${id}`)
@@ -90,8 +98,8 @@ function readText(file: string): string {
 export function sourceAsset(paper: SourcePaper, segments: string[]): string | null {
   if (!segments.length || segments.some(s => !s || s === '.' || s === '..' || /[/\\:\x00-\x1f\x7f]/.test(s))) return null
   try {
-    const assetRoot = path.join(paper.directory, `${paper.id}-图片`)
-    if (!fs.readdirSync(paper.directory).includes(`${paper.id}-图片`)) return null
+    const assetRoot = paper.assetDirectory ?? path.join(paper.directory, `${paper.id}-图片`)
+    if (!fs.readdirSync(path.dirname(assetRoot)).includes(path.basename(assetRoot))) return null
     const realRoot = fs.realpathSync(assetRoot)
     if (!within(paper.root, realRoot)) return null
     let current = realRoot

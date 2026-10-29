@@ -15,6 +15,26 @@ const noteData = {
   文献类型: '期刊', 出版简称: 'RESS', 关键词: ['Weibull', 'MDM', 'MDM'], 关联方法: 'mdm',
 }
 
+test('explicit retained v1 book source joins the source selection without exposing unselected neighbours', () => withSource(({ workspace, root, descriptor }) => {
+  const books = path.join(workspace, 'preserved-books')
+  const book = '421-001'
+  const raw = matter.stringify('# Preserved corrected book\n\n![Figure](/421-001-图片/one.png)\n', {
+    title: 'Preserved book', year: 2006, author: 'Author', type: '书籍', tags: [],
+  })
+  write(path.join(books, 'content', `${book}-pdf原文.md`), raw)
+  write(path.join(books, 'content', '421-999-pdf原文.md'), raw)
+  write(path.join(books, 'assets', `${book}-图片`, 'one.png'), 'book image')
+  write(path.join(books, 'assets', '421-999-图片', 'one.png'), 'private neighbour')
+  descriptor.sources.push({ root: books, layout: 'v1', papers: [book] })
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.ok(listPapers().some(paper => paper.slug === book && paper.type === '书籍'))
+  assert.equal(matter(readPaper(book, '原文')).content, matter(raw).content)
+  assert.equal(fs.readFileSync(resolveLibraryAsset([`${book}-图片`, 'one.png']).path, 'utf8'), 'book image')
+  assert.equal(readPaper('421-999', '原文'), null)
+  assert.equal(resolveLibraryAsset(['421-999-图片', 'one.png']), null)
+  assert.equal(resolveLibraryAsset([`${book}-图片`, '..', 'content']), null)
+}))
+
 function write(file, text) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text)
