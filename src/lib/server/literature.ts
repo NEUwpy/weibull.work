@@ -3,7 +3,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
-import { readSourceReferenceIndex, type ReferenceIndexLocation } from './reference-index'
+import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -27,6 +27,7 @@ export interface PaperMetadata {
   title: string
   title_en?: string
   author: string
+  doi?: string
   affiliation?: string
   publication?: string
   short_publication?: string
@@ -162,6 +163,7 @@ export function listPapers(): PaperMetadata[] {
     if (match && isContentSlug(match[1])) slugs.add(match[1])
   }
   const papers: PaperMetadata[] = []
+  const sourceDois = paths.referenceIndex && paths.sourceIndex ? readSourceSearchDois(paths.referenceIndex, paths.sourceIndex) : new Map<string, string>()
   for (const slug of Array.from(slugs)) {
     const paper = preferredFrom(paths, slug)
     if (!paper?.metadata.title) continue
@@ -169,6 +171,7 @@ export function listPapers(): PaperMetadata[] {
     papers.push({
       slug, title: data.title, title_en: data.title_en,
       author: data.author || 'Unknown', affiliation: data.affiliation,
+      doi: (typeof data.doi === 'string' ? data.doi : undefined) || sourceDois.get(slug),
       publication: data.publication, short_publication: data.short_publication,
       type: data.type || '文献', year: data.year || new Date().getFullYear(),
       tags: data.tags || [], summary: data.summary || '', related_method_id: data.related_method_id,

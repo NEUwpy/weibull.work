@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { BookOpen, FileText, Filter, Book, User } from 'lucide-react'
+import { FileText, Book, User, Search } from 'lucide-react'
+import { createLiteratureIndex } from '@/lib/literature-search.mjs'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
 
@@ -12,6 +13,7 @@ type PaperMetadata = {
   title: string
   title_en?: string
   author: string
+  doi?: string
   affiliation?: string
   publication?: string
   short_publication?: string
@@ -30,12 +32,15 @@ interface LibraryPageClientProps {
 
 export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [query, setQuery] = useState('')
+  const searchIndex = useMemo(() => createLiteratureIndex(papers), [papers])
 
   // Filter papers based on type
-  const filteredPapers = useMemo(() => {
-    if (typeFilter === 'all') return papers
+  const filteredPapers = useMemo<PaperMetadata[]>(() => {
+    const matches = (searchIndex.search(query) as {record:PaperMetadata}[]).map(hit => hit.record)
+    if (typeFilter === 'all') return matches
 
-    return papers.filter(paper => {
+    return matches.filter(paper => {
       const paperType = paper.type || '其它'
       if (typeFilter === 'book') {
         return paperType === '书籍'
@@ -44,7 +49,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       }
       return true
     })
-  }, [papers, typeFilter])
+  }, [searchIndex, query, typeFilter])
 
   return (
     <main className="flex-1 bg-neutral-50 min-h-screen">
@@ -52,6 +57,14 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
         {/* AI Chat Dialog */}
         <ChatDialog papers={papers} />
+
+        <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3">
+          <Search size={19} className="shrink-0 text-slate-400" />
+          <input type="search" aria-label="搜索文献" value={query} onChange={event => setQuery(event.target.value)}
+            placeholder="搜索题名、作者、DOI、编号…"
+            className="min-w-0 flex-1 bg-transparent py-1 text-sm text-slate-700 outline-none" />
+          {query.trim() && <span role="status" className="shrink-0 text-sm text-slate-500">{filteredPapers.length} 项</span>}
+        </label>
 
         {/* Type Filter Header */}
         <div className="flex items-center justify-between">
@@ -134,6 +147,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
                     <User size={13} className="text-slate-400 shrink-0" />
                     {paper.author}
                   </p>
+                  {paper.doi && <p className="break-all font-mono text-xs text-slate-400">DOI: {paper.doi}</p>}
 
                   {/* Summary - justified */}
                   <p className="text-sm text-slate-600 leading-relaxed text-justify">

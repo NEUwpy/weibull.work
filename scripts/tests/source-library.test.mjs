@@ -24,8 +24,8 @@ test('derived cross-paper references are versioned, selected and content-bound',
   write(target, '# Target\n')
   const indexFile = path.join(source, '110', 'references.json')
   descriptor.reference_index = { root: source, file: '110/references.json' }
-  descriptor.sources[0].papers.push(other)
-  const targetInfo = { id: other, directory: relative(directory), path: relative(target), sha256: hash(target) }
+  descriptor.sources[0].papers.push({ id:other, metadata:{title:'Target',year:2024,author:'Target Author',tags:[]} })
+  const targetInfo = { id: other, directory: relative(directory), path: relative(target), sha256: hash(target), doi:'10.1000/selected-target' }
   const index = { schema_version: 1, root: source,
     targets: { target: targetInfo, private: { ...targetInfo, id: '182-999' } },
     documents: {
@@ -34,12 +34,15 @@ test('derived cross-paper references are versioned, selected and content-bound',
     } }
   write(indexFile, JSON.stringify(index))
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.equal(listPapers().find(paper => paper.slug === other).doi, '10.1000/selected-target')
+  assert.equal(listPapers().some(paper => paper.slug === '182-999'), false)
   assert.equal(JSON.stringify(readReferences(id, '原文')), JSON.stringify({ 1: other }))
   assert.equal(JSON.stringify(readReferences(id, '翻译')), JSON.stringify({ 9: other }))
   write(original, '# Changed source\n')
   // No stale-number fallback to the legacy table, even though that table still exists.
   assert.equal(JSON.stringify(readReferences(id, '原文')), '{}')
   write(target, '# Changed target\n')
+  assert.equal(listPapers().find(paper => paper.slug === other).doi, undefined)
   assert.equal(JSON.stringify(readReferences(id, '翻译')), '{}')
   write(indexFile, 'broken JSON')
   assert.equal(JSON.stringify(readReferences(id)), '{}')
