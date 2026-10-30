@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([switch]$InstallShortcut)
 
 $ErrorActionPreference = 'Stop'
@@ -57,4 +57,11 @@ if ($InstallShortcut) {
     $shortcut.IconLocation = "$iconPath,0"
     $shortcut.Save()
     Write-Host "已创建桌面快捷方式：$shortcutPath"
+
+    # Keep an existing legacy desktop EXE in sync, so both old entry points work.
+    $legacyDesktopLauncher = Join-Path $desktopDirectory 'Weibull本地启动器.exe'
+    if (Test-Path -LiteralPath $legacyDesktopLauncher) {
+        Copy-Item -LiteralPath $outputPath -Destination $legacyDesktopLauncher -Force
+        Write-Host "已更新桌面旧启动器：$legacyDesktopLauncher"
+    }
 }

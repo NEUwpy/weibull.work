@@ -12,7 +12,7 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("启动本地 Weibull 前后端并打开默认浏览器")]
 [assembly: AssemblyCompany("weibull.work")]
 [assembly: AssemblyProduct("Weibull Local Launcher")]
-[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.1.1.0")]
 
 internal static class WeibullLocalLauncher
 {
@@ -54,10 +54,18 @@ internal static class WeibullLocalLauncher
                 string logDirectory = Path.Combine(projectRoot, "logs");
                 Directory.CreateDirectory(logDirectory);
                 launcherLog = Path.Combine(logDirectory, "local-launcher.log");
-                SetStatus("正在检查本地调试环境…");
+                SetStatus("正在检查本地调试环境…\n项目：" + projectRoot);
 
                 bool backendReady = IsBackendReady();
-                bool frontendReady = IsFrontendReady();
+                FrontendStatus frontendStatus = GetFrontendStatus();
+                bool frontendReady = frontendStatus == FrontendStatus.Development;
+
+                if (frontendStatus == FrontendStatus.ProductionPreview)
+                {
+                    throw new InvalidOperationException(
+                        "3000 端口运行的是 Weibull 生产预览，不是开发调试服务，修改源码不会自动更新。\n\n" +
+                        "请先关闭该项目的生产预览（npm run start / next start），再双击 Weibull调试。启动器不会结束其他程序。");
+                }
 
                 if (!backendReady)
                 {
@@ -215,26 +223,46 @@ internal static class WeibullLocalLauncher
 
     private static bool IsFrontendReady()
     {
-        return ResponseContains(FrontendUrl, "Weibull Calculator");
+        return GetFrontendStatus() == FrontendStatus.Development;
     }
 
-    private static bool ResponseContains(string url, string expectedText)
+    private static FrontendStatus GetFrontendStatus()
+    {
+        // Use one response: a compile finishing between two probes must not look like production.
+        string body = ReadResponseBody(FrontendUrl);
+        if (body.IndexOf("Weibull Calculator", StringComparison.OrdinalIgnoreCase) < 0)
+            return FrontendStatus.NotReady;
+        return body.IndexOf("/_next/static/chunks/webpack.js", StringComparison.OrdinalIgnoreCase) >= 0
+            ? FrontendStatus.Development : FrontendStatus.ProductionPreview;
+    }
+
+    private static bool ResponseContains(string url, params string[] expectedTexts)
+    {
+        string body = ReadResponseBody(url);
+        foreach (string expectedText in expectedTexts)
+        {
+            if (body.IndexOf(expectedText, StringComparison.OrdinalIgnoreCase) < 0) return false;
+        }
+        return true;
+    }
+
+    private static string ReadResponseBody(string url)
     {
         try
         {
             var request = (HttpWebRequest)WebRequest.Create(url);
             request.Timeout = 1000;
             request.ReadWriteTimeout = 1000;
-            request.UserAgent = "WeibullLocalLauncher/1.0";
+            request.UserAgent = "WeibullLocalLauncher/1.1.1";
             using (var response = (HttpWebResponse)request.GetResponse())
             using (var reader = new StreamReader(response.GetResponseStream()))
             {
-                return reader.ReadToEnd().IndexOf(expectedText, StringComparison.OrdinalIgnoreCase) >= 0;
+                return reader.ReadToEnd();
             }
         }
         catch
         {
-            return false;
+            return string.Empty;
         }
     }
 
@@ -401,4 +429,6 @@ internal static class WeibullLocalLauncher
         public string Executable { get; private set; }
         public string ArgumentPrefix { get; private set; }
     }
+
+    private enum FrontendStatus { NotReady, Development, ProductionPreview }
 }
