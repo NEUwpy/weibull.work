@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css'
 import '@/components/library/responsive.css'
 import { cn } from '@/lib/utils'
 import { processLibraryContent, getLibraryMarkdownOptions, getLibraryReferenceMarkdownOptions } from '@/lib/library-markdown'
+import { readLibrarySearchHighlight, rehypeLibrarySearchHighlights, type LibrarySearchHighlight } from '@/lib/library-search-highlight'
 
 
 // Helper to render text with inline math for TOC
@@ -44,10 +45,6 @@ async function fetchFile(slug: string, type: '翻译' | '原文') {
   return response.text()
 }
 
-function clearPassageTarget() {
-  document.querySelectorAll('.library-reader [data-library-target]').forEach(node => node.removeAttribute('data-library-target'))
-}
-
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [version, setVersion] = useState<'翻译' | '原文'>('翻译')
   const [versionReady, setVersionReady] = useState(false)
@@ -56,6 +53,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [hasOriginal, setHasOriginal] = useState(false)
   const [references, setReferences] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+  const [highlight, setHighlight] = useState<LibrarySearchHighlight>({ passageId: '', terms: [] })
 
   const slug = params.slug
 
@@ -70,12 +68,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   }, [slug])
 
   function chooseVersion(next: '翻译' | '原文') {
-    clearPassageTarget()
+    setHighlight({ passageId: '', terms: [] })
     setVersion(next)
     const url = new URL(window.location.href)
     url.searchParams.set('version', next)
     // A passage anchor belongs to one version; discard it when switching.
     if (url.hash.startsWith('#passage-')) url.hash = ''
+    url.searchParams.delete('highlight')
     window.history.replaceState(window.history.state, '', url)
   }
 
@@ -117,17 +116,18 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   useEffect(() => {
     if (loading || !fileContent) return
     function scrollToTarget() {
-      clearPassageTarget()
+      const next = readLibrarySearchHighlight(window.location.search, window.location.hash)
+      setHighlight(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
       let id = ''
       try { id = decodeURIComponent(window.location.hash.slice(1)) } catch { return }
       const target = id ? document.getElementById(id) : null
-      if (target?.id.startsWith('passage-')) target.setAttribute('data-library-target', 'true')
       target?.scrollIntoView({ block: 'start' })
     }
     const frame = requestAnimationFrame(scrollToTarget)
     const settle = window.setTimeout(scrollToTarget, 350)
     window.addEventListener('hashchange', scrollToTarget)
-    return () => { cancelAnimationFrame(frame); clearTimeout(settle); window.removeEventListener('hashchange', scrollToTarget); clearPassageTarget() }
+    window.addEventListener('popstate', scrollToTarget)
+    return () => { cancelAnimationFrame(frame); clearTimeout(settle); window.removeEventListener('hashchange', scrollToTarget); window.removeEventListener('popstate', scrollToTarget); setHighlight({ passageId: '', terms: [] }) }
   }, [loading, fileContent, slug, version])
 
   if (loading) return <div className="p-20 text-center text-slate-400">正在加载文献...</div>
@@ -136,6 +136,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   const processed = processLibraryContent(fileContent)
   const { frontmatter, body, referenceTitle, referenceEntries, headings: rawToc } = processed
+  const markdownOptions = getLibraryMarkdownOptions(processed)
 
   // Normalize TOC levels: Shift so the top-most heading starts at level 1
   const minLevel = rawToc.length > 0 ? Math.min(...rawToc.map(h => h.level)) : 1
@@ -240,7 +241,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         <div className="flex-1 min-w-0">
           <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
             <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-white prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
-              <Markdown {...getLibraryMarkdownOptions(processed)}>
+              <Markdown {...markdownOptions} rehypePlugins={[...markdownOptions.rehypePlugins, [rehypeLibrarySearchHighlights, highlight]]}>
                 {body}
               </Markdown>
             </article>
