@@ -149,10 +149,10 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   return (
     <main className="library-page flex-1 bg-neutral-50 min-h-screen">
-      <div className="page-shell w-full max-w-[92%] xl:max-w-[1600px] mx-auto pl-[4.5rem] pr-[3rem] py-16 space-y-12">
+      <div className="library-page-shell page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto py-16 space-y-12">
 
         <div className="space-y-3">
-          <form onSubmit={submitSearch} className="library-search-form flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 pl-5 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
+          <form onSubmit={submitSearch} className="library-search-form flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
             <Search size={21} className="library-search-icon shrink-0 text-slate-400" />
             <textarea ref={searchInput} aria-label="搜索文献" rows={1} maxLength={2000} value={draftQuery} onChange={event => setDraftQuery(event.target.value)}
               onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }}

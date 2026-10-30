@@ -52,29 +52,33 @@ test('semantic screening can select no evidence and cannot introduce a new sourc
   assert.throws(() => orderEvidenceCandidates(candidates, null), /Invalid evidence/)
 })
 
-function chatRoute({ results = [hit(10)], brokenExpansion = false, failAnswer = false } = {}) {
+function chatRoute({ results = [hit(10)], brokenExpansion = false, failAnswer = false, screeningContent, answerError } = {}) {
   const calls = []
   const searches = []
+  const diagnostics = []
+  const records = []
   const client = { chat: { completions: { create: async (params, options) => {
     calls.push({ params, signal: options.signal })
     if (!params.stream) {
-      if (params.messages[0].content.startsWith('你筛选')) return { choices: [{ message: { content: JSON.stringify({ ranked_ids: results.map(item => item.id) }) } }] }
+      if (params.messages[0].content.startsWith('你筛选')) return { choices: [{ message: { content: screeningContent ?? JSON.stringify({ ranked_ids: results.map(item => item.id) }) } }] }
       if (brokenExpansion) throw new Error('expansion fixture failure')
       return { choices: [{ message: { content: JSON.stringify({ queries: ['Weibull maximum likelihood', '三参数 极大似然'] }) } }] }
     }
+    if (answerError) throw answerError
     if (failAnswer) throw Object.assign(new Error('DO NOT ECHO SECRET FIXTURE'), { status: 401 })
     return (async function* () { yield { choices: [{ delta: { content: '结论参见[1](/library/182-001?version=原文#passage-10)。' } }] } })()
   } } } }
   const route = loadServerModule('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record: (event, details) => records.push({event, ...details}), flush: async () => {} }) },
     '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
       getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },
     '@/lib/server/library-search': { searchLibrary: (query) => { searches.push(query); return { results } }, enrichLibrarySearchHits: hits => hits },
-  })
-  return { route, calls, searches }
+  }, { console: { warn: (...args) => diagnostics.push(args), error: (...args) => diagnostics.push(args) } })
+  return { route, calls, searches, diagnostics, records }
 }
 
 test('chat retrieves server-side evidence and streams the supplied sources on the same response', async () => {
-  const { route, calls, searches } = chatRoute()
+  const { route, calls, searches, records } = chatRoute()
   const response = await route.POST({ json: async () => ({ question: '什么是极大似然？', papers: [{ slug: 'private-injected' }] }) })
   const text = await response.text()
   assert.equal(response.status, 200)
@@ -88,6 +92,10 @@ test('chat retrieves server-side evidence and streams the supplied sources on th
   assert.ok(calls[2].params.messages[1].content.includes('这是正文证据'))
   assert.ok(!calls[2].params.messages[1].content.includes('private-injected'))
   assert.equal(calls[2].params.thinking.type, 'disabled')
+  assert.equal(records[0].question, '什么是极大似然？')
+  assert.ok(records.find(record => record.event === 'retrieval').sources.length)
+  assert.equal(records.at(-1).outcome, 'completed')
+  assert.doesNotMatch(JSON.stringify(records), /这是正文证据|结论参见/)
 })
 
 test('chat rejects invalid input and explicitly distinguishes general knowledge when evidence is empty', async () => {
@@ -109,4 +117,28 @@ test('failed expansion still searches the exact question; provider errors remain
   assert.deepEqual(searches, ['极大似然'])
   assert.ok(text.includes('认证失败'))
   assert.ok(!text.includes('DO NOT ECHO SECRET'))
+})
+
+test('screening format failures report their stage without logging raw model data', async () => {
+  const { route, diagnostics, records } = chatRoute({ screeningContent: 'DO NOT ECHO RAW MODEL DATA' })
+  const text = await (await route.POST({ json: async () => ({ question: '矩估计是什么？' }) })).text()
+  assert.match(text, /参考资料筛选未完成/)
+  assert.equal(diagnostics[0][1].stage, 'screening')
+  assert.equal(diagnostics[0][1].name, 'SyntaxError')
+  assert.doesNotMatch(JSON.stringify(diagnostics) + text, /DO NOT ECHO/)
+  assert.equal(records.at(-1).outcome, 'failed')
+  assert.equal(records.find(record => record.event === 'error').stage, 'screening')
+  assert.doesNotMatch(JSON.stringify(records), /DO NOT ECHO/)
+})
+
+test('connection and timeout failures have actionable messages and redacted diagnostics', async () => {
+  for (const [name, expected] of [['APIConnectionTimeoutError', /响应超时/], ['APIConnectionError', /无法连接/]]) {
+    const answerError = Object.assign(new Error('DO NOT ECHO REQUEST OR KEY'), { name })
+    const { route, diagnostics } = chatRoute({ answerError })
+    const text = await (await route.POST({ json: async () => ({ question: '矩估计是什么？' }) })).text()
+    assert.match(text, expected)
+    assert.equal(diagnostics[0][1].stage, 'answering')
+    assert.equal(diagnostics[0][1].name, name)
+    assert.doesNotMatch(JSON.stringify(diagnostics) + text, /DO NOT ECHO/)
+  }
 })

@@ -57,26 +57,39 @@ export interface LibraryPassage {
 
 /** Source positions come from the same Markdown body used by the reader. */
 export function extractLibraryPassages(raw: string, includeMath = false): LibraryPassage[] {
-  const processed = processLibraryContent(raw)
-  const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(processed.body)
+  const { content } = matter(raw)
+  const prefix = raw.slice(0, raw.length - content.length)
+  const bodyLineOffset = (prefix.match(/\n/g) || []).length
+  const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(content)
+  const referenceSection = findReferenceSection(tree, content.length)
   const passages: LibraryPassage[] = []
   const sections: string[] = []
   let sectionStartLine = 0
   visit(tree, (node: any) => {
+    const offset = node.position?.start.offset
+    if (referenceSection && offset >= referenceSection.start && offset < referenceSection.end) return
     if (node.type === 'heading') {
       sections.length = node.depth
       sections[node.depth - 1] = nodeText(node).trim()
-      sectionStartLine = node.position.start.line + processed.bodyLineOffset
+      sectionStartLine = node.position.start.line + bodyLineOffset
     }
     if (!['paragraph', 'table', 'code', ...(includeMath ? ['math'] : [])].includes(node.type) || !node.position) return
-    const text = processed.body.slice(node.position.start.offset, node.position.end.offset).trim()
+    const text = content.slice(node.position.start.offset, node.position.end.offset).trim()
     const plainText = nodeText(node).replace(/\s+/g, ' ').trim()
     if (!plainText) return
     passages.push({ section: sections.filter(Boolean).join(' / ') || '正文', sectionStartLine, kind: node.type,
-      startLine: node.position.start.line + processed.bodyLineOffset,
-      endLine: node.position.end.line + processed.bodyLineOffset, text, plainText })
+      startLine: node.position.start.line + bodyLineOffset,
+      endLine: node.position.end.line + bodyLineOffset, text, plainText })
   })
   return passages
+}
+
+function findReferenceSection(tree: any, length: number): { heading: any; start: number; end: number } | null {
+  const index = tree.children.findIndex((node: any) => node.type === 'heading' && /^(参考文献|references|bibliography)\s*[:：]?$/i.test(nodeText(node).trim()))
+  if (index < 0) return null
+  const heading = tree.children[index]
+  const next = tree.children.slice(index + 1).find((node: any) => node.type === 'heading' && node.depth <= heading.depth)
+  return { heading, start: heading.position.start.offset, end: next?.position.start.offset ?? length }
 }
 
 // The source line numbers remain intact: removing a reference section replaces it
@@ -88,18 +101,14 @@ export function processLibraryContent(rawMarkdown: string): ProcessedLibraryCont
   const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(content)
   const diagnostics: LibraryDiagnostic[] = []
   const referenceEntries: LibraryReference[] = []
-  const children: any[] = tree.children
   let body = content
   let referenceTitle = '参考文献'
-  const referenceIndex = children.findIndex(node => node.type === 'heading' && /^(参考文献|references|bibliography)\s*[:：]?$/i.test(nodeText(node).trim()))
+  const referenceSection = findReferenceSection(tree, content.length)
 
-  if (referenceIndex !== -1) {
-    const heading = children[referenceIndex]
+  if (referenceSection) {
+    const { heading, start, end } = referenceSection
     referenceTitle = nodeText(heading).trim().replace(/[:：]$/, '')
-    const nextHeading = children.slice(referenceIndex + 1).find(node => node.type === 'heading' && node.depth <= heading.depth)
-    const start = heading.position.start.offset
     const refsStart = heading.position.end.offset
-    const end = nextHeading?.position.start.offset ?? content.length
     const lines = content.slice(refsStart, end).split(/\r?\n/)
     let current: LibraryReference | null = null
     const flush = () => { if (current) referenceEntries.push(current); current = null }

@@ -442,6 +442,7 @@ test('actual content, asset, references and chat handlers consume selected sourc
     return { choices: [{ message: { content: JSON.stringify(selected) } }] }
   } } } }
   const chat = load('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record() {}, flush: async () => {} }) },
     ...dependencies,
     '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
       getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },

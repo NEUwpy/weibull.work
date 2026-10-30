@@ -71,6 +71,7 @@ test('grounded chat receives actual external paragraph evidence without paid API
     return { choices: [{ message: { content: JSON.stringify(body) } }] }
   } } } }
   const chat = load('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record() {}, flush: async () => {} }) },
     '@/lib/server/literature': storage,
     '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
       getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },

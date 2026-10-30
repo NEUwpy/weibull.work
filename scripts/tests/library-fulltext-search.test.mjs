@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import matter from 'gray-matter'
 import { compileLibraryMarkdown } from '../../src/lib/library-markdown-compiler.mjs'
+import * as libraryMarkdown from '../../src/lib/library-markdown.ts'
 import { loadServerModule } from './helpers/load-server-module.mjs'
 
 const searchModule = loadServerModule('src/lib/server/library-search.ts')
@@ -91,6 +92,56 @@ test('changed same-length source content refreshes search without restarting the
   assert.ok(searchLibrary('CACHE_NEW_MARKER').total)
 }))
 
+test('startup warming is reused across independent server modules without body reads or reparsing', () => withLibrary(async ({ original }) => {
+  const sharedGlobal = {}
+  let parses = 0
+  const overrides = { '../library-markdown': { ...libraryMarkdown,
+    extractLibraryPassages: (...args) => { parses++; return libraryMarkdown.extractLibraryPassages(...args) },
+  } }
+  const startup = loadServerModule('src/lib/server/library-search.ts', overrides, { globalThis: sharedGlobal })
+  const originalText = fs.readFileSync(original, 'utf8')
+  startup.warmLibrarySearch()
+  const parsedAtStartup = parses
+  assert.equal(parsedAtStartup, 4)
+  // Next compiles instrumentation and route modules separately; both see the same Node global.
+  const route = loadServerModule('src/lib/server/library-search.ts', overrides, { globalThis: sharedGlobal })
+  const read = fs.readFileSync
+  let bodyReads = 0
+  fs.readFileSync = function(file, ...args) {
+    if (String(file).endsWith('.md')) bodyReads++
+    return read.call(this, file, ...args)
+  }
+  try {
+    for (const query of ['极大似然估计', 'maximum likelihood', 'Weibull', '182-001', 'Else Author', 'censored']) route.searchLibrary(query)
+    assert.equal(bodyReads, 0)
+    assert.equal(parses, parsedAtStartup)
+    write(original, originalText + '\n## Update\n\nIncrementalneedle is a newly saved source paragraph.\n')
+    assert.ok(route.searchLibrary('Incrementalneedle').total)
+    assert.equal(bodyReads, 1)
+    assert.equal(parses, parsedAtStartup + 1)
+    bodyReads = 0
+    assert.ok(startup.searchLibrary('Incrementalneedle').total)
+    assert.equal(bodyReads, 0)
+    assert.equal(parses, parsedAtStartup + 1)
+  } finally { fs.readFileSync = read }
+}))
+
+test('cached source selection revalidates newly added duplicates and malformed selection metadata', () => withLibrary(async ({ root, workspace }) => {
+  const source = path.join(workspace, 'source')
+  const selected = path.join(source, 'selected', '182-001-pdf原文.md')
+  const otherDirectory = path.join(source, 'unselected')
+  write(selected, '# Selected\n\nSELECTED_WARM_NEEDLE remains public.\n')
+  fs.mkdirSync(otherDirectory, { recursive: true })
+  write(path.join(root, 'library.json'), JSON.stringify({ schema_version: 2, mode: 'source', sources: [{ root: source, papers: [{ id: '182-001', metadata: metadata('Selected') }] }] }))
+  assert.ok(searchLibrary('SELECTED_WARM_NEEDLE').total)
+  write(path.join(otherDirectory, '182-001-pdf原文.md'), '# Duplicate\n\nUnreviewed duplicate body.\n')
+  assert.throws(() => searchLibrary('SELECTED_WARM_NEEDLE'), /多个目录/)
+  fs.unlinkSync(path.join(otherDirectory, '182-001-pdf原文.md'))
+  assert.ok(searchLibrary('SELECTED_WARM_NEEDLE').total)
+  write(path.join(root, 'library.json'), '{broken')
+  assert.throws(() => searchLibrary('SELECTED_WARM_NEEDLE'), /配置错误/)
+}))
+
 test('each paragraph, table, tight-list and code search anchor exists in the shared rendered article', () => withLibrary(async () => {
   const storage = loadServerModule('src/lib/server/literature.ts')
   for (const query of ['极大似然估计', 'maximum likelihood', 'Censored observations', 'KaplanMeier', 'NewtonRaphson']) {
@@ -125,6 +176,38 @@ test('explanatory paragraphs rank ahead of keyword lists and isolated index term
   const results = searchLibrary('maximum likelihood').results
   assert.match(results[0].text, /maximizing its likelihood/)
   assert.ok(results.some(hit => hit.text.startsWith('Keywords:')))
+}))
+
+test('Chinese keyword searches retain whole concepts and require every supplied concept', () => withLibrary(async ({ original, translation }) => {
+  write(translation, matter.stringify('# 估计原理\n\n矩估计利用样本矩求解分布参数，与极大似然估计的构造不同。\n\n小样本中位置参数的矩估计可以通过模拟评估精度，协方差矩阵描述估计量之间的关联。\n\n估计是一个宽泛概念，这段只介绍一般参数估计，不涉及特定方法。\n\n位置参数和尺度参数分别控制分布起点与时间尺度，它们的含义与作用不同。\n', metadata('估计原理')))
+  write(original, matter.stringify('# Other\n\nThe author affiliation is unrelated to the requested concept.\n\n矩的定义和一般估计方法分开讨论，不能当成完整术语命中。\n\nMLE and LRE are compared using simulated samples with known parameters.\n\nMMLE is a different abbreviation from MLE.\n', metadata('Other', { tags: ['矩估计', '位置参数', '协方差矩阵'] })))
+  for (const query of ['矩估计', '极大似然估计', '位置参数', '协方差矩阵']) {
+    const result = searchLibrary(query, { limit: 30 })
+    assert.ok(result.total, query)
+    assert.deepEqual(Array.from(result.terms), [query])
+    assert.ok(result.results.every(hit => hit.text.includes(query)), query)
+  }
+  const combined = searchLibrary('小样本 位置参数')
+  assert.ok(combined.total)
+  assert.ok(combined.results.every(hit => hit.text.includes('小样本') && hit.text.includes('位置参数')))
+  assert.equal(searchLibrary('不存在的矩估计术语').total, 0)
+  const methods = searchLibrary('MLE LRE')
+  assert.ok(methods.total)
+  assert.ok(methods.results.every(hit => /\bMLE\b/.test(hit.text) && /\bLRE\b/.test(hit.text)))
+  const question = searchLibrary('位置参数和尺度参数有什么区别？')
+  assert.ok(question.results.some(hit => hit.text.includes('分别控制分布起点与时间尺度')))
+  assert.ok(searchLibrary('为什么三参数Weibull极大似然估计不稳定').total)
+}))
+
+test('only explicit catalog identities can introduce a passage without a body match', () => withLibrary(async ({ original, translation }) => {
+  write(original, matter.stringify('# Background\n\nSpecial math needed for explanations: Statistics, Gamma function, Digamma function\n\nThis paper explains an estimator for the three-parameter distribution and establishes its asymptotic properties under suitable assumptions on the underlying population.\n', metadata('Moment methods', { author: 'Martin Newby', doi: '10.1234/moment', tags: ['矩估计'] })))
+  fs.unlinkSync(translation)
+  assert.equal(searchLibrary('矩估计').total, 0)
+  for (const query of ['182-001', '10.1234/moment', 'Newby', 'Moment methods']) {
+    const first = searchLibrary(query).results[0]
+    assert.equal(first.slug, '182-001')
+    assert.match(first.text, /This paper explains an estimator/)
+  }
 }))
 
 test('AI evidence retains nearby definitions, display equations and conditions within the matched section', () => withLibrary(async ({ original, translation }) => {

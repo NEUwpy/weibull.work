@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import config from './config.json'
 import { getDeepSeekClient, getDeepSeekSettings, hasDeepSeekKey } from '@/lib/server/deepseek-client'
+import { createLibraryChatLog } from '@/lib/server/library-chat-log'
 import { searchLibrary, enrichLibrarySearchHits } from '@/lib/server/library-search'
 import { buildSearchQueries, evidenceContext, selectLibraryEvidence, orderEvidenceCandidates, poolLibraryCandidates } from '@/lib/library-rag'
 
@@ -11,6 +12,15 @@ export const maxDuration = 180
 
 function prompt(name: string): string {
   return fs.readFileSync(path.join(process.cwd(), 'src/content/prompts', name), 'utf8')
+}
+
+function failureInfo(error: unknown) {
+  const value = error && typeof error === 'object' ? error as { name?: unknown; status?: unknown; code?: unknown } : {}
+  return {
+    name: typeof value.name === 'string' ? value.name.slice(0, 64) : 'UnknownError',
+    status: typeof value.status === 'number' ? value.status : undefined,
+    code: typeof value.code === 'string' && /^[a-z0-9_]{1,64}$/i.test(value.code) ? value.code : undefined,
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -27,10 +37,16 @@ export async function POST(request: NextRequest) {
   request.signal?.addEventListener('abort', abort, { once: true })
   if (request.signal?.aborted) abort()
   const encoder = new TextEncoder()
+  const log = createLibraryChatLog()
+  log.record('start', { question: question.trim(), model: getDeepSeekSettings().model })
   const stream = new ReadableStream({
     async start(output) {
       let closed = false
+      let stage = 'expanding'
+      let answerChars = 0
+      let outcome = 'interrupted'
       const send = (value: Record<string, unknown>) => {
+        if (value.stage) log.record('stage', { stage: value.stage })
         if (!closed && !controller.signal.aborted) output.enqueue(encoder.encode(`data: ${JSON.stringify(value)}\n\n`))
       }
       try {
@@ -49,11 +65,14 @@ export async function POST(request: NextRequest) {
             ...{ thinking: { type: 'disabled' } },
           }, { signal: controller.signal })
           variants = JSON.parse(expansion.choices[0]?.message?.content || '{}').queries
-        } catch {
+        } catch (error) {
           if (controller.signal.aborted) return
+          console.warn('[library-chat]', { stage, ...failureInfo(error) })
+          log.record('warning', { stage, ...failureInfo(error) })
           // Direct corpus retrieval remains usable when query expansion is unavailable.
         }
         const queries = buildSearchQueries(question, variants, config.retrieval.maxQueries)
+        stage = 'searching'
         send({ stage: 'searching', message: '正在查找相关正文并筛选参考段落…' })
         const rankings = queries.map(query => searchLibrary(query, { limit: config.retrieval.candidatesPerQuery }).results)
         const candidateLimits = { maxPassages: config.retrieval.maxRerankCandidates, maxPerPaper: 5, maxContextChars: config.retrieval.maxRerankChars }
@@ -61,6 +80,7 @@ export async function POST(request: NextRequest) {
         const candidates = selectLibraryEvidence([enrichLibrarySearchHits(pooled)], candidateLimits)
         let ranked = candidates
         if (candidates.length) {
+          stage = 'screening'
           send({ stage: 'screening', message: '正在核对候选段落是否能支持这个问题…' })
           const screening = await client.chat.completions.create({
             model,
@@ -78,7 +98,10 @@ export async function POST(request: NextRequest) {
           ranked = orderEvidenceCandidates(candidates, ids)
         }
         const evidence = selectLibraryEvidence([ranked], config.retrieval)
+        log.record('retrieval', { queries, candidates: candidates.length,
+          sources: evidence.map(({ id, slug, version, startLine, endLine, citation }) => ({ id, slug, version, startLine, endLine, citation })) })
         send({ evidence, queries })
+        stage = 'answering'
         send({ stage: 'answering', message: evidence.length
           ? `已选取 ${evidence.length} 段资料，正在生成带出处的回答…`
           : '本次未找到可用的库内依据，正在整理一般性说明…' })
@@ -96,20 +119,33 @@ export async function POST(request: NextRequest) {
         let received = false
         for await (const chunk of response) {
           const text = chunk.choices[0]?.delta?.content
-          if (text) { received = true; send({ content: text }) }
+          if (text) { received = true; answerChars += text.length; send({ content: text }) }
           if (chunk.choices[0]?.finish_reason === 'length') send({ content: '\n\n（回答达到长度上限，可缩小问题后继续询问。）' })
         }
         if (!received) send({ error: '模型没有返回正文，请重试。' })
+        outcome = received ? 'completed' : 'empty'
         send({ done: true })
       } catch (error) {
-        const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined
+        if (controller.signal.aborted) return
+        // Log only classifications; provider messages, requests and credentials stay out of logs.
+        const { status, name, code } = failureInfo(error)
+        console.error('[library-chat]', { stage, status, name, code })
+        outcome = 'failed'
+        log.record('error', { stage, status, name, code })
         send({ error: status === 401 ? '问答接口认证失败，请检查本机配置。'
           : status === 402 ? '问答接口额度不足。'
-          : status === 429 ? '问答接口繁忙，请稍后重试。' : '文献问答暂时不可用，请稍后重试。' })
+          : status === 429 ? '问答接口繁忙，请稍后重试。'
+          : name === 'APIConnectionTimeoutError' ? '问答接口响应超时，请重试。'
+          : name === 'APIConnectionError' ? '暂时无法连接问答接口，请重试。'
+          : stage === 'screening' && (name === 'SyntaxError' || name === 'Error' && !status) ? '参考资料筛选未完成，请重新点击 AI 问答。'
+          : stage === 'searching' ? '文献检索失败，请稍后重试。'
+          : '文献问答暂时不可用，请稍后重试。' })
       } finally {
         request.signal?.removeEventListener('abort', abort)
         closed = true
         try { output.close() } catch { /* Client already cancelled the stream. */ }
+        log.record('finish', { outcome: controller.signal.aborted ? 'cancelled' : outcome, stage, answerChars })
+        await log.flush()
       }
     },
     cancel() { abort() },

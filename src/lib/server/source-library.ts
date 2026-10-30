@@ -24,7 +24,7 @@ function within(root: string, candidate: string): boolean {
 }
 
 /** The selection is configuration; bodies, notes and images stay in their original source. */
-export function indexSourcePapers(sources: unknown): SourceIndex {
+export function indexSourcePapers(sources: unknown, observedDirectories?: string[]): SourceIndex {
   if (!Array.isArray(sources) || sources.length === 0) throw new Error('sources 必须列出资料根目录与选用编号')
   const index: SourceIndex = new Map()
   for (const source of sources) {
@@ -45,6 +45,7 @@ export function indexSourcePapers(sources: unknown): SourceIndex {
       return { id, metadata }
     })
     const root = fs.realpathSync(source.root)
+    observedDirectories?.push(source.root)
     if (!fs.statSync(root).isDirectory()) throw new Error('源资料 root 必须为目录')
     if (source.layout !== undefined && source.layout !== 'v1') throw new Error('不支持的资料目录 layout')
     // Explicitly retained website books use the preserved content/assets
@@ -57,6 +58,7 @@ export function indexSourcePapers(sources: unknown): SourceIndex {
     for (const id of Array.from(selected)) if (index.has(id)) throw new Error(`选用编号重复：${id}`)
     const found = new Map<string, SourcePaper>()
     const walk = (directory: string): void => {
+      observedDirectories?.push(directory)
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         if (entry.isSymbolicLink()) continue
         const file = path.join(directory, entry.name)

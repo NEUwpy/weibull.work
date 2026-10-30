@@ -3,6 +3,11 @@
   display: none;
 }
 
+.library-page-shell {
+  padding-left: 4.5rem;
+  padding-right: 4.5rem;
+}
+
 .library-reader [id^="passage-"] {
   scroll-margin-top: 7rem;
 }
@@ -75,6 +80,11 @@
 }
 
 @media (max-width: 1279px) {
+  .library-page-shell {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
   .library-reader h1 {
     flex-wrap: wrap;
   }
@@ -198,6 +208,8 @@
 
 @media (max-width: 767px) {
   .library-page > .page-shell {
+    padding-left: 16px;
+    padding-right: 16px;
     padding-top: 24px;
     padding-bottom: 32px;
   }

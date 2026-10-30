@@ -1,7 +1,6 @@
-import { createHash } from 'node:crypto'
-import { readLibraryDocuments, type PaperMetadata } from './literature'
+import { readLibraryDocuments, type LibraryDocument, type PaperMetadata } from './literature'
 import { extractLibraryPassages, libraryPassageId, type LibraryPassage } from '../library-markdown'
-import { createLiteratureIndex, fold } from '../literature-search.mjs'
+import { createLiteratureIndex, fold, titleKey } from '../literature-search.mjs'
 import type { LibrarySearchHit, LibrarySearchResponse } from '../library-search-types'
 
 export interface LibrarySearchOptions {
@@ -18,7 +17,7 @@ const STOP_WORDS = new Set(('a an the and or of to in on for is are was were be 
 const segmenter = new Intl.Segmenter('zh', { granularity: 'word' })
 const wordPattern = new RegExp('^[\\p{L}\\p{N}_-]+$', 'u')
 
-/** Words plus CJK bigrams retain unfamiliar technical names without a dictionary service. */
+/** Segmenter words plus adjacent Han bigrams preserve names split into single characters. */
 function tokenize(value: string): string[] {
   const normalized = fold(value)
   const terms = new Set<string>()
@@ -26,38 +25,75 @@ function tokenize(value: string): string[] {
     const word = entry.segment
     if (!entry.isWordLike || STOP_WORDS.has(word)) continue
     if (/[\u3400-\u9fff]/.test(word)) {
-      if (word.length > 1) terms.add(word)
-      for (let index = 0; index < word.length - 1; index++) {
-        const pair = word.slice(index, index + 2)
-        if (!STOP_WORDS.has(pair)) terms.add(pair)
-      }
+      terms.add(word)
     } else if (wordPattern.test(word)) terms.add(word)
+  }
+  for (const run of normalized.match(/[\u3400-\u9fff]+/g) || []) {
+    for (let index = 0; index < run.length - 1; index++) {
+      const pair = run.slice(index, index + 2)
+      if (!STOP_WORDS.has(pair)) terms.add(pair)
+    }
   }
   return Array.from(terms)
 }
 
-export const libraryQueryTerms = (value: string): string[] => tokenize(value).slice(0, 64)
+interface QueryProfile { terms: string[]; strict: boolean }
+
+function queryProfile(value: string): QueryProfile {
+  const normalized = fold(value).trim()
+  const tokens = Array.from(segmenter.segment(normalized)).filter(entry => entry.isWordLike && !STOP_WORDS.has(entry.segment))
+  const hanRuns = normalized.match(/[\u3400-\u9fff]+/g) || []
+  const latin = tokens.filter(entry => !/[\u3400-\u9fff]/.test(entry.segment)).map(entry => entry.segment)
+  // Short keyword input expresses complete concepts. Do not silently turn 矩估计 into 估计.
+  // A question/sentence instead uses coverage over its informative words and adjacent character pairs.
+  const sentence = /[。！？!?;；\n]|(?:如何|为什么|什么|哪些|是否|怎么|怎样|请|解释|介绍|说明|比较|能否)/.test(normalized)
+  const strict = !sentence && normalized.length <= 48 && latin.length <= 6 && hanRuns.length <= 6 && hanRuns.every(run => run.length <= 12)
+  if (strict) {
+    return { strict, terms: Array.from(new Set([...hanRuns.filter(run => !STOP_WORDS.has(run)), ...latin])).slice(0, 64) }
+  }
+  return { strict, terms: tokenize(normalized).slice(0, 64) }
+}
+
+export const libraryQueryTerms = (value: string): string[] => queryProfile(value).terms
+
+function termPattern(term: string): RegExp {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`${/^[a-z0-9_]/.test(term) ? '(?<![a-z0-9_])' : ''}${escaped}${/[a-z0-9_]$/.test(term) ? '(?![a-z0-9_])' : ''}`, 'g')
+}
+
+function keywordList(value: string): boolean {
+  return /^(?:关\s*键\s*词|关键词和短语|key\s*words(?:\s+and\s+phrases)?)\s*[:：]?/i.test(value)
+}
 
 interface IndexedPassage {
   hit: LibrarySearchHit
   paper: PaperMetadata
   normalized: string
-  frequencies: Map<string, number>
   length: number
 }
 
-let cachedSignature = ''
-let cachedPassages: IndexedPassage[] = []
-let cachedPapers: PaperMetadata[] = []
-let cachedContextBlocks = new Map<string, LibraryPassage[]>()
+interface DocumentIndex {
+  raw: string
+  metadata: string
+  passages: IndexedPassage[]
+  blocks: LibraryPassage[]
+}
 
-function frequency(value: string): Map<string, number> {
-  const counts = new Map<string, number>()
-  // Segmenting sentences repeatedly keeps term frequency rather than only a presence set.
-  for (const sentence of value.split(/[。！？.!?;；\n]+/)) {
-    for (const term of tokenize(sentence)) counts.set(term, (counts.get(term) || 0) + 1)
-  }
-  return counts
+interface SearchIndexCache {
+  documents: LibraryDocument[] | null
+  byDocument: Map<string, DocumentIndex>
+  passages: IndexedPassage[]
+  papers: PaperMetadata[]
+  contextBlocks: Map<string, LibraryPassage[]>
+  catalogs: Map<string, ReturnType<typeof createLiteratureIndex>>
+}
+
+// The Node startup hook and API bundle share this process-local representation.
+// Change this namespace if the indexed representation/normalization changes during HMR.
+const indexCacheKey = Symbol.for('weibull.library-search.v3')
+const indexCaches = globalThis as unknown as Record<symbol, SearchIndexCache>
+const indexCache = indexCaches[indexCacheKey] ??= {
+  documents: null, byDocument: new Map(), passages: [], papers: [], contextBlocks: new Map(), catalogs: new Map(),
 }
 
 function pieces(text: string): string[] {
@@ -82,24 +118,31 @@ function plain(value: string): string {
 
 function readIndex(): { passages: IndexedPassage[]; papers: PaperMetadata[] } {
   const documents = readLibraryDocuments()
-  const signature = createHash('sha256')
-  for (const document of documents) signature.update(JSON.stringify([document.paper, document.version, document.raw]))
-  const digest = signature.digest('hex')
-  if (digest === cachedSignature) return { passages: cachedPassages, papers: cachedPapers }
+  if (documents === indexCache.documents) return indexCache
   const passages: IndexedPassage[] = []
   const papers = new Map<string, PaperMetadata>()
   const contextBlocks = new Map<string, LibraryPassage[]>()
+  const nextDocuments = new Map<string, DocumentIndex>()
   for (const document of documents) {
     papers.set(document.paper.slug, document.paper)
+    const key = `${document.paper.slug}:${document.version}`
+    const metadata = JSON.stringify(document.paper)
+    const previous = indexCache.byDocument.get(key)
+    if (previous?.raw === document.raw && previous.metadata === metadata) {
+      passages.push(...previous.passages)
+      contextBlocks.set(key, previous.blocks)
+      nextDocuments.set(key, previous)
+      continue
+    }
     const blocks = extractLibraryPassages(document.raw, true)
-    contextBlocks.set(`${document.paper.slug}:${document.version}`, blocks)
+    const ownPassages: IndexedPassage[] = []
+    contextBlocks.set(key, blocks)
     for (const passage of blocks) {
       if (passage.kind === 'math') continue
       const chunks = pieces(passage.text)
       chunks.forEach((text, index) => {
         const readable = plain(text)
         if (!readable) return
-        const frequencies = frequency(readable)
         const hit: LibrarySearchHit = {
           id: `${document.paper.slug}:${document.version}:${passage.startLine}:${index}`,
           slug: document.paper.slug, title: document.paper.title, version: document.version,
@@ -107,23 +150,31 @@ function readIndex(): { passages: IndexedPassage[]; papers: PaperMetadata[] } {
           text, excerpt: readable, score: 0,
           href: `/library/${encodeURIComponent(document.paper.slug)}?version=${encodeURIComponent(document.version)}#${libraryPassageId(passage.startLine)}`,
         }
-        passages.push({ hit, paper: document.paper, normalized: fold(readable), frequencies,
-          length: Math.max(1, Array.from(frequencies.values()).reduce((sum, count) => sum + count, 0)) })
+        ownPassages.push({ hit, paper: document.paper, normalized: fold(readable),
+          // Query terms are matched directly; corpus-wide Intl tokenization is unnecessary.
+          length: Math.max(1, (readable.match(/[A-Za-z0-9_]+|[^\s]/g) || []).length) })
       })
     }
+    passages.push(...ownPassages)
+    nextDocuments.set(key, { raw: document.raw, metadata, passages: ownPassages, blocks })
   }
-  cachedSignature = digest
-  cachedPassages = passages
-  cachedPapers = Array.from(papers.values())
-  cachedContextBlocks = contextBlocks
-  return { passages, papers: cachedPapers }
+  indexCache.documents = documents
+  indexCache.byDocument = nextDocuments
+  indexCache.passages = passages
+  indexCache.papers = Array.from(papers.values())
+  indexCache.contextBlocks = contextBlocks
+  indexCache.catalogs.clear()
+  return indexCache
 }
+
+/** Called by the Node startup hook, before users submit the first search. */
+export function warmLibrarySearch(): void { readIndex() }
 
 /** Add a bounded local evidence window without changing the search match or destination. */
 export function enrichLibrarySearchHits(hits: LibrarySearchHit[]): LibrarySearchHit[] {
   readIndex()
   return hits.map(hit => {
-    const blocks = cachedContextBlocks.get(`${hit.slug}:${hit.version}`)
+    const blocks = indexCache.contextBlocks.get(`${hit.slug}:${hit.version}`)
     const center = blocks?.findIndex(block => block.startLine === hit.startLine && block.endLine === hit.endLine) ?? -1
     if (!blocks || center < 0 || !blocks[center].text.includes(hit.text)) return hit
     const seed = blocks[center]
@@ -172,56 +223,78 @@ function excerpt(value: string, terms: string[]): string {
   return `${start ? '…' : ''}${value.slice(start, end)}${end < value.length ? '…' : ''}`
 }
 
-/** Re-read the selected source snapshot; only an unchanged snapshot reuses its in-memory index. */
+function qualityFactor(passage: IndexedPassage): number {
+  const length = passage.normalized.length
+  return (length < 20 ? .15 : length < 50 ? .5 : 1) * (keywordList(passage.normalized) ? .18 : 1)
+}
+
+/** Match and rank the current in-memory index after inexpensive source metadata checks. */
 export function searchLibrary(query: string, options: LibrarySearchOptions = {}): LibrarySearchResponse {
   const q = query.trim().slice(0, 2000)
-  const terms = libraryQueryTerms(q)
+  const { terms, strict } = queryProfile(q)
   if (!q) return { query: q, total: 0, results: [], terms }
   const { passages, papers } = readIndex()
-  const catalog = createLiteratureIndex(papers.filter(paper => matchesType(paper, options.type)))
+  const catalogKey = options.type || 'all'
+  let catalog = indexCache.catalogs.get(catalogKey)
+  if (!catalog) {
+    catalog = createLiteratureIndex(papers.filter(paper => matchesType(paper, options.type)))
+    indexCache.catalogs.set(catalogKey, catalog)
+  }
   const catalogMatches = catalog.search(q) as { record: PaperMetadata; score: number; fields: string[] }[]
-  const identityQuery = /^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q)
-  const identities = new Set(catalogMatches.map(match => match.record.slug))
-  const candidates = passages.filter(passage => matchesType(passage.paper, options.type) && (!identityQuery || identities.has(passage.hit.slug)))
+  const identifierQuery = /^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q)
+  const compactQuery = titleKey(q)
+  const identities = catalogMatches.filter(match =>
+    (identifierQuery && match.fields.some(field => field === 'id' || field === 'doi')) ||
+    match.fields.includes('author') ||
+    [match.record.title, match.record.title_en].some(title => title && titleKey(title) === compactQuery))
+  const identitySlugs = new Set(identities.map(match => match.record.slug))
+  const candidates = passages.filter(passage => matchesType(passage.paper, options.type) && (!identifierQuery || identitySlugs.has(passage.hit.slug)))
+  const patterns = terms.map(termPattern)
+  const queryWeights = terms.map(term => /[\u3400-\u9fff]/.test(term) && term.length === 1 ? .2 : 1)
+  const totalWeight = queryWeights.reduce((sum, weight) => sum + weight, 0)
+  const counts = candidates.map(passage => patterns.map(pattern => passage.normalized.match(pattern)?.length || 0))
   const documentFrequencies = new Map<string, number>()
-  for (const term of terms) documentFrequencies.set(term, candidates.filter(candidate => candidate.frequencies.has(term)).length)
+  terms.forEach((term, index) => documentFrequencies.set(term, counts.filter(row => row[index] > 0).length))
   const averageLength = candidates.reduce((sum, passage) => sum + passage.length, 0) / Math.max(1, candidates.length)
   const hits = new Map<string, LibrarySearchHit>()
   const normalizedQuery = fold(q).replace(/\s+/g, ' ')
-  const escapedQuery = normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const exactPhrase = new RegExp(`${/^[a-z0-9_]/.test(normalizedQuery) ? '(?<![a-z0-9_])' : ''}${escapedQuery}${/[a-z0-9_]$/.test(normalizedQuery) ? '(?![a-z0-9_])' : ''}`)
-  for (const passage of candidates) {
+  const exactPhrase = termPattern(normalizedQuery)
+  candidates.forEach((passage, row) => {
     let score = 0
     let matched = 0
-    for (const term of terms) {
-      const tf = passage.frequencies.get(term) || 0
-      if (!tf) continue
+    let matchedWeight = 0
+    terms.forEach((term, index) => {
+      const tf = counts[row][index]
+      if (!tf) return
       matched++
+      matchedWeight += queryWeights[index]
       const df = documentFrequencies.get(term) || 0
       const idf = Math.log(1 + (candidates.length - df + .5) / (df + .5))
-      score += idf * tf * 2.2 / (tf + 1.2 * (.25 + .75 * passage.length / averageLength))
-    }
-    if (normalizedQuery.length <= 200 && exactPhrase.test(passage.normalized)) score += 12
-    if (!score) continue
-    // A short exact term remains useful; longer passages gain from broad query coverage.
-    score *= .3 + .7 * matched / Math.max(1, terms.length)
-    // Keyword lists and isolated index entries are discoverable, but explanatory prose is more useful.
-    if (passage.normalized.length < 20) score *= .15
-    else if (passage.normalized.length < 50) score *= .5
-    if (/^(?:关\s*键\s*词|关键词和短语|key\s*words(?:\s+and\s+phrases)?)\s*[:：]?/i.test(passage.normalized)) score *= .18
+      score += queryWeights[index] * idf * tf * 2.2 / (tf + 1.2 * (.25 + .75 * passage.length / averageLength))
+    })
+    const coverage = matchedWeight / Math.max(1, totalWeight)
+    if (!matched || (strict ? matched !== terms.length : matched < Math.min(2, terms.length) || coverage < .3)) return
+    if (normalizedQuery.length <= 200 && passage.normalized.match(exactPhrase)) score += 12
+    score *= (.3 + .7 * coverage) * qualityFactor(passage)
     hits.set(passage.hit.id, { ...passage.hit, score, excerpt: excerpt(passage.hit.excerpt, terms) })
-  }
-  // Retain the existing identity search for author, DOI, number and title queries.
-  for (const match of catalogMatches) {
+  })
+  // Only explicit identities may introduce an article without a matching body paragraph.
+  // Ordinary metadata keywords never manufacture body matches or override their ranking.
+  for (const match of identities) {
     const matching = Array.from(hits.values()).filter(hit => hit.slug === match.record.slug).sort((a, b) => b.score - a.score)[0]
-    const first = (matching && candidates.find(passage => passage.hit.id === matching.id))
-      ?? candidates.find(passage => passage.hit.slug === match.record.slug && passage.hit.version === '翻译' && passage.hit.text.length >= 40)
-      ?? candidates.find(passage => passage.hit.slug === match.record.slug && passage.hit.text.length >= 40)
-      ?? candidates.find(passage => passage.hit.slug === match.record.slug)
+    const identityScore = 10 + match.score / 25
+    if (matching) {
+      hits.set(matching.id, { ...matching, score: Math.max(matching.score, identityScore) })
+      continue
+    }
+    const representatives = candidates.filter(passage => passage.hit.slug === match.record.slug)
+      .sort((left, right) => {
+        const quality = (passage: IndexedPassage) => qualityFactor(passage) * (passage.hit.text.length >= 120 ? 1 : .3) * (passage.hit.version === '翻译' ? 1.1 : 1)
+        return quality(right) - quality(left) || left.hit.startLine - right.hit.startLine
+      })
+    const first = representatives[0]
     if (!first) continue
-    const existing = hits.get(first.hit.id)
-    const score = Math.max(existing?.score || 0, 10 + match.score / 25)
-    hits.set(first.hit.id, { ...first.hit, score, excerpt: excerpt(first.hit.excerpt, terms) })
+    hits.set(first.hit.id, { ...first.hit, score: identityScore, excerpt: excerpt(first.hit.excerpt, terms) })
   }
   const ranked = Array.from(hits.values()).sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
   const limit = Number.isFinite(options.limit) ? Math.max(1, Math.min(30, Math.floor(options.limit!))) : 10

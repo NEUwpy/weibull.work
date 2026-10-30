@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
-import { createHash } from 'node:crypto'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
@@ -21,6 +20,7 @@ export interface LibraryPaths {
   referencesFile: string
   sourceIndex?: SourceIndex
   referenceIndex?: ReferenceIndexLocation
+  sourceDirectories?: string[]
 }
 
 export interface PaperMetadata {
@@ -98,7 +98,8 @@ export function getLibraryPaths(): LibraryPaths {
     if (descriptor?.schema_version === 2 && descriptor.mode === 'source') {
       const referencesFile = resolveEntry(root, ['references.json'], 'file')
       if (!referencesFile) throw new Error('源库选择配置须提供 references.json，没有关系时使用 {}')
-      const sourceIndex = indexSourcePapers(descriptor.sources)
+      const sourceDirectories: string[] = []
+      const sourceIndex = indexSourcePapers(descriptor.sources, sourceDirectories)
       let referenceIndex: ReferenceIndexLocation | undefined
       if (descriptor.reference_index !== undefined) {
         const entry = descriptor.reference_index
@@ -106,7 +107,7 @@ export function getLibraryPaths(): LibraryPaths {
           entry.file.split(/[/\\]/).some((part: string) => !part || part === '.' || part === '..')) throw new Error('reference_index 必须指定 root 和库内相对 file')
         referenceIndex = { root: path.resolve(root, entry.root), file: entry.file }
       }
-      return { mode: 'source', root, contentDir: root, assetsDir: root, referencesFile, sourceIndex, referenceIndex }
+      return { mode: 'source', root, contentDir: root, assetsDir: root, referencesFile, sourceIndex, referenceIndex, sourceDirectories }
     }
     if (!descriptor || Array.isArray(descriptor) || descriptor.schema_version !== 1) throw new Error('library.json 的 schema_version 必须为 1')
     const contentDir = resolveEntry(root, ['content'], 'directory')
@@ -160,7 +161,7 @@ export function readPreferredPaper(slug: string): PreferredPaper | null {
   return preferredFrom(getLibraryPaths(), slug)
 }
 
-function listFrom(paths: LibraryPaths): PaperMetadata[] {
+function selectedSlugs(paths: LibraryPaths): string[] {
   if (!fs.existsSync(paths.contentDir)) return []
   const slugs = new Set<string>()
   if (paths.sourceIndex) for (const slug of Array.from(paths.sourceIndex.keys())) slugs.add(slug)
@@ -168,20 +169,27 @@ function listFrom(paths: LibraryPaths): PaperMetadata[] {
     const match = /^(.*)-pdf(?:原文|翻译)\.md$/.exec(file)
     if (match && isContentSlug(match[1])) slugs.add(match[1])
   }
+  return Array.from(slugs)
+}
+
+function publicPaperMetadata(slug: string, data: Record<string, any>, sourceDois: Map<string, string>): PaperMetadata {
+  return {
+    slug, title: data.title, title_en: data.title_en,
+    author: data.author || 'Unknown', affiliation: data.affiliation,
+    doi: (typeof data.doi === 'string' ? data.doi : undefined) || sourceDois.get(slug),
+    publication: data.publication, short_publication: data.short_publication,
+    type: data.type || '文献', year: data.year || new Date().getFullYear(),
+    tags: data.tags || [], summary: data.summary || '', related_method_id: data.related_method_id,
+  }
+}
+
+function listFrom(paths: LibraryPaths): PaperMetadata[] {
   const papers: PaperMetadata[] = []
   const sourceDois = paths.referenceIndex && paths.sourceIndex ? readSourceSearchDois(paths.referenceIndex, paths.sourceIndex) : new Map<string, string>()
-  for (const slug of Array.from(slugs)) {
+  for (const slug of selectedSlugs(paths)) {
     const paper = preferredFrom(paths, slug)
     if (!paper?.metadata.title) continue
-    const data = paper.metadata
-    papers.push({
-      slug, title: data.title, title_en: data.title_en,
-      author: data.author || 'Unknown', affiliation: data.affiliation,
-      doi: (typeof data.doi === 'string' ? data.doi : undefined) || sourceDois.get(slug),
-      publication: data.publication, short_publication: data.short_publication,
-      type: data.type || '文献', year: data.year || new Date().getFullYear(),
-      tags: data.tags || [], summary: data.summary || '', related_method_id: data.related_method_id,
-    })
+    papers.push(publicPaperMetadata(slug, paper.metadata, sourceDois))
   }
   return papers
 }
@@ -190,44 +198,83 @@ export function listPapers(): PaperMetadata[] {
   return listFrom(getLibraryPaths())
 }
 
-let searchDocumentSignature = ''
-let searchDocuments: LibraryDocument[] = []
+interface SearchDocumentCache {
+  selector: string
+  guards: Map<string, string>
+  documents: LibraryDocument[]
+  versions: Map<string, { revision: string; raw: string }>
+}
 
-function searchSnapshotSignature(paths: LibraryPaths): string {
-  const digest = createHash('sha256').update(JSON.stringify([paths.root, paths.mode]))
-  const add = (file: string) => digest.update(file).update(fs.readFileSync(file))
+// Shared across Next's independently compiled instrumentation and route modules.
+// Bump the namespace when the snapshot representation changes.
+const documentCacheKey = Symbol.for('weibull.library-documents.v2')
+const documentCaches = globalThis as unknown as Record<symbol, SearchDocumentCache>
+const documentCache = documentCaches[documentCacheKey] ??= {
+  selector: '', guards: new Map(), documents: [], versions: new Map(),
+}
+
+function fileRevision(file: string): string {
+  try {
+    const stat = fs.lstatSync(file, { bigint: true })
+    return [stat.dev, stat.ino, stat.mode, stat.size, stat.mtimeNs, stat.ctimeNs,
+      stat.isSymbolicLink() ? fs.realpathSync(file) : ''].join(':')
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR', 'ELOOP'].includes((error as NodeJS.ErrnoException).code || '')) return 'missing'
+    throw error
+  }
+}
+
+function snapshotGuards(paths: LibraryPaths): Map<string, string> {
+  const files = new Set([paths.root, paths.contentDir, paths.referencesFile])
+  if (paths.mode !== 'embedded') {
+    files.add(path.join(paths.root, 'library.json'))
+    files.add(process.env.WEIBULL_LIBRARY_ROOT!)
+  }
   if (paths.sourceIndex) {
+    for (const directory of paths.sourceDirectories || []) files.add(directory)
     for (const paper of Array.from(paths.sourceIndex.values())) {
-      digest.update(JSON.stringify([paper.id, paper.catalog]))
-      for (const file of [paper.original, paper.translation, paper.note]) if (file) add(file)
+      for (const file of [paper.original, paper.translation, paper.note]) if (file) files.add(file)
     }
-    if (paths.referenceIndex) {
-      const file = resolveEntry(paths.referenceIndex.root, paths.referenceIndex.file.split(/[/\\]/), 'file')
-      if (file) add(file)
-    }
+    if (paths.referenceIndex) files.add(path.resolve(paths.referenceIndex.root, paths.referenceIndex.file))
   } else if (fs.existsSync(paths.contentDir)) {
     for (const name of fs.readdirSync(paths.contentDir).sort()) {
       const match = /^(.*)-pdf(?:原文|翻译)\.md$/.exec(name)
       if (!match || !isContentSlug(match[1])) continue
       const file = resolveContentFile(paths.contentDir, name)
-      if (file) add(file)
+      if (file) files.add(file)
     }
   }
-  return digest.digest('hex')
+  return new Map(Array.from(files, file => [file, fileRevision(file)]))
 }
 
-/** The same public selection as listPapers, read once for a search snapshot. */
+/** Check file metadata; unchanged selected sources never require body reads or full-text hashes. */
 export function readLibraryDocuments(): LibraryDocument[] {
+  const selector = JSON.stringify([process.cwd(), process.env.WEIBULL_LIBRARY_ROOT || ''])
+  if (documentCache.selector === selector && documentCache.guards.size &&
+    Array.from(documentCache.guards).every(([file, revision]) => fileRevision(file) === revision)) return documentCache.documents
   const paths = getLibraryPaths()
-  const signature = searchSnapshotSignature(paths)
-  if (signature === searchDocumentSignature) return searchDocuments
+  const guards = snapshotGuards(paths)
   const documents: LibraryDocument[] = []
-  for (const paper of listFrom(paths)) {
+  const nextVersions = new Map<string, { revision: string; raw: string }>()
+  const sourceDois = paths.referenceIndex && paths.sourceIndex ? readSourceSearchDois(paths.referenceIndex, paths.sourceIndex) : new Map<string, string>()
+  for (const slug of selectedSlugs(paths)) {
     const versions: { version: '原文' | '翻译'; raw: string }[] = []
     for (const version of ['原文', '翻译'] as const) {
-      const raw = readFrom(paths, paper.slug, version)
-      if (raw !== null) versions.push({ version, raw })
+      const source = paths.sourceIndex?.get(slug)
+      const file = source ? (version === '原文' ? source.original : source.translation)
+        : resolveContentFile(paths.contentDir, `${slug}-pdf${version}.md`)
+      if (!file) continue
+      const revision = JSON.stringify([file, guards.get(file), source?.note && guards.get(source.note), source?.catalog])
+      const key = `${slug}:${version}`
+      const previous = documentCache.versions.get(key)
+      const raw = previous?.revision === revision ? previous.raw : readFrom(paths, slug, version)
+      if (raw !== null) { versions.push({ version, raw }); nextVersions.set(key, { revision, raw }) }
     }
+    const preferred = versions.find(document => document.version === '翻译') ?? versions[0]
+    if (!preferred) continue
+    const data = matter(preferred.raw).data
+    if (!data.title) continue
+    const paper = publicPaperMetadata(slug, data, sourceDois)
     // A translation may omit a DOI present in its explicitly selected original.
     const versionMetadata = versions.map(document => matter(document.raw).data)
     const doi = paper.doi || versionMetadata.map(data => data.doi).find(value => typeof value === 'string')
@@ -235,8 +282,10 @@ export function readLibraryDocuments(): LibraryDocument[] {
     const catalog = { ...paper, ...(doi ? { doi } : {}), ...(!paper.title_en && alternateTitle ? { title_en: alternateTitle } : {}) }
     for (const document of versions) documents.push({ paper: catalog, ...document })
   }
-  searchDocumentSignature = signature
-  searchDocuments = documents
+  documentCache.selector = selector
+  documentCache.guards = guards
+  documentCache.documents = documents
+  documentCache.versions = nextVersions
   return documents
 }
 

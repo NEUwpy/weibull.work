@@ -47,9 +47,15 @@
 
 图书馆在题录检索之外提供已选原译文的段落检索，按相关度显示文章、章节和正文片段，并可跳到对应版本的段落。普通检索不调用付费API；它和问答共用服务端检索入口`src/lib/server/library-search.ts`。正文索引由现有读取层在内存中生成，不另存全文副本，不索引私人笔记或未选资料，也不改变书票、引用关系与源稿。
 
+短关键词保留完整中文词组，例如“矩估计”不会退化为“估计”；空格分隔的多个关键词要求在同段同时出现。问题或较长句子按信息覆盖度检索，编号、DOI、作者及完整题名保留题录定位。普通题录关键词不会将没有正文命中的段落加入搜索结果。
+
+开发服务通过[Next.js 14启动钩子](https://nextjs.org/docs/14/app/building-your-application/optimizing/instrumentation)提前准备索引；本机`npm start`通过同进程Node预加载等待预热后再启动CLI，避免Next 14.1生产钩子推迟到首个请求。API与预热共用进程内缓存。未变化的资料只检查文件元数据，不重读正文或计算全文哈希；源稿、题录或选单变化后重新核对，段落仅对变化的文档重新抽取。Markdown抽取复用单次解析，不再为检索给全库重复分词；匹配采用词组/关键词覆盖与BM25相关度评分，不另存全文索引文件。Docker standalone入口本轮未改，后续发布须接入相同预加载。
+
 文献助手默认使用DeepSeek官方`deepseek-flash`（V4.1 Flash）。MVP保留原问题及方法缩写，再生成至多3组互补检索表达，总计最多6组；合并候选后由模型筛选相关段落，最多选12段、每篇3段，序列化资料总长最多18000字符。片段补充同章节紧邻的公式和说明。仅把选中资料、出处和问题交给回答接口，页面保留本次参考段落与可点击引用；未找到可用证据时说明本次检索不足，一般知识须与库内依据区分。上限集中在`src/app/api/chat/config.json`。
 
 密钥只从`DEEPSEEK_API_KEY`读取，存储与轮换见[维护指南](../../03-维护.md)。`GET /api/chat`公开模型及是否配置，不返回密钥；`POST /api/chat`使用服务端书单，不采信客户端传入的文献目录。普通搜索为`GET /api/library/search`。本轮为本地更新，未部署公网。
+
+问答诊断日志默认写入项目旁的`weibull-data/logs/library-chat`（本机为`D:/weibull-data/logs/library-chat`），可通过`WEIBULL_DATA_ROOT`或`WEIBULL_CHAT_LOG_DIR`调整。按请求编号记录问题、阶段与耗时、检索词、选用来源编号及成功/失败/取消状态；不记录文献正文、完整回答、原始API请求/错误消息或密钥。JSONL文件每份最多5MiB，最多保留30天、总量50MiB，写入时清理最旧文件；日志不进入Git或发布资料包。它用于诊断检索与接口流程，不能还原完整历史回答。
 
 调用依据：[DeepSeek官方入门](https://api-docs.deepseek.com/)、[Chat Completions参数](https://api-docs.deepseek.com/api/create-chat-completion/)、[JSON输出](https://api-docs.deepseek.com/guides/json_mode/)。检索表达和候选筛选使用JSON输出，回答使用流式正文，均显式关闭思考模式。基础版本不引入向量、独立检索服务或自主多轮检索；后续改进依据实际使用反馈。
 
