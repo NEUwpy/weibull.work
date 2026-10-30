@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, FileText, Book, User, Search, Loader2 } from 'lucide-react'
+import { FileText, Book, User, Search, Loader2 } from 'lucide-react'
 import type { LibrarySearchResponse } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
 import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
@@ -219,7 +219,6 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
             <p className="text-xs leading-5 text-slate-500">{hit.slug} · {hit.version} · {hit.section}</p>
             <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="inline-block text-lg font-medium leading-7 text-blue-800 hover:underline"><Highlight text={hit.title} terms={searchResponse.terms} /></Link>
             <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600"><Highlight text={hit.excerpt} terms={searchResponse.terms} /></p>
-            <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="inline-flex items-center gap-1 pt-1 text-xs font-medium text-blue-600 hover:underline">查看所在段落<ArrowRight size={13} /></Link>
           </article>)}
           {searchResponse && !searchResponse.total && <div className="rounded-xl bg-white px-6 py-12 text-sm leading-7 text-slate-500"><p>未找到相关内容。</p><p>可以缩短检索句，或换用术语的另一种中英文表达。</p></div>}
           {searchResponse && searchResponse.total > PAGE_SIZE && <nav aria-label="检索结果分页" className="flex flex-wrap items-center gap-4 pt-3 text-sm">
