@@ -434,17 +434,21 @@ test('actual content, asset, references and chat handlers consume selected sourc
   const client = { chat: { completions: { create: async request => {
     calls.push(request)
     if (request.stream) return (async function* () { yield { choices: [{ delta: { content: 'offline answer' } }] } })()
-    const selected = calls.length === 1 ? { relevant_papers: [{ slug: id }] }
-      : { relevant_sections: [{ paper_slug: id, paper_title: '源库中文题名', section_heading: '结果' }] }
+    if (request.messages[0].content.startsWith('你筛选')) {
+      const candidates = JSON.parse(request.messages[1].content.split('候选段落：\n')[1])
+      return { choices: [{ message: { content: JSON.stringify({ ranked_ids: candidates.filter(item => item.text.includes('LIVE_SOURCE_RESULT_738')).map(item => item.id) }) } }] }
+    }
+    const selected = { queries: ['LIVE_SOURCE_RESULT_738'] }
     return { choices: [{ message: { content: JSON.stringify(selected) } }] }
   } } } }
   const chat = load('src/app/api/chat/route.ts', {
     ...dependencies,
-    '@/lib/server/moonshot-client': { hasMoonshotKey: () => true, getMoonshotClient: () => client },
+    '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
+      getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },
   })
-  const answer = await chat.POST({ json: async () => ({ question: '结果如何', papers: [{ slug: id, title: '源库中文题名' }] }) })
+  const answer = await chat.POST({ json: async () => ({ question: 'LIVE_SOURCE_RESULT_738' }) })
   assert.match(await answer.text(), /offline answer/)
   assert.equal(calls.length, 3)
-  assert.match(calls[2].messages[0].content, /LIVE_SOURCE_RESULT_738/)
+  assert.match(calls[2].messages[1].content, /LIVE_SOURCE_RESULT_738/)
   assert.doesNotMatch(JSON.stringify(calls), /NOT_SELECTED_SECTION_291|PRIVATE_NOTE_993|PRIVATE_SHORT_SUMMARY_994|UNSELECTED_BODY_888/)
 }))

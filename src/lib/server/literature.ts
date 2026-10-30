@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
+import { createHash } from 'node:crypto'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
@@ -43,6 +44,12 @@ export interface PreferredPaper {
   raw: string
   metadata: Record<string, any>
   body: string
+}
+
+export interface LibraryDocument {
+  paper: PaperMetadata
+  version: '原文' | '翻译'
+  raw: string
 }
 
 function isWithin(root: string, candidate: string): boolean {
@@ -153,8 +160,7 @@ export function readPreferredPaper(slug: string): PreferredPaper | null {
   return preferredFrom(getLibraryPaths(), slug)
 }
 
-export function listPapers(): PaperMetadata[] {
-  const paths = getLibraryPaths()
+function listFrom(paths: LibraryPaths): PaperMetadata[] {
   if (!fs.existsSync(paths.contentDir)) return []
   const slugs = new Set<string>()
   if (paths.sourceIndex) for (const slug of Array.from(paths.sourceIndex.keys())) slugs.add(slug)
@@ -178,6 +184,60 @@ export function listPapers(): PaperMetadata[] {
     })
   }
   return papers
+}
+
+export function listPapers(): PaperMetadata[] {
+  return listFrom(getLibraryPaths())
+}
+
+let searchDocumentSignature = ''
+let searchDocuments: LibraryDocument[] = []
+
+function searchSnapshotSignature(paths: LibraryPaths): string {
+  const digest = createHash('sha256').update(JSON.stringify([paths.root, paths.mode]))
+  const add = (file: string) => digest.update(file).update(fs.readFileSync(file))
+  if (paths.sourceIndex) {
+    for (const paper of Array.from(paths.sourceIndex.values())) {
+      digest.update(JSON.stringify([paper.id, paper.catalog]))
+      for (const file of [paper.original, paper.translation, paper.note]) if (file) add(file)
+    }
+    if (paths.referenceIndex) {
+      const file = resolveEntry(paths.referenceIndex.root, paths.referenceIndex.file.split(/[/\\]/), 'file')
+      if (file) add(file)
+    }
+  } else if (fs.existsSync(paths.contentDir)) {
+    for (const name of fs.readdirSync(paths.contentDir).sort()) {
+      const match = /^(.*)-pdf(?:原文|翻译)\.md$/.exec(name)
+      if (!match || !isContentSlug(match[1])) continue
+      const file = resolveContentFile(paths.contentDir, name)
+      if (file) add(file)
+    }
+  }
+  return digest.digest('hex')
+}
+
+/** The same public selection as listPapers, read once for a search snapshot. */
+export function readLibraryDocuments(): LibraryDocument[] {
+  const paths = getLibraryPaths()
+  const signature = searchSnapshotSignature(paths)
+  if (signature === searchDocumentSignature) return searchDocuments
+  const documents: LibraryDocument[] = []
+  for (const paper of listFrom(paths)) {
+    const versions: { version: '原文' | '翻译'; raw: string }[] = []
+    for (const version of ['原文', '翻译'] as const) {
+      const raw = readFrom(paths, paper.slug, version)
+      if (raw !== null) versions.push({ version, raw })
+    }
+    // A translation may omit a DOI present in its explicitly selected original.
+    const versionMetadata = versions.map(document => matter(document.raw).data)
+    const doi = paper.doi || versionMetadata.map(data => data.doi).find(value => typeof value === 'string')
+    const alternateTitle = versionMetadata.map(data => data.title).find(value => typeof value === 'string' && value !== paper.title)
+    const catalog = { ...paper, ...(doi ? { doi } : {}), ...(!paper.title_en && alternateTitle ? { title_en: alternateTitle } : {}) }
+    for (const document of versions) documents.push({ paper: catalog, ...document })
+  }
+  searchDocumentSignature = signature
+  searchDocuments = documents
+  return documents
 }
 
 export function readReferences(slug: string, type?: string): Record<string, string> {

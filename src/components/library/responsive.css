@@ -3,6 +3,38 @@
   display: none;
 }
 
+.library-reader [id^="passage-"] {
+  scroll-margin-top: 7rem;
+}
+
+.library-reader [data-library-target="true"] {
+  background: #fef3c7;
+  border-radius: 4px;
+  outline: 6px solid #fef3c7;
+}
+
+.library-search-results article,
+.chat-answer,
+.chat-evidence {
+  overflow-wrap: anywhere;
+}
+
+.chat-answer pre,
+.chat-answer .katex-display,
+.chat-answer table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.chat-answer :first-child {
+  margin-top: 0;
+}
+
+.chat-answer :last-child {
+  margin-bottom: 0;
+}
+
 @media (max-width: 1279px) {
   .library-reader h1 {
     flex-wrap: wrap;

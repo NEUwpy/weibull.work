@@ -8,6 +8,7 @@ import { getMoonshotClient, hasMoonshotKey } from '../../src/lib/server/moonshot
 import { loadServerModule } from './helpers/load-server-module.mjs'
 
 const storage = loadServerModule('src/lib/server/literature.ts')
+const { getDeepSeekClient, hasDeepSeekKey } = loadServerModule('src/lib/server/deepseek-client.ts')
 
 // Exercise the actual handlers with Next's response objects, without starting a server.
 function loadRoute(relative, overrides = {}, globals = {}) {
@@ -65,21 +66,21 @@ test('content routes reject invalid selectors and still serve known documents', 
   assert.equal((await literature.GET({ url: `http://local/?slug=${encodeURIComponent(slug)}&type=原文` })).status, 200)
 })
 
-test('chat can load and list models without a key; POST returns a controlled 503', async () => {
-  const saved = process.env.MOONSHOT_API_KEY
-  delete process.env.MOONSHOT_API_KEY
+test('chat can load DeepSeek settings without a key; POST returns a controlled 503', async () => {
+  const saved = process.env.DEEPSEEK_API_KEY
+  delete process.env.DEEPSEEK_API_KEY
   try {
-    assert.equal(hasMoonshotKey(), false)
-    assert.throws(() => getMoonshotClient('https://example.invalid'), /not configured/)
+    assert.equal(hasDeepSeekKey(), false)
+    assert.throws(() => getDeepSeekClient(), /not configured/)
     const route = loadRoute('src/app/api/chat/route.ts')
     assert.equal((await route.GET()).status, 200)
     assert.equal((await route.POST({ json: () => { throw new Error('must not read request') } })).status, 503)
   } finally {
-    if (saved === undefined) delete process.env.MOONSHOT_API_KEY
-    else process.env.MOONSHOT_API_KEY = saved
+    if (saved === undefined) delete process.env.DEEPSEEK_API_KEY
+    else process.env.DEEPSEEK_API_KEY = saved
   }
   const config = JSON.parse(fs.readFileSync('src/app/api/chat/config.json', 'utf8'))
-  assert.equal(Object.hasOwn(config.moonshot, 'apiKey'), false)
+  assert.equal(Object.hasOwn(config.deepseek, 'apiKey'), false)
 })
 
 test('simulation proxy retains failure rows, metrics and an explicit zero seed', async () => {

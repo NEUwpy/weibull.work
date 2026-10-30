@@ -18,7 +18,7 @@ export function loadServerModule(relative, overrides = {}, globals = {}) {
     }).outputText
     vm.runInNewContext(source, {
       module, exports: module.exports, process, console, URL, TextDecoder, TextEncoder,
-      ReadableStream, Uint8Array, Buffer,
+      ReadableStream, Uint8Array, Buffer, AbortController, AbortSignal,
       setTimeout: (...args) => { const timer = setTimeout(...args); timer.unref(); return timer },
       require: name => {
         if (Object.hasOwn(overrides, name)) return overrides[name]

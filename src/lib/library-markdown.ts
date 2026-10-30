@@ -43,6 +43,42 @@ export interface LibraryRenderObservation {
   counts: { math: number; tables: number; headings: number }
 }
 
+export const libraryPassageId = (line: number): string => `passage-${line}`
+
+export interface LibraryPassage {
+  section: string
+  sectionStartLine: number
+  kind: 'paragraph' | 'table' | 'code' | 'math'
+  startLine: number
+  endLine: number
+  text: string
+  plainText: string
+}
+
+/** Source positions come from the same Markdown body used by the reader. */
+export function extractLibraryPassages(raw: string, includeMath = false): LibraryPassage[] {
+  const processed = processLibraryContent(raw)
+  const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(processed.body)
+  const passages: LibraryPassage[] = []
+  const sections: string[] = []
+  let sectionStartLine = 0
+  visit(tree, (node: any) => {
+    if (node.type === 'heading') {
+      sections.length = node.depth
+      sections[node.depth - 1] = nodeText(node).trim()
+      sectionStartLine = node.position.start.line + processed.bodyLineOffset
+    }
+    if (!['paragraph', 'table', 'code', ...(includeMath ? ['math'] : [])].includes(node.type) || !node.position) return
+    const text = processed.body.slice(node.position.start.offset, node.position.end.offset).trim()
+    const plainText = nodeText(node).replace(/\s+/g, ' ').trim()
+    if (!plainText) return
+    passages.push({ section: sections.filter(Boolean).join(' / ') || '正文', sectionStartLine, kind: node.type,
+      startLine: node.position.start.line + processed.bodyLineOffset,
+      endLine: node.position.end.line + processed.bodyLineOffset, text, plainText })
+  })
+  return passages
+}
+
 // The source line numbers remain intact: removing a reference section replaces it
 // with blank lines, so diagnostics still point to the original Markdown.
 export function processLibraryContent(rawMarkdown: string): ProcessedLibraryContent {
@@ -255,6 +291,20 @@ function rehypeLibraryObserve(options: { processed: ProcessedLibraryContent; obs
   }
 }
 
+function rehypeLibraryPassages(options: { processed: ProcessedLibraryContent }) {
+  return (tree: any) => {
+    const assigned = new Set<number>()
+    visit(tree, 'element', (node: any) => {
+      if (!['p', 'table', 'pre', 'li'].includes(node.tagName) || !node.position) return
+      const line = node.position.start.line + options.processed.bodyLineOffset
+      if (assigned.has(line)) return
+      assigned.add(line)
+      node.properties ??= {}
+      if (!node.properties.id) node.properties = { id: libraryPassageId(line), ...node.properties }
+    })
+  }
+}
+
 // Both ReactMarkdown in the daily website and the compiler use these exact
 // plugin instances/options, including citations after math has been parsed.
 export function getLibraryMarkdownOptions(processed: ProcessedLibraryContent, observation?: LibraryRenderObservation, linkCitations = true) {
@@ -262,6 +312,7 @@ export function getLibraryMarkdownOptions(processed: ProcessedLibraryContent, ob
     [remarkLibraryFormatDiagnostics, { processed, observation }]]
   const rehypePlugins: PluggableList = [rehypeRaw, rehypeSlug, rehypeKatex,
     ...(linkCitations ? [[rehypeLibraryCitations, { processed, observation }] as any] : []), rehypeStyleCaptions,
+    ...(linkCitations ? [[rehypeLibraryPassages, { processed }] as any] : []),
     [rehypeLibraryObserve, { processed, observation }]]
   return { remarkPlugins, rehypePlugins }
 }

@@ -57,27 +57,31 @@ test('legacy asset URLs rewrite before public files and leave product routes alo
   }
 })
 
-test('chat stages receive actual external headings and selected section without paid APIs', () => withFixture(async () => {
+test('grounded chat receives actual external paragraph evidence without paid APIs', () => withFixture(async () => {
   const storage = load('src/lib/server/literature.ts')
   const calls = []
   const client = { chat: { completions: { create: async request => {
     calls.push(request)
     if (request.stream) return (async function* () { yield { choices: [{ delta: { content: 'offline answer' } }] } })()
-    const body = calls.length === 1 ? { relevant_papers: [{ slug: 'audit-paper' }] }
-      : { relevant_sections: [{ paper_slug: 'audit-paper', paper_title: '外挂测试文献', section_heading: '结果' }] }
+    if (request.messages[0].content.startsWith('你筛选')) {
+      const candidates = JSON.parse(request.messages[1].content.split('候选段落：\n')[1])
+      return { choices: [{ message: { content: JSON.stringify({ ranked_ids: candidates.filter(item => item.text.includes('EXTERNAL_RESULT_739')).map(item => item.id) }) } }] }
+    }
+    const body = { queries: ['EXTERNAL_RESULT_739'] }
     return { choices: [{ message: { content: JSON.stringify(body) } }] }
   } } } }
   const chat = load('src/app/api/chat/route.ts', {
     '@/lib/server/literature': storage,
-    '@/lib/server/moonshot-client': { hasMoonshotKey: () => true, getMoonshotClient: () => client },
+    '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
+      getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },
   })
-  const response = await chat.POST({ json: async () => ({ question: '结果如何', papers: [{ slug: 'audit-paper', title: '外挂测试文献' }] }) })
+  const response = await chat.POST({ json: async () => ({ question: 'EXTERNAL_RESULT_739' }) })
   const stream = await response.text()
   assert.equal(calls.length, 3)
-  assert.match(calls[1].messages[0].content, /外挂测试文献/)
-  assert.match(calls[1].messages[0].content, /结果/)
-  assert.match(calls[2].messages[0].content, /EXTERNAL_RESULT_739/)
-  assert.doesNotMatch(calls[2].messages[0].content, /NOT_THIS_SECTION_912/)
+  assert.match(calls[2].messages[1].content, /外挂测试文献/)
+  assert.match(calls[2].messages[1].content, /结果/)
+  assert.match(calls[2].messages[1].content, /EXTERNAL_RESULT_739/)
+  assert.doesNotMatch(calls[2].messages[1].content, /NOT_THIS_SECTION_912/)
   assert.match(stream, /offline answer/)
   assert.match(stream, /audit-paper/)
 }))

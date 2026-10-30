@@ -35,7 +35,7 @@ function renderTextWithMath(text: string): React.ReactNode {
 }
 
 // -------------------------------------------------------------------------
-// API Simulation (Since we are in a client component now)
+// Read the same selected documents used by library search.
 // -------------------------------------------------------------------------
 async function fetchFile(slug: string, type: '翻译' | '原文') {
   const response = await fetch(`/api/content?slug=${slug}&type=${type}`)
@@ -44,8 +44,13 @@ async function fetchFile(slug: string, type: '翻译' | '原文') {
   return response.text()
 }
 
+function clearPassageTarget() {
+  document.querySelectorAll('.library-reader [data-library-target]').forEach(node => node.removeAttribute('data-library-target'))
+}
+
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [version, setVersion] = useState<'翻译' | '原文'>('翻译')
+  const [versionReady, setVersionReady] = useState(false)
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasOriginal, setHasOriginal] = useState(false)
@@ -54,8 +59,29 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   const slug = params.slug
 
+  useEffect(() => {
+    const readVersion = () => {
+      setVersion(new URLSearchParams(window.location.search).get('version') === '原文' ? '原文' : '翻译')
+      setVersionReady(true)
+    }
+    readVersion()
+    window.addEventListener('popstate', readVersion)
+    return () => window.removeEventListener('popstate', readVersion)
+  }, [slug])
+
+  function chooseVersion(next: '翻译' | '原文') {
+    clearPassageTarget()
+    setVersion(next)
+    const url = new URL(window.location.href)
+    url.searchParams.set('version', next)
+    // A passage anchor belongs to one version; discard it when switching.
+    if (url.hash.startsWith('#passage-')) url.hash = ''
+    window.history.replaceState(window.history.state, '', url)
+  }
+
   // Initial load
   useEffect(() => {
+    if (!versionReady) return
     let active = true
     async function load() {
       setLoading(true)
@@ -86,7 +112,23 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     }
     load()
     return () => { active = false }
-  }, [slug, version])
+  }, [slug, version, versionReady])
+
+  useEffect(() => {
+    if (loading || !fileContent) return
+    function scrollToTarget() {
+      clearPassageTarget()
+      let id = ''
+      try { id = decodeURIComponent(window.location.hash.slice(1)) } catch { return }
+      const target = id ? document.getElementById(id) : null
+      if (target?.id.startsWith('passage-')) target.setAttribute('data-library-target', 'true')
+      target?.scrollIntoView({ block: 'start' })
+    }
+    const frame = requestAnimationFrame(scrollToTarget)
+    const settle = window.setTimeout(scrollToTarget, 350)
+    window.addEventListener('hashchange', scrollToTarget)
+    return () => { cancelAnimationFrame(frame); clearTimeout(settle); window.removeEventListener('hashchange', scrollToTarget); clearPassageTarget() }
+  }, [loading, fileContent, slug, version])
 
   if (loading) return <div className="p-20 text-center text-slate-400">正在加载文献...</div>
   if (error) return <div className="p-20 text-center text-red-400">{error}</div>
@@ -117,13 +159,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 {hasOriginal && (
                   <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 h-8">
                     <button
-                      onClick={() => setVersion('翻译')}
+                      onClick={() => chooseVersion('翻译')}
                       className={cn("px-5 h-full rounded-lg text-sm font-black transition-all flex items-center justify-center", version === '翻译' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                     >
                       中文
                     </button>
                     <button
-                      onClick={() => setVersion('原文')}
+                      onClick={() => chooseVersion('原文')}
                       className={cn("px-5 h-full rounded-lg text-sm font-black transition-all flex items-center justify-center", version === '原文' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600")}
                     >
                       英文

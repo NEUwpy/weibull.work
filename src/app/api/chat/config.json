@@ -1,16 +1,16 @@
 {
-  "moonshot": {
-    "baseURL": "https://api.moonshot.cn/v1",
-    "models": {
-      "k2-thinking": {
-        "id": "kimi-k2-thinking",
-        "temperature": 1
-      },
-      "k2.5": {
-        "id": "kimi-k2.5",
-        "temperature": 0.7
-      }
-    },
-    "defaultModel": "k2-thinking"
+  "deepseek": {
+    "baseURL": "https://api.deepseek.com",
+    "model": "deepseek-flash",
+    "label": "DeepSeek V4.1 Flash"
+  },
+  "retrieval": {
+    "maxQueries": 6,
+    "candidatesPerQuery": 24,
+    "maxRerankCandidates": 24,
+    "maxRerankChars": 24000,
+    "maxPassages": 12,
+    "maxPerPaper": 3,
+    "maxContextChars": 18000
   }
 }
