@@ -67,7 +67,7 @@ export default function SubCasePage() {
   if (isLoading) {
     return (
       <main className="flex-1 bg-slate-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="page-shell max-w-6xl mx-auto px-8 py-12">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-slate-200 rounded w-1/3"></div>
             <div className="h-4 bg-slate-200 rounded w-1/2"></div>
@@ -80,7 +80,7 @@ export default function SubCasePage() {
   if (!subCase) {
     return (
       <main className="flex-1 bg-slate-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="page-shell max-w-6xl mx-auto px-8 py-12">
           <div className="text-center text-slate-400">
             <FileText size={48} className="mx-auto mb-4 opacity-20" />
             <p>子案例不存在</p>
@@ -97,11 +97,11 @@ export default function SubCasePage() {
 
   return (
     <main className="flex-1 bg-slate-50 min-h-screen">
-      <div className="max-w-6xl mx-auto px-8 py-8 space-y-6">
+      <div className="page-shell max-w-6xl mx-auto px-8 py-8 space-y-6">
 
         {/* 头部导航 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between max-[767px]:flex-wrap max-[767px]:gap-3">
+          <div className="flex items-center gap-4 max-[767px]:min-w-0">
             <Link
               href={`/cases/groups/${groupId}`}
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-colors"
@@ -109,7 +109,7 @@ export default function SubCasePage() {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 max-[767px]:flex-wrap">
                 <FileText size={20} className="text-blue-500" />
                 <h1 className="text-2xl font-bold text-slate-800">{subCase.title}</h1>
               </div>
@@ -136,7 +136,7 @@ export default function SubCasePage() {
           {subCase.parameters && (
             <div>
               <span className="text-xs font-bold text-slate-400 uppercase">估计参数</span>
-              <div className="flex items-center gap-6 mt-2">
+              <div className="flex items-center gap-6 mt-2 max-[767px]:flex-wrap max-[767px]:gap-3">
                 {subCase.parameters.beta !== undefined && (
                   <span className="text-base">
                     <span className="text-slate-400">β̂ = </span>
@@ -175,14 +175,14 @@ export default function SubCasePage() {
           </div>
 
           <div className="divide-y divide-slate-50">
-            <div className="px-6 py-4 flex items-center gap-6">
+            <div className="px-6 py-4 flex items-center gap-6 max-[1023px]:flex-wrap max-[767px]:px-4 max-[767px]:gap-3">
               {/* 序号 */}
               <div className="w-8 flex-shrink-0">
                 <span className="text-base font-mono text-slate-400">1</span>
               </div>
 
               {/* 样本值 - 使用网格均匀排布 */}
-              <div className="flex-1 grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 gap-2">
+              <div className="flex-1 min-w-0 grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 gap-2 max-[1023px]:order-last max-[1023px]:basis-full max-[767px]:grid-cols-3 max-[767px]:[&>span]:px-1">
                 {dataPoints.map((val, i) => (
                   <span key={i} className="text-sm font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded text-center">
                     {parseFloat(val).toFixed(1)}

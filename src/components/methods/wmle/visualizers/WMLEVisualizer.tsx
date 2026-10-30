@@ -377,7 +377,7 @@ export default function WMLEVisualizer({ traceData, dataSources, data, onSurface
       {viewMode === 'iter' && (
         <>
           {/* Info Cards - 仅显示当前样本 */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 max-[479px]:grid-cols-1 max-[767px]:break-words">
              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <span className="text-[10px] uppercase font-bold text-slate-400">静态权重 J₁</span>
                 <div className="text-2xl font-black text-slate-700">{w1}</div>
@@ -389,7 +389,7 @@ export default function WMLEVisualizer({ traceData, dataSources, data, onSurface
           </div>
 
           {/* Chart 1: Objective Minimization */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 max-[767px]:p-4 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="text-sm font-black text-slate-700 uppercase mb-1">加权目标函数优化 (Objective Minimization)</h3>
             <p className="text-xs text-slate-500 mb-4">
               横轴：迭代次数 | 纵轴：残差平方和 (Objective Value)
@@ -438,7 +438,7 @@ export default function WMLEVisualizer({ traceData, dataSources, data, onSurface
           </div>
 
           {/* Chart 2: Dynamic Weight W3 */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-6 max-[767px]:p-4 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="text-sm font-black text-slate-700 uppercase mb-1">动态权重 J₃ 监测 (Dynamic Weight)</h3>
             <p className="text-xs text-slate-500 mb-4">
               横轴：迭代次数 | 左轴：形状参数 (β) | 右轴：权重 J₃

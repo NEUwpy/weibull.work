@@ -91,7 +91,7 @@ export default function StatusPage() {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm space-y-10">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-10">
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">功能模块完成状态</h1>
         <p className="text-slate-500">各参数估计方法的开发进度总览（22 个叶子方法，状态源自 05-状态.md）</p>

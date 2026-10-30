@@ -92,7 +92,7 @@ function MetricCard({ metric }: { metric: MetricDef }) {
 
 export default function MetricsPage() {
   return (
-    <div className="space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div className="space-y-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm max-[767px]:p-4 max-[1279px]:[overflow-wrap:anywhere]">
       <div>
         <div className="mb-2 text-xs font-black uppercase tracking-wider text-blue-600">Evaluation Metrics</div>
         <h1 className="mb-2 text-2xl font-black text-slate-900">指标规范</h1>

@@ -38,7 +38,7 @@ const colorClasses = {
 
 export default function AIPage() {
   return (
-    <section className="mx-auto w-full max-w-[1500px] space-y-8 px-8 py-12 pl-[4.5rem]">
+    <section className="page-shell mx-auto w-full max-w-[1500px] space-y-8 px-8 py-12 pl-[4.5rem]">
       <header className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-violet-600 p-2.5 text-white shadow-sm">

@@ -81,7 +81,7 @@ export default function CaseGroupPage() {
   if (isLoading) {
     return (
       <main className="flex-1 bg-slate-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="page-shell max-w-6xl mx-auto px-8 py-12">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-slate-200 rounded w-1/3"></div>
             <div className="h-4 bg-slate-200 rounded w-1/2"></div>
@@ -94,7 +94,7 @@ export default function CaseGroupPage() {
   if (!group) {
     return (
       <main className="flex-1 bg-slate-50 min-h-screen">
-        <div className="max-w-6xl mx-auto px-8 py-12">
+        <div className="page-shell max-w-6xl mx-auto px-8 py-12">
           <div className="text-center text-slate-400">
             <FolderOpen size={48} className="mx-auto mb-4 opacity-20" />
             <p>案例组不存在</p>
@@ -112,11 +112,11 @@ export default function CaseGroupPage() {
 
   return (
     <main className="flex-1 bg-slate-50 min-h-screen">
-      <div className="max-w-6xl mx-auto px-8 py-8 space-y-6">
+      <div className="page-shell max-w-6xl mx-auto px-8 py-8 space-y-6">
 
         {/* 头部导航 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between max-[767px]:flex-wrap max-[767px]:gap-3">
+          <div className="flex items-center gap-4 max-[767px]:min-w-0">
             <Link
               href="/cases"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-lg transition-colors"
@@ -124,7 +124,7 @@ export default function CaseGroupPage() {
               <ArrowLeft size={20} />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 max-[767px]:flex-wrap">
                 <FolderOpen size={20} className="text-emerald-500" />
                 <h1 className="text-2xl font-bold text-slate-800">{group.title}</h1>
               </div>
@@ -151,7 +151,7 @@ export default function CaseGroupPage() {
           {group.true_params && (
             <div>
               <span className="text-xs font-bold text-slate-400 uppercase">真实参数</span>
-              <div className="flex items-center gap-6 mt-2">
+              <div className="flex items-center gap-6 mt-2 max-[767px]:flex-wrap max-[767px]:gap-3">
                 {group.true_params.beta !== undefined && (
                   <span className="text-base">
                     <span className="text-slate-400">β = </span>
@@ -203,7 +203,7 @@ export default function CaseGroupPage() {
                   <div
                     key={subCase.id}
                     onClick={() => router.push(`/cases/groups/${groupId}/${subCase.id}`)}
-                    className="px-6 py-4 hover:bg-slate-50/80 transition-colors cursor-pointer group flex items-center gap-6"
+                    className="px-6 py-4 hover:bg-slate-50/80 transition-colors cursor-pointer group flex items-center gap-6 max-[1023px]:flex-wrap max-[767px]:px-4 max-[767px]:gap-3"
                   >
                     {/* 序号 */}
                     <div className="w-8 flex-shrink-0">
@@ -211,7 +211,7 @@ export default function CaseGroupPage() {
                     </div>
 
                     {/* 样本值 - 使用网格均匀排布 */}
-                    <div className="flex-1 grid grid-cols-7 gap-2">
+                    <div className="flex-1 min-w-0 grid grid-cols-7 gap-2 max-[1023px]:order-last max-[1023px]:basis-full max-[767px]:grid-cols-3 max-[767px]:[&>span]:px-1">
                       {values.map((val, i) => (
                         <span key={i} className="text-sm font-mono text-slate-600 bg-slate-50 px-2 py-1 rounded text-center">
                           {parseFloat(val).toFixed(1)}

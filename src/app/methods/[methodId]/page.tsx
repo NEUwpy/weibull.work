@@ -75,7 +75,7 @@ export default function MethodDetailPage({ params }: MethodDetailPageProps) {
 
 function CategoryOverview({ category }: { category: MethodNode }) {
   return (
-    <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
+    <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
       <div className="mb-8">
         <Link href="/methods" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-4">
           <ArrowLeft size={18} /> 返回方法总览
@@ -456,17 +456,17 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         onSaveMulti={handleDataSaveMulti}
       />
 
-      <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
+      <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
         {/* Header */}
         <div className="mb-8">
           <Link href="/methods" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-bold mb-6">
             <ArrowLeft size={18} /> 返回方法总览
           </Link>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between max-[1279px]:flex-col max-[1279px]:items-start max-[1279px]:gap-4">
             {/* 方法名 - 点击返回原理文档 */}
             <button
               onClick={() => setActiveTab(null)}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 max-[767px]:flex-wrap hover:opacity-80 transition-opacity"
             >
               <h1 className={cn(
                 "text-3xl font-black text-left",
@@ -477,13 +477,13 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               <span className="text-lg font-mono text-slate-400">{method.shortName.toUpperCase()}</span>
             </button>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 max-[1279px]:w-full max-[1279px]:flex-wrap">
                {/* Tab Toggle */}
-               <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200">
+               <div className="bg-slate-100 p-1 rounded-xl flex gap-1 border border-slate-200 max-[1279px]:flex-wrap max-[1279px]:max-w-full max-[767px]:w-full">
                 <button
                   onClick={() => setActiveTab('flow')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'flow' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -493,7 +493,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 <button
                   onClick={() => setActiveTab('lab')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'lab' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -503,7 +503,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 <button
                   onClick={() => setActiveTab('analysis')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'analysis' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -513,7 +513,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 <button
                   onClick={() => setActiveTab('examples')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'examples' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -523,7 +523,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 <button
                   onClick={() => setActiveTab('cases')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'cases' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -533,7 +533,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 <button
                   onClick={() => setActiveTab('compare')}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all max-[1279px]:whitespace-nowrap max-[767px]:flex-auto max-[767px]:justify-center max-[767px]:px-3",
                     activeTab === 'compare' ? "bg-white text-cyan-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
@@ -563,7 +563,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       </div>
 
       {/* Content Area */}
-      <div className="min-h-[500px]">
+      <div className="min-h-[500px] min-w-0 max-[1279px]:[&_table]:block max-[1279px]:[&_table]:max-w-full max-[1279px]:[&_table]:overflow-x-auto max-[1279px]:[&_pre]:max-w-full max-[1279px]:[&_pre]:overflow-x-auto">
         {activeTab === null ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
              {capability && capability.layer1.theory.status === 'done' ? (
@@ -626,7 +626,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             />
 
             {traceData && (
-              <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+              <div className="bg-slate-50 rounded-3xl p-8 max-[767px]:p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-6">
                   <Microscope className="text-indigo-500" size={20} />
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
@@ -639,7 +639,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
                   return displayResult && displayResult.converged !== false && (
                     <div className="mb-8">
-                      <div className="grid grid-cols-4 gap-4 mb-3">
+                      <div className="grid grid-cols-4 gap-4 mb-3 max-[767px]:grid-cols-2">
                         <StatBox label="估计 β" value={displayResult.beta !== null ? displayResult.beta.toFixed(4) : '--'} />
                         <StatBox label="估计 η" value={displayResult.eta !== null ? displayResult.eta.toFixed(2) : '--'} />
                         <StatBox label="估计 γ" value={displayResult.gamma.toFixed(2)} />
@@ -732,7 +732,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             />
 
             {result && result.beta !== null && result.eta !== null && (
-              <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+              <div className="bg-slate-50 rounded-3xl p-8 max-[767px]:p-4 border border-slate-200">
                 <ResultAnalysisLab
                   methodId={method.id}
                   trueBeta={result.beta}

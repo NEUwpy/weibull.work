@@ -163,7 +163,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
     <div className="bg-slate-50 rounded-3xl overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between max-[767px]:flex-wrap max-[767px]:gap-3">
           <div>
             <div className="flex items-center gap-3">
               <GitBranch className="text-white" size={24} />
@@ -187,7 +187,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
       </div>
 
       {/* Controls */}
-      <div className="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+      <div className="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between max-[767px]:flex-col max-[767px]:items-start max-[767px]:gap-3">
         <div className="text-sm text-slate-500">
           <span className="font-medium">当前：</span>
           <span className="font-bold text-slate-700">{currentStep.name}</span>
@@ -232,9 +232,9 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
       </div>
 
       {/* Three Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 max-[1279px]:grid-cols-1">
         {/* Left Column: Flow Steps */}
-        <div className="lg:col-span-3 border-r border-slate-200 bg-white max-h-[600px] overflow-y-auto">
+        <div className="lg:col-span-3 max-[1279px]:col-span-1 min-w-0 border-r border-slate-200 bg-white max-h-[600px] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
               <GitBranch size={16} className="text-emerald-600" />
@@ -293,7 +293,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
         {/* Middle Column: Code */}
         <div
           ref={codeContainerRef}
-          className="lg:col-span-6 border-r border-slate-200 bg-slate-900 max-h-[600px] overflow-y-auto"
+          className="lg:col-span-6 max-[1279px]:col-span-1 min-w-0 border-r border-slate-200 bg-slate-900 max-h-[600px] overflow-y-auto"
         >
           <div className="sticky top-0 bg-slate-800 border-b border-slate-700 px-4 py-3 z-10 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
@@ -341,7 +341,7 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
         </div>
 
         {/* Right Column: Current Step Details */}
-        <div className="lg:col-span-3 bg-white max-h-[600px] overflow-y-auto">
+        <div className="lg:col-span-3 max-[1279px]:col-span-1 min-w-0 bg-white max-h-[600px] overflow-y-auto">
           <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
               <Database size={16} className="text-emerald-600" />
@@ -399,8 +399,8 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                   </h5>
                   <div className="space-y-2">
                     {currentStep.inputs.map((input, index) => (
-                      <div key={index} className="border border-blue-200 rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-10 divide-x divide-blue-200">
+                      <div key={index} className="border border-blue-200 rounded-lg overflow-hidden max-[767px]:overflow-x-auto">
+                        <div className="grid grid-cols-10 divide-x divide-blue-200 max-[767px]:min-w-[600px]">
                           <div className="col-span-3 p-2 bg-blue-50 flex items-center" style={{ paddingLeft: '18px' }}>
                             <LatexRenderer math={input.symbol} />
                           </div>
@@ -426,8 +426,8 @@ export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps
                   </h5>
                   <div className="space-y-2">
                     {currentStep.outputs.map((output, index) => (
-                      <div key={index} className="border border-green-200 rounded-lg overflow-hidden">
-                        <div className="grid grid-cols-10 divide-x divide-green-200">
+                      <div key={index} className="border border-green-200 rounded-lg overflow-hidden max-[767px]:overflow-x-auto">
+                        <div className="grid grid-cols-10 divide-x divide-green-200 max-[767px]:min-w-[600px]">
                           <div className="col-span-3 p-2 bg-green-50 flex items-center" style={{ paddingLeft: '18px' }}>
                             <LatexRenderer math={output.symbol} />
                           </div>

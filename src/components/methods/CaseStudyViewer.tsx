@@ -277,10 +277,10 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
               <>
                 {/* Selector */}
                 <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 max-[1279px]:flex-wrap max-[767px]:gap-3">
                     <BookOpen className="text-purple-600" size={20} />
                     <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择验证：</label>
-                    <div className="relative flex-1 max-w-xl">
+                    <div className="relative flex-1 max-w-xl max-[1279px]:min-w-0 max-[767px]:order-last max-[767px]:basis-full">
                       <select
                         value={selectedId}
                         onChange={(e) => setSelectedId(e.target.value)}
@@ -412,10 +412,10 @@ export default function CaseStudyViewer({ methodId }: CaseStudyViewerProps) {
     <div className="space-y-6">
       {/* 验证选择下拉框 */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 max-[1279px]:flex-wrap max-[767px]:gap-3">
           <BookOpen className="text-purple-600" size={20} />
           <label className="text-sm font-bold text-slate-600 whitespace-nowrap">选择验证：</label>
-          <div className="relative flex-1 max-w-xl">
+          <div className="relative flex-1 max-w-xl max-[1279px]:min-w-0 max-[767px]:order-last max-[767px]:basis-full">
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}

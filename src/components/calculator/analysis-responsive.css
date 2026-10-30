@@ -1,0 +1,47 @@
+/* Keep the existing desktop geometry. Reflow only when the card has too little space. */
+.analysis-card { container: analysis / inline-size; }
+.analysis-actions { right: var(--analysis-actions-offset, -2.5rem); }
+
+@container analysis (max-width: 1100px) {
+  .analysis-surface { height: auto; }
+  .analysis-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 0; }
+  .analysis-grid > div { width: 100%; min-width: 0; border-left-width: 0; }
+  .analysis-method { grid-column: 1 / -1; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+  .analysis-method > div:nth-child(2) { padding: 16px; }
+  .analysis-method > div:nth-child(2) > div { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .analysis-method > div:nth-child(2) > div > div:last-child { max-width: 400px; }
+  .analysis-sample, .analysis-parameters { height: 350px; padding-bottom: 12px; }
+  .analysis-sample { border-right: 1px solid #f1f5f9; }
+  .analysis-chart { grid-column: 1 / -1; height: 360px; padding-bottom: 12px; border-top: 1px solid #f1f5f9; }
+  .analysis-plot { min-height: 0; min-width: 0; }
+  .analysis-grid > div > div:first-child,
+  .analysis-grid > div > div:last-child { flex-shrink: 0; }
+  .analysis-grid [class*="opacity-0"] { opacity: 1; }
+  .analysis-actions { position: relative; inset: auto; flex-direction: row-reverse; margin-bottom: 8px; }
+  .analysis-actions > button, .analysis-actions > div > button { opacity: 1; width: 44px; height: 44px; color: #64748b; background: white; border: 1px solid #e2e8f0; }
+  .analysis-actions > div > div { right: 0; top: 100%; margin: 8px 0 0; }
+  .analysis-param-input { justify-content: space-between; }
+  .analysis-param-input > span { width: 64px; }
+  .analysis-param-input > div { min-width: 0; }
+  .analysis-param-input input { min-width: 0; }
+  .analysis-param-input button { flex-shrink: 0; }
+}
+
+@container analysis (max-width: 700px) {
+  .analysis-grid { grid-template-columns: minmax(0, 1fr); }
+  .analysis-sample { border-right: 0; border-bottom: 1px solid #f1f5f9; height: 310px; }
+  .analysis-parameters { height: 350px; }
+  .analysis-chart { height: 380px; }
+  .analysis-chart > div:first-child { height: auto; min-height: 48px; flex-wrap: wrap; gap: 12px; padding-top: 12px; padding-bottom: 12px; }
+  .analysis-chart > div:first-child > div:last-child { flex-wrap: wrap; }
+  .analysis-param-input { height: 40px; }
+  .analysis-param-input > div { flex: 1; max-width: 180px; }
+  .analysis-param-input > button { min-height: 36px; }
+  .analysis-param-input > div > div { height: 40px; }
+  .analysis-param-input > div > div > div { width: 32px; flex-shrink: 0; }
+  .analysis-sample textarea { font-size: 16px; }
+}
+
+@media (hover: none) {
+  .analysis-card [class*="opacity-0"] { opacity: 1; }
+}

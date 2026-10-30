@@ -106,7 +106,7 @@ const schemes = [
 
 export default function DirectEstimationPage() {
   return (
-    <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
+    <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
       {/* Header */}
       <div className="space-y-3">
         <Link href="/ai" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
@@ -152,7 +152,7 @@ export default function DirectEstimationPage() {
                     className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex items-center gap-3 mb-1 max-[767px]:flex-wrap max-[767px]:gap-2">
                         <span className="font-mono font-bold text-sm text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
                           {item.label}
                         </span>
@@ -161,7 +161,7 @@ export default function DirectEstimationPage() {
                           {item.status}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <div className="flex items-center gap-4 text-xs text-slate-500 max-[767px]:flex-wrap max-[767px]:gap-1">
                         <span className="font-mono">{item.input}</span>
                         <span>{item.desc}</span>
                       </div>

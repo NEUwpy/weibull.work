@@ -81,7 +81,7 @@ const MODULES = [
 
 export default function AboutPage() {
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm space-y-16">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-16">
       {/* 一句话定义 */}
       <section className="text-center py-8">
         <h1 className="text-3xl font-black text-slate-900 leading-snug">

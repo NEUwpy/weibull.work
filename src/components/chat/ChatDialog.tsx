@@ -203,7 +203,7 @@ export function ChatDialog({ papers }: ChatDialogProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="library-chat bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-emerald-50">
         <div className="flex items-center gap-3">
@@ -217,6 +217,8 @@ export function ChatDialog({ papers }: ChatDialogProps) {
         </div>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
+          aria-label={isExpanded ? '收起 AI 文献助手' : '展开 AI 文献助手'}
+          aria-expanded={isExpanded}
           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
         >
           {isExpanded ? <Minus size={18} className="text-slate-500" /> : <Plus size={18} className="text-slate-500" />}
@@ -227,7 +229,7 @@ export function ChatDialog({ papers }: ChatDialogProps) {
       {isExpanded && (
         <div className="border-t border-slate-100">
           {/* Model Selector + Debug Toggle */}
-          <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-3">
+          <div className="chat-controls px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="text-sm font-bold text-slate-600">模型：</span>
               <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
@@ -450,7 +452,7 @@ export function ChatDialog({ papers }: ChatDialogProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="输入你的问题..."
-                className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="min-w-0 flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 disabled={isLoading}
               />
               <button

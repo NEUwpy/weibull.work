@@ -6,6 +6,7 @@ import { FileText, Book, User, Search } from 'lucide-react'
 import { createLiteratureIndex } from '@/lib/literature-search.mjs'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
+import './responsive.css'
 
 
 type PaperMetadata = {
@@ -52,8 +53,8 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   }, [searchIndex, query, typeFilter])
 
   return (
-    <main className="flex-1 bg-neutral-50 min-h-screen">
-      <div className="w-full max-w-[92%] xl:max-w-[1600px] mx-auto pl-[4.5rem] pr-[3rem] py-16 space-y-12">
+    <main className="library-page flex-1 bg-neutral-50 min-h-screen">
+      <div className="page-shell w-full max-w-[92%] xl:max-w-[1600px] mx-auto pl-[4.5rem] pr-[3rem] py-16 space-y-12">
 
         {/* AI Chat Dialog */}
         <ChatDialog papers={papers} />
@@ -67,7 +68,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
         </label>
 
         {/* Type Filter Header */}
-        <div className="flex items-center justify-between">
+        <div className="library-filters flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-1 h-8 bg-neutral-800 rounded-full" />
             <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">Filter</span>
@@ -111,7 +112,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
         </div>
 
         {/* Masonry Waterfall Layout */}
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-8">
+        <div className="library-cards columns-1 md:columns-2 lg:columns-3 gap-8">
           {filteredPapers.map(paper => (
             <Link
               key={paper.slug}

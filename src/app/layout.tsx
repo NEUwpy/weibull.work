@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info, Brain } from 'lucide-react'
+import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info, Brain, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/config'
 
@@ -20,7 +20,23 @@ export default function RootLayout({
   const isAI = pathname.startsWith('/ai')
   const isHelp = pathname.startsWith('/help')
   const [infoOpen, setInfoOpen] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => { setMobileNavOpen(false) }, [pathname])
+
+  useEffect(() => {
+    if (!mobileNavOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileNavOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [mobileNavOpen])
 
   // 点击外部关闭下拉
   useEffect(() => {
@@ -70,9 +86,9 @@ export default function RootLayout({
       <body className="bg-slate-50 min-h-screen flex flex-col">
         {/* Global Immersive Header */}
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-          <div className="max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
+          <div className="site-header-inner page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
             {/* Left: Dynamic Title */}
-            <div className="flex items-center gap-3">
+            <div className="site-title flex items-center gap-3">
                <div className={cn(
                  "p-2 rounded-lg text-white shadow-sm transition-colors",
                  themeColor
@@ -90,7 +106,7 @@ export default function RootLayout({
             </div>
 
             {/* Right: Navigation Switcher */}
-            <div className="flex items-center gap-8">
+            <div className="desktop-navigation flex items-center gap-8">
                {/* Segmented Control */}
                <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                   <Link
@@ -204,7 +220,42 @@ export default function RootLayout({
                   )}
                 </div>
             </div>
+            <button
+              ref={menuButtonRef}
+              type="button"
+              aria-label={mobileNavOpen ? '关闭导航菜单' : '打开导航菜单'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="compact-navigation"
+              onClick={() => setMobileNavOpen(open => !open)}
+              className="compact-navigation-toggle items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600"
+            >
+              {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
           </div>
+          {mobileNavOpen && (
+            <nav id="compact-navigation" aria-label="网站导航" className="compact-navigation border-t border-slate-200 bg-white">
+              {[
+                { href: '/', label: '威布尔计算器', Icon: Calculator },
+                { href: '/methods', label: '参数估计方法', Icon: Settings2 },
+                { href: '/ai', label: '人工智能方法', Icon: Brain },
+                { href: '/cases', label: '案例数据库', Icon: Database },
+                { href: '/library', label: '可靠性图书馆', Icon: Library },
+                { href: '/help/manual/about', label: '用户手册', Icon: BookOpen },
+                { href: '/help/changelog', label: '更新日志', Icon: FileText },
+              ].map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileNavOpen(false)}
+                  aria-current={(item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)) ? 'page' : undefined}
+                  className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 aria-[current=page]:bg-blue-50 aria-[current=page]:text-blue-600"
+                >
+                  <item.Icon size={18} />{item.label}
+                </Link>
+              ))}
+              <span className="px-4 py-3 text-xs text-slate-400">{APP_VERSION}</span>
+            </nav>
+          )}
         </header>
 
         {/* Main Content */}

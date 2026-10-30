@@ -42,7 +42,7 @@ export default function SchemePage() {
   const info = SCHEME_INFO[scheme]
   if (!info) {
     return (
-      <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8">
+      <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8">
         <div className="text-center py-12">
           <p className="text-slate-500">未知方案: {scheme}</p>
           <Link href="/ai/direct-estimation" className="text-cyan-600 hover:underline text-sm mt-2 inline-block">
@@ -54,7 +54,7 @@ export default function SchemePage() {
   }
 
   return (
-    <section className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
+    <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
       {/* Header */}
       <div className="space-y-3">
         <Link href="/ai/direct-estimation" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
@@ -79,7 +79,7 @@ export default function SchemePage() {
 
       {/* Tab Bar */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-hide">
+        <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-hide max-[1279px]:[&>button]:shrink-0">
           {tabs.map((tab) => {
             const Icon = tab.icon
             return (
@@ -101,7 +101,7 @@ export default function SchemePage() {
         </div>
 
         {/* Tab Content */}
-        <div className="p-6 min-h-[400px]">
+        <div className="p-6 min-h-[400px] max-[767px]:p-4 min-w-0 max-[1279px]:[&_table]:block max-[1279px]:[&_table]:max-w-full max-[1279px]:[&_table]:overflow-x-auto">
           {activeTab === 'theory' && <TheoryTab scheme={scheme} />}
           {activeTab === 'training' && <TrainingTab scheme={scheme} />}
           {activeTab === 'data' && <DataTab scheme={scheme} />}

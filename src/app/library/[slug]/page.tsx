@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide-react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import '@/components/library/responsive.css'
 import { cn } from '@/lib/utils'
 import { processLibraryContent, getLibraryMarkdownOptions, getLibraryReferenceMarkdownOptions } from '@/lib/library-markdown'
 
@@ -99,13 +100,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   const toc = rawToc.map(h => ({ ...h, renderLevel: h.level - minLevel + 1 }))
 
   return (
-    <main className="flex-1 bg-slate-50 min-h-screen">
+    <main className="library-reader flex-1 bg-slate-50 min-h-screen">
       {/* Top Banner */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-10">
+        <div className="page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-10">
 
            <div className="flex flex-col gap-6">
-             <div className="flex justify-between items-start">
+             <div className="reader-toolbar flex justify-between items-start">
                 <div className="flex flex-wrap gap-2">
                   {frontmatter.tags?.map((tag: string) => (
                     <span key={tag} className="flex items-center h-8 px-3 rounded-lg bg-blue-100 text-blue-700 text-sm font-bold uppercase tracking-wider border border-blue-200/50">#{tag}</span>
@@ -149,7 +150,20 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         </div>
       </div>
 
-      <div className="max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 flex gap-12 items-start">
+      <div className="reader-layout page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 flex gap-12 items-start">
+        {toc.length > 0 && (
+          <details className="reader-mobile-toc">
+            <summary><List size={18} />目录</summary>
+            <nav aria-label="文献目录">
+              {toc.map((item, idx) => (
+                <a key={idx} href={`#${item.slug}`} style={{ paddingLeft: `${(item.renderLevel - 1) * 12 + 12}px` }}>
+                  {renderTextWithMath(item.text)}
+                </a>
+              ))}
+              {referenceEntries.length > 0 && <a href="#references-section">{referenceTitle}</a>}
+            </nav>
+          </details>
+        )}
         {/* TOC Sidebar */}
         <aside className="hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 scrollbar-hide">
            <div className="mb-6 flex items-center gap-2 text-slate-900 font-black text-base uppercase tracking-widest">
@@ -182,7 +196,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
             <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-white prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
               <Markdown {...getLibraryMarkdownOptions(processed)}>
                 {body}

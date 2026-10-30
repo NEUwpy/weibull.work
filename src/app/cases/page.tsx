@@ -167,7 +167,7 @@ export default function CasesPage() {
 
   return (
     <main className="flex-1 bg-slate-50 min-h-screen">
-      <div className="w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 space-y-8">
+      <div className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 space-y-8">
 
         {/* 标题和统计 */}
         <div className="flex items-center justify-between">
@@ -182,7 +182,7 @@ export default function CasesPage() {
         {/* Toolbar */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-4">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[200px] max-[767px]:basis-full max-[767px]:min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
@@ -239,8 +239,8 @@ export default function CasesPage() {
         </div>
 
         {/* Data Grid / Table */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden max-[1279px]:overflow-x-auto">
+          <table className="w-full text-left border-collapse max-[1279px]:min-w-[780px]">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-black text-slate-400 uppercase tracking-wider">
                 <th className="px-6 py-4">名称</th>
@@ -280,9 +280,9 @@ export default function CasesPage() {
                             [{item.id}]
                           </span>
                           {/* 标题 */}
-                          <span className="font-bold text-slate-800 text-sm">
+                          <Link href={detailUrl} className="font-bold text-slate-800 text-sm">
                             {item.title}
-                          </span>
+                          </Link>
                           {/* 文献ID - 如果存在 */}
                           {paperId && (
                             <Link

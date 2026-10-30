@@ -1,0 +1,196 @@
+/* Existing desktop geometry remains unchanged. */
+.reader-mobile-toc {
+  display: none;
+}
+
+@media (max-width: 1279px) {
+  .library-reader h1 {
+    flex-wrap: wrap;
+  }
+
+  .library-reader h1 > span:first-child,
+  .library-reader h2,
+  .library-reader p,
+  .library-reader a,
+  .library-page article {
+    overflow-wrap: anywhere;
+  }
+
+  .reader-toolbar {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .reader-toolbar > div:last-child {
+    flex-shrink: 0;
+  }
+
+  .reader-toolbar > div:first-child {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .reader-layout {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .reader-layout > aside {
+    display: none;
+  }
+
+  .reader-layout > div {
+    width: 100%;
+  }
+
+  .reader-mobile-toc {
+    display: block;
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: white;
+    color: #334155;
+  }
+
+  .reader-mobile-toc summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  .reader-mobile-toc nav {
+    max-height: 50dvh;
+    overflow: auto;
+    padding: 0 12px 12px;
+  }
+
+  .reader-mobile-toc a {
+    display: block;
+    padding: 10px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+
+  .reader-mobile-toc a:hover {
+    background: #eff6ff;
+  }
+
+  .reader-paper {
+    min-width: 0;
+    padding: 28px;
+  }
+
+  .library-reader .prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .library-reader .prose img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .library-reader .prose .katex-display {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .library-reader .prose pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .library-cards {
+    columns: 2;
+    column-gap: 24px;
+  }
+
+  .library-chat .chat-controls {
+    flex-wrap: wrap;
+  }
+
+  .library-chat [class*="max-w-"],
+  .library-chat [class*="min-w-"] {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .library-chat pre {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .library-page > .page-shell {
+    padding-top: 24px;
+    padding-bottom: 32px;
+  }
+
+  .library-filters {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .library-filters > div:last-child {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .library-filters button {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .library-cards {
+    columns: 1;
+  }
+
+  .library-cards article > div {
+    padding: 20px;
+  }
+
+  .library-cards article > div > div:first-child {
+    gap: 12px;
+  }
+
+  .library-reader .page-shell {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  .library-reader h1 {
+    font-size: 26px;
+  }
+
+  .reader-paper {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .library-reader .prose h1 {
+    font-size: 26px;
+  }
+
+  .library-reader .prose h2 {
+    font-size: 22px;
+  }
+
+  .library-reader .prose h3 {
+    font-size: 20px;
+  }
+
+  .library-chat .chat-controls > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .library-chat form button {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

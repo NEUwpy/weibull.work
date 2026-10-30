@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, FileText, AlertCircle, Check, Plus, Trash2, Edit2, Database, ChevronDown, ChevronRight, Folder, File, Users } from 'lucide-react'
 import { DataPoint, DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
+import './drawers-responsive.css'
 
 // 树节点类型
 type CaseTreeNode =
@@ -290,7 +291,10 @@ export default function DataEditor({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-[650px] bg-slate-50 shadow-2xl z-[150] flex flex-col border-l border-slate-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="案例数据库"
+            className="data-editor fixed right-0 top-0 bottom-0 w-[650px] bg-slate-50 shadow-2xl z-[150] flex flex-col border-l border-slate-200"
           >
             {/* Header */}
             <div className="p-6 border-b border-slate-200 bg-white flex items-center justify-between">
@@ -303,7 +307,7 @@ export default function DataEditor({
                   <p className="text-xs text-slate-500 font-medium">Case Database</p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+              <button onClick={onClose} aria-label="关闭案例数据库" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
                 <X size={24} />
               </button>
             </div>
@@ -344,7 +348,7 @@ export default function DataEditor({
             </div>
 
             {/* List Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="data-editor-list flex-1 overflow-y-auto p-4 space-y-2">
               {isLoading ? (
                 <div className="text-center py-12 text-slate-400">加载中...</div>
               ) : (
@@ -571,7 +575,7 @@ export default function DataEditor({
 
             {/* Selection Preview (Multi-mode) */}
             {mode === 'multi' && selectedCount > 0 && (
-              <div className="p-4 bg-emerald-50 border-t border-emerald-100">
+              <div className="data-editor-preview p-4 bg-emerald-50 border-t border-emerald-100">
                 <div className="text-xs font-bold text-emerald-700 mb-2">已选择 {selectedCount} 项:</div>
                 <div className="flex flex-wrap gap-2">
                   {getSelectedPreview().map((name, i) => (
@@ -589,7 +593,7 @@ export default function DataEditor({
             )}
 
             {/* Footer Actions */}
-            <div className="p-6 bg-white border-t border-slate-200 flex items-center justify-between z-20 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <div className="data-editor-footer p-6 bg-white border-t border-slate-200 flex items-center justify-between z-20 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
               <div className="text-sm text-slate-500">
                 {mode === 'multi'
                   ? (selectedCount > 0 ? `已选择 ${selectedCount} 个案例` : '请选择案例')

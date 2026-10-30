@@ -3,7 +3,7 @@ import { ArrowLeft, Network } from 'lucide-react'
 
 export default function AdaptiveSelectionPage() {
   return (
-    <section className="mx-auto w-full max-w-[1200px] space-y-7 px-8 py-10 pl-[4.5rem]">
+    <section className="page-shell mx-auto w-full max-w-[1200px] space-y-7 px-8 py-10 pl-[4.5rem]">
       <Link href="/ai" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600">
         <ArrowLeft size={14} /> 返回人工智能方法
       </Link>

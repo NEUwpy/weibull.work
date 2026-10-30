@@ -123,7 +123,7 @@ const WORKFLOWS: Workflow[] = [
 
 export default function WorkflowPage() {
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm space-y-10">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-10">
       {/* 标题 */}
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">工作流介绍</h1>

@@ -144,7 +144,7 @@ export function PlaygroundTab({ scheme: defaultScheme = 'a-1' }: { scheme?: stri
             <div className="space-y-3">
               <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
                 <div className="text-xs text-cyan-500 mb-3">AI 预测的 Weibull 参数</div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 max-[767px]:grid-cols-1 max-[767px]:break-words">
                   <div>
                     <div className="text-xs text-cyan-400 mb-1">β（形状）</div>
                     <div className="text-2xl font-black text-cyan-700 font-mono">{result.beta}</div>

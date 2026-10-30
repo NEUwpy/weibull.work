@@ -212,9 +212,9 @@ function InstanceCard({ usage, chartType }: { usage: ChartUsage; chartType: stri
   useEffect(() => { loadData() }, [loadData])
 
   return (
-    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div>
+    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col max-[767px]:[overflow-wrap:anywhere]">
+      <div className="flex items-start justify-between mb-3 max-[767px]:flex-col max-[767px]:gap-3">
+        <div className="max-[767px]:min-w-0 max-[767px]:w-full">
           <div className="font-mono font-bold text-slate-900 text-sm">{usage.label}</div>
           <div className="font-mono text-xs text-slate-500 mt-0.5">{usage.location}</div>
         </div>
@@ -399,9 +399,9 @@ function ChartExpandable({ name, nameCn, path, purpose, dataShape, visualSemanti
 
   // 内部：模板卡片（始终显示）
   const templateCard = (
-    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div>
+    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 h-full flex flex-col max-[767px]:[overflow-wrap:anywhere]">
+      <div className="flex items-start justify-between mb-3 max-[767px]:flex-col max-[767px]:gap-3">
+        <div className="max-[767px]:min-w-0 max-[767px]:w-full">
           <div className="font-mono font-bold text-slate-900 text-base">{name} <span className="text-slate-500 font-sans font-normal">{nameCn}</span></div>
           <div className="font-mono text-xs text-blue-600 mt-0.5">{path}</div>
           <div className="text-sm text-slate-500 mt-1">{purpose}</div>
@@ -413,7 +413,7 @@ function ChartExpandable({ name, nameCn, path, purpose, dataShape, visualSemanti
         {usages.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="shrink-0 ml-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer
+            className="shrink-0 ml-3 max-[767px]:ml-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors cursor-pointer
               bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
           >
             <span>{expanded ? '收起' : `展开 (${usages.length})`}</span>
@@ -484,7 +484,7 @@ const chartTemplateRenderers: Record<ChartPatternDef['name'], () => React.ReactN
 
 export default function ChartsPage() {
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm space-y-10">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-10">
       {/* 标题 */}
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">图表规范</h1>

@@ -32,9 +32,27 @@ const NAV_STRUCTURE = [
 
 export default function HelpSidebar() {
   const pathname = usePathname()
+  const activeItem = NAV_STRUCTURE.flatMap(group => group.items).find(item => item.href === pathname)
 
   return (
-    <aside className="hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-6">
+    <>
+    <details className="hidden max-[1279px]:block w-full rounded-xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer text-sm font-bold text-slate-700">帮助导航 · {activeItem?.label ?? '选择页面'}</summary>
+      <div className="mt-4 grid grid-cols-1 gap-4 min-[640px]:grid-cols-3">
+        {NAV_STRUCTURE.map(group => (
+          <nav key={group.group} aria-label={group.group}>
+            <div className="mb-2 text-xs font-bold text-slate-400">{group.group}</div>
+            {group.items.map(item => (
+              <Link key={item.href} href={item.href} aria-current={pathname === item.href ? 'page' : undefined}
+                className={cn('block rounded-lg px-3 py-2 text-sm', pathname === item.href ? 'bg-blue-50 font-bold text-blue-600' : 'text-slate-600 hover:bg-slate-50')}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        ))}
+      </div>
+    </details>
+    <aside className="hidden lg:block max-[1279px]:hidden w-64 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-6">
       {NAV_STRUCTURE.map(group => (
         <div key={group.group} className="mb-6">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
@@ -62,5 +80,6 @@ export default function HelpSidebar() {
         </div>
       ))}
     </aside>
+    </>
   )
 }

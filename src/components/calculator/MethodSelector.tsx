@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
 import { MethodDetailContent } from '@/components/methods/MethodDetailContent'
 import { isCalculatorEnabled } from '@/lib/method-status'
+import './drawers-responsive.css'
 
 interface MethodSelectorProps {
   isOpen: boolean
@@ -162,7 +163,10 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-[85vw] bg-white shadow-2xl z-[150] flex flex-col border-l border-slate-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="参数估计方法库"
+            className="method-selector fixed right-0 top-0 bottom-0 w-[85vw] bg-white shadow-2xl z-[150] flex flex-col border-l border-slate-200"
           >
             {/* Header */}
             <div className="flex-none px-8 py-5 bg-white border-b border-slate-200 flex items-center justify-between z-20 shadow-sm">
@@ -178,6 +182,7 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
                 </div>
               </div>
               <button
+                aria-label="关闭方法库"
                 onClick={() => {
                   setIsClosing(true)
                   onClose()
@@ -188,11 +193,32 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
               </button>
             </div>
 
+            <div className="method-mobile-controls">
+              <label>
+                方法分类
+                <select value={selectedCategoryId} onChange={event => {
+                  setSelectedCategoryId(event.target.value)
+                  setActiveMethodId(null)
+                }}>
+                  {methodTree.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </label>
+              <label>
+                具体算法
+                <select value={activeMethodId || ''} onChange={event => setActiveMethodId(event.target.value || null)}>
+                  <option value="">请选择算法</option>
+                  {selectedCategory.children?.map(method => (
+                    <option key={method.id} value={method.id}>{method.shortName} · {method.name}{isCalculatorEnabled(method.id) ? '' : '（开发中）'}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             {/* Content: Balanced Layout */}
-            <div className="flex-1 flex overflow-hidden relative text-slate-700 bg-slate-50">
+            <div className="method-selector-content flex-1 flex overflow-hidden relative text-slate-700 bg-slate-50">
               
               {/* Layer 1: Categories (20%) */}
-              <div className="w-[22%] flex-none flex flex-col border-r border-slate-200 bg-white z-10">
+              <div className="method-category-list w-[22%] flex-none flex flex-col border-r border-slate-200 bg-white z-10">
                 <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                    <div className="text-xs font-black text-slate-400 uppercase tracking-wider">主要分类 (Categories)</div>
                 </div>
@@ -233,7 +259,7 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
               </div>
 
               {/* Layer 2: Methods List (25%) */}
-              <div className="w-[28%] flex-none flex flex-col border-r border-slate-200 bg-slate-50 z-10">
+              <div className="method-algorithm-list w-[28%] flex-none flex flex-col border-r border-slate-200 bg-slate-50 z-10">
                  <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                     <div className="text-xs font-black text-slate-400 uppercase tracking-wider">具体算法 (Algorithms)</div>
                     <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-medium">可拖拽</span>
@@ -308,7 +334,7 @@ export default function MethodSelector({ isOpen, onClose, onSelect }: MethodSele
               </div>
 
               {/* Layer 3: Details Panel (Remaining) */}
-              <div className="flex-1 bg-white p-0 flex flex-col relative overflow-hidden">
+              <div className="method-selector-details flex-1 bg-white p-0 flex flex-col relative overflow-hidden">
                  {/* Removed AnimatePresence to prevent blocking */}
                  {activeMethod ? (
                      <motion.div

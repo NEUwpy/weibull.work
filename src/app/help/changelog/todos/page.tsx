@@ -123,7 +123,7 @@ export default function TodosPage() {
   const PHASES = parseTodos(raw)
 
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm space-y-12">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-12">
       {/* 标题 */}
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">更新计划</h1>

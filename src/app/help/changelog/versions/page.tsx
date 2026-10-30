@@ -14,7 +14,7 @@ export default function VersionsPage() {
   const { content } = matter(readDoc('08-更新日志.md'))
 
   return (
-    <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+    <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <span className="text-sm text-slate-400 font-mono bg-slate-100 px-2 py-0.5 rounded">{APP_VERSION}</span>
         <span className="text-xs text-slate-400">当前版本</span>

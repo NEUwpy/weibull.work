@@ -78,3 +78,40 @@ body {
   width: 100% !important;
   max-width: 100% !important;
 }
+
+/* Existing desktop utilities remain the baseline; compact layouts are opt-in. */
+.compact-navigation-toggle,
+.compact-navigation {
+  display: none;
+}
+
+@media (max-width: 1279px) {
+  .page-shell {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 24px;
+    padding-right: 24px;
+    min-width: 0;
+  }
+
+  .site-header-inner { gap: 16px; }
+  .site-title { min-width: 0; }
+  .site-title > :first-child { flex-shrink: 0; }
+  .site-title > :last-child { min-width: 0; }
+  .site-title h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desktop-navigation { display: none; }
+  .compact-navigation-toggle { display: flex; width: 44px; height: 44px; flex-shrink: 0; }
+  .compact-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px 24px; }
+  .page-shell .prose { overflow-wrap: anywhere; }
+  .page-shell .prose pre { max-width: 100%; overflow-x: auto; }
+  .page-shell .prose table { display: block; max-width: 100%; overflow-x: auto; }
+}
+
+@media (max-width: 767px) {
+  .page-shell { padding-left: 16px; padding-right: 16px; }
+  section.page-shell { padding-top: 24px; padding-bottom: 48px; }
+  .site-title h1 { font-size: 16px; }
+  .site-title span { font-size: 12px; }
+  .compact-navigation { grid-template-columns: minmax(0, 1fr); padding: 8px 16px; max-height: calc(100dvh - 65px); overflow-y: auto; }
+  .page-shell .prose img { max-width: 100%; }
+}

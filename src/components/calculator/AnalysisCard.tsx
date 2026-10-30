@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import './analysis-responsive.css'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -408,18 +409,20 @@ export default function AnalysisCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="w-full relative group/card pb-4 mb-4 mt-4"
+      className="analysis-card w-full relative group/card pb-4 mb-4 mt-4"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Action Buttons (Moved Outside - Right Side) */}
-      <div className="absolute top-0 -right-10 flex flex-col gap-2 z-30">
-         <button onClick={onDelete} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 opacity-0 group-hover/card:opacity-100">
+      <div className="analysis-actions absolute top-0 -right-10 flex flex-col gap-2 z-30">
+         <button aria-label="删除分析卡片" onClick={onDelete} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 opacity-0 group-hover/card:opacity-100">
             <Trash2 size={18} />
          </button>
          
          <div className="relative" ref={addMenuRef}>
            <button 
+             aria-label="添加分析卡片"
+             aria-expanded={isAddMenuOpen}
              onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
              className={cn(
                "p-2 rounded-full transition-all duration-200 opacity-0 group-hover/card:opacity-100",
@@ -465,18 +468,18 @@ export default function AnalysisCard({
 
       {/* Main Card Container */}
       <div className={cn(
-        "relative bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-sm h-[340px]",
+        "analysis-surface relative bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-sm h-[340px]",
         isHovered ? "border-blue-400 shadow-md ring-1 ring-blue-100" : "border-slate-200"
       )}>
 
-        <div className="flex h-full divide-x divide-slate-100 relative z-10 bg-white pt-2 pb-2">
+        <div className="analysis-grid flex h-full divide-x divide-slate-100 relative z-10 bg-white pt-2 pb-2">
           
           {/* Column 1: 方法栏 */}
-          <div className="w-[12.5%] bg-slate-50/30 flex flex-col group/col cursor-pointer hover:bg-blue-50/30 transition-colors h-full" onClick={onMethodClick}>
+          <div className="analysis-method w-[12.5%] bg-slate-50/30 flex flex-col group/col cursor-pointer hover:bg-blue-50/30 transition-colors h-full" onClick={onMethodClick}>
             {/* 标题栏 */}
             <div className="h-12 flex items-center gap-2 px-3 text-slate-500 border-b border-slate-100/50">
               <Settings2 size={16} className="text-blue-600" />
-              <span className="text-base font-black uppercase tracking-wider">方法选择</span>
+              <button type="button" className="text-base font-black uppercase tracking-wider" onClick={event => { event.stopPropagation(); onMethodClick?.() }}>方法选择</button>
             </div>
             {/* 内容栏 */}
             <div className="flex-1 flex flex-col items-center justify-center text-center px-3">
@@ -599,7 +602,7 @@ export default function AnalysisCard({
           </div>
 
           {/* Column 2: 样本 */}
-          <div className="w-1/4 flex flex-col bg-white h-full">
+          <div className="analysis-sample w-1/4 flex flex-col bg-white h-full">
             {/* 标题栏 */}
             <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
               <div className="flex items-center gap-2">
@@ -616,6 +619,7 @@ export default function AnalysisCard({
               <div className="relative w-full h-full">
                 <textarea
                   disabled={isCalculating || isMdmOffsetUpdating}
+                  aria-label="样本数据"
                   className="w-full h-full text-xs font-mono p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all text-slate-600 leading-relaxed"
                   placeholder="数据..."
                   value={sampleText}
@@ -644,7 +648,7 @@ export default function AnalysisCard({
           </div>
 
                       {/* Column 3: 参数 */}
-                    <div className="w-1/4 flex flex-col bg-white h-full">
+                    <div className="analysis-parameters w-1/4 flex flex-col bg-white h-full">
                                               {/* 标题栏 */}
                                               <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
                                                  <div className="flex items-center gap-2">
@@ -735,7 +739,7 @@ export default function AnalysisCard({
           
                               {/* Column 4: 图像 */}
           
-                              <div className="w-[37.5%] flex flex-col bg-white h-full relative group/chart">
+                              <div className="analysis-chart w-[37.5%] flex flex-col bg-white h-full relative group/chart">
           
                                  {/* 标题栏 */}
           
@@ -784,7 +788,7 @@ export default function AnalysisCard({
           
                                       <div ref={menuRef} className="relative h-8">
           
-                                        <button onClick={() => setIsOverlayMenuOpen(!isOverlayMenuOpen)} className={cn("h-full aspect-square flex items-center justify-center rounded-md transition-colors border", isOverlayMenuOpen ? "bg-blue-100 text-blue-600 border-blue-200" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 border-slate-200 hover:border-blue-100")}>
+                                        <button aria-label="叠加图层" aria-expanded={isOverlayMenuOpen} onClick={() => setIsOverlayMenuOpen(!isOverlayMenuOpen)} className={cn("h-full aspect-square flex items-center justify-center rounded-md transition-colors border", isOverlayMenuOpen ? "bg-blue-100 text-blue-600 border-blue-200" : "text-slate-400 hover:text-blue-600 hover:bg-blue-50 border-slate-200 hover:border-blue-100")}>
           
                                           <Layers size={16} />
           
@@ -807,7 +811,7 @@ export default function AnalysisCard({
                 </div>
              </div>
              {/* 内容栏 */}
-             <div className="flex-1 px-4 pt-4 pb-2">
+             <div className="analysis-plot flex-1 px-4 pt-4 pb-2">
                {result ? (
                  <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
@@ -931,7 +935,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
   // Show placeholder for null values (not converged)
   if (value === null) {
     return (
-      <div className="flex items-center justify-center gap-2 text-sm h-8">
+      <div className="analysis-param-input flex items-center justify-center gap-2 text-sm h-8">
         <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
         <div className="w-28 h-8 flex items-center justify-center text-slate-300 text-sm font-mono">
           --
@@ -941,7 +945,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 text-sm h-8">
+    <div className="analysis-param-input flex items-center justify-center gap-2 text-sm h-8">
       <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
 
       {/* Step Toggle Badge - More professional look */}
@@ -962,6 +966,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
 
       <div className="w-28 shrink-0">
         <StepperInput
+          label={label}
           value={value}
           onChange={(v) => onChange(v.toString())}
           step={currentStep}
@@ -974,7 +979,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
   )
 }
 
-function StepperInput({ value, onChange, step = 1, readOnly, color, decimals = 0 }: { value: number, onChange: (val: number) => void, step?: number, readOnly?: boolean, color?: string, decimals?: number }) {
+function StepperInput({ label, value, onChange, step = 1, readOnly, color, decimals = 0 }: { label: string, value: number, onChange: (val: number) => void, step?: number, readOnly?: boolean, color?: string, decimals?: number }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState(value.toFixed(decimals))
 
@@ -1028,6 +1033,8 @@ function StepperInput({ value, onChange, step = 1, readOnly, color, decimals = 0
       <input 
         ref={inputRef}
         type="text" 
+        aria-label={label}
+        inputMode="decimal"
         className={cn(
           "w-full bg-transparent text-left text-sm font-black focus:outline-none pl-3 pr-1",
           readOnly ? "text-slate-400 cursor-default" : "text-slate-700"
@@ -1041,12 +1048,14 @@ function StepperInput({ value, onChange, step = 1, readOnly, color, decimals = 0
       {!readOnly && (
         <div className="flex flex-col border-l border-slate-100 w-5 bg-slate-50">
           <button 
+            aria-label={`增加${label}`}
             onClick={handleIncrement} 
             className="flex-1 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 border-b border-slate-100 transition-colors"
           >
             <Plus size={10} strokeWidth={4} />
           </button>
           <button 
+            aria-label={`减少${label}`}
             onClick={handleDecrement} 
             className="flex-1 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
           >
@@ -1087,7 +1096,7 @@ function DualSlider({
   const maxPercent = ((valueMax - min) / range) * 100
   const span = valueMax - valueMin
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = (e: PointerEvent) => {
     if (!sliderRef.current) return
     const rect = sliderRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
@@ -1126,7 +1135,7 @@ function DualSlider({
     setIsPanning(false)
   }
 
-  const handleTrackMouseDown = (e: React.MouseEvent) => {
+  const handleTrackMouseDown = (e: React.PointerEvent) => {
     // Only pan if clicking on the selected range area
     const rect = sliderRef.current!.getBoundingClientRect()
     const x = e.clientX - rect.left
@@ -1145,11 +1154,13 @@ function DualSlider({
 
   useEffect(() => {
     if (isDraggingMin || isDraggingMax || isPanning) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('pointermove', handleMouseMove)
+      document.addEventListener('pointerup', handleMouseUp)
+      document.addEventListener('pointercancel', handleMouseUp)
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('pointermove', handleMouseMove)
+        document.removeEventListener('pointerup', handleMouseUp)
+        document.removeEventListener('pointercancel', handleMouseUp)
       }
     }
   }, [isDraggingMin, isDraggingMax, isPanning, valueMin, valueMax, panStartX, panStartMin, panStartMax])
@@ -1157,7 +1168,7 @@ function DualSlider({
   return (
     <div
       ref={sliderRef}
-      className="relative h-5 bg-slate-200 rounded"
+      className="relative h-5 bg-slate-200 rounded touch-none"
       style={{ width }}
     >
       {/* Track - draggable for panning */}
@@ -1167,7 +1178,7 @@ function DualSlider({
           isPanning ? "bg-blue-500 cursor-grabbing" : "bg-blue-400 cursor-grab"
         )}
         style={{ left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }}
-        onMouseDown={handleTrackMouseDown}
+        onPointerDown={handleTrackMouseDown}
       />
       {/* Left Handle */}
       <div
@@ -1176,7 +1187,7 @@ function DualSlider({
           isDraggingMin ? "border-blue-600 scale-125" : "border-blue-400 hover:scale-110"
         )}
         style={{ left: `${minPercent}%`, marginLeft: '-6px' }}
-        onMouseDown={(e) => { e.stopPropagation(); setIsDraggingMin(true) }}
+        onPointerDown={(e) => { e.stopPropagation(); setIsDraggingMin(true) }}
       />
       {/* Right Handle */}
       <div
@@ -1185,7 +1196,7 @@ function DualSlider({
           isDraggingMax ? "border-blue-600 scale-125" : "border-blue-400 hover:scale-110"
         )}
         style={{ left: `${maxPercent}%`, marginLeft: '-6px' }}
-        onMouseDown={(e) => { e.stopPropagation(); setIsDraggingMax(true) }}
+        onPointerDown={(e) => { e.stopPropagation(); setIsDraggingMax(true) }}
       />
       {/* Tooltip */}
       {(isDraggingMin || isDraggingMax || isPanning) && (
