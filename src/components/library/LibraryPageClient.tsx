@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, FileText, Book, User, Search, Loader2 } from 'lucide-react'
 import type { LibrarySearchResponse } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
+import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
 import './responsive.css'
@@ -84,6 +85,11 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       .finally(() => { if (active) setSearching(false) })
     return () => { active = false; controller.abort() }
   }, [query, offset, typeFilter, retry, mode])
+
+  useEffect(() => {
+    if (searching || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
+    return scheduleLibraryResultPrefetch(searchResponse.results)
+  }, [searchResponse, searching, query, offset, typeFilter, retry, mode])
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault()

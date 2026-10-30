@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
 import { ArrowLeft, User, Calendar, List, MapPin, Book, Languages } from 'lucide-react'
@@ -10,6 +10,7 @@ import '@/components/library/responsive.css'
 import { cn } from '@/lib/utils'
 import { processLibraryContent, getLibraryMarkdownOptions, getLibraryReferenceMarkdownOptions } from '@/lib/library-markdown'
 import { readLibrarySearchHighlight, rehypeLibrarySearchHighlights, type LibrarySearchHighlight } from '@/lib/library-search-highlight'
+import { libraryDocumentClient } from '@/lib/library-document-client'
 
 
 // Helper to render text with inline math for TOC
@@ -35,16 +36,6 @@ function renderTextWithMath(text: string): React.ReactNode {
   return parts.length > 0 ? parts : text
 }
 
-// -------------------------------------------------------------------------
-// Read the same selected documents used by library search.
-// -------------------------------------------------------------------------
-async function fetchFile(slug: string, type: '翻译' | '原文') {
-  const response = await fetch(`/api/content?slug=${slug}&type=${type}`)
-  if (response.status === 404) return null
-  if (!response.ok) throw new Error('文献库暂时不可用，请稍后重试。')
-  return response.text()
-}
-
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [version, setVersion] = useState<'翻译' | '原文'>('翻译')
   const [versionReady, setVersionReady] = useState(false)
@@ -54,6 +45,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [references, setReferences] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [highlight, setHighlight] = useState<LibrarySearchHighlight>({ passageId: '', terms: [] })
+  const processed = useMemo(() => fileContent ? processLibraryContent(fileContent) : null, [fileContent])
 
   const slug = params.slug
 
@@ -85,26 +77,20 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     async function load() {
       setLoading(true)
       setError('')
+      setHasOriginal(false)
       try {
-        const [trans, orig] = await Promise.all([
-          fetchFile(slug, '翻译'), fetchFile(slug, '原文'),
-        ])
-        const actualVersion = version === '翻译' ? (trans ? '翻译' : '原文') : (orig ? '原文' : '翻译')
-        const referenceResponse = await fetch(`/api/library/references?slug=${encodeURIComponent(slug)}&type=${encodeURIComponent(actualVersion)}`, { cache: 'no-store' })
-        const nextReferences = referenceResponse.ok ? await referenceResponse.json() : {}
+        const alternateVersion = version === '翻译' ? '原文' : '翻译'
+        const alternate = libraryDocumentClient.readFile(slug, alternateVersion).catch(() => null)
+        const preferred = await libraryDocumentClient.readFile(slug, version)
+        const actualVersion = preferred !== null ? version : alternateVersion
+        const content = preferred ?? await alternate
+        const nextReferences = content !== null
+          ? await libraryDocumentClient.readReferences(slug, actualVersion).catch(() => ({})) : {}
         if (!active) return
         setReferences(nextReferences)
-
-        // Only show toggle if BOTH files are found
-        setHasOriginal(!!trans && !!orig)
-
-        if (version === '翻译' && trans) {
-          setFileContent(trans)
-        } else if (version === '原文' && orig) {
-          setFileContent(orig)
-        } else {
-          setFileContent(trans || orig || null)
-        }
+        setFileContent(content)
+        // Display a ready selected version without waiting for its counterpart.
+        void alternate.then(other => { if (active) setHasOriginal(preferred !== null && other !== null) })
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : '文献库暂时不可用，请稍后重试。')
       } finally { if (active) setLoading(false) }
@@ -132,9 +118,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   if (loading) return <div className="p-20 text-center text-slate-400">正在加载文献...</div>
   if (error) return <div className="p-20 text-center text-red-400">{error}</div>
-  if (!fileContent) return <div className="p-20 text-center text-red-400">文献未找到 (ID: {slug})</div>
-
-  const processed = processLibraryContent(fileContent)
+  if (!fileContent || !processed) return <div className="p-20 text-center text-red-400">文献未找到 (ID: {slug})</div>
   const { frontmatter, body, referenceTitle, referenceEntries, headings: rawToc } = processed
   const markdownOptions = getLibraryMarkdownOptions(processed)
 
