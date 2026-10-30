@@ -7,6 +7,8 @@ import { FileText, Book, User, Search, Loader2 } from 'lucide-react'
 import type { LibrarySearchResponse } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
 import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
+import { useLibrarySession } from '@/lib/library-auth-client'
+import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
 import './responsive.css'
@@ -54,6 +56,7 @@ function Highlight({ text, terms }: { text: string; terms: string[] }) {
 }
 
 export function LibraryPageClient({ papers }: LibraryPageClientProps) {
+  const session = useLibrarySession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const query = searchParams.get('q')?.trim() || ''
@@ -107,9 +110,9 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   }, [query, offset, typeFilter, retry, mode])
 
   useEffect(() => {
-    if (searching || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
+    if (session.status !== 'authenticated' || searching || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
     return scheduleLibraryResultPrefetch(searchResponse.results)
-  }, [searchResponse, searching, query, offset, typeFilter, retry, mode])
+  }, [session.status, searchResponse, searching, query, offset, typeFilter, retry, mode])
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault()
@@ -218,7 +221,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           {searchResponse?.results.map(hit => <article key={hit.id} className="max-w-5xl space-y-2 rounded-xl bg-white p-5 sm:p-6">
             <p className="text-xs leading-5 text-slate-500">{hit.slug} · {hit.version} · {hit.section}</p>
             <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="inline-block text-lg font-medium leading-7 text-blue-800 hover:underline"><Highlight text={hit.title} terms={searchResponse.terms} /></Link>
-            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600"><Highlight text={hit.excerpt} terms={searchResponse.terms} /></p>
+            <LibraryMathMarkdown highlightTerms={searchResponse.terms} className="text-sm leading-7 text-slate-600 [&_p]:my-0">{hit.excerpt}</LibraryMathMarkdown>
           </article>)}
           {searchResponse && !searchResponse.total && <div className="rounded-xl bg-white px-6 py-12 text-sm leading-7 text-slate-500"><p>未找到相关内容。</p><p>可以缩短检索句，或换用术语的另一种中英文表达。</p></div>}
           {searchResponse && searchResponse.total > PAGE_SIZE && <nav aria-label="检索结果分页" className="flex flex-wrap items-center gap-4 pt-3 text-sm">

@@ -338,7 +338,9 @@ test('the recorded 144-003 rename resolves only to selected 171-003 and normaliz
   assert.equal(readReferences('171-003')['1'], id)
   assert.equal(resolveLibraryAsset(['144-003-图片', 'figure.png']).path,
     fs.realpathSync(path.join(directory, '171-003-图片', 'figure.png')))
-  const content = load('src/app/api/content/route.ts', { '@/lib/server/literature': storage })
+  // Identity and source selection are tested with an already authenticated reader.
+  const content = load('src/app/api/content/route.ts', { '@/lib/server/literature': storage,
+    '@/lib/server/library-auth': { requireLibraryLogin: () => null } })
   assert.equal((await content.GET({ url: 'http://test/?slug=144-003&type=原文' })).status, 200)
   write(path.join(root, 'references.json'), JSON.stringify({ '144-003': { 1: id }, '171-003': { 2: id } }))
   assert.equal(readReferences('144-003')['1'], undefined)
@@ -408,12 +410,13 @@ test('linked source directories and image folders cannot escape the configured s
   }
 }))
 
-test('actual content, asset, references and chat handlers consume selected source data without external AI calls', () => withSource(async ({ translation, root, directory }) => {
+test('authenticated content, asset, references and public chat consume selected source data without external AI calls', () => withSource(async ({ translation, root, directory }) => {
   write(translation, '## 方法\n\nMethod.\n\n## 结果\n\nLIVE_SOURCE_RESULT_738\n\n## 讨论\n\nNOT_SELECTED_SECTION_291\n')
   write(path.join(directory, '182-047-pdf原文.md'), 'UNSELECTED_BODY_888')
   write(path.join(directory, '182-047-图片', 'private.png'), 'PRIVATE_IMAGE_888')
   write(path.join(root, 'references.json'), JSON.stringify({ [id]: { 7: id, 8: '182-047' } }))
-  const dependencies = { '@/lib/server/literature': storage }
+  const dependencies = { '@/lib/server/literature': storage,
+    '@/lib/server/library-auth': { requireLibraryLogin: () => null } }
   const content = load('src/app/api/content/route.ts', dependencies)
   const references = load('src/app/api/library/references/route.ts', dependencies)
   const assets = load('src/app/api/library/assets/[...segments]/route.ts', dependencies)

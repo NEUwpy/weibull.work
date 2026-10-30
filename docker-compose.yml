@@ -22,6 +22,9 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-flash}
+      - WEIBULL_LIBRARY_PHONE=${WEIBULL_LIBRARY_PHONE:-}
+      - WEIBULL_LIBRARY_PASSWORD_HASH=${WEIBULL_LIBRARY_PASSWORD_HASH:-}
+      - WEIBULL_SESSION_SECRET=${WEIBULL_SESSION_SECRET:-}
     depends_on:
       - backend
     networks:

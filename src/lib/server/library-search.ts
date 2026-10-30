@@ -2,6 +2,7 @@ import { readLibraryDocuments, type LibraryDocument, type PaperMetadata } from '
 import { extractLibraryPassages, libraryPassageId, type LibraryPassage } from '../library-markdown'
 import { createLiteratureIndex, fold, titleKey } from '../literature-search.mjs'
 import type { LibrarySearchHit, LibrarySearchResponse } from '../library-search-types'
+import { libraryMathExcerpt } from '../library-math-markdown'
 
 export interface LibrarySearchOptions {
   limit?: number
@@ -90,7 +91,7 @@ interface SearchIndexCache {
 
 // The Node startup hook and API bundle share this process-local representation.
 // Change this namespace if the indexed representation/normalization changes during HMR.
-const indexCacheKey = Symbol.for('weibull.library-search.v3')
+const indexCacheKey = Symbol.for('weibull.library-search.v4')
 const indexCaches = globalThis as unknown as Record<symbol, SearchIndexCache>
 const indexCache = indexCaches[indexCacheKey] ??= {
   documents: null, byDocument: new Map(), passages: [], papers: [], contextBlocks: new Map(), catalogs: new Map(),
@@ -215,21 +216,13 @@ function matchesType(paper: PaperMetadata, type: LibrarySearchOptions['type']): 
   return !type || type === 'all' || (type === 'book' ? paper.type === '书籍' : paper.type === '期刊' || paper.type === '会议')
 }
 
-function excerpt(value: string, terms: string[]): string {
-  const normalized = fold(value)
-  const matches = terms.map(term => normalized.indexOf(term)).filter(index => index >= 0)
-  const start = Math.max(0, (matches.length ? Math.min(...matches) : 0) - 70)
-  const end = Math.min(value.length, start + 360)
-  return `${start ? '…' : ''}${value.slice(start, end)}${end < value.length ? '…' : ''}`
-}
-
 function qualityFactor(passage: IndexedPassage): number {
   const length = passage.normalized.length
   return (length < 20 ? .15 : length < 50 ? .5 : 1) * (keywordList(passage.normalized) ? .18 : 1)
 }
 
 /** Match and rank the current in-memory index after inexpensive source metadata checks. */
-export function searchLibrary(query: string, options: LibrarySearchOptions = {}): LibrarySearchResponse {
+export function searchLibrary(query: string, options: LibrarySearchOptions = {}): LibrarySearchResponse<LibrarySearchHit> {
   const q = query.trim().slice(0, 2000)
   const { terms, strict } = queryProfile(q)
   if (!q) return { query: q, total: 0, results: [], terms }
@@ -276,7 +269,7 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
     if (!matched || (strict ? matched !== terms.length : matched < Math.min(2, terms.length) || coverage < .3)) return
     if (normalizedQuery.length <= 200 && passage.normalized.match(exactPhrase)) score += 12
     score *= (.3 + .7 * coverage) * qualityFactor(passage)
-    hits.set(passage.hit.id, { ...passage.hit, score, excerpt: excerpt(passage.hit.excerpt, terms) })
+    hits.set(passage.hit.id, { ...passage.hit, score, excerpt: libraryMathExcerpt(passage.hit.text, terms) })
   })
   // Only explicit identities may introduce an article without a matching body paragraph.
   // Ordinary metadata keywords never manufacture body matches or override their ranking.
@@ -294,7 +287,7 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
       })
     const first = representatives[0]
     if (!first) continue
-    hits.set(first.hit.id, { ...first.hit, score: identityScore, excerpt: excerpt(first.hit.excerpt, terms) })
+    hits.set(first.hit.id, { ...first.hit, score: identityScore, excerpt: libraryMathExcerpt(first.hit.text, terms) })
   }
   const ranked = Array.from(hits.values()).sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
   const limit = Number.isFinite(options.limit) ? Math.max(1, Math.min(30, Math.floor(options.limit!))) : 10

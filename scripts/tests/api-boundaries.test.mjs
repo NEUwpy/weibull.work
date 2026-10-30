@@ -53,8 +53,11 @@ test('file resolver restricts inventory and real paths', () => {
   }
 })
 
-test('content routes reject invalid selectors and still serve known documents', async () => {
-  const literature = loadRoute('src/app/api/content/route.ts')
+test('content routes reject invalid selectors and still serve known documents to authenticated readers', async () => {
+  // This fixture tests storage/selector boundaries; real session gating is exercised in library-auth.test.mjs.
+  const literature = loadRoute('src/app/api/content/route.ts', {
+    '@/lib/server/library-auth': { requireLibraryLogin: () => null },
+  })
   const algorithms = loadRoute('src/app/api/algorithms/route.ts')
   assert.equal((await literature.GET({ url: 'http://local/?slug=182-088&type=invalid' })).status, 400)
   assert.equal((await literature.GET({ url: 'http://local/?slug=..%2Foutside&type=原文' })).status, 400)

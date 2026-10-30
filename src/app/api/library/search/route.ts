@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: '检索参数无效，请缩短检索内容或检查分页。' }, { status: 400 })
   }
   try {
-    return NextResponse.json(searchLibrary(query, { limit, offset, type: type as LibrarySearchOptions['type'] }), { headers: { 'Cache-Control': 'no-store' } })
+    const result = searchLibrary(query, { limit, offset, type: type as LibrarySearchOptions['type'] })
+    return NextResponse.json({ ...result, results: result.results.map(({ text: _text, context: _context,
+      contextStartLine: _start, contextEndLine: _end, ...hit }) => hit) }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Library search failed:', error instanceof Error ? error.name : 'Unknown error')
     return NextResponse.json({ error: '文献检索暂时不可用，请稍后重试。' }, { status: error instanceof LibraryConfigurationError ? 503 : 500 })

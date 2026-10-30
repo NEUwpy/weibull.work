@@ -10,6 +10,16 @@ interface CacheOptions {
   ttlMs?: number
 }
 
+export class LibraryAuthenticationError extends Error {
+  readonly code = 'AUTH_REQUIRED'
+  constructor() { super('登录后即可阅读原文与译文。'); this.name = 'LibraryAuthenticationError' }
+}
+
+function authenticationRequired(): never {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('weibull:library-auth-required'))
+  throw new LibraryAuthenticationError()
+}
+
 /** Short-lived, bounded browser memory; no persistent copy of library content. */
 export function createLibraryDocumentClient(options: CacheOptions = {}) {
   const fetcher = options.fetcher || ((url, init) => fetch(url, init))
@@ -19,6 +29,13 @@ export function createLibraryDocumentClient(options: CacheOptions = {}) {
   const ttl = options.ttlMs ?? 5 * 60 * 1000
   const cache = new Map<string, { promise: Promise<unknown>; bytes: number; expires: number | null }>()
   let bytes = 0
+  let generation = 0
+
+  function clear() {
+    generation++
+    cache.clear()
+    bytes = 0
+  }
 
   function remove(key: string) {
     const entry = cache.get(key)
@@ -43,8 +60,10 @@ export function createLibraryDocumentClient(options: CacheOptions = {}) {
       return found.promise as Promise<T>
     }
     if (found) remove(url)
+    const currentGeneration = generation
     const entry = { promise: Promise.resolve() as Promise<unknown>, bytes: 0, expires: null as number | null }
     entry.promise = load().then(value => {
+      if (currentGeneration !== generation) throw new DOMException('阅读会话已更新。', 'AbortError')
       if (cache.get(url) === entry) {
         entry.bytes = (typeof value === 'string' ? value.length : JSON.stringify(value).length) * 2
         entry.expires = now() + ttl
@@ -63,8 +82,11 @@ export function createLibraryDocumentClient(options: CacheOptions = {}) {
 
   function readFile(slug: string, version: LibraryVersion): Promise<string | null> {
     const url = '/api/content?' + new URLSearchParams({ slug, type: version })
+    const currentGeneration = generation
     return read(url, async () => {
       const response = await fetcher(url, { cache: 'no-store' })
+      if (currentGeneration !== generation) throw new DOMException('阅读会话已更新。', 'AbortError')
+      if (response.status === 401) return authenticationRequired()
       if (response.status === 404) return null
       if (!response.ok) throw new Error('文献库暂时不可用，请稍后重试。')
       return response.text()
@@ -73,17 +95,23 @@ export function createLibraryDocumentClient(options: CacheOptions = {}) {
 
   function readReferences(slug: string, version: LibraryVersion): Promise<References> {
     const url = '/api/library/references?' + new URLSearchParams({ slug, type: version })
+    const currentGeneration = generation
     return read(url, async () => {
       const response = await fetcher(url, { cache: 'no-store' })
+      if (currentGeneration !== generation) throw new DOMException('阅读会话已更新。', 'AbortError')
+      if (response.status === 401) return authenticationRequired()
       if (!response.ok) throw new Error('文献引用暂时不可用，请稍后重试。')
       return response.json()
     })
   }
 
-  return { readFile, readReferences }
+  return { readFile, readReferences, clear }
 }
 
 export const libraryDocumentClient = createLibraryDocumentClient()
+if (typeof window !== 'undefined') {
+  window.addEventListener('weibull:library-session-reset', () => libraryDocumentClient.clear())
+}
 type LibraryClient = ReturnType<typeof createLibraryDocumentClient>
 type Schedule = (start: () => void) => () => void
 let backgroundRequests = 0

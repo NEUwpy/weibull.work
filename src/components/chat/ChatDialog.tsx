@@ -1,15 +1,10 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
+import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { ArrowUpRight, Loader2, Square } from 'lucide-react'
 import { consumeLibraryChatStream } from '@/lib/chat-stream'
-import { remarkLibraryAnswerCitations } from '@/lib/library-answer-markdown'
 import type { LibraryEvidence } from '@/lib/library-search-types'
-import 'katex/dist/katex.min.css'
 
 interface Message {
   id: number
@@ -22,16 +17,9 @@ interface Message {
 }
 
 function Answer({ message }: { message: Message }) {
-  const links = new Set(message.evidence?.map(item => item.href) || [])
   return <>
     {message.content && <div className="chat-answer prose prose-sm prose-slate max-w-none">
-      <Markdown remarkPlugins={[remarkGfm, remarkMath, [remarkLibraryAnswerCitations, { evidence: message.evidence || [] }]]} rehypePlugins={[rehypeKatex]}
-        components={{
-          a: ({ href, children }) => href && links.has(href)
-            ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
-            : <span>{children}</span>,
-          img: ({ alt }) => <span>{alt}</span>,
-        }}>{message.content}</Markdown>
+      <LibraryMathMarkdown evidence={message.evidence}>{message.content}</LibraryMathMarkdown>
     </div>}
     {message.stopped && <p className="mt-3 text-xs text-slate-500">已停止生成，已收到的内容和参考资料保留在此。</p>}
     {message.error && <p role="alert" className="mt-3 text-sm text-rose-600">{message.error}</p>}
@@ -43,7 +31,7 @@ function Answer({ message }: { message: Message }) {
             <span className="shrink-0">[{item.citation}]</span><span>{item.title}</span><ArrowUpRight size={14} className="mt-0.5 shrink-0" />
           </a>
           <p className="mt-1 text-xs text-slate-500">{item.slug} · {item.version} · {item.section}</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{item.text}</p>
+          <LibraryMathMarkdown className="mt-2 text-sm leading-6 text-slate-600 [&_p]:my-2">{item.text}</LibraryMathMarkdown>
         </li>)}
       </ol>
       {!!message.queries?.length && <p className="mt-3 text-xs leading-5 text-slate-500">本次检索：{message.queries.join('；')}</p>}

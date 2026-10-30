@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
         const evidence = selectLibraryEvidence([ranked], config.retrieval)
         log.record('retrieval', { queries, candidates: candidates.length,
           sources: evidence.map(({ id, slug, version, startLine, endLine, citation }) => ({ id, slug, version, startLine, endLine, citation })) })
-        send({ evidence, queries })
+        // The model receives the full selected context below; browsers receive previews only.
+        send({ evidence: evidence.map(({ context, contextStartLine, contextEndLine, ...hit }) => ({ ...hit, text: hit.excerpt })), queries })
         stage = 'answering'
         send({ stage: 'answering', message: evidence.length
           ? `已选取 ${evidence.length} 段资料，正在生成带出处的回答…`

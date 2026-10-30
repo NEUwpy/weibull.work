@@ -2,3 +2,4 @@
 export * from './charts'
 export * from './ParamSelector'
 export * from './SimulationConfigPanel'
+export { LibraryMathMarkdown } from './LibraryMathMarkdown'

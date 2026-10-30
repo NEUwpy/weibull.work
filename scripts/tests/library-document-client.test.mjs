@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createLibraryDocumentClient, scheduleLibraryResultPrefetch } from '../../src/lib/library-document-client.ts'
+import { createLibraryDocumentClient, scheduleLibraryResultPrefetch, LibraryAuthenticationError } from '../../src/lib/library-document-client.ts'
 
 const tick = () => new Promise(resolve => setImmediate(resolve))
 function deferred() {
@@ -8,6 +8,59 @@ function deferred() {
   const promise = new Promise(done => { resolve = done })
   return { promise, resolve }
 }
+
+test('logout cache clearing rejects previous in-flight reads and requires fresh content', async () => {
+  const gate = deferred()
+  let calls = 0
+  const client = createLibraryDocumentClient({ fetcher: async () => {
+    calls++
+    return calls === 1 ? gate.promise : new Response('# New session')
+  } })
+  const beforeLogout = client.readFile('A', '原文')
+  const rejection = assert.rejects(beforeLogout, { name: 'AbortError' })
+  client.clear()
+  gate.resolve(new Response('# Previous session'))
+  await rejection
+  assert.equal(await client.readFile('A', '原文'), '# New session')
+  assert.equal(calls, 2)
+})
+
+test('401 bodies and references become authentication errors and are never cached', async () => {
+  let calls = 0
+  const client = createLibraryDocumentClient({ fetcher: async () => { calls++; return new Response('AUTH_REQUIRED', { status: 401 }) } })
+  await assert.rejects(client.readFile('A', '原文'), LibraryAuthenticationError)
+  await assert.rejects(client.readFile('A', '原文'), LibraryAuthenticationError)
+  await assert.rejects(client.readReferences('A', '原文'), LibraryAuthenticationError)
+  assert.equal(calls, 3)
+})
+
+test('a previous session delayed 401 cannot invalidate a newly loaded session', async () => {
+  const previousWindow = globalThis.window
+  let invalidations = 0
+  globalThis.window = { dispatchEvent: () => { invalidations++ } }
+  try {
+    for (const method of ['readFile', 'readReferences']) {
+      const gate = deferred()
+      let calls = 0
+      const client = createLibraryDocumentClient({ fetcher: async () => {
+        calls++
+        return calls === 1 ? gate.promise : new Response(method === 'readFile' ? '# Current session' : '{}')
+      } })
+      const old = client[method]('A', '原文')
+      const rejection = assert.rejects(old, { name: 'AbortError' })
+      client.clear()
+      const current = await client[method]('A', '原文')
+      gate.resolve(new Response('AUTH_REQUIRED', { status: 401 }))
+      await rejection
+      assert.deepEqual(await client[method]('A', '原文'), current)
+      assert.equal(calls, 2)
+    }
+    assert.equal(invalidations, 0)
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window
+    else globalThis.window = previousWindow
+  }
+})
 
 test('reader joins in-flight prefetches and reuses completed body and version-specific references', async () => {
   const calls = []

@@ -27,9 +27,11 @@ function withFixture(run) {
   })
 }
 
-test('actual content, references and image handlers use the same external source', () => withFixture(async root => {
+test('authenticated content, references and image handlers use the same external source', () => withFixture(async root => {
   const storage = load('src/lib/server/literature.ts')
-  const dependencies = { '@/lib/server/literature': storage }
+  // Storage integration uses an already authenticated reader; session verification has its own real-handler tests.
+  const dependencies = { '@/lib/server/literature': storage,
+    '@/lib/server/library-auth': { requireLibraryLogin: () => null } }
   const content = load('src/app/api/content/route.ts', dependencies)
   const references = load('src/app/api/library/references/route.ts', dependencies)
   const assets = load('src/app/api/library/assets/[...segments]/route.ts', dependencies)

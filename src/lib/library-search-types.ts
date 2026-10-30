@@ -19,10 +19,13 @@ export interface LibrarySearchHit {
   contextEndLine?: number
 }
 
-export interface LibrarySearchResponse {
+/** Search exposes a bounded excerpt; complete passages stay on the server. */
+export type LibrarySearchPreview = Omit<LibrarySearchHit, 'text' | 'context' | 'contextStartLine' | 'contextEndLine'>
+
+export interface LibrarySearchResponse<Hit = LibrarySearchPreview> {
   query: string
   total: number
-  results: LibrarySearchHit[]
+  results: Hit[]
   terms: string[]
 }
 
