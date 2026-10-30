@@ -141,12 +141,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
         {mode === 'answer' && answerRequest && <ChatDialog key={answerRequest.id} request={answerRequest} />}
 
         {/* Type Filter Header */}
-        {mode === 'search' && <div className="library-filters flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-1 h-8 bg-neutral-800 rounded-full" />
-            <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">Filter</span>
-          </div>
-
+        {mode === 'search' && <div className="library-filters flex items-center justify-end">
           <div className="flex gap-2">
             <button
               onClick={() => chooseType('all')}
