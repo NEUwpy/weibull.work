@@ -3,6 +3,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
+import { readSourceReferenceIndex, type ReferenceIndexLocation } from './reference-index'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -18,6 +19,7 @@ export interface LibraryPaths {
   assetsDir: string
   referencesFile: string
   sourceIndex?: SourceIndex
+  referenceIndex?: ReferenceIndexLocation
 }
 
 export interface PaperMetadata {
@@ -89,7 +91,14 @@ export function getLibraryPaths(): LibraryPaths {
       const referencesFile = resolveEntry(root, ['references.json'], 'file')
       if (!referencesFile) throw new Error('源库选择配置须提供 references.json，没有关系时使用 {}')
       const sourceIndex = indexSourcePapers(descriptor.sources)
-      return { mode: 'source', root, contentDir: root, assetsDir: root, referencesFile, sourceIndex }
+      let referenceIndex: ReferenceIndexLocation | undefined
+      if (descriptor.reference_index !== undefined) {
+        const entry = descriptor.reference_index
+        if (!entry || typeof entry.root !== 'string' || typeof entry.file !== 'string' || path.isAbsolute(entry.file) ||
+          entry.file.split(/[/\\]/).some((part: string) => !part || part === '.' || part === '..')) throw new Error('reference_index 必须指定 root 和库内相对 file')
+        referenceIndex = { root: path.resolve(root, entry.root), file: entry.file }
+      }
+      return { mode: 'source', root, contentDir: root, assetsDir: root, referencesFile, sourceIndex, referenceIndex }
     }
     if (!descriptor || Array.isArray(descriptor) || descriptor.schema_version !== 1) throw new Error('library.json 的 schema_version 必须为 1')
     const contentDir = resolveEntry(root, ['content'], 'directory')
@@ -168,11 +177,20 @@ export function listPapers(): PaperMetadata[] {
   return papers
 }
 
-export function readReferences(slug: string): Record<string, string> {
+export function readReferences(slug: string, type?: string): Record<string, string> {
   const paths = getLibraryPaths()
   if (!isContentSlug(slug)) return {}
   slug = canonicalSourceSlug(paths, slug)
   if (paths.sourceIndex && !paths.sourceIndex.has(slug)) return {}
+  if (type !== undefined && type !== '原文' && type !== '翻译') return {}
+  if (paths.referenceIndex && paths.sourceIndex) {
+    const paper = paths.sourceIndex.get(slug)!
+    // Preserve the legacy map for explicitly retained sources outside this index (books).
+    const relative = path.relative(paths.referenceIndex.root, paper.directory)
+    if (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+      return readSourceReferenceIndex(paths.referenceIndex, paper, type ?? (paper.translation ? '翻译' : '原文'), paths.sourceIndex)
+    }
+  }
   const referencesFile = resolveEntry(path.dirname(paths.referencesFile), [path.basename(paths.referencesFile)], 'file')
   if (!referencesFile) {
     if (paths.mode === 'external') throw new LibraryConfigurationError('无法读取 references.json')

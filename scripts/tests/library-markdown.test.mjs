@@ -3,6 +3,17 @@ import assert from 'node:assert/strict'
 import { compileLibraryMarkdown } from '../../src/lib/library-markdown-compiler.mjs'
 import { processLibraryContent } from '../../src/lib/library-markdown.ts'
 
+test('round numeric citations require an explicit style and exclude equations and math', async () => {
+  const body = '# Paper\n\nSource (1), source（2）, Eq. (1), Table (2), year (2023), `$x(1)$`, $x(1)$. Neural differential equations (1, 2).\n\n## References\n\n1. First source.\n2. Second source.\n'
+  const normal = await compileLibraryMarkdown(body)
+  assert.equal(normal.citations.length, 0)
+  const enabled = await compileLibraryMarkdown('---\ncitation_style: numeric-parentheses\n---\n' + body)
+  assert.deepEqual(enabled.citations.map(c => c.id), ['1', '2', '1', '2'])
+  assert.ok(enabled.html.includes('href="#ref-1"'))
+  assert.ok(enabled.html.includes('Eq. (1)'))
+  assert.ok(enabled.html.includes('year (2023)'))
+})
+
 test('citations never rewrite valid formulas, code, image text or existing links', async () => {
   const raw = String.raw`# Article
 

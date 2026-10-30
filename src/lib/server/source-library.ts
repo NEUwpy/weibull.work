@@ -165,5 +165,6 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
     if (field !== 'year' && field !== 'tags' && typeof value !== 'string') throw new Error(`题录字段应为字符串：${paper.id} / ${field}`)
   }
   const body = document.content.replace(/(!\[[^\]\r\n]*\])\(([^)\r\n]+)\)/g, (match, alt, target) => `${alt}(${imageUrl(paper, target)})`)
-  return { raw: matter.stringify(body, metadata), metadata, body }
+  const display = document.data.citation_style === 'numeric-parentheses' ? { citation_style: 'numeric-parentheses' } : {}
+  return { raw: matter.stringify(body, { ...metadata, ...display }), metadata, body }
 }

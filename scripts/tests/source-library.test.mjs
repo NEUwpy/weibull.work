@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import matter from 'gray-matter'
+import { createHash } from 'node:crypto'
 import { loadServerModule as load } from './helpers/load-server-module.mjs'
 
 const storage = load('src/lib/server/literature.ts')
@@ -14,6 +15,40 @@ const noteData = {
   期刊或类型: 'Reliability Engineering and System Safety', 作者: 'Author A', 单位: 'Research Institute',
   文献类型: '期刊', 出版简称: 'RESS', 关键词: ['Weibull', 'MDM', 'MDM'], 关联方法: 'mdm',
 }
+
+test('derived cross-paper references are versioned, selected and content-bound', () => withSource(({ root, source, directory, original, translation, descriptor }) => {
+  const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+  const relative = file => path.relative(source, file).split(path.sep).join('/')
+  const other = '182-047'
+  const target = path.join(directory, `${other}-pdf原文.md`)
+  write(target, '# Target\n')
+  const indexFile = path.join(source, '110', 'references.json')
+  descriptor.reference_index = { root: source, file: '110/references.json' }
+  descriptor.sources[0].papers.push(other)
+  const targetInfo = { id: other, directory: relative(directory), path: relative(target), sha256: hash(target) }
+  const index = { schema_version: 1, root: source,
+    targets: { target: targetInfo, private: { ...targetInfo, id: '182-999' } },
+    documents: {
+      [relative(original)]: { sha256: hash(original), links: { 1: { target: 'target' }, 2: { target: 'private' } } },
+      [relative(translation)]: { sha256: hash(translation), links: { 9: { target: 'target' } } },
+    } }
+  write(indexFile, JSON.stringify(index))
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.equal(JSON.stringify(readReferences(id, '原文')), JSON.stringify({ 1: other }))
+  assert.equal(JSON.stringify(readReferences(id, '翻译')), JSON.stringify({ 9: other }))
+  write(original, '# Changed source\n')
+  // No stale-number fallback to the legacy table, even though that table still exists.
+  assert.equal(JSON.stringify(readReferences(id, '原文')), '{}')
+  write(target, '# Changed target\n')
+  assert.equal(JSON.stringify(readReferences(id, '翻译')), '{}')
+  write(indexFile, 'broken JSON')
+  assert.equal(JSON.stringify(readReferences(id)), '{}')
+}))
+
+test('source reader retains an explicit numeric-parentheses display hint', () => withSource(({ original }) => {
+  write(original, '---\ncitation_style: numeric-parentheses\n---\n# Original\n')
+  assert.equal(matter(readPaper(id, '原文')).data.citation_style, 'numeric-parentheses')
+}))
 
 test('explicit retained v1 book source joins the source selection without exposing unselected neighbours', () => withSource(({ workspace, root, descriptor }) => {
   const books = path.join(workspace, 'preserved-books')

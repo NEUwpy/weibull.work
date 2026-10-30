@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import { visit } from 'unist-util-visit'
 import GithubSlugger from 'github-slugger'
 
-export const LIBRARY_RENDERER_VERSION = '1.0.0'
+export const LIBRARY_RENDERER_VERSION = '1.1.0'
 
 export interface LibraryDiagnostic {
   code: string
@@ -171,13 +171,18 @@ function rehypeLibraryCitations(options: { processed: ProcessedLibraryContent; o
       for (let index = 0; index < parent.children.length; index++) {
         const node = parent.children[index]
         if (node.type !== 'text' || blocked) { if (!blocked) scan(node); continue }
-        const regex = /\[([1-9]\d*(?:\s*[,，\-–]\s*[1-9]\d*)*)\]/g
+        const parentheses = processed.frontmatter.citation_style === 'numeric-parentheses'
+        const regex = parentheses
+          ? /(?:\[([1-9]\d*(?:\s*[,，\-–]\s*[1-9]\d*)*)\]|\(([1-9]\d*(?:\s*[,，\-–]\s*[1-9]\d*)*)\)|（([1-9]\d*(?:\s*[,，\-–]\s*[1-9]\d*)*)）)/g
+          : /\[([1-9]\d*(?:\s*[,，\-–]\s*[1-9]\d*)*)\]/g
         const parts: any[] = []
         let last = 0
         for (const match of node.value.matchAll(regex)) {
+          const round = match[0][0] !== '['
+          if (round && /(?:\b(?:eqs?|figs?|figures?|tables?|sections?)\.?|公式|式|图|表)\s*$/i.test(node.value.slice(0, match.index))) continue
           const ids: string[] = []
           let valid = true
-          for (const part of match[1].split(/[,，]/)) {
+          for (const part of (match[1] ?? match[2] ?? match[3]).split(/[,，]/)) {
             const bounds = part.trim().split(/[-–]/).map(Number)
             if (bounds.length > 2 || bounds[0] > (bounds[1] ?? bounds[0]) || (bounds[1] ?? bounds[0]) - bounds[0] > 500) { valid = false; break }
             for (let id = bounds[0]; id <= (bounds[1] ?? bounds[0]); id++) ids.push(String(id))
@@ -186,7 +191,7 @@ function rehypeLibraryCitations(options: { processed: ProcessedLibraryContent; o
           const line = (node.position?.start.line || 1) + processed.bodyLineOffset + (node.value.slice(0, match.index).match(/\n/g) || []).length
           const missing = ids.filter(id => !known.has(id))
           if (missing.length) {
-            observation?.diagnostics.push({ code: 'citation.missing-reference', line, severity: 'warning', message: `方括号编号 ${missing.join(', ')} 无对应参考文献；保留原文，未建立跳转。` })
+            if (!round) observation?.diagnostics.push({ code: 'citation.missing-reference', line, severity: 'warning', message: `方括号编号 ${missing.join(', ')} 无对应参考文献；保留原文，未建立跳转。` })
             continue
           }
           parts.push({ type: 'text', value: node.value.slice(last, match.index) })
@@ -194,7 +199,7 @@ function rehypeLibraryCitations(options: { processed: ProcessedLibraryContent; o
             const properties: Record<string, any> = { href: `#ref-${id}`, className: ['no-underline', 'text-blue-600', 'hover:underline'] }
             if (!first.has(id)) { properties.id = `cite-${id}`; first.add(id) }
             observation?.citations.push({ id, line })
-            return [...(i ? [{ type: 'text', value: ', ' }] : []), element('a', properties, [{ type: 'text', value: `[${id}]` }])]
+            return [...(i ? [{ type: 'text', value: ', ' }] : []), element('a', properties, [{ type: 'text', value: `${match[0][0]}${id}${match[0].at(-1)}` }])]
           })
           parts.push(element('sup', {}, links))
           last = match.index! + match[0].length

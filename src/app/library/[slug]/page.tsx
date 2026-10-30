@@ -55,15 +55,19 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   // Initial load
   useEffect(() => {
+    let active = true
     async function load() {
       setLoading(true)
       setError('')
       try {
-        const [trans, orig, referenceResponse] = await Promise.all([
+        const [trans, orig] = await Promise.all([
           fetchFile(slug, '翻译'), fetchFile(slug, '原文'),
-          fetch(`/api/library/references?slug=${encodeURIComponent(slug)}`, { cache: 'no-store' }),
         ])
-        setReferences(referenceResponse.ok ? await referenceResponse.json() : {})
+        const actualVersion = version === '翻译' ? (trans ? '翻译' : '原文') : (orig ? '原文' : '翻译')
+        const referenceResponse = await fetch(`/api/library/references?slug=${encodeURIComponent(slug)}&type=${encodeURIComponent(actualVersion)}`, { cache: 'no-store' })
+        const nextReferences = referenceResponse.ok ? await referenceResponse.json() : {}
+        if (!active) return
+        setReferences(nextReferences)
 
         // Only show toggle if BOTH files are found
         setHasOriginal(!!trans && !!orig)
@@ -76,10 +80,11 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
           setFileContent(trans || orig || null)
         }
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : '文献库暂时不可用，请稍后重试。')
-      } finally { setLoading(false) }
+        if (active) setError(cause instanceof Error ? cause.message : '文献库暂时不可用，请稍后重试。')
+      } finally { if (active) setLoading(false) }
     }
     load()
+    return () => { active = false }
   }, [slug, version])
 
   if (loading) return <div className="p-20 text-center text-slate-400">正在加载文献...</div>
@@ -195,7 +200,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
                     // Check if this reference has a linked article
                     const currentPaperRefs = references
-                    const targetSlug = refId ? currentPaperRefs[refId] : undefined
+                    const targetSlug = currentPaperRefs[refId ?? `entry-${idx + 1}`]
                     const hasLink = targetSlug && typeof targetSlug === 'string'
 
                     return (
