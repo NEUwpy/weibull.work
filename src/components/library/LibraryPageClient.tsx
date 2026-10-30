@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, FileText, Book, User, Search, Loader2 } from 'lucide-react'
@@ -36,6 +36,12 @@ interface LibraryPageClientProps {
 
 const PAGE_SIZE = 10
 
+function fitSearchInput(input: HTMLTextAreaElement) {
+  input.style.height = 'auto'
+  input.style.height = `${Math.min(input.scrollHeight, 168)}px`
+  input.style.overflowY = input.scrollHeight > 168 ? 'auto' : 'hidden'
+}
+
 function Highlight({ text, terms }: { text: string; terms: string[] }) {
   const words = Array.from(new Set(terms.filter(term => term.length > 1).slice(0, 30))).sort((a, b) => b.length - a.length)
   if (!words.length) return <>{text}</>
@@ -60,6 +66,20 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const [searchResponse, setSearchResponse] = useState<LibrarySearchResponse | null>(null)
   const [mode, setMode] = useState<'search' | 'answer'>('search')
   const [answerRequest, setAnswerRequest] = useState<{ id: number; question: string } | null>(null)
+  const searchInput = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => { if (searchInput.current) fitSearchInput(searchInput.current) }, [draftQuery])
+  useEffect(() => {
+    const input = searchInput.current
+    if (!input) return
+    let width = 0
+    const observer = new ResizeObserver(entries => {
+      const nextWidth = entries[0].contentRect.width
+      if (nextWidth !== width) { width = nextWidth; fitSearchInput(input) }
+    })
+    observer.observe(input)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     setDraftQuery(query)
@@ -132,12 +152,12 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       <div className="page-shell w-full max-w-[92%] xl:max-w-[1600px] mx-auto pl-[4.5rem] pr-[3rem] py-16 space-y-12">
 
         <div className="space-y-3">
-          <form onSubmit={submitSearch} className="library-search-form flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 pl-5 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
-            <Search size={21} className="shrink-0 text-slate-400" />
-            <textarea aria-label="搜索文献" rows={2} maxLength={2000} value={draftQuery} onChange={event => setDraftQuery(event.target.value)}
+          <form onSubmit={submitSearch} className="library-search-form flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 pl-5 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
+            <Search size={21} className="library-search-icon shrink-0 text-slate-400" />
+            <textarea ref={searchInput} aria-label="搜索文献" rows={1} maxLength={2000} value={draftQuery} onChange={event => setDraftQuery(event.target.value)}
               onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }}
-              placeholder="搜索名词、句子或一小段话…"
-              className="min-w-0 flex-1 resize-none bg-transparent py-2 text-sm leading-6 text-slate-700 outline-none" />
+              placeholder="输入关键词、句子或问题…"
+              className="min-w-0 flex-1 resize-none bg-transparent py-3 text-sm leading-6 text-slate-700 outline-none" />
             <div className="library-search-actions flex shrink-0 gap-2">
               <button type="submit" disabled={searching} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">搜索</button>
               <button type="button" onClick={askQuestion} disabled={!draftQuery.trim()} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40">AI 问答</button>
