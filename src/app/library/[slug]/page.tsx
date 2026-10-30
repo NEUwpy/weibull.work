@@ -207,8 +207,14 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                       <div key={idx} id={refId ? `ref-${refId}` : undefined} className="flex gap-4 text-sm text-slate-600 leading-relaxed group scroll-mt-32">
                         {refId && <a href={`#cite-${refId}`} className="font-bold text-slate-400 select-none shrink-0 group-hover:text-blue-500 hover:underline transition-colors no-underline">[{refId}]</a>}
                         <div className="min-w-0 flex-1 [&_p]:m-0">
-                          <Markdown {...getLibraryReferenceMarkdownOptions(processed, entry)}>{refContent}</Markdown>
-                          {hasLink && <Link href={`/library/${targetSlug}`} className="text-blue-600 hover:underline">文献库内查看</Link>}
+                          {hasLink ? (
+                            <Link href={`/library/${targetSlug}`} className="block text-blue-600 hover:underline">
+                              <Markdown {...getLibraryReferenceMarkdownOptions(processed, entry)}
+                                components={{ a: ({ children }) => <span>{children}</span> }}>{refContent}</Markdown>
+                            </Link>
+                          ) : (
+                            <Markdown {...getLibraryReferenceMarkdownOptions(processed, entry)}>{refContent}</Markdown>
+                          )}
                         </div>
                       </div>
                     )
