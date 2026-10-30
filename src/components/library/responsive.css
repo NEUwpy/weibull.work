@@ -35,6 +35,26 @@
   margin-bottom: 0;
 }
 
+@media (max-width: 767px) {
+  .library-search-form {
+    flex-wrap: wrap;
+  }
+
+  .library-search-form textarea {
+    width: calc(100% - 40px);
+    flex-basis: calc(100% - 40px);
+  }
+
+  .library-search-actions {
+    width: 100%;
+  }
+
+  .library-search-actions button {
+    flex: 1;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 1279px) {
   .library-reader h1 {
     flex-wrap: wrap;

@@ -56,16 +56,19 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [searchResponse, setSearchResponse] = useState<LibrarySearchResponse | null>(null)
+  const [mode, setMode] = useState<'search' | 'answer'>('search')
+  const [answerRequest, setAnswerRequest] = useState<{ id: number; question: string } | null>(null)
 
   useEffect(() => {
     setDraftQuery(query)
     setOffset(0)
+    setMode('search')
   }, [query])
 
   useEffect(() => {
     setSearchResponse(null)
     setSearchError('')
-    if (!query) { setSearching(false); return }
+    if (!query || mode !== 'search') { setSearching(false); return }
     const controller = new AbortController()
     let active = true
     setSearching(true)
@@ -79,17 +82,25 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       .catch(cause => { if (active && !controller.signal.aborted) setSearchError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '检索连接失败，请稍后重试。') })
       .finally(() => { if (active) setSearching(false) })
     return () => { active = false; controller.abort() }
-  }, [query, offset, typeFilter, retry])
+  }, [query, offset, typeFilter, retry, mode])
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault()
     const next = draftQuery.trim()
+    setMode('search')
     setOffset(0)
     if (next === query) setRetry(value => value + 1)
     const url = new URL(window.location.href)
     if (next) url.searchParams.set('q', next)
     else url.searchParams.delete('q')
     router.replace(url.pathname + url.search, { scroll: false })
+  }
+
+  function askQuestion() {
+    const question = draftQuery.trim()
+    if (!question) return
+    setAnswerRequest(previous => ({ id: (previous?.id || 0) + 1, question }))
+    setMode('answer')
   }
 
   function chooseType(type: TypeFilter) { setTypeFilter(type); setOffset(0) }
@@ -113,9 +124,6 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     <main className="library-page flex-1 bg-neutral-50 min-h-screen">
       <div className="page-shell w-full max-w-[92%] xl:max-w-[1600px] mx-auto pl-[4.5rem] pr-[3rem] py-16 space-y-12">
 
-        {/* AI Chat Dialog */}
-        <ChatDialog />
-
         <div className="space-y-3">
           <form onSubmit={submitSearch} className="library-search-form flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 pl-5 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
             <Search size={21} className="shrink-0 text-slate-400" />
@@ -123,13 +131,17 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
               onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }}
               placeholder="搜索名词、句子或一小段话…"
               className="min-w-0 flex-1 resize-none bg-transparent py-2 text-sm leading-6 text-slate-700 outline-none" />
-            <button type="submit" disabled={searching} className="shrink-0 rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">搜索</button>
+            <div className="library-search-actions flex shrink-0 gap-2">
+              <button type="submit" disabled={searching} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">搜索</button>
+              <button type="button" onClick={askQuestion} disabled={!draftQuery.trim()} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40">AI 问答</button>
+            </div>
           </form>
-          <p className="px-1 text-xs leading-5 text-slate-500">搜索正文段落，也支持题名、作者、DOI 和编号；中英文资料均可检索。</p>
         </div>
 
+        {mode === 'answer' && answerRequest && <ChatDialog key={answerRequest.id} request={answerRequest} />}
+
         {/* Type Filter Header */}
-        <div className="library-filters flex items-center justify-between">
+        {mode === 'search' && <div className="library-filters flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-1 h-8 bg-neutral-800 rounded-full" />
             <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">Filter</span>
@@ -170,9 +182,9 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
               期刊 & 会议 <span className="opacity-70 ml-1">{papers.filter(p => (p.type || '其它') === '期刊' || (p.type || '其它') === '会议').length}</span>
             </button>
           </div>
-        </div>
+        </div>}
 
-        {query && <section aria-label="文献检索结果" className="library-search-results space-y-7">
+        {mode === 'search' && query && <section aria-label="文献检索结果" className="library-search-results space-y-7">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <p role="status" className="text-sm leading-6 text-slate-500">
               {searching ? <span className="flex items-center gap-2"><Loader2 size={15} className="animate-spin" />正在检索文献正文…</span>
@@ -196,7 +208,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
         </section>}
 
         {/* Masonry Waterfall Layout */}
-        {!query && <div className="library-cards columns-1 md:columns-2 lg:columns-3 gap-8">
+        {mode === 'search' && !query && <div className="library-cards columns-1 md:columns-2 lg:columns-3 gap-8">
           {filteredPapers.map(paper => (
             <Link
               key={paper.slug}
