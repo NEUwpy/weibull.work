@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import { visit } from 'unist-util-visit'
 import GithubSlugger from 'github-slugger'
 
-export const LIBRARY_RENDERER_VERSION = '1.1.0'
+export const LIBRARY_RENDERER_VERSION = '1.1.1'
 
 export interface LibraryDiagnostic {
   code: string
@@ -233,7 +233,7 @@ function rehypeLibraryCitations(options: { processed: ProcessedLibraryContent; o
             for (let id = bounds[0]; id <= (bounds[1] ?? bounds[0]); id++) ids.push(String(id))
           }
           if (!valid) continue
-          const line = (node.position?.start.line || 1) + processed.bodyLineOffset + (node.value.slice(0, match.index).match(/\n/g) || []).length
+          const line = (node.position?.start?.line || 1) + processed.bodyLineOffset + (node.value.slice(0, match.index).match(/\n/g) || []).length
           const missing = ids.filter(id => !known.has(id))
           if (missing.length) {
             if (!round) observation?.diagnostics.push({ code: 'citation.missing-reference', line, severity: 'warning', message: `方括号编号 ${missing.join(', ')} 无对应参考文献；保留原文，未建立跳转。` })
@@ -287,13 +287,13 @@ function rehypeLibraryObserve(options: { processed: ProcessedLibraryContent; obs
       if (names.includes('katex')) observation.counts.math++
       if (node.tagName === 'table') observation.counts.tables++
       if (/^h[1-6]$/.test(node.tagName)) observation.counts.headings++
-      if (node.tagName === 'img') observation.images.push({ url: String(node.properties.src || ''), line: (node.position?.start.line || 1) + options.processed.bodyLineOffset })
+      if (node.tagName === 'img') observation.images.push({ url: String(node.properties.src || ''), line: (node.position?.start?.line || 1) + options.processed.bodyLineOffset })
     })
     for (const message of file.messages) {
       if (message.source === 'rehype-katex') {
         // Flow math's generated <code> has no position; its <pre> ancestor
         // retains the Markdown location even after KaTeX replaces that node.
-        const ancestorLine = [...(message.ancestors || [])].reverse().find((node: any) => node.position)?.position.start.line
+        const ancestorLine = [...(message.ancestors || [])].reverse().find((node: any) => node.position?.start?.line)?.position.start.line
         observation.diagnostics.push({ code: 'math.katex', severity: 'error', line: (message.line || ancestorLine || 1) + options.processed.bodyLineOffset, message: String(message.cause?.message || message.reason) })
       }
     }
@@ -304,8 +304,11 @@ function rehypeLibraryPassages(options: { processed: ProcessedLibraryContent }) 
   return (tree: any) => {
     const assigned = new Set<number>()
     visit(tree, 'element', (node: any) => {
-      if (!['p', 'table', 'pre', 'li'].includes(node.tagName) || !node.position) return
-      const line = node.position.start.line + options.processed.bodyLineOffset
+      const sourceLine = node.position?.start?.line
+      // rehype-raw may merge generated whitespace into a node with only an end position.
+      // Generated nodes must not invent a source passage or share its fallback line.
+      if (!['p', 'table', 'pre', 'li'].includes(node.tagName) || !Number.isInteger(sourceLine) || sourceLine < 1) return
+      const line = sourceLine + options.processed.bodyLineOffset
       if (assigned.has(line)) return
       assigned.add(line)
       node.properties ??= {}

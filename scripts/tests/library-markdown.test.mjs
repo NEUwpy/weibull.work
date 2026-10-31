@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { compileLibraryMarkdown } from '../../src/lib/library-markdown-compiler.mjs'
-import { processLibraryContent } from '../../src/lib/library-markdown.ts'
+import { processLibraryContent, getLibraryMarkdownOptions, LIBRARY_RENDERER_VERSION } from '../../src/lib/library-markdown.ts'
 
 test('round numeric citations require an explicit style and exclude equations and math', async () => {
   const body = '# Paper\n\nSource (1), source（2）, Eq. (1), Table (2), year (2023), `$x(1)$`, $x(1)$. Neural differential equations (1, 2).\n\n## References\n\n1. First source.\n2. Second source.\n'
@@ -147,4 +147,54 @@ test('unclosed single-dollar math fails while escaped currency and code examples
   assert.ok(broken.diagnostics.some(item => item.code === 'math.unmatched-delimiter' && item.severity === 'error' && item.line === 3))
   const valid = await compileLibraryMarkdown('# T\n\nPrice \\$5 and `$unclosed` is a code example.\n\n```text\n$unclosed\n```\n')
   assert.equal(valid.diagnostics.length, 0)
+})
+
+test('actual hard-break references from 421-003 render with observations and keep source anchors', async () => {
+  // Original book lines 579-583. rehype-raw merges each generated hard-break newline
+  // with the following reference text, leaving position.end but no position.start.
+  const excerpt = 'References\n\n' +
+    '[1] Birnbaum, Z.W. 1969. On the importance of different components in a multi-component system. In P.R. Krishnaiah, ed., Multivariate Analysis, pp. 581-592. Academic Press, San Diego, CA.  \n' +
+    '[2] Modarres, M., M. Kaminskiy, and V. Krivtsov. 2010. Reliability Engineering and Risk Analysis. CRC Press, Boca Raton, FL.  \n' +
+    '[3] Rausand, M. and A. Høyland. 2004. System Reliability Theory: Models, Statistical Methods, and Applications. 2nd ed. Wiley-Interscience, Hoboken, NJ.'
+  const raw = '---\ntitle: Book excerpt\n---\n# Book\n\n' + excerpt + '\n\nFollowing paragraph [2].\n\n![Diagram](diagram.jpg)\n\n## References\n[1] First\n[2] Second\n[3] Third\n'
+  const compiled = await compileLibraryMarkdown(raw)
+  assert.equal(compiled.version, '1.1.1')
+  assert.equal(compiled.version, LIBRARY_RENDERER_VERSION)
+  assert.equal(compiled.diagnostics.filter(item => item.severity === 'error').length, 0)
+  assert.deepEqual(compiled.citations.map(item => item.id), ['1', '2', '3', '2'])
+  assert.match(compiled.html, /id="passage-6">References/)
+  assert.match(compiled.html, /id="passage-8">/)
+  assert.match(compiled.html, /id="passage-12">Following paragraph/)
+  assert.equal((compiled.html.match(/<br\/>/g) || []).length, 2)
+  assert.deepEqual(compiled.images, [{ url: 'diagram.jpg', line: 14 }])
+  assert.doesNotMatch(compiled.html, /passage-(?:undefined|NaN|0)\b/)
+})
+
+test('generated paragraph nodes without a valid source start are skipped rather than claiming a passage', () => {
+  const processed = processLibraryContent('---\ntitle: T\n---\nFirst paragraph.\n\nSecond paragraph.\n')
+  const options = getLibraryMarkdownOptions(processed)
+  const entry = options.rehypePlugins.find(plugin => Array.isArray(plugin) && plugin[0].name === 'rehypeLibraryPassages')
+  const transform = entry[0](entry[1])
+  const paragraph = position => ({ type: 'element', tagName: 'p', properties: {}, children: [], ...(position === undefined ? {} : { position }) })
+  const generated = [paragraph(), paragraph({}), paragraph({ end: { line: 1 } }), paragraph({ start: {} }), paragraph({ start: { line: 0 } }), paragraph({ start: { line: NaN } })]
+  const first = paragraph({ start: { line: 1 } })
+  const second = paragraph({ start: { line: 3 } })
+  transform({ type: 'root', children: [...generated, first, second] })
+  assert.ok(generated.every(node => node.properties.id === undefined))
+  assert.equal(first.properties.id, 'passage-4')
+  assert.equal(second.properties.id, 'passage-6')
+})
+
+test('observations tolerate generated image nodes and KaTeX ancestors with partial positions', () => {
+  const processed = processLibraryContent('---\ntitle: T\n---\nText.\n')
+  const observation = { counts: { math: 0, tables: 0, headings: 0 }, images: [], diagnostics: [], citations: [] }
+  const options = getLibraryMarkdownOptions(processed, observation)
+  const entry = options.rehypePlugins.find(plugin => Array.isArray(plugin) && plugin[0].name === 'rehypeLibraryObserve')
+  entry[0](entry[1])({ type: 'root', children: [
+    { type: 'element', tagName: 'img', properties: { src: 'generated.jpg' }, position: { end: { line: 5 } } },
+  ] }, { messages: [{ source: 'rehype-katex', reason: 'Example math error', ancestors: [
+    { position: { start: { line: 8 } } }, { position: { end: { line: 9 } } },
+  ] }] })
+  assert.deepEqual(observation.images, [{ url: 'generated.jpg', line: 4 }])
+  assert.equal(observation.diagnostics[0].line, 11)
 })
