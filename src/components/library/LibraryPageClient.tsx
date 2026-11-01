@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FileText, Book, User, Search, Loader2 } from 'lucide-react'
-import type { LibrarySearchResponse } from '@/lib/library-search-types'
+import type { LibrarySearchResponse, LibraryVersion } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
 import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
 import { useLibrarySession } from '@/lib/library-auth-client'
@@ -28,6 +28,7 @@ type PaperMetadata = {
   tags: string[]
   summary: string
   related_method_id?: string
+  availableVersions: LibraryVersion[]
 }
 
 type TypeFilter = 'all' | 'book' | 'journal-conf'
@@ -233,33 +234,30 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
         {/* Masonry Waterfall Layout */}
         {mode === 'search' && !query && <div className="library-cards columns-1 md:columns-2 lg:columns-3 gap-8">
-          {filteredPapers.map(paper => (
-            <Link
-              key={paper.slug}
-              href={`/library/${paper.slug}`}
-              className="group block break-inside-avoid mb-8"
-            >
-              <article className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+          {filteredPapers.map(paper => {
+            const hasVersions = paper.availableVersions.length > 0
+            const card = (
+              <article className={cn('rounded-xl border border-slate-200 transition-all duration-300', hasVersions ? 'bg-white hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50' : 'bg-slate-50')}>
                 <div className="p-7 space-y-5">
                   {/* Header: ID left, Publication & Year right */}
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-normal italic text-rose-400 font-serif">
+                    <span className={cn('text-sm font-normal italic font-serif', hasVersions ? 'text-rose-400' : 'text-slate-400')}>
                       {paper.slug}
                     </span>
                     <div className="text-right flex items-center gap-1.5">
                       {paper.type === '书籍' ? (
-                        <Book size={13} className="text-amber-500 shrink-0" />
+                        <Book size={13} className={cn('shrink-0', hasVersions ? 'text-amber-500' : 'text-slate-400')} />
                       ) : (
-                        <FileText size={13} className="text-blue-500 shrink-0" />
+                        <FileText size={13} className={cn('shrink-0', hasVersions ? 'text-blue-500' : 'text-slate-400')} />
                       )}
                       <span className="text-xs text-slate-400">
-                        {paper.short_publication || paper.publication} · {paper.year}
+                        {[paper.short_publication || paper.publication, paper.year > 0 ? paper.year : null].filter(Boolean).join(' · ')}
                       </span>
                     </div>
                   </div>
 
                   {/* Title - Serif Academic Style, Justified */}
-                  <h3 className="text-xl font-semibold text-slate-800 leading-relaxed group-hover:text-blue-800 transition-colors font-serif tracking-wide text-justify">
+                  <h3 className={cn('text-xl font-semibold leading-relaxed transition-colors font-serif tracking-wide text-justify', hasVersions ? 'text-slate-800 group-hover:text-blue-800' : 'text-slate-500')}>
                     {paper.title}
                   </h3>
 
@@ -271,29 +269,33 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
                   {paper.doi && <p className="break-all font-mono text-xs text-slate-400">DOI: {paper.doi}</p>}
 
                   {/* Summary - justified */}
-                  <p className="text-sm text-slate-600 leading-relaxed text-justify">
+                  <p className={cn('text-sm leading-relaxed text-justify', hasVersions ? 'text-slate-600' : 'text-slate-500')}>
                     {paper.summary}
                   </p>
 
-                  {/* Footer: Tags only */}
-                  {paper.tags.length > 0 && (
-                    <div className="pt-4 border-t border-slate-100">
-                      <div className="flex flex-wrap gap-2">
+                  {/* Footer: Tags and availability */}
+                  {(paper.tags.length > 0 || !hasVersions) && (
+                    <div className="pt-4 border-t border-slate-100 space-y-3">
+                      {!hasVersions && <p className="text-xs font-medium text-slate-500">资料待补齐</p>}
+                      {paper.tags.length > 0 && <div className="flex flex-wrap gap-2">
                         {paper.tags.slice(0, 3).map(tag => (
                           <span
                             key={tag}
-                            className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded group-hover:bg-blue-100 transition-colors"
+                            className={cn('text-xs px-2 py-0.5 rounded transition-colors', hasVersions ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-slate-500 bg-slate-100')}
                           >
                             #{tag}
                           </span>
                         ))}
-                      </div>
+                      </div>}
                     </div>
                   )}
                 </div>
               </article>
-            </Link>
-          ))}
+            )
+            return hasVersions
+              ? <Link key={paper.slug} href={`/library/${paper.slug}`} className="group block break-inside-avoid mb-8">{card}</Link>
+              : <div key={paper.slug} aria-disabled="true" className="block break-inside-avoid mb-8">{card}</div>
+          })}
 
           {/* Empty State */}
           {filteredPapers.length === 0 && (

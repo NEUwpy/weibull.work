@@ -5,6 +5,7 @@ import { isContentSlug, resolveContentFile } from './content-files'
 import { getDataRoot } from './data-root'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
+import type { LibraryVersion } from '../library-search-types'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -38,6 +39,7 @@ export interface PaperMetadata {
   tags: string[]
   summary: string
   related_method_id?: string
+  availableVersions: LibraryVersion[]
 }
 
 export interface PreferredPaper {
@@ -168,30 +170,52 @@ function selectedSlugs(paths: LibraryPaths): string[] {
   return Array.from(slugs)
 }
 
-function publicPaperMetadata(slug: string, data: Record<string, any>, sourceDois: Map<string, string>): PaperMetadata {
+function publicPaperMetadata(slug: string, data: Record<string, any>, sourceDois: Map<string, string>, availableVersions: LibraryVersion[]): PaperMetadata {
   return {
-    slug, title: data.title, title_en: data.title_en,
+    slug, title: data.title || slug, title_en: data.title_en,
     author: data.author || 'Unknown', affiliation: data.affiliation,
     doi: (typeof data.doi === 'string' ? data.doi : undefined) || sourceDois.get(slug),
     publication: data.publication, short_publication: data.short_publication,
-    type: data.type || '文献', year: data.year || new Date().getFullYear(),
-    tags: data.tags || [], summary: data.summary || '', related_method_id: data.related_method_id,
+    type: data.type || '文献', year: data.year || 0,
+    tags: Array.from(new Set<string>(typeof data.tags === 'string' ? [data.tags] : data.tags || [])),
+    summary: data.summary || '', related_method_id: data.related_method_id,
+    availableVersions,
   }
 }
 
-function listFrom(paths: LibraryPaths): PaperMetadata[] {
-  const papers: PaperMetadata[] = []
-  const sourceDois = paths.referenceIndex && paths.sourceIndex ? readSourceSearchDois(paths.referenceIndex, paths.sourceIndex) : new Map<string, string>()
-  for (const slug of selectedSlugs(paths)) {
-    const paper = preferredFrom(paths, slug)
-    if (!paper?.metadata.title) continue
-    papers.push(publicPaperMetadata(slug, paper.metadata, sourceDois))
+function metadataFrom(paths: LibraryPaths, slug: string): PaperMetadata | null {
+  if (paths.sourceIndex) {
+    const source = paths.sourceIndex.get(slug)
+    if (!source) return null
+    const availableVersions: LibraryVersion[] = []
+    if (source.original) availableVersions.push('原文')
+    if (source.translation) availableVersions.push('翻译')
+    // Complete JSON tickets render without opening bodies, notes or DOI hash sources.
+    // Explicit legacy bare-ID / partial tickets keep their original metadata adapter.
+    const catalog = source.catalog
+    const metadata = catalog?.title && catalog.year ? catalog : preferredFrom(paths, slug)?.metadata ?? catalog ?? {}
+    return publicPaperMetadata(slug, metadata, new Map(), availableVersions)
   }
-  return papers
+  const preferred = preferredFrom(paths, slug)
+  if (!preferred?.metadata.title) return null
+  const availableVersions = (['原文', '翻译'] as const).filter(version =>
+    resolveContentFile(paths.contentDir, `${slug}-pdf${version}.md`) !== null)
+  return publicPaperMetadata(slug, preferred.metadata, new Map(), availableVersions)
+}
+
+function listFrom(paths: LibraryPaths): PaperMetadata[] {
+  return selectedSlugs(paths).map(slug => metadataFrom(paths, slug)).filter((paper): paper is PaperMetadata => paper !== null)
 }
 
 export function listPapers(): PaperMetadata[] {
   return listFrom(getLibraryPaths())
+}
+
+/** Public introductions do not require the full-text search index or a session. */
+export function readPaperMetadata(slug: string): PaperMetadata | null {
+  if (!isContentSlug(slug)) return null
+  const paths = getLibraryPaths()
+  return metadataFrom(paths, canonicalSourceSlug(paths, slug))
 }
 
 interface SearchDocumentCache {
@@ -203,7 +227,7 @@ interface SearchDocumentCache {
 
 // Shared across Next's independently compiled instrumentation and route modules.
 // Bump the namespace when the snapshot representation changes.
-const documentCacheKey = Symbol.for('weibull.library-documents.v2')
+const documentCacheKey = Symbol.for('weibull.library-documents.v3')
 const documentCaches = globalThis as unknown as Record<symbol, SearchDocumentCache>
 const documentCache = documentCaches[documentCacheKey] ??= {
   selector: '', guards: new Map(), documents: [], versions: new Map(),
@@ -267,7 +291,7 @@ export function readLibraryDocuments(): LibraryDocument[] {
     if (!preferred) continue
     const data = matter(preferred.raw).data
     if (!data.title) continue
-    const paper = publicPaperMetadata(slug, data, sourceDois)
+    const paper = publicPaperMetadata(slug, data, sourceDois, versions.map(document => document.version))
     // A translation may omit a DOI present in its explicitly selected original.
     const versionMetadata = versions.map(document => matter(document.raw).data)
     const doi = paper.doi || versionMetadata.map(data => data.doi).find(value => typeof value === 'string')

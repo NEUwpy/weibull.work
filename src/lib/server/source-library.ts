@@ -23,6 +23,17 @@ function within(root: string, candidate: string): boolean {
   return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
 }
 
+function sourceDirectory(directory: string): string | null {
+  try {
+    const real = fs.realpathSync(directory)
+    if (!fs.statSync(real).isDirectory()) throw new Error('源资料 root 必须为目录')
+    return real
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code || '')) return null
+    throw error
+  }
+}
+
 /** The selection is configuration; bodies, notes and images stay in their original source. */
 export function indexSourcePapers(sources: unknown, observedDirectories?: string[]): SourceIndex {
   if (!Array.isArray(sources) || sources.length === 0) throw new Error('sources 必须列出资料根目录与选用编号')
@@ -35,7 +46,7 @@ export function indexSourcePapers(sources: unknown, observedDirectories?: string
       if (typeof id !== 'string' || !isContentSlug(id)) throw new Error('题录必须有合法文献编号 id')
       const metadata = typeof item === 'string' ? undefined : item.metadata
       if (metadata !== undefined && (!metadata || typeof metadata !== 'object' || Array.isArray(metadata))) throw new Error(`metadata 必须为题录对象：${id}`)
-      const allowed = new Set(['title', 'title_en', 'author', 'affiliation', 'publication', 'short_publication', 'type', 'year', 'tags', 'summary', 'related_method_id'])
+      const allowed = new Set(['title', 'title_en', 'author', 'doi', 'affiliation', 'publication', 'short_publication', 'type', 'year', 'tags', 'summary', 'related_method_id'])
       if (metadata && Object.keys(metadata).some(key => !allowed.has(key))) throw new Error(`题录包含未支持字段：${id}`)
       for (const [field, value] of Object.entries(metadata ?? {})) {
         const valid = field === 'year' ? typeof value === 'number' && Number.isInteger(value) && value >= 1000 && value <= 9999
@@ -44,15 +55,16 @@ export function indexSourcePapers(sources: unknown, observedDirectories?: string
       }
       return { id, metadata }
     })
-    const root = fs.realpathSync(source.root)
+    const existingRoot = sourceDirectory(source.root)
+    const root = existingRoot ?? path.resolve(source.root)
     observedDirectories?.push(source.root)
-    if (!fs.statSync(root).isDirectory()) throw new Error('源资料 root 必须为目录')
     if (source.layout !== undefined && source.layout !== 'v1') throw new Error('不支持的资料目录 layout')
     // Explicitly retained website books use the preserved content/assets
     // layout. This is a selected source, never an implicit library fallback.
-    const contentRoot = source.layout === 'v1' ? fs.realpathSync(path.join(root, 'content')) : root
-    const assetsRoot = source.layout === 'v1' ? fs.realpathSync(path.join(root, 'assets')) : undefined
-    if (!within(root, contentRoot) || (assetsRoot && !within(root, assetsRoot))) throw new Error('资料目录越过根目录')
+    const contentRoot = source.layout === 'v1' ? sourceDirectory(path.join(root, 'content')) : existingRoot
+    const assetsRoot = source.layout === 'v1' ? sourceDirectory(path.join(root, 'assets')) ?? path.join(root, 'assets') : undefined
+    if (source.layout === 'v1') observedDirectories?.push(path.join(root, 'content'), path.join(root, 'assets'))
+    if ((contentRoot && !within(root, contentRoot)) || (assetsRoot && !within(root, assetsRoot))) throw new Error('资料目录越过根目录')
     const selected = new Set<string>(entries.map((item: { id: string }) => item.id))
     if (selected.size !== entries.length) throw new Error('选用编号重复')
     for (const id of Array.from(selected)) if (index.has(id)) throw new Error(`选用编号重复：${id}`)
@@ -79,10 +91,10 @@ export function indexSourcePapers(sources: unknown, observedDirectories?: string
         found.set(paper.id, paper)
       }
     }
-    walk(contentRoot)
+    if (contentRoot) walk(contentRoot)
     for (const id of Array.from(selected)) {
-      const paper = found.get(id)
-      if (!paper || (!paper.original && !paper.translation)) throw new Error(`选用文献没有可读原译文：${id}`)
+      // A missing mount or document does not remove its selected catalog entry.
+      const paper = found.get(id) ?? { id, root, directory: contentRoot ?? root }
       paper.catalog = entries.find((item: { id: string }) => item.id === id)?.metadata
       index.set(id, paper)
     }
@@ -153,7 +165,7 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
   }
   const metadata = Object.fromEntries(Object.entries({
     title, title_en: data.title_en ?? n.英文标题,
-    author: data.author ?? n.作者 ?? 'Unknown', affiliation: data.affiliation ?? n.单位,
+    author: data.author ?? n.作者 ?? 'Unknown', doi: data.doi, affiliation: data.affiliation ?? n.单位,
     publication: data.publication ?? n.出版物 ?? n.期刊或类型 ?? n.期刊,
     short_publication: data.short_publication ?? n.出版简称 ?? n.期刊简称,
     type: data.type ?? n.文献类型 ?? n.type ?? '文献', year,

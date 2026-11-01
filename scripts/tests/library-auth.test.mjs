@@ -124,8 +124,8 @@ test('authenticated content reads retain body and private cache headers', () => 
 test('public metadata and search expose introductions and excerpts without raw source or neighbouring context', async () => {
   const paper = { slug: '182-001', title: 'Selected paper', author: 'Author', year: 2024, tags: [], summary: 'Public introduction', privateNotes: 'PRIVATE_NOTES' }
   const metadata = loadServerModule('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': {
-    readLibraryDocuments: () => [{ paper, version: '原文', raw: 'COMPLETE_DOCUMENT' }, { paper, version: '翻译', raw: 'TRANSLATION_DOCUMENT' }],
-    getLibraryPaths: () => ({ mode: 'source' }), LibraryConfigurationError: class extends Error {},
+    readPaperMetadata: () => ({ ...paper, availableVersions: ['原文', '翻译'] }),
+    LibraryConfigurationError: class extends Error {},
   } }, globals)
   const response = await metadata.GET(new Request('http://localhost:3000/api/library/papers/182-001'), { params: { slug: '182-001' } })
   assert.equal(response.status, 200)

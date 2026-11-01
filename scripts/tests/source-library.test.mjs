@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto'
 import { loadServerModule as load } from './helpers/load-server-module.mjs'
 
 const storage = load('src/lib/server/literature.ts')
-const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readReferences, resolveLibraryAsset } = storage
+const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readPaperMetadata, readLibraryDocuments, readReferences, resolveLibraryAsset } = storage
 const id = '182-046'
 const noteData = {
   id, 中文标题: '源库中文题名', 英文标题: 'Source paper title', 年份: 2025,
@@ -34,7 +34,7 @@ test('derived cross-paper references are versioned, selected and content-bound',
     } }
   write(indexFile, JSON.stringify(index))
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
-  assert.equal(listPapers().find(paper => paper.slug === other).doi, '10.1000/selected-target')
+  assert.equal(readLibraryDocuments().find(document => document.paper.slug === other).paper.doi, '10.1000/selected-target')
   assert.equal(listPapers().some(paper => paper.slug === '182-999'), false)
   assert.equal(JSON.stringify(readReferences(id, '原文')), JSON.stringify({ 1: other }))
   assert.equal(JSON.stringify(readReferences(id, '翻译')), JSON.stringify({ 9: other }))
@@ -42,7 +42,7 @@ test('derived cross-paper references are versioned, selected and content-bound',
   // No stale-number fallback to the legacy table, even though that table still exists.
   assert.equal(JSON.stringify(readReferences(id, '原文')), '{}')
   write(target, '# Changed target\n')
-  assert.equal(listPapers().find(paper => paper.slug === other).doi, undefined)
+  assert.equal(readLibraryDocuments().find(document => document.paper.slug === other).paper.doi, undefined)
   assert.equal(JSON.stringify(readReferences(id, '翻译')), '{}')
   write(indexFile, 'broken JSON')
   assert.equal(JSON.stringify(readReferences(id)), '{}')
@@ -183,6 +183,68 @@ test('catalog metadata is sufficient for plain Markdown with neither YAML nor a 
   assert.match(readPreferredPaper(id).body, /源库译文/)
   assert.equal(fs.existsSync(note), false)
   assert.equal(fs.readFileSync(translation, 'utf8'), '源库译文，不需要网站专用表头。\n')
+}))
+
+test('complete catalog cards and public introductions never open source Markdown', () => withSource(async ({ root, source, descriptor }) => {
+  const metadata = { title: 'Catalog introduction', year: 2025, author: 'Catalog author', doi: '10.1000/catalog', summary: 'Public abstract' }
+  descriptor.sources[0].papers = [{ id, metadata }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  const route = load('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': storage })
+  const read = fs.readFileSync
+  fs.readFileSync = function (file, ...args) {
+    if (typeof file === 'string' && file.startsWith(source) && file.endsWith('.md')) throw new Error('Catalog opened a source Markdown file')
+    return read.call(this, file, ...args)
+  }
+  try {
+    const [paper] = listPapers()
+    assert.equal(paper.title, metadata.title)
+    assert.equal(paper.doi, metadata.doi)
+    assert.deepEqual(Array.from(paper.availableVersions), ['原文', '翻译'])
+    assert.equal(readPaperMetadata(id).summary, metadata.summary)
+    const response = await route.GET({}, { params: { slug: id } })
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).paper.title, metadata.title)
+  } finally { fs.readFileSync = read }
+}))
+
+test('missing selected roots keep catalog entries and recover without blocking available documents', () => withSource(async ({ root, source, descriptor }) => {
+  const missingRoot = path.join(source, 'not-yet-mounted')
+  const missingId = '182-047'
+  descriptor.sources[0].papers = [{ id, metadata: { title: 'Available paper', year: 2025 } }]
+  descriptor.sources.push({ root: missingRoot, papers: [{ id: missingId, metadata: { title: 'Missing paper', year: 2024, summary: 'Kept introduction' } }] })
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  const cards = listPapers()
+  assert.equal(cards.length, 2)
+  assert.equal(cards.find(paper => paper.slug === missingId).availableVersions.length, 0)
+  assert.equal(readLibraryDocuments().length, 2)
+  assert.equal(readPaper(missingId, '原文'), null)
+  const route = load('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': storage })
+  const response = await route.GET({}, { params: { slug: missingId } })
+  assert.equal(response.status, 200)
+  const payload = await response.json()
+  assert.deepEqual(payload.versions, [])
+  assert.equal(payload.paper.summary, 'Kept introduction')
+  assert.equal((await route.GET({}, { params: { slug: '182-999' } })).status, 404)
+  write(path.join(missingRoot, `${missingId}-pdf原文.md`), '# Mounted document\n\nNEWLY_MOUNTED_EVIDENCE\n')
+  assert.deepEqual(Array.from(readPaperMetadata(missingId).availableVersions), ['原文'])
+  assert.equal(readLibraryDocuments().length, 3)
+  assert.match(readLibraryDocuments().find(document => document.paper.slug === missingId).raw, /NEWLY_MOUNTED_EVIDENCE/)
+}))
+
+test('missing versions become unavailable and leave the shared search corpus until restored', () => withSource(({ root, descriptor, original, translation }) => {
+  descriptor.sources[0].papers = [{ id, metadata: { title: 'Retained catalog paper', year: 2025 } }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.equal(readLibraryDocuments().length, 2)
+  fs.unlinkSync(translation)
+  assert.deepEqual(Array.from(readPaperMetadata(id).availableVersions), ['原文'])
+  assert.equal(readLibraryDocuments().length, 1)
+  fs.unlinkSync(original)
+  assert.equal(listPapers()[0].availableVersions.length, 0)
+  assert.equal(listPapers()[0].title, 'Retained catalog paper')
+  assert.equal(readLibraryDocuments().length, 0)
+  write(translation, '# Restored translation\n')
+  assert.deepEqual(Array.from(readPaperMetadata(id).availableVersions), ['翻译'])
+  assert.equal(readLibraryDocuments().length, 1)
 }))
 
 test('source selection accepts string IDs alongside catalog objects', () => withSource(({ root, descriptor, directory }) => {
@@ -403,7 +465,10 @@ test('linked source directories and image folders cannot escape the configured s
     finally { fs.unlinkSync(images); fs.renameSync(savedImages, images) }
     descriptor.sources[0].papers = ['182-047']
     write(path.join(root, 'library.json'), JSON.stringify(descriptor))
-    assert.throws(listPapers, /没有可读原译文|越过/)
+    const [unavailable] = listPapers()
+    assert.equal(unavailable.slug, '182-047')
+    assert.equal(unavailable.availableVersions.length, 0)
+    assert.equal(readPaper('182-047', '原文'), null)
   } finally {
     fs.unlinkSync(linkedDirectory)
     fs.unlinkSync(linkedImages)
