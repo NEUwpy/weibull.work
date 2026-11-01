@@ -6,7 +6,7 @@
 
 MLE、WMLE共用`profile_solvers.py`，版本`2026-10-16-profile-v2`：保留原似然/加权方程、权重及接受域，通过条件求根和位置搜索减少局部优化漏解；MLE仅返回有限局部极大值，支持边界极限单列。v2补查很窄的似然峰，WMLE保留并明确标记原残差容差内的零边界近似解。详细规则见[MLE说明](../../src/content/algorithms/mle.md)、[WMLE说明](../../src/content/algorithms/wmle.md)。WMLE原绝对距离1e−6保护改为浮点严格支持检查；旧失败状态不直接沿用。不能据求解改善推断统计风险一定降低。
 
-LRE继续使用2026-09-29已核验的Park（2017）Proposed+Plot，区别于旧Bernard绘图位置组合实现。日期备份、Git旧LRE来源和历史实验分界见[备份说明](https://github.com/NEUwpy/weibull-research/blob/main/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E5%8E%86%E5%8F%B2%E7%89%88%E6%9C%AC/2026-10-16-%E6%B1%82%E8%A7%A3%E6%9B%B4%E6%96%B0%E5%89%8D/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E.md)。历史数据不覆盖，后续Study04比较采用当前版本。
+LRE继续使用2026-09-29已核验的Park（2017）Proposed+Plot，区别于旧Bernard绘图位置组合实现。日期备份、Git旧LRE来源和历史实验分界见[备份说明](D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/2026-10-16-求解更新前/版本说明.md)。历史数据不覆盖，后续Study04比较采用当前版本。
 
 ## 1. 核心工作流
 

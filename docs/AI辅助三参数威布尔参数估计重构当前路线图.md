@@ -1,6 +1,6 @@
 # AI 辅助三参数 Weibull 估计：产品集成路线
 
-> **更新日期**：2026-10-26。本文维护软件产品边界；科研路线、结论与实验进度由[科研仓](https://github.com/NEUwpy/weibull-research)维护。
+> **更新日期**：2026-10-26。本文维护软件产品边界；科研路线、结论与实验进度由[科研仓](D:/weibull-research/README.md)维护。
 > 旧路线图见[历史记录](history/2026-08-10-AI辅助三参数威布尔参数估计重构旧路线图.md)。
 
 ## 1. 入口与职责
@@ -8,7 +8,7 @@
 | 需要 | 当前入口 |
 |---|---|
 | 软件状态、运行与文档路由 | [软件 README](../README.md) |
-| 科研状态、Study / Research、论文与实验 | [科研仓](https://github.com/NEUwpy/weibull-research)（私有，需要访问权限） |
+| 科研状态、Study / Research、论文与实验 | [科研仓](D:/weibull-research/README.md)（本机资料，当前无科研远端） |
 | 软件目标与近期任务 | [目标与待办](../04-目标与待办.md) |
 | 共享抽样、方法调用和指标 | [统一蒙特卡洛流程](../python/studies/common/README.md) |
 

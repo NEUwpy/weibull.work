@@ -1,6 +1,6 @@
 # 软件回归测试
 
-本目录保存公共算法、API、抽样、统一运行器、指标与产品模型的回归测试。Study 专用测试及其辅助脚本已迁至[科研仓](https://github.com/NEUwpy/weibull-research)。
+本目录保存公共算法、API、抽样、统一运行器、指标与产品模型的回归测试。Study 专用测试及其辅助脚本已迁至[科研仓](D:/weibull-research/README.md)。
 
 从软件仓根目录运行：
 

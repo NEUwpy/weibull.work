@@ -102,4 +102,4 @@ MDM 的生产默认实现只在 `python/methods/mdm.py`。共享 runner 会把 M
 
 共享流程保留在软件仓。科研仓通过集中配置的软件路径直接导入 `studies.common` 与 `methods`，不需要启动 FastAPI 或网站。新实验设计、训练、研究分析及输出保存在科研仓或其登记的外部数据目录；本仓 `studies/mdm`、`mle`、`wmle` 与 `scripts` 保留产品适用范围数据生成和维护工具。
 
-正式实验须同时登记软件仓与科研仓的提交号；软件仓有未提交改动时一并保存。`manifest.json` 的软件版本字段不能代替科研脚本版本记录。调用设置、环境和冻结版本的使用方式以[科研仓入口](https://github.com/NEUwpy/weibull-research)为准。
+正式实验须同时登记软件仓与科研仓的提交号；软件仓有未提交改动时一并保存。`manifest.json` 的软件版本字段不能代替科研脚本版本记录。调用设置、环境和冻结版本的使用方式以[科研仓入口](D:/weibull-research/README.md)为准。

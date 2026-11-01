@@ -160,4 +160,4 @@ Research00两报告调用[共享条件诊断](../../../python/methods/conditiona
 
 β=1、γ趋于x₍₁₎时，有η趋于mean(x−x₍₁₎)，对数似然趋于−n[1+ln η]。该点不在γ<x₍₁₎的支持域内，即使其极限似然高于选中的有限局部极大值，也只记录为`support_boundary_limit`和`boundary_limit_exceeds_selected`，不以任意ε构造估计值。本实现沿用有限局部MLE口径，不声称求得完整参数域的全局最大值。
 
-程序版本为`2026-10-16-profile-v2`。更新前程序与依赖见[日期备份](https://github.com/NEUwpy/weibull-research/blob/main/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E5%8E%86%E5%8F%B2%E7%89%88%E6%9C%AC/2026-10-16-%E6%B1%82%E8%A7%A3%E6%9B%B4%E6%96%B0%E5%89%8D/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E.md)，旧实验不覆盖；Study04正式比较需使用新版另算。
+程序版本为`2026-10-16-profile-v2`。更新前程序与依赖见[日期备份](D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/2026-10-16-求解更新前/版本说明.md)，旧实验不覆盖；Study04正式比较需使用新版另算。

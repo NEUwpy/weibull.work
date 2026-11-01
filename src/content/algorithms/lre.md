@@ -142,7 +142,7 @@ $$
 
 **版本切换日期为2026-09-29。** 之前的 LRE 使用 Bernard 绘图位置 $(i-0.3)/(n+0.4)$，属于相关系数定位加 OLS 的项目变体。Bernard 本身不是错误公式，但不符合此次 Park 原版复现目标。已生成的工作簿、研究数据和结论保持原版本身份；本次没有重跑这些实验，后续比较必须记录实际代码版本。历史代码可由 Git 提交 `80d08ca8` 及此前版本恢复。
 
-历史四方法核查与原算例见[Research09附录B](https://github.com/NEUwpy/weibull-research/blob/main/Research/09-Weibull%E5%8F%82%E6%95%B0%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E8%B0%B1%E7%B3%BB%E4%B8%8E%E6%AF%94%E8%BE%83%E5%9F%BA%E7%BA%BF/%E9%99%84%E5%BD%95B-%E6%96%B9%E6%B3%95%E5%AE%9E%E7%8E%B0%E4%B8%8E%E7%89%88%E6%9C%AC.md)，其中历史数值不应读作本版输出。
+历史四方法核查与原算例见[Research09附录B](D:/weibull-research/Research/09-Weibull参数估计方法谱系与比较基线/附录B-方法实现与版本.md)，其中历史数值不应读作本版输出。
 
 ## 5. 适用边界与输出
 

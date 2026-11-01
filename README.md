@@ -14,13 +14,13 @@
 
 ## 当前状态快照
 
-> **软件状态更新**: 2026-10-31 · 以本节为软件当前状态权威；研究进度由科研仓维护。
+> **软件状态更新**: 2026-11-01 · 以本节为软件当前状态权威；研究进度由本机科研仓维护。
 
 **当前开发版本**：[v4.0.0](08-更新日志.md)（2026-10-27）。这是软件与科研分仓后，以软件现状态建立的开发基线；统一包元数据与页面版本标识。本次基线整理不改变算法或已有研究结果，尚未部署。v3.00 及其后已经完成的方法更新均包含在此基线中，原更新记录保留。
 
 **宽度适配（2026-10-30）**：保留原有桌面布局，为公共导航、计算器及方法/案例抽屉、方法与AI页面、案例库、文献阅读和帮助页补充半屏与手机布局；计算卡片按容器宽度重排，数据和选择状态共用。改前基线为 `13d3290`，浏览器对照与验证范围见[适配验收记录](coworker/reports/2026-10-30-responsive-layout.md)。本次为本地更新，未部署公网。
 
-**双仓职责（2026-10-27）**：本仓维护网站、API、公共算法、统一蒙特卡洛流程和产品资源；Study、Research、论文与研究专用程序已迁至私有[科研仓 `weibull-research`](https://github.com/NEUwpy/weibull-research)。
+**双仓职责（2026-11-01）**：本仓维护网站、API、公共算法、统一蒙特卡洛流程和产品资源；Study、Research、论文与研究专用程序在[本机科研仓](D:/weibull-research/README.md)维护。旧科研远端已按用户要求删除，本机文件与完整Git历史保留，当前未配置科研远端；后续可另建私有远端再连接。
 
 **资料与数据边界（2026-10-31）**：软件仓保存程序、规范、必要产品样例及 JSON“书票”（题录与来源定位）。新批量蒙特卡洛结果放独立数据目录，不进入软件或科研 Git；科研仓保存实验程序、配置、结果摘要与数据身份。论文正文和图片统一在博士阶段100维护，书籍统一在400维护；三本421书籍已用网站校对稿替换400对应原译稿，每本只保留一份现行原文和译文，旧稿外部备份。本地按书票直读这两处源库；线上发布快照不人工维护第二份可编辑全文，源库更新后重新交付。原始PDF保留。发布与路径约定见[文献库README](docs/library/README.md)和[架构决策AD-14/15](06-A-架构决策.md)。
 
@@ -43,11 +43,11 @@
 | 日常工作 | 本机目录与入口 |
 |---|---|
 | 网站、API、共享算法、产品模型与展示资源 | `D:\weibull`，本 README |
-| 课题、实验、训练、论文、科研测试与证据 | `D:\weibull-research`，[科研 README](https://github.com/NEUwpy/weibull-research#readme) |
+| 课题、实验、训练、论文、科研测试与证据 | `D:\weibull-research`，[科研 README](D:/weibull-research/README.md) |
 
 科研仓通过 `research.py setup / doctor / run` 集中选择软件路径，直接导入本仓 `python/` 源码，无需启动网站。共享入口是 `methods` 与 `studies.common`；科研仓管理专用程序、必要摘要及模型/数据身份，新批量实验输出按科研 README 写入独立数据目录，既有冻结结果保持原路径。正式实验同时保存两仓提交号、dirty 状态及配置和数据身份；冻结实现与历史结果按原版本使用。新方法在科研仓验证，通过明确的代码或模型交付进入软件仓。
 
-软件仓继续使用 [NEUwpy/weibull.work](https://github.com/NEUwpy/weibull.work)，新历史从无父提交的 `v4.0.0`（`6147387f`）开始。完整旧本地 Git 历史已封存至 `D:\weibull-backups\pre-v4.0-20261027\weibull-history.git`；旧公开 GitHub 仓库已改名为 [weibull.work-history-pre-v4-20261027](https://github.com/NEUwpy/weibull.work-history-pre-v4-20261027)并归档，只保留其原有公开历史。未公开的本地旧科研提交保存在本机封存中。所有备份与迁移恢复副本统一放在 `D:\weibull-backups`，使用与恢复步骤见 [v4.0 基线记录](coworker/plans/2026-10-27-v4-baseline.md)。旧 worktree 及历史文档仅用于恢复或追溯。当前科研工作只在科研仓继续，已迁出的 Study/Research 不作为实时镜像维护。
+软件仓继续使用 [NEUwpy/weibull.work](https://github.com/NEUwpy/weibull.work)，新历史从无父提交的 `v4.0.0`（`6147387f`）开始。完整旧本地 Git 历史仍封存在 `D:\weibull-backups\pre-v4.0-20261027\weibull-history.git`。2026-11-01按用户要求删除GitHub旧混合历史仓`weibull.work-history-pre-v4-20261027`和旧科研远端`weibull-research`，当前软件仓保留；本机科研仓、旧历史及未提交改动均保留。删除前核对两个远端的全部分支/标签目标，并另存科研完整Git备份包、未提交内容及旧归档仓issue，恢复入口在`D:\weibull-backups\remote-cleanup-20261101`。所有备份与迁移恢复副本统一放在 `D:\weibull-backups`，原分仓与恢复步骤见 [v4.0 基线记录](coworker/plans/2026-10-27-v4-baseline.md)。旧 worktree 及历史文档仅用于恢复或追溯。当前科研工作只在本机科研仓继续，已迁出的 Study/Research 不作为实时镜像维护。
 
 | 层级 | 技术 |
 |------|------|
@@ -68,7 +68,7 @@
 
 **LRE 实现更新（2026-09-29）**：已按 Park（2017）Proposed+Plot 统一绘图位置、相关系数定位与 OLS，并完成论文算例和边界测试；[方法说明](src/content/algorithms/lre.md)标明引用作用及表值末位差异。旧 Bernard 版本研究结果未重算，本次为本地代码更新，未部署。
 
-**MLE、WMLE求解更新（2026-10-16）**：v2采用条件求根与位置搜索，补查很窄的有限似然峰；MLE支持边界极限单列，WMLE保留原权重、残差门槛，并标记零边界近似解。已保存[更新前日期备份](https://github.com/NEUwpy/weibull-research/blob/main/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E7%A8%8B%E5%BA%8F/%E5%8E%86%E5%8F%B2%E7%89%88%E6%9C%AC/2026-10-16-%E6%B1%82%E8%A7%A3%E6%9B%B4%E6%96%B0%E5%89%8D/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E.md)，完成论文算例、103组存档样本及800条旧成功结果验证；800条在新版中均仍有效。历史结果不覆盖，方法更新未部署。研究比较与冻结版本见科研仓的[实验设置](https://github.com/NEUwpy/weibull-research/blob/main/Study/04-study-%E5%B0%8F%E6%A0%B7%E6%9C%AC%E4%B8%89%E5%8F%82%E6%95%B0Weibull%E4%BC%B0%E8%AE%A1%E6%96%B9%E6%B3%95%E6%AF%94%E8%BE%83%E4%B8%8E%E9%80%89%E6%8B%A9/%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE.md)。
+**MLE、WMLE求解更新（2026-10-16）**：v2采用条件求根与位置搜索，补查很窄的有限似然峰；MLE支持边界极限单列，WMLE保留原权重、残差门槛，并标记零边界近似解。已保存[更新前日期备份](D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/2026-10-16-求解更新前/版本说明.md)，完成论文算例、103组存档样本及800条旧成功结果验证；800条在新版中均仍有效。历史结果不覆盖，方法更新未部署。研究比较与冻结版本见科研仓的[实验设置](D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/实验设置.md)。
 
 **MMLE方法程序更新（2026-10-07）**：共享`mmle`改为Kundu–Raqab构造的单样本形式，旧Cohen–Whitten工程实现原字节保留为`mmle_ch`。R00两批200组存档样本对拍参数、状态与原有诊断完全一致；方法规则和支持检查区别见[开发说明](python/methods/README_DEV.md)。本轮仅更新共享程序，未开放计算器，未补齐R00结果。
 
@@ -83,7 +83,7 @@
 | 构造统计量法 | MVE, LSF | ❌ NOT_IMPLEMENTED |
 | 人工智能方法 | PSO, SVR, ANN | ❌ NOT_IMPLEMENTED（见 AI 模块） |
 
-**AI 方法层**：产品入口按 AI 介入位置分为过程量优化、直接估计和自适应选择；研究代号不作为用户界面名称。产品集成门槛见 [AI 当前路线图](docs/AI辅助三参数威布尔参数估计重构当前路线图.md)，研究状态与论文见[科研仓](https://github.com/NEUwpy/weibull-research)。
+**AI 方法层**：产品入口按 AI 介入位置分为过程量优化、直接估计和自适应选择；研究代号不作为用户界面名称。产品集成门槛见 [AI 当前路线图](docs/AI辅助三参数威布尔参数估计重构当前路线图.md)，研究状态与论文见[科研仓](D:/weibull-research/README.md)。
 
 | 模块 | 当前状态 |
 |------|----------|
@@ -199,7 +199,7 @@ npm run dev
 | `04-目标与待办.md` | 规划功能 |
 | `07-用户手册.md` | 编写或核对用户手册内容 |
 | `08-更新日志.md` | 查看版本更新记录 |
-| [科研仓](https://github.com/NEUwpy/weibull-research) | 查看 Study、Research、论文、实验配置与科研进度；私有仓需要访问权限 |
+| [科研仓](D:/weibull-research/README.md) | 查看本机 Study、Research、论文、实验配置与科研进度；当前无科研远端 |
 
 ---
 
