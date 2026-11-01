@@ -101,6 +101,107 @@ test('compiler and website options preserve GFM tables, images and intended capt
   assert.match(compiled.html, /class="table-caption"/)
   assert.match(compiled.html, /class="figure-caption">Fig. 1 Caption/)
   assert.doesNotMatch(compiled.html, /class="figure-caption">Ordinary prose/)
+  assert.match(compiled.html, /<div class="library-table-scroll" tabindex="0" role="region" aria-labelledby="passage-3"><table id="passage-5" class="library-table">/)
+})
+
+test('the actual HTML parameter table from 182-103 renders math without inferring headers', async () => {
+  // Original paper line 322, including its numeric data and all-td structure.
+  const table = String.raw`<table><tr><td>Method</td><td> $\beta$ </td><td> $\eta$ </td><td> $\gamma$ </td></tr><tr><td>MLE</td><td>0.5</td><td>340</td><td>1441</td></tr><tr><td>LS</td><td>2.4</td><td>493</td><td>1274</td></tr><tr><td>ICP-CDF-LS</td><td>1.9</td><td>527</td><td>1297</td></tr></table>`
+  const compiled = await compileLibraryMarkdown('# T\n\nTable 2. Parameter estimation results.\n\n' + table)
+  assert.equal(compiled.diagnostics.length, 0)
+  assert.equal(compiled.counts.math, 3)
+  assert.equal(compiled.counts.tables, 1)
+  assert.doesNotMatch(compiled.html, /\$\\(?:beta|eta|gamma)\$|<th[>\s]|<thead/)
+  assert.match(compiled.html, /<td>0\.5<\/td><td>340<\/td><td>1441<\/td>/)
+  assert.match(compiled.html, /<td>1\.9<\/td><td>527<\/td><td>1297<\/td>/)
+  assert.match(compiled.html, /id="passage-3" class="table-caption"/)
+  assert.match(compiled.html, /aria-labelledby="passage-3"><table id="passage-5" class="library-table"/)
+})
+
+test('HTML and GFM table math share display conventions and are rendered once', async () => {
+  const raw = String.raw`| Parameter | Value |
+| - | - |
+| $\beta$ | $x^2$ |
+
+<table><tr><th><span>$\eta$</span></th><td>$$x = 2 \tag{A}$$</td><td>$\begin{array}{cc}1&2\\3&4\end{array}$</td></tr></table>`
+  const compiled = await compileLibraryMarkdown(raw)
+  assert.equal(compiled.diagnostics.length, 0)
+  assert.equal(compiled.counts.math, 5)
+  assert.equal(compiled.counts.tables, 2)
+  assert.equal((compiled.html.match(/class="library-table-scroll"/g) || []).length, 2)
+  assert.equal((compiled.html.match(/class="library-table"/g) || []).length, 2)
+  assert.match(compiled.html, /katex-display/)
+  assert.doesNotMatch(compiled.html, /\$\\(?:beta|eta)|\$x\^2\$/)
+})
+
+test('HTML tables retain merged cells, existing IDs, captions and citation links', async () => {
+  const raw = '# T\n\nTable 3. Merged results [1].\n\n<table id="results" class="source-table"><caption>Original caption</caption><tr><th scope="col" colspan="2">Parameters</th></tr><tr><td rowspan="2">$x$ [1]</td><td>1.20</td></tr><tr><td>2.40</td></tr></table>\n\nFollowing paragraph.\n\n## References\n[1] Source.\n'
+  const compiled = await compileLibraryMarkdown(raw)
+  assert.equal(compiled.diagnostics.length, 0)
+  assert.equal(compiled.counts.tables, 1)
+  assert.equal(compiled.counts.math, 1)
+  assert.match(compiled.html, /<table id="results" class="source-table library-table">/)
+  assert.match(compiled.html, /<caption>Original caption<\/caption>/)
+  assert.match(compiled.html, /<th scope="col" colSpan="2">Parameters<\/th>/)
+  assert.match(compiled.html, /<td rowspan="2">/i)
+  assert.match(compiled.html, /<td>1\.20<\/td>/)
+  assert.equal((compiled.html.match(/href="#ref-1"/g) || []).length, 2)
+  assert.match(compiled.html, /id="passage-7">Following paragraph/)
+  assert.match(compiled.html, /aria-labelledby="passage-3"/)
+})
+
+test('HTML cell math diagnoses original lines and skips code and escaped dollars', async () => {
+  const raw = String.raw`---
+title: T
+---
+# T
+
+<table><tr><td>
+Good $x^2$.
+Bad $x_$.
+</td><td>Unclosed $y.</td><td>
+Price \$5 and \$10; ` + '`$not_math$`' + String.raw`.
+<code>$not_math$</code><pre>$not_math$</pre>
+</td></tr></table>
+
+| Price | Code |
+| - | - |
+| \$5 and \$10 | ` + '`$not_math$`' + String.raw` |
+
+<div>$outside$</div>
+`
+  const compiled = await compileLibraryMarkdown(raw)
+  assert.equal(compiled.counts.math, 1)
+  const error = compiled.diagnostics.find(item => item.code === 'math.katex')
+  assert.equal(error.line, 8)
+  assert.equal(error.excerpt, 'Bad $x_$.')
+  const unmatched = compiled.diagnostics.filter(item => item.code === 'math.unmatched-delimiter')
+  assert.deepEqual(unmatched.map(item => item.line), [9])
+  assert.match(compiled.html, /<code>\$not_math\$<\/code>/)
+  assert.match(compiled.html, /`\$not_math\$`/)
+  assert.match(compiled.html, /<div>\$outside\$<\/div>/)
+  assert.doesNotMatch(compiled.html, /class="katex"[^>]*>[^<]*not_math/)
+})
+
+test('table wrappers skip KaTeX layout tables and preserve passage targets', () => {
+  const processed = processLibraryContent('Table\n\n<table><tr><td>1</td></tr></table>')
+  const options = getLibraryMarkdownOptions(processed)
+  const entry = options.rehypePlugins.find(plugin => plugin.name === 'rehypeLibraryTables')
+  const table = { type: 'element', tagName: 'table', properties: { id: 'passage-3' }, children: [] }
+  const mathTable = { type: 'element', tagName: 'table', properties: {}, children: [] }
+  const math = { type: 'element', tagName: 'span', properties: { className: ['katex'] }, children: [mathTable] }
+  const tree = { type: 'root', children: [table, math] }
+  entry()(tree)
+  entry()(tree)
+  assert.equal(tree.children[0].tagName, 'div')
+  assert.equal(tree.children[0].properties.tabIndex, 0)
+  assert.equal(tree.children[0].properties.role, 'region')
+  assert.ok(tree.children[0].properties.ariaLabel)
+  assert.equal(tree.children[0].children[0], table)
+  assert.equal(table.properties.id, 'passage-3')
+  assert.deepEqual(table.properties.className, ['library-table'])
+  assert.deepEqual(mathTable.properties, {})
+  assert.equal(math.children[0], mathTable)
 })
 
 test('TOC slugs follow the same Github duplicate and punctuation rules as rehype-slug', async () => {
@@ -158,7 +259,7 @@ test('actual hard-break references from 421-003 render with observations and kee
     '[3] Rausand, M. and A. Høyland. 2004. System Reliability Theory: Models, Statistical Methods, and Applications. 2nd ed. Wiley-Interscience, Hoboken, NJ.'
   const raw = '---\ntitle: Book excerpt\n---\n# Book\n\n' + excerpt + '\n\nFollowing paragraph [2].\n\n![Diagram](diagram.jpg)\n\n## References\n[1] First\n[2] Second\n[3] Third\n'
   const compiled = await compileLibraryMarkdown(raw)
-  assert.equal(compiled.version, '1.1.1')
+  assert.equal(compiled.version, '1.2.0')
   assert.equal(compiled.version, LIBRARY_RENDERER_VERSION)
   assert.equal(compiled.diagnostics.filter(item => item.severity === 'error').length, 0)
   assert.deepEqual(compiled.citations.map(item => item.id), ['1', '2', '3', '2'])

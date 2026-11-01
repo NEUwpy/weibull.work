@@ -1,0 +1,146 @@
+/* One article style for the website and the 100 local reader. Shells stay independent. */
+.library-document {
+  color: #475569;
+  font-family: ui-sans-serif, system-ui, "Microsoft YaHei", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.library-document :is(h1, h2, h3, h4, h5, h6) {
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: -0.025em;
+  scroll-margin-top: 7rem;
+}
+.library-document h1 { font-size: 30px; margin: 0 0 1em; }
+.library-document h2 { font-size: 24px; margin: 1.8em 0 0.7em; }
+.library-document h3 { font-size: 20px; margin: 1.6em 0 0.6em; }
+.library-document :is(h4, h5, h6) { font-size: 17px; margin: 1.5em 0 0.6em; }
+.library-document p { margin: 1em 0; text-align: left; }
+.library-document a { color: #2563eb; text-decoration: none; }
+.library-document a:hover { text-decoration: underline; }
+.library-document strong { color: #0f172a; font-weight: 700; }
+.library-document :is(ul, ol) { margin: 1em 0; padding-left: 1.6em; }
+.library-document ul { list-style-type: disc; }
+.library-document ol { list-style-type: decimal; }
+.library-document li { margin: 0.35em 0; padding-left: 0.15em; }
+.library-document li > p { margin: 0.5em 0; }
+.library-document hr { margin: 2em 0; border: 0; border-top: 1px solid #e2e8f0; }
+.library-document blockquote {
+  margin: 1.5em 0;
+  padding: 0.2em 1.25em;
+  border-left: 3px solid #94a3b8;
+  background: #f8fafc;
+  color: #64748b;
+  font-style: normal;
+  quotes: none;
+}
+.library-document blockquote p::before,
+.library-document blockquote p::after { content: none; }
+.library-document img {
+  display: block;
+  max-width: 100%;
+  max-height: 720px;
+  width: auto;
+  height: auto;
+  margin: 1.75rem auto 0.75rem;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.library-document :is(.figure-caption, .table-caption) {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.65;
+  text-align: center;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.library-document .figure-caption { margin: 0.5rem 0 1.5rem; }
+.library-document .table-caption { margin: 1.5rem 0 0.75rem; }
+.library-document .table-caption + .library-table-scroll { margin-top: 0; }
+.library-document pre {
+  max-width: 100%;
+  margin: 1.5em 0;
+  padding: 1.25rem;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre;
+}
+.library-document code { font-family: ui-monospace, monospace; }
+.library-document :is(p, li, td, th) > code {
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.87em;
+}
+.library-document code::before,
+.library-document code::after { content: none; }
+.library-document .katex { font-size: 1.06em; }
+.library-document .katex-display {
+  max-width: 100%;
+  margin: 1.25em 0;
+  padding: 0.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+.library-document .katex-display > .katex > .katex-html {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+.library-document .katex-display .tag {
+  position: sticky;
+  right: 0;
+  float: right;
+  padding-left: 1em;
+  background: inherit;
+}
+.library-document #references-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.library-document #references-section p { margin: 0; }
+.library-document sup a { font-size: 11px; }
+.library-document #references-section > div {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  gap: 0.15rem 0.5rem;
+  margin: 1rem 0;
+  scroll-margin-top: 8rem;
+}
+.library-document #references-section > div > :not(a[href^="#cite-"]) {
+  grid-column: 2;
+  min-width: 0;
+}
+.library-document #references-section > div > a[href^="#cite-"] {
+  grid-column: 1;
+  grid-row: 1;
+}
+.library-document #references-section .paper-reference {
+  display: block;
+  width: fit-content;
+  margin: 0;
+  font-weight: 400;
+}
+.library-document #references-section a[href^="#cite-"] { color: #64748b; font-weight: 700; }
+.library-document #references-section > div:hover > a[href^="#cite-"] { color: #2563eb; }
+.library-document #references-section > h2 { margin: 0 0 1.5rem; }
+
+@media (max-width: 650px) {
+  .library-document { font-size: 15px; }
+  .library-document h1 { font-size: 26px; }
+  .library-document h2 { font-size: 22px; }
+}

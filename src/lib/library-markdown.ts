@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import { visit } from 'unist-util-visit'
 import GithubSlugger from 'github-slugger'
 
-export const LIBRARY_RENDERER_VERSION = '1.1.1'
+export const LIBRARY_RENDERER_VERSION = '1.2.0'
 
 export interface LibraryDiagnostic {
   code: string
@@ -204,6 +204,54 @@ function remarkLibraryFormatDiagnostics(options: { processed: ProcessedLibraryCo
   }
 }
 
+// Raw HTML bypasses remark's phrasing parser. Parse only raw <td>/<th> text,
+// keeping all non-math text and the original table semantics intact.
+function rehypeLibraryHtmlCellMath(options: { processed: ProcessedLibraryContent; observation?: LibraryRenderObservation }) {
+  const parser = unified().use(remarkParse).use(remarkMath).use(remarkLibraryDisplayMath)
+  const excludedTags = new Set(['code', 'pre', 'script', 'style', 'math', 'annotation', 'svg', 'textarea'])
+  return (tree: any, file: any) => {
+    const source = String(file.value)
+    const scan = (parent: any, rawCell = false) => {
+      if (!parent.children || excludedTags.has(parent.tagName) || classes(parent).some(name => name.startsWith('katex'))) return
+      const offset = parent.position?.start?.offset
+      const cell = rawCell || (['td', 'th'].includes(parent.tagName) && Number.isInteger(offset) && /^<t[dh](?:\s|>)/i.test(source.slice(offset)))
+      for (let index = 0; index < parent.children.length; index++) {
+        const node = parent.children[index]
+        if (!cell || node.type !== 'text' || !node.value.includes('$')) { scan(node, cell); continue }
+        const line = node.position?.start?.line || parent.position?.start?.line || 1
+        const localFile = { value: node.value }
+        const parsed: any = parser.runSync(parser.parse(node.value), localFile)
+        remarkLibraryFormatDiagnostics({ ...options, processed: { ...options.processed, bodyLineOffset: options.processed.bodyLineOffset + line - 1 } })(parsed, localFile)
+        const maths: any[] = []
+        visit(parsed, (candidate: any) => {
+          if (candidate.type === 'inlineMath' || candidate.type === 'math') maths.push(candidate)
+        })
+        if (!maths.length) continue
+        const position = (point: any) => ({ line: line + point.line - 1, column: point.line === 1 ? (node.position?.start?.column || 1) + point.column - 1 : point.column })
+        const parts: any[] = []
+        let last = 0
+        const appendText = (end: number) => {
+          if (end <= last) return
+          const value = node.value.slice(last, end)
+          const preceding = node.value.slice(0, last).split('\n')
+          parts.push({ type: 'text', value, position: { start: position({ line: preceding.length, column: preceding.at(-1)!.length + 1 }) } })
+        }
+        for (const math of maths) {
+          appendText(math.position.start.offset)
+          // These HAST instructions are supplied by remark-math itself.
+          parts.push({ ...element(math.data.hName, math.data.hProperties || {}, math.data.hChildren),
+            position: { start: position(math.position.start), end: position(math.position.end) } })
+          last = math.position.end.offset
+        }
+        appendText(node.value.length)
+        parent.children.splice(index, 1, ...parts)
+        index += parts.length - 1
+      }
+    }
+    scan(tree)
+  }
+}
+
 function rehypeLibraryCitations(options: { processed: ProcessedLibraryContent; observation?: LibraryRenderObservation }) {
   return (tree: any) => {
     const { processed, observation } = options
@@ -278,6 +326,29 @@ export function rehypeStyleCaptions() {
   }
 }
 
+function rehypeLibraryTables() {
+  return (tree: any) => {
+    const scan = (parent: any) => {
+      if (!parent.children || ['code', 'pre', 'math', 'svg'].includes(parent.tagName) || classes(parent).some(name => name.startsWith('katex'))) return
+      for (let index = 0; index < parent.children.length; index++) {
+        const node = parent.children[index]
+        scan(node)
+        if (node.tagName !== 'table') continue
+        node.properties ??= {}
+        node.properties.className = Array.from(new Set([...classes(node), 'library-table']))
+        if (classes(parent).includes('library-table-scroll')) continue
+        const previous = parent.children.slice(0, index).filter((child: any) => child.type === 'element').at(-1)
+        const caption = previous && classes(previous).includes('table-caption') ? previous : null
+        const properties: Record<string, any> = { className: ['library-table-scroll'], tabIndex: 0, role: 'region' }
+        if (caption?.properties.id) properties.ariaLabelledBy = caption.properties.id
+        else properties.ariaLabel = '表格，可横向滚动'
+        parent.children[index] = element('div', properties, [node])
+      }
+    }
+    scan(tree)
+  }
+}
+
 function rehypeLibraryObserve(options: { processed: ProcessedLibraryContent; observation?: LibraryRenderObservation }) {
   return (tree: any, file: any) => {
     const observation = options.observation
@@ -285,7 +356,7 @@ function rehypeLibraryObserve(options: { processed: ProcessedLibraryContent; obs
     visit(tree, 'element', (node: any) => {
       const names = classes(node)
       if (names.includes('katex')) observation.counts.math++
-      if (node.tagName === 'table') observation.counts.tables++
+      if (node.tagName === 'table' && names.includes('library-table')) observation.counts.tables++
       if (/^h[1-6]$/.test(node.tagName)) observation.counts.headings++
       if (node.tagName === 'img') observation.images.push({ url: String(node.properties.src || ''), line: (node.position?.start?.line || 1) + options.processed.bodyLineOffset })
     })
@@ -322,9 +393,10 @@ function rehypeLibraryPassages(options: { processed: ProcessedLibraryContent }) 
 export function getLibraryMarkdownOptions(processed: ProcessedLibraryContent, observation?: LibraryRenderObservation, linkCitations = true) {
   const remarkPlugins: PluggableList = [remarkGfm, remarkMath, remarkLibraryDisplayMath,
     [remarkLibraryFormatDiagnostics, { processed, observation }]]
-  const rehypePlugins: PluggableList = [rehypeRaw, rehypeSlug, rehypeKatex,
+  const rehypePlugins: PluggableList = [rehypeRaw, rehypeSlug, [rehypeLibraryHtmlCellMath, { processed, observation }], rehypeKatex,
     ...(linkCitations ? [[rehypeLibraryCitations, { processed, observation }] as any] : []), rehypeStyleCaptions,
     ...(linkCitations ? [[rehypeLibraryPassages, { processed }] as any] : []),
+    rehypeLibraryTables,
     [rehypeLibraryObserve, { processed, observation }]]
   return { remarkPlugins, rehypePlugins }
 }

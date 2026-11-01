@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight, User, Calendar, List, Book, BookOpen, FileText, Languages, LockKeyhole, Loader2 } from 'lucide-react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
+import '@/components/library/document.css'
+import '@/components/library/table.css'
 import '@/components/library/responsive.css'
 import '@/components/library/login.css'
 import { cn } from '@/lib/utils'
@@ -267,8 +269,8 @@ function LibraryDocument({ slug, version }: { slug: string; version: LibraryVers
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
-            <article className="prose prose-slate prose-base max-w-none prose-headings:scroll-mt-28 prose-headings:font-black prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-600 prose-p:leading-7 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-strong:font-bold prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-white prose-pre:shadow-lg prose-pre:rounded-2xl prose-img:rounded-lg prose-img:max-w-[33%] prose-img:mx-auto prose-img:my-6">
+          <div className="reader-paper library-document bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+            <article>
               <Markdown {...markdownOptions} rehypePlugins={[...markdownOptions.rehypePlugins, [rehypeLibrarySearchHighlights, highlight]]}>
                 {body}
               </Markdown>
@@ -276,9 +278,8 @@ function LibraryDocument({ slug, version }: { slug: string; version: LibraryVers
 
             {/* References Section */}
             {referenceEntries.length > 0 && (
-              <div id="references-section" className="mt-16 pt-10 border-t border-slate-100 scroll-mt-28">
-                <h2 className="text-2xl font-black text-slate-900 mb-6">{referenceTitle}</h2>
-                <div className="space-y-4">
+              <section id="references-section">
+                <h2>{referenceTitle}</h2>
                   {referenceEntries.map((entry, idx) => {
                     const refId = entry.id
                     const refContent = entry.content
@@ -289,11 +290,11 @@ function LibraryDocument({ slug, version }: { slug: string; version: LibraryVers
                     const hasLink = targetSlug && typeof targetSlug === 'string'
 
                     return (
-                      <div key={idx} id={refId ? `ref-${refId}` : undefined} className="flex gap-4 text-sm text-slate-600 leading-relaxed group scroll-mt-32">
-                        {refId && <a href={`#cite-${refId}`} className="font-bold text-slate-400 select-none shrink-0 group-hover:text-blue-500 hover:underline transition-colors no-underline">[{refId}]</a>}
-                        <div className="min-w-0 flex-1 [&_p]:m-0">
+                      <div key={idx} id={refId ? `ref-${refId}` : undefined}>
+                        {refId && <a href={`#cite-${refId}`}>[{refId}]</a>}
+                        <div className="reference-body">
                           {hasLink ? (
-                            <Link href={`/library/${targetSlug}`} className="block text-blue-600 hover:underline">
+                            <Link href={`/library/${targetSlug}`} className="paper-reference">
                               <Markdown {...getLibraryReferenceMarkdownOptions(processed, entry)}
                                 components={{ a: ({ children }) => <span>{children}</span> }}>{refContent}</Markdown>
                             </Link>
@@ -304,8 +305,7 @@ function LibraryDocument({ slug, version }: { slug: string; version: LibraryVers
                       </div>
                     )
                   })}
-                </div>
-              </div>
+              </section>
             )}
           </div>
         </div>

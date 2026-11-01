@@ -99,7 +99,7 @@
     padding-right: 24px;
   }
 
-  .library-reader h1 {
+  .library-reader h1:not(.library-document h1) {
     flex-wrap: wrap;
   }
 
@@ -178,7 +178,7 @@
     padding: 28px;
   }
 
-  .library-reader .prose table {
+  .library-reader .prose table:not(.library-table) {
     display: block;
     max-width: 100%;
     overflow-x: auto;
@@ -260,25 +260,13 @@
     padding-bottom: 24px;
   }
 
-  .library-reader h1 {
+  .library-reader h1:not(.library-document h1) {
     font-size: 26px;
   }
 
   .reader-paper {
     padding: 20px 16px;
     border-radius: 16px;
-  }
-
-  .library-reader .prose h1 {
-    font-size: 26px;
-  }
-
-  .library-reader .prose h2 {
-    font-size: 22px;
-  }
-
-  .library-reader .prose h3 {
-    font-size: 20px;
   }
 
   .library-chat .chat-controls > div {

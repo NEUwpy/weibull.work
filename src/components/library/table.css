@@ -1,0 +1,92 @@
+/* Shared by the website reader and the 100 workbench; keep table layout here. */
+.library-table-scroll {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 1.25rem 0 1.75rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.library-table-scroll:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 3px;
+}
+
+.library-table-scroll > table.library-table {
+  display: table;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  table-layout: auto;
+  color: #334155;
+  font-family: inherit;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.65;
+}
+
+.library-table-scroll .library-table :is(th, td) {
+  padding: 11px 15px;
+  border: 0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.library-table-scroll .library-table th {
+  color: #0f172a;
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.library-table-scroll .library-table [rowspan] {
+  vertical-align: middle;
+}
+
+.library-table-scroll .library-table tr > :last-child {
+  border-right: 0;
+}
+
+.library-table-scroll .library-table tbody > tr:last-child > :is(td, th) {
+  border-bottom: 0;
+}
+
+.library-table-scroll .library-table :is(th, td) > :first-child {
+  margin-top: 0;
+}
+
+.library-table-scroll .library-table :is(th, td) > :last-child {
+  margin-bottom: 0;
+}
+
+.library-table-scroll .library-table .katex-display {
+  margin: 0.25em 0;
+  padding: 0;
+  overflow: visible;
+}
+
+@media (max-width: 767px) {
+  .library-table-scroll .library-table :is(th, td) {
+    padding: 9px 12px;
+  }
+}
+
+@media print {
+  .library-table-scroll {
+    overflow: visible;
+    border-radius: 0;
+  }
+}
