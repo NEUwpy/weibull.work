@@ -35,6 +35,14 @@ export const chartRegistry: ChartRegistry = {
   // Histogram
   // ============================================================
   Histogram: [
+    ...['β', 'η', 'γ'].map((symbol, index) => ({
+      id: `workbook-error-${index}`,
+      label: `研究工作簿 ${symbol} 估计差值分布`,
+      location: 'MonteCarloWorkbookViewer',
+      description: '以当前批次、n和方法的三参数完整估计计算估计值减真值；表下直接展示。',
+      dataSource: { type: 'api' as const, endpoint: '/api/monte-carlo/{id}' },
+      props: { xLabel: `${symbol}̂ − ${symbol}`, yLabel: '频数', color: '#b58a45', axisFontSize: 14 },
+    })),
     {
       id: 'm3-performance-beta',
       label: 'M3 β 误差分布',

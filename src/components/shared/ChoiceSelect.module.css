@@ -1,0 +1,11 @@
+.choice{display:inline-flex;align-items:center;gap:7px;min-width:0;white-space:nowrap}
+.label{display:inline-flex;align-items:baseline;gap:6px;font-size:16px;line-height:30px;color:#59677b}
+.equals{color:#a3adbb}.selector{position:relative}
+.trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:70px;height:36px;padding:0 9px;border:0;border-radius:6px;background:#fff1dc;color:#9d6510;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+.trigger svg{color:#b49a6f}.trigger:hover{background:#fbe7c4}
+.sample .label{color:#52708c}.sample .trigger{background:#dfedf9;color:#276a9f}.sample .trigger svg{color:#7b9dbb}.sample .trigger:hover{background:#d1e5f5}
+.menu{position:absolute;top:calc(100% + 6px);right:0;z-index:20;min-width:110px;padding:5px;border:1px solid #dce3ec;border-radius:9px;background:#fff;box-shadow:0 8px 28px #1e293b18}
+.menu button{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:36px;padding:5px 9px;border:0;border-radius:5px;background:none;color:#475569;font-size:16px;font-variant-numeric:tabular-nums;text-align:left;cursor:pointer}
+.menu button[aria-checked="true"]{color:#9d6510;background:#fff4e3}.menu button:hover:not(:disabled),.menu button:focus-visible{background:#f1f5f9;outline:none}.menu button:disabled{color:#c1c9d3;cursor:default}
+.trigger:focus-visible{outline:2px solid #bf9555;outline-offset:2px}
+@media(pointer:coarse){.trigger,.menu button{min-height:44px}}

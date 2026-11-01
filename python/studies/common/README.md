@@ -14,6 +14,9 @@
 
 ## 文件职责
 
+`workbook.py`是冻结Research00 Excel的只读桥接解析器，保留单元格、格式、合并及样本/方法列身份，拒绝公式及不完整对应关系。它不抽样、不拟合，不替代`runner`或`experiment`；由软件根`scripts/import-research00-workbooks.py`离线调用，结果写外部data并生成Git索引。新实验自动生成完整工作簿索引另行接通。
+
+
 | 文件 | 职责 | 主要入口 |
 |------|------|----------|
 | `sample.py` | 确定性样本生成 | `generate_sample()` |

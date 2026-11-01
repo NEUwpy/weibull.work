@@ -251,6 +251,15 @@ export const CHART_DISPLAY_GROUPS: ChartPatternGroup[] = [
 
 export const TABLE_PATTERNS: TablePatternDef[] = [
   {
+    id: 'research-workbook',
+    name: 'Research workbook',
+    purpose: '连续核对完整样本与逐次参数估计，同一内容可另用原Excel交付。',
+    dataShape: 'groups[n]: samples + resultRows + method blocks; truth; original cell formats',
+    recommendedComponent: 'MonteCarloWorkbookViewer / sticky HTML table + sheet tabs',
+    visualSemantics: '分组列显示估计值和估计值减真值，暖红为正、蓝为负并保留符号；统计及差值直方图置于表下，使用三参数均有数值的同一组记录。',
+    currentUses: ['方法适用范围 Research00 工作簿'],
+  },
+  {
     id: 'summary-table',
     name: 'Summary table',
     purpose: '展示单个方法、模块或方案的核心结论。',
@@ -299,9 +308,7 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
       { tab: '计算过程', chart: '直方图', data: 'beta/eta/gamma 估计值分布', src: 'Recharts BarChart' },
       { tab: '计算过程', chart: '折线图', data: 'MSE/Std 随偏移量变化', src: 'Recharts LineChart' },
       { tab: '计算过程', chart: '散点图', data: '估计值 vs 真实值', src: 'Recharts ScatterChart' },
-      { tab: '适用范围', chart: '箱型图', data: '各参数组合下估计值分布', src: 'shared BoxPlotChart' },
-      { tab: '适用范围', chart: '热力图', data: 'beta-eta 参数空间偏差', src: 'shared HeatmapChart' },
-      { tab: '适用范围', chart: '密度图', data: '估计值概率密度', src: 'shared DensityChart' },
+      { tab: '适用范围', chart: '直方图', data: '当前方法、参数组合及n的完整估计差值分布', src: 'ai Histogram / MonteCarloWorkbookViewer' },
       { tab: '可信性验证', chart: '折线图', data: '梯度曲线（MDM）', src: 'mdm GradientGammaChart' },
       { tab: '方法对比', chart: '折线图', data: '多方法精度对比', src: 'Recharts LineChart' },
     ],

@@ -89,12 +89,8 @@ export default function RootLayout({
           <div className="site-header-inner page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
             {/* Left: Dynamic Title */}
             <div className="site-title flex items-center gap-3">
-               <div className={cn(
-                 "p-2 rounded-lg text-white shadow-sm transition-colors",
-                 themeColor
-               )}>
-                 <Icon size={20} />
-               </div>
+               {isMethods ? <Link href="/methods" aria-label="返回方法总览" className={cn("p-2 rounded-lg text-white shadow-sm transition-colors hover:brightness-110", themeColor)}><Icon size={20} /></Link> :
+                 <div className={cn("p-2 rounded-lg text-white shadow-sm transition-colors", themeColor)}><Icon size={20} /></div>}
                <div className="flex flex-col">
                   <h1 className="text-lg font-bold text-slate-900 leading-none">
                     {title}

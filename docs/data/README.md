@@ -13,7 +13,8 @@
 | `public/case-studies/` | 方法案例结果 | `/case-studies/...csv`、`/case-studies/...json` |
 | `literature-source/` | 本机JSON书票，选择100论文与400书籍 | 由`WEIBULL_LIBRARY_ROOT`显式选择，详见[文献库入口](../library/README.md) |
 | `literature/` | 冻结v1文献恢复库，也是未显式指定库时的外部默认位置 | 原文献接口与图片网址保留，不再回退软件内置正文 |
-| `monte-carlo/`、`archive/` | 研究批次、旧输出及归档 | 不经网站结果接口公开 |
+| `monte-carlo/research00/` | 已登记研究工作簿、原Excel及冻结程序 | `/api/monte-carlo`按Git索引与manifest白名单读取 |
+| 其他`monte-carlo/`、`archive/` | 未登记研究批次及归档 | 不公开 |
 
 读取层只公开上述结果命名空间的CSV/JSON，阻止目录穿越及指向模型/私人目录的符号链接。数据根缺失返回503，合法命名空间内不存在的单个文件返回404。Python生成程序通过`python/data_paths.py`写入同一`<数据根>/public`层级；版本化的Markdown配置和产品模型继续在软件仓。
 
@@ -24,3 +25,18 @@
 同日按用户追加要求，进一步从v4.0以来历史中移除这些退役资料；保留开发记录及当前程序内容，`v4.0.0`根提交更新为`2b666353`。重写前完整Git包、旧工作区和新旧提交映射在`D:/weibull-backups/history-rewrite-v4-20261101`。已有旧检出需先保存改动，再按维护指南重新克隆；外部资料不因Git历史改写而删除。
 
 NAS更新程序时还须同步对应外部展示数据与文献、配置只读挂载。`docker-compose.library.yml`提供文献与结果根的挂载覆盖示例；源模式另外挂载100/400，完整步骤见[维护指南](../../03-维护.md)。自动生成v2资料包及包内相对源路径尚未实现，本次未部署NAS。克隆软件Git不会自动取得这些外部数据，也不会取得本机凭证。
+
+
+## Research00 工作簿登记（2026-11-02）
+
+已登记13组合、39组样本量、1950份完整样本和15600组三参数估计配置。原件、网页视图及冻结程序在`monte-carlo/research00/<id>-<原件哈希前12位>/`；软件只保存轻量索引。原始协议分别保留，计算时间不详时为null，不能用登记时间代替。
+
+离线登记命令（在软件根执行）：
+
+```powershell
+.\python\.venv\Scripts\python.exe -B -X utf8 scripts/import-research00-workbooks.py --research-root D:\weibull-research
+```
+
+工具核对原Excel、结果矩阵及冻结依赖哈希，生成`manifest.json`和`workbook.json`并复制原Excel/代码输入快照。已登记文件不同则中止，不覆盖历史；不会抽样或重新拟合。网页无上传，只按已登记ID读取，文件变化校验失败，不能自动回退到现算法。
+
+新实验自动保存完整样本并生成网页索引仍待接通。本机展示已接入，NAS部署须另同步索引对应批次；原Compose完整data只读挂载可继续使用。单独更新软件Git不会获得数据。

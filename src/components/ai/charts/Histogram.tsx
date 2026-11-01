@@ -26,6 +26,7 @@ interface HistogramProps {
   yLabel?: string
   color?: string
   showMean?: boolean     // 显示均值参考线
+  axisFontSize?: number
   secondValues?: number[] // 叠加第二组数据
   secondColor?: string
   secondLabel?: string
@@ -65,6 +66,7 @@ export function Histogram({
   yLabel = '频次',
   color = '#8b5cf6',
   showMean = false,
+  axisFontSize,
   secondValues,
   secondColor = '#10b981',
   secondLabel,
@@ -128,16 +130,16 @@ export function Histogram({
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 9 }}
-            label={{ value: xLabel, position: 'bottom', offset: 0, fontSize: 11 }}
-            interval={Math.max(0, Math.floor(result.data.length / 8))}
+            tick={{ fontSize: axisFontSize ?? 9 }}
+            label={{ value: xLabel, position: 'bottom', offset: 0, fontSize: axisFontSize ?? 11 }}
+            interval={Math.max(0, Math.floor(result.data.length / (axisFontSize ? 4 : 8)))}
           />
           <YAxis
-            tick={{ fontSize: 10 }}
-            label={{ value: yLabel, angle: -90, position: 'insideLeft', fontSize: 11 }}
+            tick={{ fontSize: axisFontSize ?? 10 }}
+            label={{ value: yLabel, angle: -90, position: 'insideLeft', fontSize: axisFontSize ?? 11 }}
           />
           <Tooltip
-            contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: '11px' }}
+            contentStyle={{ borderRadius: '4px', border: '1px solid #e5e7eb', fontSize: axisFontSize ?? 11 }}
           />
           {showMean && (
             <ReferenceLine
