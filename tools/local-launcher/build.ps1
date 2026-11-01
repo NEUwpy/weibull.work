@@ -53,7 +53,7 @@ if ($InstallShortcut) {
     $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcutPath)
     $shortcut.TargetPath = $artifact.FullName
     $shortcut.WorkingDirectory = $projectRoot.Path
-    $shortcut.Description = '自动启动 Weibull 前后端开发环境，打开应用与 API 调试页面'
+    $shortcut.Description = '一键打开当前 Weibull 网站，自动启动并复用开发服务，修改源码自动更新'
     $shortcut.IconLocation = "$iconPath,0"
     $shortcut.Save()
     Write-Host "已创建桌面快捷方式：$shortcutPath"

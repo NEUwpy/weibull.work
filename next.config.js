@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
 
 // 从 08-更新日志.md 头部提取版本号
 let appVersion = 'v0.00-000000'
@@ -20,4 +21,8 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+// Keep hot-reload artifacts separate so a local preview never conflicts with next build/start.
+module.exports = phase => ({
+  ...nextConfig,
+  distDir: phase === PHASE_DEVELOPMENT_SERVER ? '.next-dev' : '.next',
+})

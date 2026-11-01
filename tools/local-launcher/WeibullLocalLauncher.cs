@@ -12,11 +12,12 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("启动本地 Weibull 前后端并打开默认浏览器")]
 [assembly: AssemblyCompany("weibull.work")]
 [assembly: AssemblyProduct("Weibull Local Launcher")]
-[assembly: AssemblyVersion("1.1.1.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
 
 internal static class WeibullLocalLauncher
 {
-    private const string FrontendUrl = "http://127.0.0.1:3000";
+    private static string frontendUrl;
+    private static int frontendPort;
     private const string BackendDocsUrl = "http://127.0.0.1:8001/docs";
     private const string BackendProbeUrl = "http://127.0.0.1:8001/openapi.json";
     private const int StartupTimeoutSeconds = 180;
@@ -24,11 +25,13 @@ internal static class WeibullLocalLauncher
     private static Label progressLabel;
     private static string launcherLog;
     private static bool quiet;
+    private static bool openApiDocs;
 
     [STAThread]
     private static void Main(string[] args)
     {
         quiet = HasArgument(args, "--no-browser");
+        openApiDocs = HasArgument(args, "--api-docs");
         Application.EnableVisualStyles();
         bool createdNew;
         using (var mutex = new Mutex(true, "Local\\WeibullLocalLauncher", out createdNew))
@@ -51,21 +54,17 @@ internal static class WeibullLocalLauncher
                     return;
                 }
 
-                string logDirectory = Path.Combine(projectRoot, "logs");
+                string dataRoot = Environment.GetEnvironmentVariable("WEIBULL_DATA_ROOT");
+                if (string.IsNullOrWhiteSpace(dataRoot)) dataRoot = Path.Combine(projectRoot, "..", "weibull-data");
+                else if (!Path.IsPathRooted(dataRoot)) dataRoot = Path.Combine(projectRoot, dataRoot);
+                string logDirectory = Path.Combine(Path.GetFullPath(dataRoot), "logs", "local-launcher");
                 Directory.CreateDirectory(logDirectory);
                 launcherLog = Path.Combine(logDirectory, "local-launcher.log");
                 SetStatus("正在检查本地调试环境…\n项目：" + projectRoot);
 
                 bool backendReady = IsBackendReady();
-                FrontendStatus frontendStatus = GetFrontendStatus();
+                FrontendStatus frontendStatus = SelectFrontend();
                 bool frontendReady = frontendStatus == FrontendStatus.Development;
-
-                if (frontendStatus == FrontendStatus.ProductionPreview)
-                {
-                    throw new InvalidOperationException(
-                        "3000 端口运行的是 Weibull 生产预览，不是开发调试服务，修改源码不会自动更新。\n\n" +
-                        "请先关闭该项目的生产预览（npm run start / next start），再双击 Weibull调试。启动器不会结束其他程序。");
-                }
 
                 if (!backendReady)
                 {
@@ -87,7 +86,7 @@ internal static class WeibullLocalLauncher
 
                 if (!frontendReady)
                 {
-                    RequireFreePort(3000);
+                    RequireFreePort(frontendPort);
                     string npm = ResolveNpm();
                     if (npm == null)
                     {
@@ -102,7 +101,7 @@ internal static class WeibullLocalLauncher
                     SetStatus("正在启动 Next.js 开发服务…首次编译可能需要一些时间。");
                     StartHiddenCommand(
                         npm,
-                        "run dev -- --hostname 127.0.0.1 --port 3000",
+                        "run dev -- --hostname 127.0.0.1 --port " + frontendPort,
                         projectRoot,
                         Path.Combine(logDirectory, "local-launcher-frontend.log"));
                 }
@@ -114,14 +113,14 @@ internal static class WeibullLocalLauncher
                     frontendReady = IsFrontendReady();
                     SetStatus("后端：" + (backendReady ? "已就绪" : "启动中") +
                         "    前端：" + (frontendReady ? "已就绪" : "启动 / 编译中") +
-                        "\n就绪后自动打开应用与 API 调试页面。");
+                        "\n就绪后自动打开网站，修改源码会自动更新。");
                     if (backendReady && frontendReady)
                     {
-                        SetStatus("调试环境已就绪。");
+                        SetStatus("网站已就绪：" + frontendUrl);
                         if (!quiet)
                         {
-                            Process.Start(new ProcessStartInfo(FrontendUrl) { UseShellExecute = true });
-                            Process.Start(new ProcessStartInfo(BackendDocsUrl) { UseShellExecute = true });
+                            Process.Start(new ProcessStartInfo(frontendUrl) { UseShellExecute = true });
+                            if (openApiDocs) Process.Start(new ProcessStartInfo(BackendDocsUrl) { UseShellExecute = true });
                         }
                         return;
                     }
@@ -136,7 +135,7 @@ internal static class WeibullLocalLauncher
                 }
                 if (!frontendReady)
                 {
-                    missing.AppendLine("- 前端 http://localhost:3000 未就绪");
+                    missing.AppendLine("- 前端 " + frontendUrl + " 未就绪");
                 }
 
                 ShowError(
@@ -174,11 +173,17 @@ internal static class WeibullLocalLauncher
 
     private static void RequireFreePort(int port)
     {
+        if (!IsPortFree(port))
+            throw new InvalidOperationException("端口 " + port + " 已被其他或尚未就绪的服务占用。请检查该服务后重试；启动器不会结束其他程序。");
+    }
+
+    private static bool IsPortFree(int port)
+    {
         foreach (var endpoint in IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners())
         {
-            if (endpoint.Port == port)
-                throw new InvalidOperationException("端口 " + port + " 已被其他或尚未就绪的服务占用。请检查该服务后重试；启动器不会结束其他程序。");
+            if (endpoint.Port == port) return false;
         }
+        return true;
     }
 
     private static string FindProjectRoot(string startDirectory)
@@ -223,13 +228,37 @@ internal static class WeibullLocalLauncher
 
     private static bool IsFrontendReady()
     {
-        return GetFrontendStatus() == FrontendStatus.Development;
+        return GetFrontendStatus(frontendUrl) == FrontendStatus.Development;
     }
 
-    private static FrontendStatus GetFrontendStatus()
+    private static FrontendStatus SelectFrontend()
+    {
+        // Reuse a development server first. A production preview may coexist on the other port.
+        int[] ports = { 3000, 3001 };
+        foreach (int port in ports)
+        {
+            string url = "http://127.0.0.1:" + port;
+            if (GetFrontendStatus(url) == FrontendStatus.Development)
+            {
+                frontendPort = port;
+                frontendUrl = url;
+                return FrontendStatus.Development;
+            }
+        }
+        foreach (int port in ports)
+        {
+            if (!IsPortFree(port)) continue;
+            frontendPort = port;
+            frontendUrl = "http://127.0.0.1:" + port;
+            return FrontendStatus.NotReady;
+        }
+        throw new InvalidOperationException("3000 和 3001 端口均已被占用，且未找到可复用的 Weibull 开发服务。\n请检查占用服务后重试。");
+    }
+
+    private static FrontendStatus GetFrontendStatus(string url)
     {
         // Use one response: a compile finishing between two probes must not look like production.
-        string body = ReadResponseBody(FrontendUrl);
+        string body = ReadResponseBody(url);
         if (body.IndexOf("Weibull Calculator", StringComparison.OrdinalIgnoreCase) < 0)
             return FrontendStatus.NotReady;
         return body.IndexOf("/_next/static/chunks/webpack.js", StringComparison.OrdinalIgnoreCase) >= 0
@@ -253,7 +282,7 @@ internal static class WeibullLocalLauncher
             var request = (HttpWebRequest)WebRequest.Create(url);
             request.Timeout = 1000;
             request.ReadWriteTimeout = 1000;
-            request.UserAgent = "WeibullLocalLauncher/1.1.1";
+            request.UserAgent = "WeibullLocalLauncher/1.2.0";
             using (var response = (HttpWebResponse)request.GetResponse())
             using (var reader = new StreamReader(response.GetResponseStream()))
             {
