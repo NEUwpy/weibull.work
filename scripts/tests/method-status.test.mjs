@@ -16,7 +16,7 @@ function completeMethod(id) {
     id,
     name: '最小差异法',
     family: 'min_adequacy',
-    classification_source: 'src/content/181-004-pdf原文.md',
+    classification_source: '/library/181-004',
     shared_core: null,
     paper: {
       status: 'done',
@@ -24,7 +24,7 @@ function completeMethod(id) {
       publication: '东北大学学报（自然科学版）',
       year: 2025,
       stable_id: '1005-3026(2025)07-0108-06',
-      evidence: ['src/content/182-046-pdf原文.md'],
+      evidence: ['/library/182-046'],
     },
     layer1: {
       backend: completeItem(['python/methods/mdm.py']),
@@ -38,8 +38,8 @@ function completeMethod(id) {
       analysis: completeItem(['src/components/methods/mdm']),
     },
     layer3: {
-      applicability: completeItem(['public/studies/mdm']),
-      verification: completeItem(['public/case-studies/mdm']),
+      applicability: completeItem(['/api/studies/mdm/chunks']),
+      verification: completeItem(['/api/data/assets/case-studies/mdm/verification-182-046/data.csv']),
     },
   }
 }
@@ -212,6 +212,47 @@ test('evidence path must not escape the repository root', () => {
       }),
     /escapes/,
   )
+})
+
+test('library evidence uses the stable reader route without requiring embedded full text', () => {
+  const method = completeMethod('mdm')
+  for (const layer of [method.layer1, method.layer2, method.layer3]) {
+    for (const item of Object.values(layer)) item.evidence = ['README.md']
+  }
+  const validate = () => validateStatusDocument(statusDoc([method]), ['mdm'], {
+    checkEvidencePaths: true, rootDir: process.cwd(),
+  })
+  assert.doesNotThrow(validate)
+  for (const route of ['/library/../private', '/library/182-046?file=private', '/library/', '/library/182-046/原文']) {
+    method.paper.evidence = [route]
+    assert.throws(validate, /invalid library evidence route/)
+  }
+  method.paper.evidence = ['/elsewhere/182-046']
+  assert.throws(validate, /repository-relative/)
+})
+
+test('external result evidence accepts implemented APIs and rejects unsupported route selectors', () => {
+  const method = completeMethod('mdm')
+  for (const layer of [method.layer1, method.layer2, method.layer3]) {
+    for (const item of Object.values(layer)) item.evidence = ['README.md']
+  }
+  const validate = () => validateStatusDocument(statusDoc([method]), ['mdm'], {
+    checkEvidencePaths: true, rootDir: process.cwd(),
+  })
+  for (const route of ['/api/studies/mdm/chunks', '/api/studies/mle/chunks',
+    '/api/data/assets/case-studies/mdm/verification-182-046/data.csv',
+    '/api/data/assets/case-studies/mdm/verification-182-046/summary.json']) {
+    method.layer3.applicability.evidence = [route]
+    assert.doesNotThrow(validate)
+  }
+  for (const route of ['/api/studies/mdm/chunks?file=private', '/api/studies/../chunks', '/api/studies/mdm/simulate',
+    '/api/data/assets/models/private.json', '/api/data/assets/case-studies/mdm/../private.csv',
+    '/api/data/assets/case-studies/mdm/example/config.md']) {
+    method.layer3.applicability.evidence = [route]
+    assert.throws(validate, /invalid .* evidence route/)
+  }
+  method.layer3.applicability.evidence = ['/api/unsupported/mdm']
+  assert.throws(validate, /repository-relative/)
 })
 
 test('duplicate leaf ids in methods catalog are rejected', () => {

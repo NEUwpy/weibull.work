@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
-import path from 'path'
+import { DataConfigurationError } from '@/lib/server/data-root'
+import { resolveStudyChunks } from '@/lib/server/runtime-data'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * 方法级别的 Chunk 文件名解析 API
@@ -109,22 +112,7 @@ export async function GET(
 
   try {
     // 方法级别的 chunks 目录
-    const chunksDir = path.join(
-      process.cwd(),
-      'public',
-      'studies',
-      methodId.toLowerCase(),
-      'chunks'
-    )
-
-    if (!fs.existsSync(chunksDir)) {
-      return NextResponse.json({
-        chunks: [],
-        parsedParams: {},
-        total: 0,
-        error: 'Chunks directory not found'
-      })
-    }
+    const chunksDir = resolveStudyChunks(methodId)
 
     const files = fs.readdirSync(chunksDir)
     const csvFiles = files.filter(f => f.endsWith('.csv'))
@@ -141,6 +129,8 @@ export async function GET(
 
     return NextResponse.json(result)
   } catch (error) {
+    if (error instanceof TypeError) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error instanceof DataConfigurationError) return NextResponse.json({ error: error.message }, { status: 503 })
     console.error('Error loading chunks:', error)
     return NextResponse.json({
       chunks: [],

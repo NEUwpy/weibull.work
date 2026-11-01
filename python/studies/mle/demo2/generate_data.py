@@ -11,7 +11,7 @@ MLE 示例2 数据生成脚本 - 蒙特卡洛收敛性研究
     python generate_data.py --force      # 强制重新生成
 
 输出文件（新命名规范）：
-    public/studies/mle/demo2/chunks/
+    <数据根>/public/studies/mle/demo2/chunks/
     ├── b2.0_e1000_g1000_n3_rep5000_seed42.csv
     ├── b2.0_e1000_g1000_n4_rep5000_seed42.csv
     └── ...
@@ -31,6 +31,8 @@ from typing import Optional, List
 # 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
+
+from data_paths import public_data_path, study_config_path
 
 import yaml
 from methods.mle import MLE
@@ -264,9 +266,10 @@ def main():
     args = parser.parse_args()
 
     # 定位配置文件
-    config_path = PROJECT_ROOT / 'public' / 'studies' / 'mle' / 'demo2' / 'config.md'
-    output_dir = config_path.parent / 'chunks'
-    output_dir.mkdir(exist_ok=True)
+    config_path = study_config_path('mle', 'demo2')
+    study_dir = public_data_path('studies', 'mle', 'demo2')
+    output_dir = study_dir / 'chunks'
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if not config_path.exists():
         print(f"错误: 配置文件不存在 - {config_path}")
@@ -307,7 +310,7 @@ def main():
 
     # 只生成 convergence.csv
     if args.convergence_only:
-        generate_convergence_csv(output_dir, config_path.parent / 'convergence.csv', mc_runs_list, filename_params)
+        generate_convergence_csv(output_dir, study_dir / 'convergence.csv', mc_runs_list, filename_params)
         return
 
     # 筛选要生成的样本量
@@ -369,7 +372,7 @@ def main():
 
     # 生成 convergence.csv
     print("\n生成 convergence.csv ...")
-    generate_convergence_csv(output_dir, config_path.parent / 'convergence.csv', mc_runs_list)
+    generate_convergence_csv(output_dir, study_dir / 'convergence.csv', mc_runs_list)
     print("完成！")
 
 

@@ -11,7 +11,7 @@ MDM 示例1 数据生成脚本 - 多维度参数研究
     python generate_data.py --only-beta 2 3 --only-eta 1000  # 只生成指定组合
 
 输出文件（新命名规范）：
-    public/studies/mdm/demo1/chunks/
+    <数据根>/public/studies/mdm/demo1/chunks/
     ├── b1.5_e200_g1000_n3_d0_rep1000_seed42_step60.csv
     ├── b1.5_e200_g1000_n3_d0.05_rep1000_seed42_step60.csv
     └── ...
@@ -39,6 +39,8 @@ from itertools import product
 # 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
+
+from data_paths import public_data_path, study_config_path
 
 import yaml
 from methods.mdm import MDM
@@ -186,9 +188,10 @@ def main():
     args = parser.parse_args()
 
     # 定位配置文件
-    config_path = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo1' / 'config.md'
-    output_dir = config_path.parent / 'chunks'
-    output_dir.mkdir(exist_ok=True)
+    config_path = study_config_path('mdm', 'demo1')
+    study_dir = public_data_path('studies', 'mdm', 'demo1')
+    output_dir = study_dir / 'chunks'
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if not config_path.exists():
         print(f"错误: 配置文件不存在 - {config_path}")

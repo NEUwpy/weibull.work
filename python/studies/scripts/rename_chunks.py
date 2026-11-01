@@ -22,6 +22,9 @@ from typing import Dict, Optional, Tuple
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+import sys
+sys.path.insert(0, str(PROJECT_ROOT / 'python'))
+from data_paths import public_data_path, data_root
 
 # 各 study 的默认参数
 DEFAULTS = {
@@ -131,7 +134,7 @@ def rename_study(method: str, study: str, dry_run: bool = True) -> Tuple[int, in
 
     Returns: (success_count, error_count)
     """
-    chunks_dir = PROJECT_ROOT / 'public' / 'studies' / method / study / 'chunks'
+    chunks_dir = public_data_path('studies') / method / study / 'chunks'
 
     if not chunks_dir.exists():
         print(f"  跳过: {chunks_dir} 不存在")
@@ -194,7 +197,7 @@ def create_backup(dry_run: bool = True):
     if dry_run:
         return
 
-    backup_dir = PROJECT_ROOT / 'backups' / 'chunks_backup'
+    backup_dir = data_root().parent / 'weibull-backups' / 'chunks_backup'
 
     studies = [
         ('mdm', 'demo1'),
@@ -203,7 +206,7 @@ def create_backup(dry_run: bool = True):
     ]
 
     for method, study in studies:
-        src = PROJECT_ROOT / 'public' / 'studies' / method / study / 'chunks'
+        src = public_data_path('studies') / method / study / 'chunks'
         if src.exists():
             dst = backup_dir / method / study / 'chunks'
             dst.mkdir(parents=True, exist_ok=True)
@@ -222,7 +225,7 @@ def main():
     args = parser.parse_args()
 
     if args.rollback:
-        print("回滚功能需要手动从 backups/chunks_backup 恢复")
+        print(f"回滚功能需要手动从 {data_root().parent / 'weibull-backups' / 'chunks_backup'} 恢复")
         return
 
     # 确定要处理的 studies

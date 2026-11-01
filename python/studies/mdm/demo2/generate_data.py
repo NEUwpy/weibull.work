@@ -11,7 +11,7 @@ MDM 示例2 数据生成脚本 - 蒙特卡洛收敛性研究
     python generate_data.py --force      # 强制重新生成
 
 输出文件（新命名规范）：
-    public/studies/mdm/demo2/chunks/
+    <数据根>/public/studies/mdm/demo2/chunks/
     ├── b2.0_e1000_g1000_n3_d0.1_rep5000_seed42_step60.csv
     ├── b2.0_e1000_g1000_n4_d0.1_rep5000_seed42_step60.csv
     └── ...
@@ -31,6 +31,8 @@ from typing import Optional, List
 # 添加项目根目录到路径
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
+
+from data_paths import public_data_path, study_config_path
 
 import yaml
 from methods.mdm import MDM
@@ -176,9 +178,10 @@ def main():
     args = parser.parse_args()
 
     # 定位配置文件
-    config_path = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo2' / 'config.md'
-    output_dir = config_path.parent / 'chunks'
-    output_dir.mkdir(exist_ok=True)
+    config_path = study_config_path('mdm', 'demo2')
+    study_dir = public_data_path('studies', 'mdm', 'demo2')
+    output_dir = study_dir / 'chunks'
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     if not config_path.exists():
         print(f"错误: 配置文件不存在 - {config_path}")

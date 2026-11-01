@@ -1,8 +1,8 @@
 """
 迁移旧格式的研究数据到新格式
 
-旧格式: public/studies/{method}/demo1/chunks/b{beta}_e{eta}_n{n}.csv
-新格式: public/studies/{method}/chunks/b{beta}_e{eta}_g{gamma}_n{n}_rep{rep}_seed{seed}_step{step}.csv
+旧格式: <数据根>/public/studies/{method}/demo1/chunks/b{beta}_e{eta}_n{n}.csv
+新格式: <数据根>/public/studies/{method}/chunks/b{beta}_e{eta}_g{gamma}_n{n}_rep{rep}_seed{seed}_step{step}.csv
 
 同时添加缺失的 gamma_true 列
 """
@@ -12,12 +12,14 @@ import shutil
 import pandas as pd
 from pathlib import Path
 
+from data_paths import public_data_path
+
 # 配置
 MIGRATIONS = [
     {
         'method': 'mle',
-        'source_dir': '../public/studies/mle/demo1/chunks',
-        'target_dir': '../public/studies/mle/chunks',
+        'source_dir': public_data_path('studies', 'mle', 'demo1', 'chunks'),
+        'target_dir': public_data_path('studies', 'mle', 'chunks'),
         'gamma': 1000,
         'rep': 1000,
         'seed': 42,
@@ -25,8 +27,8 @@ MIGRATIONS = [
     },
     {
         'method': 'wmle',
-        'source_dir': '../public/studies/wmle/demo1/chunks',
-        'target_dir': '../public/studies/wmle/chunks',
+        'source_dir': public_data_path('studies', 'wmle', 'demo1', 'chunks'),
+        'target_dir': public_data_path('studies', 'wmle', 'chunks'),
         'gamma': 1000,
         'rep': 1000,
         'seed': 42,

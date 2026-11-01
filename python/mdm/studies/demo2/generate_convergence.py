@@ -15,6 +15,8 @@ from typing import List
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
+from data_paths import public_data_path
+
 
 def calculate_stats(values: np.ndarray) -> dict:
     """计算统计量"""
@@ -41,8 +43,8 @@ def main():
     mc_runs_list = list(range(100, 5001, 100))  # [100, 200, ..., 5000]
 
     # 输入输出目录
-    chunks_dir = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo2' / 'chunks'
-    output_path = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo2' / 'convergence.csv'
+    chunks_dir = public_data_path('studies', 'mdm', 'demo2') / 'chunks'
+    output_path = public_data_path('studies', 'mdm', 'demo2') / 'convergence.csv'
 
     print("=" * 60)
     print("生成收敛曲线数据")
@@ -97,6 +99,7 @@ def main():
 
     # 保存收敛曲线数据
     convergence_df = pd.DataFrame(convergence_data)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     convergence_df.to_csv(output_path, index=False)
     print(f"\n收敛曲线数据已保存: {output_path}")
     print(f"共 {len(convergence_data)} 条记录")

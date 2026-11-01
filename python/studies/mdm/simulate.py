@@ -69,6 +69,8 @@ from typing import Optional, List, Dict, Any
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
+from data_paths import public_data_path, study_config_path
+
 import yaml
 from methods.mdm import MDM
 
@@ -332,7 +334,7 @@ def cmd_generate(args, config: dict, output_dir: Path, chunks_dir: Path):
     total_combinations = len(combinations)
 
     # 加载索引
-    chunks_dir.mkdir(exist_ok=True)
+    chunks_dir.mkdir(parents=True, exist_ok=True)
     index = load_index(chunks_dir)
     existing = get_existing_chunks(index)
 
@@ -563,7 +565,7 @@ def cmd_add(args, config: dict, output_dir: Path, chunks_dir: Path):
         return
 
     # 更新 config.md
-    config_path = output_dir / 'config.md'
+    config_path = study_config_path('mdm', args.study_id)
 
     for param_id, value in add_params.items():
         # 找到对应参数
@@ -717,8 +719,8 @@ def main():
     args = parser.parse_args()
 
     # 定位配置文件
-    config_path = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / args.study_id / 'config.md'
-    output_dir = config_path.parent
+    config_path = study_config_path('mdm', args.study_id)
+    output_dir = public_data_path('studies', 'mdm', args.study_id)
     chunks_dir = output_dir / 'chunks'
 
     if not config_path.exists():

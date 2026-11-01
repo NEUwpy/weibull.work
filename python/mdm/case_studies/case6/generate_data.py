@@ -12,10 +12,15 @@
 4. 离散搜索 (间隔100)
 
 输出:
-- public/case-studies/mdm/case6/data.json
+- <数据根>/public/case-studies/mdm/case6/data.json
 
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
+
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
 
 import sys
 import os
@@ -103,7 +108,7 @@ def main():
     # 脚本在 python/mdm/case_studies/case6/，需要走4级到项目根目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.normpath(os.path.join(script_dir, "..", "..", "..", ".."))
-    output_path = os.path.join(project_root, "public", "case-studies", "mdm", "case6", "data.json")
+    output_path = public_data_path("case-studies", "mdm", "case6", "data.json")
     print(f"输出路径: {output_path}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

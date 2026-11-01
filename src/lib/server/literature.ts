@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
+import { getDataRoot } from './data-root'
 import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 
@@ -13,7 +14,7 @@ export class LibraryConfigurationError extends Error {
 }
 
 export interface LibraryPaths {
-  mode: 'embedded' | 'external' | 'source'
+  mode: 'external' | 'source'
   root: string
   contentDir: string
   assetsDir: string
@@ -76,18 +77,13 @@ function resolveEntry(root: string, segments: string[], kind: 'file' | 'director
   }
 }
 
+function configuredLibraryRoot(): string {
+  return process.env.WEIBULL_LIBRARY_ROOT || path.join(getDataRoot(), 'literature')
+}
+
 /** Resolve on every call: a running server can see a replaced library or newly imported paper. */
 export function getLibraryPaths(): LibraryPaths {
-  const configured = process.env.WEIBULL_LIBRARY_ROOT
-  if (configured === undefined || configured === '') {
-    const root = process.cwd()
-    return {
-      mode: 'embedded', root,
-      contentDir: path.join(root, 'src/content'),
-      assetsDir: path.join(root, 'public'),
-      referencesFile: path.join(root, 'src/data/references.json'),
-    }
-  }
+  const configured = configuredLibraryRoot()
   if (!path.isAbsolute(configured)) throw new LibraryConfigurationError('WEIBULL_LIBRARY_ROOT 必须是绝对路径')
   try {
     const root = fs.realpathSync(configured)
@@ -225,11 +221,8 @@ function fileRevision(file: string): string {
 }
 
 function snapshotGuards(paths: LibraryPaths): Map<string, string> {
-  const files = new Set([paths.root, paths.contentDir, paths.referencesFile])
-  if (paths.mode !== 'embedded') {
-    files.add(path.join(paths.root, 'library.json'))
-    files.add(process.env.WEIBULL_LIBRARY_ROOT!)
-  }
+  const files = new Set([paths.root, paths.contentDir, paths.referencesFile,
+    path.join(paths.root, 'library.json'), configuredLibraryRoot()])
   if (paths.sourceIndex) {
     for (const directory of paths.sourceDirectories || []) files.add(directory)
     for (const paper of Array.from(paths.sourceIndex.values())) {
@@ -249,7 +242,7 @@ function snapshotGuards(paths: LibraryPaths): Map<string, string> {
 
 /** Check file metadata; unchanged selected sources never require body reads or full-text hashes. */
 export function readLibraryDocuments(): LibraryDocument[] {
-  const selector = JSON.stringify([process.cwd(), process.env.WEIBULL_LIBRARY_ROOT || ''])
+  const selector = JSON.stringify([process.cwd(), configuredLibraryRoot()])
   if (documentCache.selector === selector && documentCache.guards.size &&
     Array.from(documentCache.guards).every(([file, revision]) => fileRevision(file) === revision)) return documentCache.documents
   const paths = getLibraryPaths()
@@ -304,10 +297,7 @@ export function readReferences(slug: string, type?: string): Record<string, stri
     }
   }
   const referencesFile = resolveEntry(path.dirname(paths.referencesFile), [path.basename(paths.referencesFile)], 'file')
-  if (!referencesFile) {
-    if (paths.mode === 'external') throw new LibraryConfigurationError('无法读取 references.json')
-    return {}
-  }
+  if (!referencesFile) throw new LibraryConfigurationError('无法读取 references.json')
   try {
     const references = JSON.parse(fs.readFileSync(referencesFile, 'utf8'))
     if (!references || typeof references !== 'object' || Array.isArray(references)) throw new Error('应为文献编号到引用关系的对象')

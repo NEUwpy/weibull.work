@@ -20,10 +20,15 @@
 6. γ搜索方式（连续 vs 离散）的影响
 
 输出:
-- public/case-studies/mdm/case9/data.json
+- <数据根>/public/case-studies/mdm/case9/data.json
 
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
+
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
 
 import sys
 import os
@@ -102,7 +107,7 @@ def run_with_brent(data, offset):
 def main():
     raise SystemExit(
         "案例9依赖已废弃的 beta_step / Brent 分支对照实现。当前项目只保留 "
-        "methods.mdm.MDM，历史结果请读取 public/case-studies/mdm/case9/data.json。"
+        "methods.mdm.MDM，历史结果请读取 <数据根>/public/case-studies/mdm/case9/data.json。"
     )
 
     print("=" * 70)
@@ -203,7 +208,7 @@ def main():
     # 保存结果
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.normpath(os.path.join(script_dir, "..", "..", "..", ".."))
-    output_path = os.path.join(project_root, "public", "case-studies", "mdm", "case9", "data.json")
+    output_path = public_data_path("case-studies", "mdm", "case9", "data.json")
     print(f"\n输出路径: {output_path}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

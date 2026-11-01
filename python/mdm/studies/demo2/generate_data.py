@@ -24,6 +24,8 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
+from data_paths import public_data_path
+
 from methods.mdm import MDM
 
 
@@ -162,7 +164,7 @@ def main():
     base_seed = 42
 
     # 输出目录
-    output_dir = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo2'
+    output_dir = public_data_path('studies', 'mdm', 'demo2')
     chunks_dir = output_dir / 'chunks'
     output_dir.mkdir(parents=True, exist_ok=True)
     chunks_dir.mkdir(parents=True, exist_ok=True)

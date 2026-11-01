@@ -8,6 +8,11 @@
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
+
 import sys
 import os
 
@@ -237,7 +242,7 @@ for n in [3, 5, 7, 10, 16]:
 results["j3_curve_data"] = j3_curve_data
 
 # 保存结果
-output_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'public', 'case-studies', 'mdm', 'case16', 'data.json')
+output_path = public_data_path('case-studies', 'mdm', 'case16', 'data.json')
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(results, f, indent=2, ensure_ascii=False)

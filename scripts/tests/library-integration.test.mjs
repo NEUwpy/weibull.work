@@ -54,7 +54,9 @@ test('legacy asset URLs rewrite before public files and leave product routes alo
   const response = middleware(new NextRequest('http://test/182-046-%E5%9B%BE%E7%89%87/images/a%20b.png'))
   const target = new URL(response.headers.get('x-middleware-rewrite'))
   assert.equal(decodeURIComponent(target.pathname), '/api/library/assets/182-046-图片/images/a b.png')
-  for (const pathname of ['/methods/mdm', '/studies/mdm/chunks/1.csv', '/library/182-046', '/ai/model.png']) {
+  const data = middleware(new NextRequest('http://test/studies/mdm/chunks/1.csv'))
+  assert.equal(new URL(data.headers.get('x-middleware-rewrite')).pathname, '/api/data/assets/studies/mdm/chunks/1.csv')
+  for (const pathname of ['/methods/mdm', '/studies/mle/demo1/config.md', '/library/182-046', '/ai/model.png']) {
     assert.equal(middleware(new NextRequest('http://test' + pathname)).headers.get('x-middleware-rewrite'), null)
   }
 })

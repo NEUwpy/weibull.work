@@ -64,9 +64,23 @@ test('content routes reject invalid selectors and still serve known documents to
   assert.equal((await algorithms.GET({ nextUrl: new URL('http://local/?slug=..%2Foutside') })).status, 400)
   assert.equal((await algorithms.GET({ nextUrl: new URL('http://local/?slug=mdm') })).status, 200)
   assert.equal((await algorithms.GET({ nextUrl: new URL('http://local/?slug=does-not-exist') })).status, 404)
-  const file = fs.readdirSync('src/content').find(name => name.endsWith('-pdf原文.md'))
-  const slug = file.slice(0, -'-pdf原文.md'.length)
-  assert.equal((await literature.GET({ url: `http://local/?slug=${encodeURIComponent(slug)}&type=原文` })).status, 200)
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-api-library-'))
+  const saved = process.env.WEIBULL_LIBRARY_ROOT
+  try {
+    fs.mkdirSync(path.join(root, 'content'))
+    fs.mkdirSync(path.join(root, 'assets'))
+    fs.writeFileSync(path.join(root, 'library.json'), '{"schema_version":1}')
+    fs.writeFileSync(path.join(root, 'references.json'), '{}')
+    fs.writeFileSync(path.join(root, 'content/audit-paper-pdf原文.md'), '---\ntitle: Boundary fixture\n---\nActual external content.')
+    process.env.WEIBULL_LIBRARY_ROOT = root
+    const result = await literature.GET({ url: 'http://local/?slug=audit-paper&type=原文' })
+    assert.equal(result.status, 200)
+    assert.match(await result.text(), /Actual external content/)
+  } finally {
+    if (saved === undefined) delete process.env.WEIBULL_LIBRARY_ROOT
+    else process.env.WEIBULL_LIBRARY_ROOT = saved
+    fs.rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test('chat can load DeepSeek settings without a key; POST returns a controlled 503', async () => {

@@ -1,10 +1,19 @@
-# Optional: use after copying and checking the library on the Docker host.
+# Optional: use after copying and checking literature and result data on the Docker host.
 services:
   frontend:
     environment:
       WEIBULL_LIBRARY_ROOT: /library
+      WEIBULL_DATA_ROOT: /data
     volumes:
       - type: bind
         source: ${WEIBULL_LIBRARY_HOST_PATH:?Set an existing checked library directory on the Docker host}
         target: /library
         read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WEIBULL_DATA_HOST_PATH:-../weibull-data}
+        target: /data
+        read_only: true
+        bind:
+          create_host_path: false

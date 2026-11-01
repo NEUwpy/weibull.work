@@ -16,10 +16,15 @@
 4. 离散搜索 (间隔100，β步长0.05)
 
 输出:
-- public/case-studies/mdm/case8/data.json
+- <数据根>/public/case-studies/mdm/case8/data.json
 
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
+
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
 
 import sys
 import os
@@ -84,7 +89,7 @@ def run_strategy(data, offset, strategy):
 def main():
     raise SystemExit(
         "案例8依赖已废弃的 beta_step MDM 分支。当前项目只保留 methods.mdm.MDM，"
-        "历史结果请读取 public/case-studies/mdm/case8/data.json。"
+        "历史结果请读取 <数据根>/public/case-studies/mdm/case8/data.json。"
     )
 
     print("=" * 60)
@@ -126,7 +131,7 @@ def main():
     # 保存结果
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.normpath(os.path.join(script_dir, "..", "..", "..", ".."))
-    output_path = os.path.join(project_root, "public", "case-studies", "mdm", "case8", "data.json")
+    output_path = public_data_path("case-studies", "mdm", "case8", "data.json")
     print(f"输出路径: {output_path}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

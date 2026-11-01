@@ -14,13 +14,16 @@ from typing import List
 
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+import sys
+sys.path.insert(0, str(PROJECT_ROOT / 'python'))
+from data_paths import public_data_path
 
 # 源目录和目标目录
 # MDM 方法级别的 chunks 目录
-CHUNKS_DIR = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'chunks'
+CHUNKS_DIR = public_data_path('studies') / 'mdm' / 'chunks'
 
 # 如果数据在 demo1 目录，使用这个：
-# CHUNKS_DIR = PROJECT_ROOT / 'public' / 'studies' / 'mdm' / 'demo1' / 'chunks'
+# CHUNKS_DIR = public_data_path('studies') / 'mdm' / 'demo1' / 'chunks'
 
 # 要生成的 rep 值（从 rep5000 截取）
 TARGET_REPS = [2000, 3000, 4000]

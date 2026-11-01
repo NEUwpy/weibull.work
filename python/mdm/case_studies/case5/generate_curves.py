@@ -6,6 +6,12 @@
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
+public_data_path("cases").mkdir(parents=True, exist_ok=True)
+
 import sys
 import numpy as np
 sys.path.insert(0, '.')
@@ -14,7 +20,7 @@ import pandas as pd
 import json
 
 # 读取样本数据
-df_samples = pd.read_csv('../public/cases/mdm_case5.csv')
+df_samples = pd.read_csv(public_data_path('cases', 'mdm_case5.csv'))
 
 print("使用现有MDM方法生成梯度曲线数据...")
 
@@ -45,7 +51,7 @@ for idx, row in df_samples.iterrows():
         })
 
 # 保存为JSON
-with open('../public/cases/mdm_case5_curves.json', 'w') as f:
+with open(public_data_path('cases', 'mdm_case5_curves.json'), 'w') as f:
     json.dump({'samples': all_curve_data}, f, indent=2)
 
 print(f"\n梯度曲线数据已保存到 mdm_case5_curves.json")

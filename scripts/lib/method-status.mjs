@@ -177,7 +177,34 @@ function collectEvidencePaths(method) {
   return paths
 }
 
-function assertRepositoryPath(context, rootDir, candidatePath) {
+function assertEvidencePath(context, rootDir, candidatePath) {
+  if (candidatePath.startsWith('/library/')) {
+    if (!/^\/library\/[A-Za-z0-9\u3400-\u9fff][A-Za-z0-9\u3400-\u9fff_-]*$/.test(candidatePath)) {
+      fail(`${context}: invalid library evidence route: "${candidatePath}"`)
+    }
+    if (!fs.existsSync(path.join(rootDir, 'src/app/library/[slug]/page.tsx'))) {
+      fail(`${context}: library reader route does not exist: "${candidatePath}"`)
+    }
+    return
+  }
+  if (candidatePath.startsWith('/api/studies/')) {
+    if (!/^\/api\/studies\/[A-Za-z0-9_-]+\/chunks$/.test(candidatePath)) {
+      fail(`${context}: invalid study evidence route: "${candidatePath}"`)
+    }
+    if (!fs.existsSync(path.join(rootDir, 'src/app/api/studies/[methodId]/chunks/route.ts'))) {
+      fail(`${context}: study chunks route does not exist: "${candidatePath}"`)
+    }
+    return
+  }
+  if (candidatePath.startsWith('/api/data/assets/')) {
+    if (!/^\/api\/data\/assets\/case-studies\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(csv|json)$/.test(candidatePath)) {
+      fail(`${context}: invalid result evidence route: "${candidatePath}"`)
+    }
+    if (!fs.existsSync(path.join(rootDir, 'src/app/api/data/assets/[...path]/route.ts'))) {
+      fail(`${context}: result asset route does not exist: "${candidatePath}"`)
+    }
+    return
+  }
   if (path.isAbsolute(candidatePath)) {
     fail(`${context}: path must be repository-relative: "${candidatePath}"`)
   }
@@ -226,9 +253,9 @@ export function validateStatusDocument(document, expectedLeafIds, options = {}) 
   if (options.checkEvidencePaths) {
     const rootDir = options.rootDir ?? process.cwd()
     for (const method of document.methods) {
-      assertRepositoryPath(method.id, rootDir, method.classification_source)
+      assertEvidencePath(method.id, rootDir, method.classification_source)
       for (const evidencePath of collectEvidencePaths(method)) {
-        assertRepositoryPath(method.id, rootDir, evidencePath)
+        assertEvidencePath(method.id, rootDir, evidencePath)
       }
     }
   }

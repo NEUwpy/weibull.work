@@ -6,6 +6,11 @@
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
+
 import json
 import numpy as np
 from scipy.optimize import minimize_scalar
@@ -81,7 +86,8 @@ def generate_limit_analysis_data():
         "data": all_data
     }
     
-    output_path = os.path.join("public", "cases", "mdm_case3_limit_analysis.json")
+    output_path = public_data_path("cases", "mdm_case3_limit_analysis.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(result, f)
     

@@ -12,6 +12,11 @@
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
+
 import sys
 import os
 import numpy as np
@@ -93,11 +98,12 @@ def run_beta_batch(beta_val):
     """生成单个β值的所有数据"""
     # 主结果CSV路径
     results_filename = f"mdm_case4_beta{str(beta_val).replace('.', '_')}.csv"
-    results_csv_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', results_filename)
+    results_csv_path = public_data_path('cases', results_filename)
+    results_csv_path.parent.mkdir(parents=True, exist_ok=True)
 
     # 样本CSV路径
     samples_filename = f"mdm_case4_samples_beta{str(beta_val).replace('.', '_')}.csv"
-    samples_csv_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', samples_filename)
+    samples_csv_path = public_data_path('cases', samples_filename)
 
     total_combinations = len(SAMPLE_SIZES) * len(OFFSET_VALUES)
     total_rows = total_combinations * NUM_SIMULATIONS
@@ -206,8 +212,9 @@ def merge_beta_files():
     print("合并所有批次文件...")
     print("=" * 60)
 
-    results_output_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', 'mdm_case4_full.csv')
-    samples_output_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', 'mdm_case4_samples.csv')
+    results_output_path = public_data_path('cases', 'mdm_case4_full.csv')
+    results_output_path.parent.mkdir(parents=True, exist_ok=True)
+    samples_output_path = public_data_path('cases', 'mdm_case4_samples.csv')
 
     all_results_rows = []
     all_samples_rows = []
@@ -218,8 +225,8 @@ def merge_beta_files():
         results_filename = f"mdm_case4_beta{str(beta_val).replace('.', '_')}.csv"
         samples_filename = f"mdm_case4_samples_beta{str(beta_val).replace('.', '_')}.csv"
 
-        results_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', results_filename)
-        samples_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', samples_filename)
+        results_input_path = public_data_path('cases', results_filename)
+        samples_input_path = public_data_path('cases', samples_filename)
 
         if not os.path.exists(results_input_path):
             print(f"警告: 结果文件不存在 - {results_filename}")
@@ -290,8 +297,8 @@ def verify_beta_files():
         results_filename = f"mdm_case4_beta{str(beta_val).replace('.', '_')}.csv"
         samples_filename = f"mdm_case4_samples_beta{str(beta_val).replace('.', '_')}.csv"
 
-        results_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', results_filename)
-        samples_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', samples_filename)
+        results_input_path = public_data_path('cases', results_filename)
+        samples_input_path = public_data_path('cases', samples_filename)
 
         if not os.path.exists(results_input_path):
             print(f"✗ β={beta_val}: 结果文件不存在")
@@ -339,7 +346,7 @@ if __name__ == '__main__':
     existing_files = []
     for beta_val in BETA_VALUES:
         results_filename = f"mdm_case4_beta{str(beta_val).replace('.', '_')}.csv"
-        results_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', results_filename)
+        results_input_path = public_data_path('cases', results_filename)
         if os.path.exists(results_input_path):
             existing_files.append(beta_val)
             print(f"  发现已有文件: β={beta_val}")
@@ -355,7 +362,7 @@ if __name__ == '__main__':
     for beta_val in BETA_VALUES:
         if skip_existing:
             results_filename = f"mdm_case4_beta{str(beta_val).replace('.', '_')}.csv"
-            results_input_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases', results_filename)
+            results_input_path = public_data_path('cases', results_filename)
             if os.path.exists(results_input_path):
                 print(f"\n跳过 β={beta_val} (文件已存在)")
                 continue
@@ -372,8 +379,8 @@ if __name__ == '__main__':
             elapsed = time.time() - start_time
             print(f"总耗时: {elapsed/60:.1f} 分钟")
             print(f"输出文件:")
-            print(f"  - public/cases/mdm_case4_full.csv")
-            print(f"  - public/cases/mdm_case4_samples.csv")
+            print(f"  - {public_data_path('cases', 'mdm_case4_full.csv')}")
+            print(f"  - {public_data_path('cases', 'mdm_case4_samples.csv')}")
         else:
             print("\n合并失败，请检查数据完整性")
     else:

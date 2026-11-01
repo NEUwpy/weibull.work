@@ -3,25 +3,28 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import matter from 'gray-matter'
 import { loadServerModule } from './helpers/load-server-module.mjs'
 
-const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readReferences, resolveLibraryAsset, LibraryConfigurationError } = loadServerModule('src/lib/server/literature.ts')
+const { getLibraryPaths, listPapers, readPaper, readPreferredPaper, readLibraryDocuments, readReferences, resolveLibraryAsset, LibraryConfigurationError } = loadServerModule('src/lib/server/literature.ts')
 
 function fixture(run) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-library-test-'))
-  const root = path.join(workspace, 'library')
+  const root = path.join(workspace, 'weibull-data', 'literature')
   const saved = process.env.WEIBULL_LIBRARY_ROOT
+  const savedDataRoot = process.env.WEIBULL_DATA_ROOT
   fs.mkdirSync(path.join(root, 'content'), { recursive: true })
   fs.mkdirSync(path.join(root, 'assets'))
   fs.writeFileSync(path.join(root, 'library.json'), JSON.stringify({ schema_version: 1 }))
   fs.writeFileSync(path.join(root, 'references.json'), '{}')
   process.env.WEIBULL_LIBRARY_ROOT = root
+  delete process.env.WEIBULL_DATA_ROOT
   try {
     run({ workspace, root, content: path.join(root, 'content'), assets: path.join(root, 'assets') })
   } finally {
     if (saved === undefined) delete process.env.WEIBULL_LIBRARY_ROOT
     else process.env.WEIBULL_LIBRARY_ROOT = saved
+    if (savedDataRoot === undefined) delete process.env.WEIBULL_DATA_ROOT
+    else process.env.WEIBULL_DATA_ROOT = savedDataRoot
     const relative = path.relative(os.tmpdir(), workspace)
     assert.ok(relative.startsWith('weibull-library-test-') && !relative.includes(path.sep))
     fs.rmSync(workspace, { recursive: true, force: true })
@@ -32,35 +35,63 @@ function document(title, body = '# Body', fields = '') {
   return `---\ntitle: ${title}\n${fields}---\n\n${body}\n`
 }
 
-test('embedded mode preserves the complete legacy metadata listing and preferred raw bytes', () => fixture(() => {
-  delete process.env.WEIBULL_LIBRARY_ROOT
-  assert.equal(getLibraryPaths().mode, 'embedded')
-  const content = path.resolve('src/content')
-  const files = fs.readdirSync(content)
-  const bySlug = new Map()
-  for (const file of files) {
-    const match = /^(.*)-pdf(翻译|原文)\.md$/.exec(file)
-    if (match && (!bySlug.has(match[1]) || match[2] === '翻译')) bySlug.set(match[1], file)
+test('unset or empty configuration reads the sibling external library, including cache refreshes', () => fixture(({ workspace, root, content, assets }) => {
+  const software = path.join(workspace, 'weibull')
+  fs.mkdirSync(path.join(software, 'src/content'), { recursive: true })
+  fs.writeFileSync(path.join(software, 'src/content/900-002-pdf原文.md'), document('Embedded decoy'))
+  const raw = document('Sibling library')
+  const file = path.join(content, '900-001-pdf原文.md')
+  fs.writeFileSync(file, raw)
+  fs.writeFileSync(path.join(root, 'references.json'), '{"900-001":{"1":"900-001"}}')
+  fs.mkdirSync(path.join(assets, '900-001-图片'))
+  fs.writeFileSync(path.join(assets, '900-001-图片', 'figure.png'), 'image bytes')
+  const previousDirectory = process.cwd()
+  process.chdir(software)
+  try {
+    for (const setting of [undefined, '']) {
+      if (setting === undefined) delete process.env.WEIBULL_LIBRARY_ROOT
+      else process.env.WEIBULL_LIBRARY_ROOT = setting
+      assert.equal(getLibraryPaths().mode, 'external')
+      assert.equal(getLibraryPaths().root, fs.realpathSync(root))
+      assert.equal(listPapers().length, 1)
+      assert.equal(readPreferredPaper('900-001').raw, raw)
+      assert.equal(readPaper('900-002', '原文'), null)
+      assert.equal(readReferences('900-001')['1'], '900-001')
+      assert.equal(resolveLibraryAsset(['900-001-图片', 'figure.png']).path, fs.realpathSync(path.join(assets, '900-001-图片', 'figure.png')))
+      assert.equal(readLibraryDocuments()[0].raw, raw)
+    }
+    fs.writeFileSync(file, document('Changed sibling library'))
+    assert.match(readLibraryDocuments()[0].raw, /Changed sibling library/)
+    fs.unlinkSync(path.join(root, 'library.json'))
+    assert.throws(readLibraryDocuments, LibraryConfigurationError)
+    assert.throws(listPapers, LibraryConfigurationError)
+  } finally {
+    process.chdir(previousDirectory)
   }
-  const legacy = [...bySlug].flatMap(([slug, file]) => {
-    const bytes = fs.readFileSync(path.join(content, file))
-    let raw
-    try { raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes) } catch { raw = new TextDecoder('gbk').decode(bytes) }
-    const { data } = matter(raw)
-    if (!data.title) return []
-    return [{
-      slug, title: data.title, title_en: data.title_en, author: data.author || 'Unknown',
-      affiliation: data.affiliation, publication: data.publication, short_publication: data.short_publication,
-      type: data.type || '文献', year: data.year || new Date().getFullYear(),
-      tags: data.tags || [], summary: data.summary || '', related_method_id: data.related_method_id,
-    }]
-  })
-  assert.ok(legacy.length > 0)
-  assert.equal(JSON.stringify(listPapers()), JSON.stringify(legacy))
-  const first = legacy[0].slug
-  assert.equal(readPreferredPaper(first).raw, fs.readFileSync(path.join(content, bySlug.get(first)), 'utf8'))
-  const references = JSON.parse(fs.readFileSync('src/data/references.json', 'utf8'))
-  assert.equal(JSON.stringify(readReferences('181-004')), JSON.stringify(references['181-004']))
+}))
+
+test('the default library follows WEIBULL_DATA_ROOT and cached reads follow root changes', () => fixture(({ workspace, root, content }) => {
+  const customData = path.join(workspace, 'mounted-data')
+  const customRoot = path.join(customData, 'literature')
+  fs.mkdirSync(path.join(customRoot, 'content'), { recursive: true })
+  fs.mkdirSync(path.join(customRoot, 'assets'))
+  fs.writeFileSync(path.join(customRoot, 'library.json'), '{"schema_version":1}')
+  fs.writeFileSync(path.join(customRoot, 'references.json'), '{}')
+  fs.writeFileSync(path.join(customRoot, 'content/900-001-pdf原文.md'), document('Custom data root'))
+  fs.writeFileSync(path.join(content, '900-001-pdf原文.md'), document('Explicit library root'))
+  process.env.WEIBULL_DATA_ROOT = customData
+  // A library-specific override still takes precedence over the general data root.
+  assert.equal(getLibraryPaths().root, fs.realpathSync(root))
+  assert.match(readLibraryDocuments()[0].raw, /Explicit library root/)
+  delete process.env.WEIBULL_LIBRARY_ROOT
+  assert.equal(getLibraryPaths().root, fs.realpathSync(customRoot))
+  assert.match(readLibraryDocuments()[0].raw, /Custom data root/)
+  process.env.WEIBULL_DATA_ROOT = path.dirname(root)
+  assert.equal(getLibraryPaths().root, fs.realpathSync(root))
+  assert.match(readLibraryDocuments()[0].raw, /Explicit library root/)
+  process.env.WEIBULL_DATA_ROOT = path.relative(process.cwd(), customData)
+  assert.equal(getLibraryPaths().root, fs.realpathSync(customRoot))
+  assert.match(readLibraryDocuments()[0].raw, /Custom data root/)
 }))
 
 test('external documents prefer translation and preserve metadata defaults and title requirement', () => fixture(({ content }) => {

@@ -63,6 +63,8 @@ from typing import Optional, List, Dict, Any, Tuple
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'python'))
 
+from data_paths import public_data_path, study_config_path
+
 import yaml
 from methods.mle import MLE
 
@@ -618,8 +620,8 @@ def main():
     args = parser.parse_args()
 
     # 定位配置文件
-    config_path = PROJECT_ROOT / 'public' / 'studies' / 'mle' / args.study_id / 'config.md'
-    output_dir = config_path.parent
+    config_path = study_config_path('mle', args.study_id)
+    output_dir = public_data_path('studies', 'mle', args.study_id)
     chunks_dir = output_dir / 'chunks'
 
     if not config_path.exists():

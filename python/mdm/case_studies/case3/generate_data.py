@@ -10,6 +10,11 @@
 S4.9 后默认 MDM 已重写（几何加密网格+约束边界规则），本脚本仅用于历史案例复现。
 """
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from data_paths import public_data_path
+
 import sys
 import os
 import numpy as np
@@ -201,7 +206,8 @@ def generate_case3_samples():
 
 def save_results(samples, total_tries, elapsed_time):
     """保存结果到文件"""
-    base_path = os.path.join(os.path.dirname(__file__), '..', 'public', 'cases')
+    base_path = public_data_path('cases')
+    base_path.mkdir(parents=True, exist_ok=True)
 
     # 1. 保存完整数据JSON（包含曲线数据）
     json_path = os.path.join(base_path, 'mdm_case3_data.json')
