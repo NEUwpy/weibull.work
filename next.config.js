@@ -3,7 +3,7 @@ const path = require('path')
 const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
 
 // 从 08-更新日志.md 头部提取版本号
-let appVersion = 'v0.00-000000'
+let appVersion = 'v0.0.0-000000'
 try {
   const content = fs.readFileSync(path.join(__dirname, '08-更新日志.md'), 'utf-8')
   const match = content.match(/^## (v\S+)/m)
