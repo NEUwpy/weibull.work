@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 2,
+  "methodId": "mmle",
+  "methodName": "修正极大似然法 MMLE",
+  "description": "Kundu–Raqab单样本构造：删除一个最小值 → 固定点形状迭代 → 尺度恢复。",
+  "steps": [
+    {
+      "name": "输入与迭代控制",
+      "description": "检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。",
+      "basis": "Kundu–Raqab (2009)单样本版本与既有数值控制。",
+      "notes": "论文整理门槛尚未完成，此页补充程序说明，不开放计算器。不是旧Cohen–Whitten版本，也没有Firth修正。",
+      "formula": {
+        "expression": "\\beta_0=1,\\quad\\varepsilon=10^{-8},\\quad K_{max}=10000,\\quad n\\ge2",
+        "explanation": "检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。",
+        "symbols": [
+          {
+            "symbol": "t_{(i)}",
+            "meaning": "排序样本"
+          },
+          {
+            "symbol": "ε",
+            "meaning": "绝对步差容差"
+          },
+          {
+            "symbol": "K_{max}",
+            "meaning": "迭代上限"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "data",
+          "symbol": "t_i",
+          "meaning": "原始样本"
+        },
+        {
+          "code": "initial_shape",
+          "symbol": "β_0",
+          "meaning": "初始形状"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "self.data",
+          "symbol": "t_{(i)}",
+          "meaning": "排序样本"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__",
+          "label": "输入校验与排序"
+        },
+        {
+          "file": "python/methods/mmle.py",
+          "symbol": "MMLE.run",
+          "label": "控制量检查",
+          "until": "gamma = float(self.data[0])"
+        }
+      ],
+      "id": 1
+    },
+    {
+      "name": "固定位置与删除最小值",
+      "description": "以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。",
+      "basis": "原构造：保留样本定义支撑，不用已删除的最小值检查。",
+      "notes": "重复最小值使剩余距离出现0；随后按原固定点规则失败，不扰动、不重启。",
+      "formula": {
+        "expression": "\\hat\\gamma=t_{(1)},\\quad y_i=t_{(i+1)}-t_{(1)},\\quad q=n-1",
+        "explanation": "以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。",
+        "symbols": [
+          {
+            "symbol": "\\hatγ",
+            "meaning": "固定位置"
+          },
+          {
+            "symbol": "y_i",
+            "meaning": "保留样本平移距离"
+          },
+          {
+            "symbol": "q",
+            "meaning": "保留样本量 n−1"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "self.data",
+          "symbol": "t_{(i)}",
+          "meaning": "排序样本"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "gamma",
+          "symbol": "\\hatγ",
+          "meaning": "固定位置"
+        },
+        {
+          "code": "y",
+          "symbol": "y_i",
+          "meaning": "保留样本平移距离"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/mmle.py",
+          "symbol": "MMLE.run",
+          "label": "删除最小观测",
+          "from": "gamma = float(self.data[0])",
+          "until": "# Invalid steps fail"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "name": "固定点形状迭代",
+      "description": "用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。",
+      "basis": "原固定点构造；指数先减最大值用于数值稳定。",
+      "notes": "下一步非有限或非正立即停止；达到上限仍不收敛则失败。没有形状/位置截断、重启或后备求解器。",
+      "formula": {
+        "expression": "\\begin{gathered}w_i^{(k)}=\\frac{e^{\\beta_k\\ln y_i}}{\\sum_j e^{\\beta_k\\ln y_j}}\\\\[5pt]\\beta_{k+1}=\\frac{q+\\beta_k\\sum_i\\ln y_i}{q\\sum_iw_i^{(k)}\\ln y_i}\\\\[5pt]|\\beta_{k+1}-\\beta_k|\\le\\varepsilon\\end{gathered}",
+        "explanation": "用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。",
+        "symbols": [
+          {
+            "symbol": "β_{k+1}",
+            "meaning": "下一步形状"
+          },
+          {
+            "symbol": "\\mathrm{converged}",
+            "meaning": "步差收敛标志"
+          },
+          {
+            "symbol": "w_i^{(k)}",
+            "meaning": "归一化幂权重"
+          },
+          {
+            "symbol": "q",
+            "meaning": "保留样本量"
+          },
+          {
+            "symbol": "ε",
+            "meaning": "绝对步差容差"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "y",
+          "symbol": "y_i",
+          "meaning": "平移样本"
+        },
+        {
+          "code": "beta",
+          "symbol": "β_k",
+          "meaning": "当前形状"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "next_beta",
+          "symbol": "β_{k+1}",
+          "meaning": "下一步形状"
+        },
+        {
+          "code": "converged",
+          "symbol": "\\mathrm{converged}",
+          "meaning": "步差收敛标志"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/mmle.py",
+          "symbol": "MMLE.run",
+          "label": "固定点循环",
+          "from": "with np.errstate",
+          "until": "self.last_solution_info = dict("
+        }
+      ],
+      "isLoop": true,
+      "loopCount": "最多 max_iterations 次",
+      "id": 3
+    },
+    {
+      "name": "收敛与尺度恢复",
+      "description": "只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。",
+      "basis": "参数映射：原文α对应全站β，θ对应η^β。",
+      "notes": "未收敛返回None参数及False，不把最后一个迭代值作为成功估计。",
+      "formula": {
+        "expression": "\\hat\\eta=\\left(\\frac1q\\sum_i y_i^{\\hat\\beta}\\right)^{1/\\hat\\beta},\\quad\\theta=\\eta^\\beta",
+        "explanation": "只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。",
+        "symbols": [
+          {
+            "symbol": "\\hatη",
+            "meaning": "尺度"
+          },
+          {
+            "symbol": "\\mathrm{status}",
+            "meaning": "收敛诊断"
+          },
+          {
+            "symbol": "θ",
+            "meaning": "原文尺度参数化 η^β"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "beta",
+          "symbol": "\\hatβ",
+          "meaning": "最终形状"
+        },
+        {
+          "code": "logs",
+          "symbol": "\\ln y_i",
+          "meaning": "保留样本对数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "eta",
+          "symbol": "\\hatη",
+          "meaning": "尺度"
+        },
+        {
+          "code": "last_solution_info",
+          "symbol": "\\mathrm{status}",
+          "meaning": "收敛诊断"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/mmle.py",
+          "symbol": "MMLE.run",
+          "label": "收敛、失败与尺度",
+          "from": "self.last_solution_info = dict(",
+          "until": "if trace:"
+        }
+      ],
+      "id": 4
+    },
+    {
+      "name": "返回与诊断边界",
+      "description": "返回三参数、零占位R²及收敛状态；trace含实际形状迭代和最终点。",
+      "basis": "接口兼容：保持KROriginal返回结构。",
+      "notes": "R²=0是存档占位，未计算全样本概率图拟合优度；与其他方法R²不直接比较。",
+      "formula": {
+        "expression": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,0,\\mathrm{converged})",
+        "explanation": "返回三参数、零占位R²及收敛状态；trace含实际形状迭代和最终点。",
+        "symbols": [
+          {
+            "symbol": "(β,η,γ,0,\\mathrm{True})",
+            "meaning": "成功返回"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "beta, eta, gamma",
+          "symbol": "(β,η,γ)",
+          "meaning": "收敛参数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "return",
+          "symbol": "(β,η,γ,0,\\mathrm{True})",
+          "meaning": "成功返回"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/mmle.py",
+          "symbol": "MMLE.run",
+          "label": "追踪与返回",
+          "from": "eta = float(np.exp",
+          "through": "return [beta, eta, gamma, 0., True]"
+        }
+      ],
+      "id": 5
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { validateCompletedMethodFlows } from '../src/lib/server/method-flow.mjs'
 
 import {
   buildGeneratedStatus,
@@ -28,6 +29,7 @@ function main() {
     catalogLeaves,
   })
   const generated = buildGeneratedStatus(document, expectedLeafIds)
+  validateCompletedMethodFlows(document.methods, ROOT_DIR)
   const serialized = `${JSON.stringify(generated, null, 2)}\n`
 
   if (checkMode) {

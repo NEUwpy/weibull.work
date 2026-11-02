@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 2,
+  "methodId": "lse",
+  "methodName": "最小二乘估计 (LSE)",
+  "description": "White顺序统计量回归 → F比廓线定位 → 回归系数反解三参数。",
+  "steps": [
+    {
+      "id": 1,
+      "name": "数据预处理",
+      "description": "获取排序后的失效时间数据和样本数量",
+      "formula": {
+        "expression": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+        "symbols": [
+          {
+            "symbol": "t",
+            "meaning": "排序后的失效时间数组"
+          },
+          {
+            "symbol": "n",
+            "meaning": "样本数量"
+          }
+        ],
+        "explanation": "获取排序后的失效时间数据和样本数量"
+      },
+      "inputs": [
+        {
+          "code": "data",
+          "symbol": "t_i",
+          "meaning": "原始失效时间样本"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "t",
+          "symbol": "t",
+          "meaning": "排序后数组"
+        },
+        {
+          "code": "n",
+          "symbol": "n",
+          "meaning": "样本数量"
+        }
+      ],
+      "basis": "公共输入规则：有限、严格为正的失效时间，统一排序。",
+      "notes": "当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量",
+          "until": "# @step: 2 | 计算顺序统计量期望 | 计算 reduced Log-Weibull 分布的 i 阶顺序统计量一阶矩（White 1969）"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__",
+          "label": "输入校验与排序"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "计算顺序统计量期望",
+      "description": "计算 reduced Log-Weibull 分布的 i 阶顺序统计量一阶矩（White 1969）",
+      "formula": {
+        "expression": "X_i=\\int_{-\\infty}^{\\infty}w\\,\\frac{n!}{(i-1)!(n-i)!}H(w)^{i-1}[1-H(w)]^{n-i}h(w)\\,dw,\\quad H(w)=1-e^{-e^w},\\quad h(w)=e^{w-e^w}",
+        "explanation": "程序以数值积分求顺序统计量期望，并按n缓存。积分截断和稳定化见源码。",
+        "symbols": [
+          {
+            "symbol": "X_i",
+            "meaning": "顺序统计量期望"
+          },
+          {
+            "symbol": "H,h",
+            "meaning": "reduced Log-Weibull分布函数与密度"
+          },
+          {
+            "symbol": "n,i",
+            "meaning": "样本量与顺序"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "n",
+          "symbol": "n",
+          "meaning": "样本数量"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "X",
+          "symbol": "X_i",
+          "meaning": "顺序统计量期望数组"
+        }
+      ],
+      "basis": "方法构造：White reduced Log-Weibull顺序统计量期望，不以中位秩近似替代。",
+      "notes": "",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "_log_weibull_order_stat_mean",
+          "label": "数值积分"
+        },
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "log_weibull_order_stat_means",
+          "label": "期望数组与缓存"
+        },
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 2 | 计算顺序统计量期望 | 计算 reduced Log-Weibull 分布的 i 阶顺序统计量一阶矩（White 1969）",
+          "until": "# @step: 3 | 定义 White 回归与 F 比 | 对给定 μ，拟合 log(t-μ) = α + βX 并计算 Fisher F 比"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "定义 White 回归与 F 比",
+      "description": "对给定 γ，拟合 log(t-γ) = α + βX 并计算 Fisher F 比",
+      "formula": {
+        "expression": "\\begin{gathered}Y_i=\\ln(t_i-\\gamma)=a+bX_i\\\\[5pt] b=\\frac{\\sum(X_i-\\bar X)(Y_i-\\bar Y)}{\\sum(X_i-\\bar X)^2}\\\\[5pt] F=\\frac{\\sum(Y_i-\\bar Y)^2/(n-1)}{\\sum(Y_i-a-bX_i)^2/(n-2)}\\end{gathered}",
+        "explanation": "代码中的mu对应γ，slope对应b=1/β，intercept对应a=lnη。",
+        "symbols": [
+          {
+            "symbol": "a,b",
+            "meaning": "回归截距与斜率"
+          },
+          {
+            "symbol": "F",
+            "meaning": "用于定位的方差比"
+          },
+          {
+            "symbol": "Y_i",
+            "meaning": "平移后对数寿命"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "X",
+          "symbol": "X_i",
+          "meaning": "顺序统计量期望"
+        },
+        {
+          "code": "t",
+          "symbol": "t_i",
+          "meaning": "排序寿命"
+        },
+        {
+          "code": "mu",
+          "symbol": "\\gamma",
+          "meaning": "位置候选"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "slope",
+          "symbol": "b=1/\\beta",
+          "meaning": "回归斜率"
+        },
+        {
+          "code": "intercept",
+          "symbol": "a=\\ln\\eta",
+          "meaning": "回归截距"
+        },
+        {
+          "code": "s_y2 / s_res2",
+          "symbol": "F",
+          "meaning": "方差比"
+        }
+      ],
+      "basis": "White回归构造：斜率是1/β；F比的总方差用n−1、残差方差用n−2。",
+      "notes": "无正平移距离、近全等对数样本、非正斜率等返回None；零残差返回无穷F，外层仍有有效性检查。",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 3 | 定义 White 回归与 F 比 | 对给定 μ，拟合 log(t-μ) = α + βX 并计算 Fisher F 比",
+          "until": "# @step: 4 | μ 廓线搜索 | 在 [0, t_min) 的几何加密网格上计算 F(μ)，取最大者"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "γ 廓线搜索",
+      "description": "在 [0, t_min) 的几何加密网格上计算 F(γ)，取最大者",
+      "formula": {
+        "expression": "\\hat{\\gamma}_{grid} = \\arg\\max_{\\gamma_j} F(\\gamma_j)",
+        "symbols": [
+          {
+            "symbol": "\\gamma_j",
+            "meaning": "位置参数候选网格"
+          },
+          {
+            "symbol": "F(\\gamma)",
+            "meaning": "F 比廓线"
+          }
+        ],
+        "explanation": "在 [0, t_min) 的几何加密网格上计算 F(γ)，取最大者"
+      },
+      "inputs": [
+        {
+          "code": "t_min",
+          "symbol": "t_{(1)}",
+          "meaning": "最小失效时间"
+        },
+        {
+          "code": "mu_steps",
+          "symbol": "N",
+          "meaning": "网格点数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "mus",
+          "symbol": "\\gamma_j",
+          "meaning": "网格数组"
+        },
+        {
+          "code": "f_values",
+          "symbol": "F(\\gamma_j)",
+          "meaning": "F 比数组"
+        }
+      ],
+      "basis": "数值策略：在非负位置区间作几何网格采样并选择最大F。",
+      "notes": "没有有效有限F时返回degenerate_sample，不生成替代估计。",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 4 | μ 廓线搜索 | 在 [0, t_min) 的几何加密网格上计算 F(μ)，取最大者",
+          "until": "# @step: 5 | 局部精化 | 在最优网格点邻域内用有界标量优化精化 μ"
+        },
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "_build_geometric_mu_grid",
+          "label": "位置网格"
+        },
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run.profile_f",
+          "label": "F廓线"
+        }
+      ],
+      "isLoop": true,
+      "loopCount": "mu_steps 次 (默认 200)"
+    },
+    {
+      "id": 5,
+      "name": "局部精化",
+      "description": "在最优网格点邻域内用有界标量优化精化 γ",
+      "formula": {
+        "expression": "\\hat{\\gamma} = \\arg\\max_{\\gamma \\in [\\gamma_{j+1}, \\gamma_{j-1}]} F(\\gamma)",
+        "symbols": [
+          {
+            "symbol": "\\hat{\\gamma}",
+            "meaning": "位置参数估计值"
+          }
+        ],
+        "explanation": "在最优网格点邻域内用有界标量优化精化 γ"
+      },
+      "inputs": [
+        {
+          "code": "mus",
+          "symbol": "\\gamma_j",
+          "meaning": "网格数组"
+        },
+        {
+          "code": "best_idx",
+          "symbol": "j^*",
+          "meaning": "最优网格索引"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "best_mu",
+          "symbol": "\\hat{\\gamma}",
+          "meaning": "精化后的位置参数"
+        }
+      ],
+      "basis": "数值策略：仅在最佳网格邻域精化；若不改善原目标，保留原网格结果。",
+      "notes": "最终white_fit失败时返回invalid_fit。几何网格与局部精化不构成全局最优证明。",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 5 | 局部精化 | 在最优网格点邻域内用有界标量优化精化 μ",
+          "until": "# @step: 6 | 反解参数 | 由回归系数反解形状与尺度参数（论文式(6)）"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "反解参数",
+      "description": "由回归系数反解形状与尺度参数（论文式(6)）",
+      "formula": {
+        "expression": "\\hat\\beta=1/b,\\quad \\hat\\eta=e^a,\\quad \\hat\\gamma=\\texttt{best\\_mu}",
+        "explanation": "将回归斜率和截距转换为全站使用的形状、尺度、位置记号。",
+        "symbols": [
+          {
+            "symbol": "\\hat\\beta",
+            "meaning": "形状参数"
+          },
+          {
+            "symbol": "\\hat\\eta",
+            "meaning": "尺度参数"
+          },
+          {
+            "symbol": "\\hat\\gamma",
+            "meaning": "位置参数"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "slope",
+          "symbol": "b",
+          "meaning": "回归斜率"
+        },
+        {
+          "code": "intercept",
+          "symbol": "a",
+          "meaning": "回归截距"
+        },
+        {
+          "code": "best_mu",
+          "symbol": "\\hat\\gamma",
+          "meaning": "最终位置"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "shape",
+          "symbol": "\\hat\\beta",
+          "meaning": "形状"
+        },
+        {
+          "code": "scale",
+          "symbol": "\\hat\\eta",
+          "meaning": "尺度"
+        }
+      ],
+      "basis": "参数映射：本文统一用β、η、γ；原论文c、b、μ分别对应β、η、γ。",
+      "notes": "",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 6 | 反解参数 | 由回归系数反解形状与尺度参数（论文式(6)）",
+          "until": "# @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "计算拟合优度 R²",
+      "description": "评估模型与数据的拟合程度",
+      "formula": {
+        "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad \\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
+        "explanation": "R²在双对数概率图空间计算，pᵢ来自当前 rank_method；不是原始CDF空间的残差。",
+        "symbols": [
+          {
+            "symbol": "R^2",
+            "meaning": "概率图决定系数"
+          },
+          {
+            "symbol": "p_i",
+            "meaning": "绘图位置"
+          },
+          {
+            "symbol": "y_i",
+            "meaning": "变换后的经验值"
+          },
+          {
+            "symbol": "\\hat y_i",
+            "meaning": "参数预测值"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "shape",
+          "symbol": "\\hat\\beta",
+          "meaning": "形状参数"
+        },
+        {
+          "code": "scale",
+          "symbol": "\\hat\\eta",
+          "meaning": "尺度参数"
+        },
+        {
+          "code": "best_mu",
+          "symbol": "\\hat\\gamma",
+          "meaning": "位置参数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "r2",
+          "symbol": "R^2",
+          "meaning": "拟合优度"
+        }
+      ],
+      "basis": "项目诊断：共用基础类的概率图 R²，不参与核心参数求解。",
+      "notes": "γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。",
+      "sources": [
+        {
+          "file": "python/methods/lse.py",
+          "symbol": "LSE.run",
+          "label": "本步实现",
+          "from": "# @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._calculate_r2",
+          "label": "概率图 R²"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._median_ranks",
+          "label": "绘图位置"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 2,
+  "methodId": "mle",
+  "methodName": "极大似然法 MLE",
+  "description": "条件形状求根 → 有限似然候选搜索 → 边界极限单列。",
+  "steps": [
+    {
+      "name": "输入与无量纲化",
+      "description": "排序后按最小寿命归一化；返回参数时恢复原单位。",
+      "basis": "公共输入与工程域：β≥1、η>0、0≤γ<t₍₁₎。",
+      "notes": "Web统一估计入口要求至少3点；条件剖面辅助函数至少要求2点。当前似然针对完整失效样本。",
+      "formula": {
+        "expression": "t_{(1)}\\le\\cdots\\le t_{(n)},\\quad u=t_{(1)},\\quad z_i=t_i/u",
+        "explanation": "排序后按最小寿命归一化；返回参数时恢复原单位。",
+        "symbols": [
+          {
+            "symbol": "z_i",
+            "meaning": "无量纲观测"
+          },
+          {
+            "symbol": "u",
+            "meaning": "尺度单位"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "data",
+          "symbol": "t_i",
+          "meaning": "原始正有限寿命"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "z",
+          "symbol": "z_i",
+          "meaning": "无量纲观测"
+        },
+        {
+          "code": "unit",
+          "symbol": "u",
+          "meaning": "尺度单位"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__",
+          "label": "输入校验与排序"
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_mle_profile",
+          "label": "归一化",
+          "until": "grid = _location_grid()"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_distances",
+          "label": "位置支撑检查"
+        }
+      ],
+      "id": 1
+    },
+    {
+      "name": "条件形状求根",
+      "description": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
+      "basis": "标准似然的条件得分；数值上用Brent，倍增上界括根、指数权重先减最大值。",
+      "notes": "全等样本无有限形状根。下界得分≤0时返回1并标记边界；此时不要求得分为零。",
+      "formula": {
+        "expression": "\\begin{gathered}d_i=t_i-\\gamma\\\\[5pt] v_i=\\ln d_i-\\overline{\\ln d}\\\\[5pt] w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}}\\\\[5pt] s_\\beta=\\frac1\\beta-\\sum_iw_iv_i=0\\end{gathered}",
+        "explanation": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
+        "symbols": [
+          {
+            "symbol": "β",
+            "meaning": "条件形状"
+          },
+          {
+            "symbol": "β=1",
+            "meaning": "是否采纳下界"
+          },
+          {
+            "symbol": "d_i",
+            "meaning": "平移后的正距离"
+          },
+          {
+            "symbol": "v_i",
+            "meaning": "中心化对数距离"
+          },
+          {
+            "symbol": "w_i",
+            "meaning": "归一化幂权重"
+          },
+          {
+            "symbol": "s_β",
+            "meaning": "形状得分"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "logd",
+          "symbol": "\\ln d_i",
+          "meaning": "对数距离"
+        },
+        {
+          "code": "lower",
+          "symbol": "1",
+          "meaning": "形状下界"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "beta",
+          "symbol": "β",
+          "meaning": "条件形状"
+        },
+        {
+          "code": "boundary",
+          "symbol": "β=1",
+          "meaning": "是否采纳下界"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_shape",
+          "label": "形状方程求根"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "mle_profile",
+          "label": "条件似然与尺度"
+        }
+      ],
+      "id": 2
+    },
+    {
+      "name": "恢复尺度与似然",
+      "description": "在条件形状下恢复η，计算用于位置搜索的似然及位置得分。",
+      "basis": "标准三参数Weibull似然；程序用logsumexp稳定幂和。",
+      "notes": "",
+      "formula": {
+        "expression": "\\begin{gathered}\\eta=\\left(\\frac1n\\sum_i d_i^\\beta\\right)^{1/\\beta}\\\\[5pt]\\ell_p=n[\\ln\\beta-\\overline{\\ln d}-\\ln\\overline{e^{\\beta v}}-1]\\\\[5pt] s_\\gamma=n\\left[\\beta\\sum_i\\frac{w_i}{d_i}-(\\beta-1)\\overline{d^{-1}}\\right]\\end{gathered}",
+        "explanation": "在条件形状下恢复η，计算用于位置搜索的似然及位置得分。",
+        "symbols": [
+          {
+            "symbol": "η",
+            "meaning": "条件尺度"
+          },
+          {
+            "symbol": "\\ell_p",
+            "meaning": "剖面对数似然"
+          },
+          {
+            "symbol": "s_\\gamma",
+            "meaning": "位置得分"
+          },
+          {
+            "symbol": "d_i",
+            "meaning": "平移距离"
+          },
+          {
+            "symbol": "v_i",
+            "meaning": "中心化对数距离"
+          },
+          {
+            "symbol": "w_i",
+            "meaning": "归一化幂权重"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "data",
+          "symbol": "t_i",
+          "meaning": "样本"
+        },
+        {
+          "code": "gamma",
+          "symbol": "γ",
+          "meaning": "固定位置"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "eta",
+          "symbol": "η",
+          "meaning": "条件尺度"
+        },
+        {
+          "code": "ll",
+          "symbol": "\\ell_p",
+          "meaning": "剖面对数似然"
+        },
+        {
+          "code": "location_score",
+          "symbol": "s_\\gamma",
+          "meaning": "位置得分"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "mle_profile",
+          "label": "条件似然与尺度"
+        }
+      ],
+      "id": 3
+    },
+    {
+      "name": "搜索有限位置候选",
+      "description": "扫描位置得分正转负区间，补查窄谷及平坦似然峰，精化有限局部极大。",
+      "basis": "数值策略：零位置得分≤0时保留；内部候选要求β>1，并按位置去重。",
+      "notes": "有限网格和局部精化不构成全域最优证明。候选记录不是优化迭代轨迹。",
+      "formula": {
+        "expression": "s_\\gamma(\\gamma_L)>0>s_\\gamma(\\gamma_R),\\quad0\\le\\gamma<t_{(1)}",
+        "explanation": "扫描位置得分正转负区间，补查窄谷及平坦似然峰，精化有限局部极大。",
+        "symbols": [
+          {
+            "symbol": "\\mathcal C",
+            "meaning": "有限候选集合"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "grid",
+          "symbol": "g_j",
+          "meaning": "无量纲位置网格"
+        },
+        {
+          "code": "profile",
+          "symbol": "s_γ",
+          "meaning": "条件位置得分"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "candidates",
+          "symbol": "\\mathcal C",
+          "meaning": "有限候选集合"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_mle_profile",
+          "label": "扫描与精化",
+          "from": "zero = points[0]",
+          "until": "eta_limit ="
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_mle_profile.add",
+          "label": "候选过滤与单位恢复"
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "_location_grid",
+          "label": "无量纲位置网格"
+        }
+      ],
+      "isLoop": true,
+      "loopCount": "位置网格及局部精化",
+      "id": 4
+    },
+    {
+      "name": "候选比较与支撑极限",
+      "description": "选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。",
+      "basis": "工程约束与诊断：γ=tmin不在开支撑内，不用任意ε伪造可达极大。",
+      "notes": "无有限候选时返回no_finite_local_maximum；极限似然更高时也仅记录标记，不替换有限估计。",
+      "formula": {
+        "expression": "\\hat c=\\arg\\max_{c\\in\\mathcal C}\\ell(c),\\quad\\eta_{lim}=\\overline{t-t_{(1)}},\\quad\\ell_{lim}=-n(1+\\ln\\eta_{lim})",
+        "explanation": "选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。",
+        "symbols": [
+          {
+            "symbol": "\\hat c",
+            "meaning": "选定候选或None"
+          },
+          {
+            "symbol": "\\ell_{lim}",
+            "meaning": "边界极限诊断"
+          },
+          {
+            "symbol": "η_{lim}",
+            "meaning": "边界极限尺度"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "candidates",
+          "symbol": "\\mathcal C",
+          "meaning": "有限候选"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "best",
+          "symbol": "\\hat c",
+          "meaning": "选定候选或None"
+        },
+        {
+          "code": "support_boundary_limit",
+          "symbol": "\\ell_{lim}",
+          "meaning": "边界极限诊断"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_mle_profile",
+          "label": "比较与极限",
+          "from": "eta_limit ="
+        }
+      ],
+      "id": 5
+    },
+    {
+      "name": "返回与概率图 R²",
+      "description": "返回统一五元结果；trace明确区分candidate、final和failed。",
+      "basis": "项目接口与诊断：概率图R²不参与似然最大化。",
+      "notes": "求解异常返回profile_solver_failed、参数为None。R²用变换后残差；γ越界或总平方和为零时返回0。此页为静态程序说明。",
+      "formula": {
+        "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
+        "explanation": "返回统一五元结果；trace明确区分candidate、final和failed。",
+        "symbols": [
+          {
+            "symbol": "(β,η,γ,R²,status)",
+            "meaning": "统一返回"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "selected",
+          "symbol": "(β,η,γ)",
+          "meaning": "选定参数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "return",
+          "symbol": "(β,η,γ,R²,status)",
+          "meaning": "统一返回"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/mle.py",
+          "symbol": "MLE.run",
+          "label": "返回与失败处理"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._calculate_r2",
+          "label": "概率图 R²"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._median_ranks",
+          "label": "绘图位置"
+        }
+      ],
+      "id": 6
+    }
+  ]
+}

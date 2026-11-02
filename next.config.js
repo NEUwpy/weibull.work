@@ -15,6 +15,15 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     instrumentationHook: true,
+    outputFileTracingIncludes: {
+      '/api/method-flow/*': [
+        './src/data/method_flows/*.json',
+        './src/content/algorithms/*.md',
+        './python/base.py',
+        './python/methods/*.py',
+        './python/methods/j3_weights.tsv',
+      ],
+    },
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: appVersion,

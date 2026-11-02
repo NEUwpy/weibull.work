@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 2,
+  "methodId": "lre",
+  "methodName": "线性回归 (LRE)",
+  "description": "Park绘图位置 → 相关系数定位 → OLS形状与尺度。",
+  "steps": [
+    {
+      "id": 1,
+      "name": "数据预处理",
+      "description": "获取排序后的失效时间数据和样本数量",
+      "formula": {
+        "expression": "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+        "symbols": [
+          {
+            "symbol": "t",
+            "meaning": "排序后的失效时间数组"
+          },
+          {
+            "symbol": "n",
+            "meaning": "样本数量"
+          }
+        ],
+        "explanation": "获取排序后的失效时间数据和样本数量"
+      },
+      "inputs": [
+        {
+          "code": "data",
+          "symbol": "t_i",
+          "meaning": "原始失效时间样本"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "t",
+          "symbol": "t",
+          "meaning": "排序后数组"
+        },
+        {
+          "code": "n",
+          "symbol": "n",
+          "meaning": "样本数量"
+        }
+      ],
+      "basis": "公共输入规则：有限、严格为正的失效时间，统一排序。",
+      "notes": "当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量",
+          "until": "# @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__",
+          "label": "输入校验与排序"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Park 绘图位置变换",
+      "description": "n≤10 用 Blom，n≥11 用 (i−1/2)/n",
+      "formula": {
+        "expression": "p_i=\\begin{cases}(i-3/8)/(n+1/4),&n\\leq10\\\\(i-1/2)/n,&n\\geq11\\end{cases},\\quad y_i=\\ln(-\\ln(1-p_i))",
+        "symbols": [
+          {
+            "symbol": "F(t_i)",
+            "meaning": "第i个样本的经验累积概率"
+          },
+          {
+            "symbol": "y_i",
+            "meaning": "变换后的因变量"
+          }
+        ],
+        "explanation": "n≤10 用 Blom，n≥11 用 (i−1/2)/n"
+      },
+      "inputs": [
+        {
+          "code": "n",
+          "symbol": "n",
+          "meaning": "样本数量"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "y",
+          "symbol": "y_i",
+          "meaning": "双对数变换的因变量数组"
+        }
+      ],
+      "basis": "Park (2017) Proposed+Plot构造：小样本用Blom，大样本用(i−1/2)/n。",
+      "notes": "固定使用本方法的分段绘图位置；不消费基础类Bernard/exact开关。",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n",
+          "until": "# @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "优化位置参数",
+      "description": "按 Park 式(2)在 [0,t_(1)) 内最大化相关系数",
+      "formula": {
+        "expression": "\\hat{\\gamma} = \\arg\\max_{\\gamma \\in [0,t_{(1)})} \\rho(\\gamma), \\rho = \\mathrm{corr}(\\ln(t-\\gamma), y)",
+        "symbols": [
+          {
+            "symbol": "\\gamma",
+            "meaning": "位置参数候选值"
+          },
+          {
+            "symbol": "\\rho",
+            "meaning": "Pearson 相关系数"
+          }
+        ],
+        "explanation": "按 Park 式(2)在 [0,t_(1)) 内最大化相关系数"
+      },
+      "inputs": [
+        {
+          "code": "t",
+          "symbol": "t",
+          "meaning": "失效时间数组"
+        },
+        {
+          "code": "y",
+          "symbol": "y_i",
+          "meaning": "变换因变量"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "gamma_hat",
+          "symbol": "\\hat{\\gamma}",
+          "meaning": "最优位置参数"
+        }
+      ],
+      "basis": "方法准则：最大化Pearson相关；数值上扫描无量纲位置并精化每个被网格夹住的峰。",
+      "notes": "包含γ=0；上界取nextafter(tmin,0)。不假定目标单峰，无有效候选时失败。",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数",
+          "until": "# @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合"
+        },
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run.negative_correlation",
+          "label": "相关系数目标"
+        }
+      ],
+      "isLoop": true,
+      "loopCount": "无量纲位置网格 + 各峰邻域有界精化，包含 γ=0"
+    },
+    {
+      "id": 4,
+      "name": "OLS 线性回归",
+      "description": "在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合",
+      "formula": {
+        "expression": "x_i=\\ln\\frac{t_i-\\gamma}{t_{(1)}},\\quad \\hat\\beta=\\frac{\\sum(x_i-\\bar x)(y_i-\\bar y)}{\\sum(x_i-\\bar x)^2}",
+        "explanation": "代码先计算归一化横坐标和斜率；尺度在下一步通过截距求得。",
+        "symbols": [
+          {
+            "symbol": "x_i",
+            "meaning": "归一化对数横坐标"
+          },
+          {
+            "symbol": "\\hat\\beta",
+            "meaning": "回归斜率即形状参数"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "gamma_hat",
+          "symbol": "\\hat{\\gamma}",
+          "meaning": "最优γ"
+        },
+        {
+          "code": "t",
+          "symbol": "t",
+          "meaning": "失效时间数组"
+        },
+        {
+          "code": "y",
+          "symbol": "y_i",
+          "meaning": "变换因变量"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "x_vals",
+          "symbol": "x_i",
+          "meaning": "归一化横坐标"
+        },
+        {
+          "code": "beta_hat",
+          "symbol": "\\hat\\beta",
+          "meaning": "形状参数"
+        }
+      ],
+      "basis": "OLS构造：先求正斜率β，再用归一化横坐标的截距恢复η。",
+      "notes": "",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合",
+          "until": "# @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "检查斜率并恢复尺度",
+      "description": "要求β为有限正数，使用归一化回归截距恢复η，并检查尺度可采纳性。",
+      "formula": {
+        "expression": "\\hat\\beta>0,\\quad a=\\bar y-\\hat\\beta\\bar x,\\quad \\hat\\eta=t_{(1)}e^{-a/\\hat\\beta}>0",
+        "explanation": "对非有限或非正的形状、尺度返回degenerate_sample。",
+        "symbols": [
+          {
+            "symbol": "a",
+            "meaning": "归一化回归截距"
+          },
+          {
+            "symbol": "\\hat\\eta",
+            "meaning": "尺度参数"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "beta_hat",
+          "symbol": "\\hat{\\beta}",
+          "meaning": "形状参数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "intercept",
+          "symbol": "a",
+          "meaning": "回归截距"
+        },
+        {
+          "code": "eta_hat",
+          "symbol": "\\hat\\eta",
+          "meaning": "尺度参数或失败状态"
+        }
+      ],
+      "basis": "参数映射与失败规则：归一化所用tmin必须乘回尺度。",
+      "notes": "",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳",
+          "until": "# @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "计算概率图 R²",
+      "description": "与位置搜索采用同一组 Park 绘图位置",
+      "formula": {
+        "expression": "R^2 = 1-\\frac{\\sum(y_i-\\hat{y}_i)^2}{\\sum(y_i-\\bar{y})^2}=\\rho^2",
+        "symbols": [
+          {
+            "symbol": "R^2",
+            "meaning": "概率图决定系数"
+          },
+          {
+            "symbol": "y_i",
+            "meaning": "变换后的绘图分数"
+          }
+        ],
+        "explanation": "与位置搜索采用同一组 Park 绘图位置"
+      },
+      "inputs": [
+        {
+          "code": "beta_hat",
+          "symbol": "\\hat{\\beta}",
+          "meaning": "形状参数"
+        },
+        {
+          "code": "eta_hat",
+          "symbol": "\\hat{\\eta}",
+          "meaning": "尺度参数"
+        },
+        {
+          "code": "gamma_hat",
+          "symbol": "\\hat{\\gamma}",
+          "meaning": "位置参数"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "r2",
+          "symbol": "R^2",
+          "meaning": "拟合优度"
+        }
+      ],
+      "basis": "项目诊断：使用同一组Park绘图位置计算概率图R²，OLS含截距时等于ρ²。",
+      "notes": "本方法直接计算R²；不调用基础类的绘图位置。trace包含候选结果与最终结果。",
+      "sources": [
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "label": "本步实现",
+          "from": "# @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置"
+        }
+      ]
+    }
+  ]
+}

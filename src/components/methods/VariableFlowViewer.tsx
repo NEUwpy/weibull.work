@@ -1,452 +1,148 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import katex from 'katex'
-import { ChevronLeft, ChevronRight, SkipBack, GitBranch, FileCode, Database, Code, ArrowRight } from 'lucide-react'
+import { AlertCircle, ArrowDown, ChevronLeft, ChevronRight, Code2, FileCode2, GitBranch, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { FlowVariable, MethodFlow } from '@/lib/method-flow'
 
-// ========================================
-// 类型定义
-// ========================================
-
-interface Variable {
-  symbol: string    // 数学符号
-  meaning: string   // 含义说明
-  code: string      // 代码变量名
+function MathText({ math, block = false }: { math: string; block?: boolean }) {
+  const html = katex.renderToString(math, { throwOnError: false, displayMode: block, trust: false, strict: false })
+  return <span className={cn(block ? 'block max-w-full overflow-x-auto py-3' : 'inline-block align-middle')} dangerouslySetInnerHTML={{ __html: html }} />
 }
 
-interface Formula {
-  expression: string
-  symbols: Array<{
-    symbol: string
-    meaning: string
-  }>
-  explanation: string
+function Variables({ title, items }: { title: string; items: FlowVariable[] }) {
+  return <section>
+    <h4 className="mb-2 flex items-center gap-2 font-semibold text-slate-800"><ArrowDown size={16} className="text-emerald-600" />{title}</h4>
+    <dl className="divide-y divide-slate-200/70">
+      {items.map((item, index) => <div key={index} className="grid grid-cols-[minmax(64px,auto)_minmax(0,1fr)] items-start gap-x-3 py-2">
+        <dt className="text-emerald-800"><MathText math={item.symbol} /></dt>
+        <dd className="min-w-0 text-slate-700">{item.meaning}<code className="mt-1 block break-all font-mono text-sm text-slate-500">{item.code}</code></dd>
+      </div>)}
+    </dl>
+  </section>
 }
 
-interface FlowStep {
-  id: number
-  name: string
-  description: string
-  codeLines: number[]
-  inputs: Variable[]
-  formula: Formula
-  outputs: Variable[]
-  isLoop?: boolean
-  loopCount?: string
+const keywords = new Set(['def', 'class', 'if', 'elif', 'else', 'for', 'in', 'while', 'return', 'try', 'except', 'with', 'as', 'from', 'import', 'None', 'True', 'False', 'and', 'or', 'not', 'is', 'raise', 'break', 'continue', 'lambda', 'global'])
+function PythonLine({ line }: { line: string }) {
+  return <>{line.split(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#.*$|\b[A-Za-z_]\w*\b|\b\d+(?:\.\d*)?(?:e[+-]?\d+)?\b)/g).map((token, i) =>
+    <span key={i} className={token.startsWith('#') ? 'text-slate-400' : /^['"]/.test(token) ? 'text-amber-200' : keywords.has(token) ? 'text-violet-300' : /^\d/.test(token) ? 'text-teal-300' : undefined}>{token}</span>
+  )}</>
 }
 
-interface MethodFlow {
-  methodId: string
-  methodName: string
-  description: string
-  code: string[]
-  steps: FlowStep[]
-}
-
-interface VariableFlowViewerProps {
-  methodId: string
-}
-
-// ========================================
-// LaTeX 渲染器
-// ========================================
-
-const LatexRenderer = ({ math, block = false }: { math: string, block?: boolean }) => {
-  try {
-    const html = katex.renderToString(math, {
-      throwOnError: false,
-      displayMode: block,
-      trust: true,
-      strict: false
-    })
-    return <div className={cn("overflow-x-auto", block ? "py-2" : "inline")} dangerouslySetInnerHTML={{ __html: html }} />
-  } catch (e) {
-    return <span className="text-red-400 font-mono text-xs">LaTeX Error</span>
-  }
-}
-
-// ========================================
-// 主组件
-// ========================================
-
-export default function VariableFlowViewer({ methodId }: VariableFlowViewerProps) {
-  const [flowData, setFlowData] = useState<MethodFlow | null>(null)
+export default function VariableFlowViewer({ methodId }: { methodId: string }) {
+  const [flow, setFlow] = useState<MethodFlow | null>(null)
   const [loading, setLoading] = useState(true)
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
-  const codeContainerRef = useRef<HTMLDivElement>(null)
-
-  // 当步骤改变时，滚动到对应的代码行
-  useEffect(() => {
-    if (!flowData || !codeContainerRef.current) return
-
-    const currentStep = flowData.steps[currentStepIndex]
-    if (!currentStep || currentStep.codeLines.length === 0) return
-
-    // 找到第一个非元数据注释的代码行
-    const codeLines = currentStep.codeLines.filter(lineIndex => {
-      const line = flowData.code[lineIndex]
-      return line && !/^\s*#\s*@/.test(line)
-    })
-
-    if (codeLines.length === 0) return
-
-    // 滚动到第一个代码行
-    const targetLine = codeLines[0]
-    const lineElement = codeContainerRef.current.querySelector(`[data-line="${targetLine}"]`)
-
-    if (lineElement) {
-      lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  }, [currentStepIndex, flowData])
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
+  const [selection, setSelection] = useState({ step: 0, source: 0 })
+  const [fullFile, setFullFile] = useState(false)
+  const codePane = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    async function loadFlowData() {
+    const controller = new AbortController()
+    setLoading(true)
+    setFlow(null)
+    setError('')
+    setSelection({ step: 0, source: 0 })
+    setFullFile(false)
+    async function read() {
       try {
-        const response = await fetch(`/api/method-flow/${methodId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setFlowData(data)
-        } else {
-          console.error('Failed to load flow data')
-        }
-      } catch (e) {
-        console.error('Error loading flow data:', e)
+        const response = await fetch(`/api/method-flow/${methodId}`, { signal: controller.signal, cache: 'no-store' })
+        if (response.status === 404) return
+        if (!response.ok) throw new Error('程序流程读取或源码定位失败，请重试。')
+        const data: MethodFlow = await response.json()
+        if (data.schemaVersion !== 2 || data.methodId !== methodId || !data.steps?.length || !data.sources?.length) throw new Error('程序流程不完整，无法展示。')
+        if (!controller.signal.aborted) setFlow(data)
+      } catch (cause) {
+        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : '程序流程读取失败。')
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
-    loadFlowData()
-  }, [methodId])
+    void read()
+    return () => controller.abort()
+  }, [methodId, retry])
 
-  const handlePrev = () => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1)
-    }
-  }
+  const step = flow?.steps[selection.step]
+  const reference = step?.sources[selection.source]
+  const source = flow?.sources.find(item => item.path === reference?.file)
+  useEffect(() => {
+    const pane = codePane.current
+    if (!pane) return
+    const target = fullFile && reference ? pane.querySelector<HTMLElement>(`[data-line="${reference.start}"]`) : null
+    pane.scrollTop = target ? target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 32 : 0
+  }, [selection, fullFile, flow, reference])
 
-  const handleNext = () => {
-    if (flowData && currentStepIndex < flowData.steps.length - 1) {
-      setCurrentStepIndex(prev => prev + 1)
-    }
-  }
+  if (loading || (flow && flow.methodId !== methodId)) return <div className="flex items-center justify-center gap-3 py-20 text-slate-600" role="status"><Loader2 className="animate-spin text-emerald-600" size={24} />加载程序流程…</div>
+  if (error) return <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800" role="alert"><p className="flex items-center gap-2"><AlertCircle size={20} />{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-3 rounded-lg px-3 py-2 font-semibold hover:bg-rose-100">重新加载</button></div>
+  if (!flow || !step || !reference || !source) return <div className="rounded-2xl bg-slate-50 py-16 text-center text-slate-500"><FileCode2 className="mx-auto mb-3" size={28} />暂无程序流程说明</div>
 
-  const handleReset = () => {
-    setCurrentStepIndex(0)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-emerald-500"></div>
-        <span className="ml-4 text-slate-600 font-bold">加载程序流程...</span>
-      </div>
-    )
-  }
-
-  if (!flowData) {
-    return (
-      <div className="text-center py-20 text-slate-400 bg-white rounded-3xl border border-slate-200">
-        <FileCode className="mx-auto mb-4" size={48} />
-        <p className="font-bold">暂无程序流程数据</p>
-        <p className="text-sm mt-2">该方法尚未添加算法透明化视图</p>
-      </div>
-    )
-  }
-
-  const currentStep = flowData.steps[currentStepIndex]
-  const isLastStep = currentStepIndex === flowData.steps.length - 1
-  const isFirstStep = currentStepIndex === 0
-  const totalSteps = flowData.steps.length
-
-  return (
-    <div className="bg-slate-50 rounded-3xl overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
-        <div className="flex items-center justify-between max-[767px]:flex-wrap max-[767px]:gap-3">
-          <div>
-            <div className="flex items-center gap-3">
-              <GitBranch className="text-white" size={24} />
-              <h2 className="text-xl font-black text-white">{flowData.methodName}</h2>
-            </div>
-            <p className="text-emerald-100 text-sm mt-1 ml-9">{flowData.description}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-emerald-100 text-sm">步骤进度</div>
-            <div className="text-white font-bold text-lg">{currentStepIndex + 1} / {totalSteps}</div>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="mt-4 h-2 bg-emerald-900/30 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-white transition-all duration-300"
-            style={{ width: `${((currentStepIndex + 1) / totalSteps) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="bg-white px-6 py-3 border-b border-slate-200 flex items-center justify-between max-[767px]:flex-col max-[767px]:items-start max-[767px]:gap-3">
-        <div className="text-sm text-slate-500">
-          <span className="font-medium">当前：</span>
-          <span className="font-bold text-slate-700">{currentStep.name}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleReset}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            title="重置"
-          >
-            <SkipBack size={18} />
-          </button>
-          <button
-            onClick={handlePrev}
-            disabled={isFirstStep}
-            className={cn(
-              "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold transition-all",
-              isFirstStep
-                ? "text-slate-300 cursor-not-allowed"
-                : "text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
-            )}
-            title="上一步"
-          >
-            <ChevronLeft size={16} />
-            上一步
-          </button>
-          <button
-            onClick={handleNext}
-            disabled={isLastStep}
-            className={cn(
-              "flex items-center gap-1 px-4 py-1.5 rounded-lg text-sm font-bold transition-all",
-              isLastStep
-                ? "text-slate-300 cursor-not-allowed"
-                : "bg-emerald-600 text-white hover:bg-emerald-700"
-            )}
-            title="下一步"
-          >
-            下一步
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Three Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 max-[1279px]:grid-cols-1">
-        {/* Left Column: Flow Steps */}
-        <div className="lg:col-span-3 max-[1279px]:col-span-1 min-w-0 border-r border-slate-200 bg-white max-h-[600px] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-              <GitBranch size={16} className="text-emerald-600" />
-              计算流程
-            </div>
-          </div>
-          <div className="p-3 space-y-2">
-            {flowData.steps.map((step, index) => {
-              const isCurrent = index === currentStepIndex
-              const isPast = index < currentStepIndex
-
-              return (
-                <div
-                  key={step.id}
-                  className={cn(
-                    "p-3 rounded-xl border-2 cursor-pointer transition-all",
-                    isCurrent
-                      ? "border-emerald-500 bg-emerald-50 shadow-md"
-                      : isPast
-                      ? "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  )}
-                  onClick={() => setCurrentStepIndex(index)}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className={cn(
-                      "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                      isCurrent
-                        ? "bg-emerald-600 text-white"
-                        : isPast
-                        ? "bg-emerald-400 text-white"
-                        : "bg-slate-200 text-slate-500"
-                    )}>
-                      {step.id}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={cn(
-                        "font-bold text-sm truncate",
-                        isCurrent ? "text-emerald-900" : "text-slate-700"
-                      )}>
-                        {step.name}
-                      </div>
-                      {step.isLoop && (
-                        <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded mt-1">
-                          循环 {step.loopCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Middle Column: Code */}
-        <div
-          ref={codeContainerRef}
-          className="lg:col-span-6 max-[1279px]:col-span-1 min-w-0 border-r border-slate-200 bg-slate-900 max-h-[600px] overflow-y-auto"
-        >
-          <div className="sticky top-0 bg-slate-800 border-b border-slate-700 px-4 py-3 z-10 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-300">
-              <Code size={16} className="text-emerald-400" />
-              Python 代码
-            </div>
-            <div className="text-xs text-slate-500">
-              {currentStep.codeLines.length > 0 ? `行 ${currentStep.codeLines[0] + 1}` : '-'}
-            </div>
-          </div>
-          <div className="p-4 font-mono text-sm">
-            {flowData.code.map((line, index) => {
-              const lineNumber = index + 1
-              const isCurrentLine = currentStep.codeLines.includes(index)
-              // 检测是否是元数据注释行（# @step:, # @formula: 等）
-              const isMetaComment = /^\s*#\s*@/.test(line)
-              // 只有非元数据注释行才高亮
-              const shouldHighlight = isCurrentLine && !isMetaComment
-
-              return (
-                <div
-                  key={index}
-                  data-line={index}
-                  className={cn(
-                    "flex items-start gap-3 py-1 px-2 rounded-lg transition-colors",
-                    shouldHighlight && "bg-emerald-900/30 border-l-2 border-emerald-500 -ml-2 pl-4"
-                  )}
-                >
-                  <span className={cn(
-                    "text-slate-600 select-none flex-shrink-0 text-xs w-6 text-right",
-                    shouldHighlight && "text-emerald-400"
-                  )}>
-                    {lineNumber}
-                  </span>
-                  <span className={cn(
-                    "flex-1 whitespace-pre",
-                    shouldHighlight ? "text-white" : isMetaComment ? "text-slate-600" : "text-slate-400"
-                  )}>
-                    {line || <span className="text-slate-700">&nbsp;</span>}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Right Column: Current Step Details */}
-        <div className="lg:col-span-3 max-[1279px]:col-span-1 min-w-0 bg-white max-h-[600px] overflow-y-auto">
-          <div className="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 z-10">
-            <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-              <Database size={16} className="text-emerald-600" />
-              步骤详情
-            </div>
-          </div>
-          <div className="p-4 space-y-4">
-            {/* 1. Step Description */}
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
-              <h4 className="text-sm font-bold text-slate-900 mb-2">{currentStep.name}</h4>
-              <p className="text-sm text-slate-600 leading-relaxed">{currentStep.description}</p>
-            </div>
-
-            {/* 2. Formula */}
-            <div>
-              <h5 className="text-xs font-bold text-purple-600 uppercase mb-2 flex items-center gap-1">
-                <ArrowRight size={12} />
-                公式
-              </h5>
-              <div className="bg-slate-900 rounded-xl p-3 overflow-x-auto mb-2 text-white">
-                <LatexRenderer math={currentStep.formula.expression} block />
-              </div>
-
-              {/* Symbols Explanation */}
-              {currentStep.formula.symbols.length > 0 && (
-                <div className="bg-purple-50 rounded-lg p-2 border border-purple-200 mb-2">
-                  <div className="text-xs font-bold text-purple-700 mb-2">符号说明</div>
-                  <div className="space-y-1">
-                    {currentStep.formula.symbols.map((sym, index) => (
-                      <div key={index} className="flex items-start gap-2 text-xs">
-                        <code className="font-mono bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded whitespace-nowrap">
-                          <LatexRenderer math={sym.symbol} />
-                        </code>
-                        <span className="text-slate-700 leading-tight">{sym.meaning}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Formula Explanation */}
-              <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
-                <div className="text-xs text-slate-600 leading-relaxed">{currentStep.formula.explanation}</div>
-              </div>
-            </div>
-
-            {/* 3. Inputs & Outputs - Three Columns (3:4:3) */}
-            <div className="space-y-3">
-              {/* Inputs */}
-              {currentStep.inputs.length > 0 && (
-                <div>
-                  <h5 className="text-xs font-bold text-blue-600 uppercase mb-2 flex items-center gap-1">
-                    <ArrowRight size={12} />
-                    输入
-                  </h5>
-                  <div className="space-y-2">
-                    {currentStep.inputs.map((input, index) => (
-                      <div key={index} className="border border-blue-200 rounded-lg overflow-hidden max-[767px]:overflow-x-auto">
-                        <div className="grid grid-cols-10 divide-x divide-blue-200 max-[767px]:min-w-[600px]">
-                          <div className="col-span-3 p-2 bg-blue-50 flex items-center" style={{ paddingLeft: '18px' }}>
-                            <LatexRenderer math={input.symbol} />
-                          </div>
-                          <div className="col-span-4 p-2 flex items-center">
-                            <div className="text-xs text-slate-700">{input.meaning}</div>
-                          </div>
-                          <div className="col-span-3 p-2 flex items-center">
-                            <div className="text-xs text-slate-700 font-mono">{input.code}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Outputs */}
-              {currentStep.outputs.length > 0 && (
-                <div>
-                  <h5 className="text-xs font-bold text-green-600 uppercase mb-2 flex items-center gap-1">
-                    <ArrowRight size={12} />
-                    输出
-                  </h5>
-                  <div className="space-y-2">
-                    {currentStep.outputs.map((output, index) => (
-                      <div key={index} className="border border-green-200 rounded-lg overflow-hidden max-[767px]:overflow-x-auto">
-                        <div className="grid grid-cols-10 divide-x divide-green-200 max-[767px]:min-w-[600px]">
-                          <div className="col-span-3 p-2 bg-green-50 flex items-center" style={{ paddingLeft: '18px' }}>
-                            <LatexRenderer math={output.symbol} />
-                          </div>
-                          <div className="col-span-4 p-2 flex items-center">
-                            <div className="text-xs text-slate-700">{output.meaning}</div>
-                          </div>
-                          <div className="col-span-3 p-2 flex items-center">
-                            <div className="text-xs text-slate-700 font-mono">{output.code}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  const go = (index: number) => setSelection({ step: index, source: 0 })
+  const codeLines = source.lines.map((line, index) => ({ line, index })).filter(({ line, index }) =>
+    (fullFile || (index >= reference.start && index < reference.end)) && !/^\s*#\s*@/.test(line) && !/^\s*#\s{2,}\\/.test(line)
   )
+  return <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white text-base" data-method-flow={methodId}>
+    <header className="border-b border-slate-200 bg-gradient-to-r from-emerald-50/80 to-white px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900"><GitBranch size={21} className="text-emerald-600" />程序流程</h2>
+          <p className="mt-2 text-slate-600">{flow.description}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="mr-2 tabular-nums text-slate-500" aria-live="polite">{selection.step + 1} / {flow.steps.length}</span>
+          <button aria-label="上一步" title="上一步" disabled={selection.step === 0} onClick={() => go(selection.step - 1)} className="rounded-lg p-2 text-slate-600 hover:bg-emerald-100 disabled:opacity-25"><ChevronLeft size={22} /></button>
+          <button aria-label="下一步" title="下一步" disabled={selection.step === flow.steps.length - 1} onClick={() => go(selection.step + 1)} className="rounded-lg p-2 text-slate-600 hover:bg-emerald-100 disabled:opacity-25"><ChevronRight size={22} /></button>
+        </div>
+      </div>
+      {flow.implementation && <p className="mt-3 border-l-2 border-emerald-300 pl-3 text-sm leading-relaxed text-slate-600"><span className="font-semibold text-slate-700">当前实现 · </span>{flow.implementation}</p>}
+    </header>
+
+    <div className="grid min-w-0 grid-cols-1 md:grid-cols-2 xl:grid-cols-[210px_minmax(0,1.15fr)_minmax(0,1fr)]">
+      <nav aria-label="算法步骤" className="min-w-0 max-[767px]:order-1 border-b border-slate-200 bg-slate-50/70 p-3 md:col-span-2 xl:col-span-1 xl:border-b-0 xl:border-r">
+        <div className="flex gap-2 overflow-x-auto pb-1 xl:max-h-[840px] xl:flex-col xl:overflow-y-auto xl:pb-0">
+          {flow.steps.map((item, index) => <button key={item.id} onClick={() => go(index)} aria-current={index === selection.step ? 'step' : undefined} className={cn('flex shrink-0 items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors xl:shrink', index === selection.step ? 'bg-emerald-100/80 text-emerald-950' : 'text-slate-600 hover:bg-slate-200/60')}>
+            <span className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm tabular-nums', index === selection.step ? 'bg-emerald-600 text-white' : 'bg-slate-200/70 text-slate-500')}>{index + 1}</span>
+            <span className="max-w-[220px] font-medium leading-relaxed xl:max-w-none">{item.name}{item.isLoop && <span className="mt-1 block text-sm font-normal text-slate-500">{item.loopCount}</span>}</span>
+          </button>)}
+        </div>
+      </nav>
+
+      <section className="min-w-0 max-[767px]:order-3 bg-slate-900 text-slate-200" aria-label="真实Python源码">
+        <div className="border-b border-slate-700 px-4 py-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 font-semibold text-white"><Code2 size={18} />Python 源码</h3>
+            <div className="flex rounded-lg bg-slate-800 p-0.5 text-sm" aria-label="源码范围">
+              <button aria-pressed={!fullFile} onClick={() => setFullFile(false)} className={cn('rounded-md px-2.5 py-1.5', !fullFile && 'bg-slate-600 text-white')}>本步片段</button>
+              <button aria-pressed={fullFile} onClick={() => setFullFile(true)} className={cn('rounded-md px-2.5 py-1.5', fullFile && 'bg-slate-600 text-white')}>完整文件</button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5" aria-label="本步源码引用">
+            {step.sources.map((item, index) => <button key={index} onClick={() => setSelection(current => ({ ...current, source: index }))} aria-pressed={index === selection.source} className={cn('rounded-md px-2.5 py-1.5 text-sm transition-colors', index === selection.source ? 'bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30' : 'text-slate-300 hover:bg-slate-800')}>{item.label}</button>)}
+          </div>
+          <p className="mt-3 break-all font-mono text-sm text-slate-400">{source.path}<span className="ml-2 whitespace-nowrap text-slate-300">L{reference.start + 1}–{reference.end}</span></p>
+          {reference.symbol && <p className="mt-1 break-all font-mono text-sm text-teal-300/90">{reference.symbol}</p>}
+        </div>
+        <div ref={codePane} className="relative max-h-[560px] overflow-auto py-3 xl:h-[650px] xl:max-h-[650px]" tabIndex={0} aria-label="源码内容">
+          <pre className="min-w-max text-sm leading-6"><code>{codeLines.map(({ line, index }) => <span key={index} data-line={index} className={cn('flex min-h-6 pr-5', fullFile && index >= reference.start && index < reference.end && 'bg-emerald-400/10')}>
+            <span aria-hidden="true" className="sticky left-0 mr-4 w-12 shrink-0 select-none bg-slate-900 pr-2 text-right tabular-nums text-slate-500">{index + 1}</span><span><PythonLine line={line} /></span>
+          </span>)}</code></pre>
+        </div>
+        <details className="border-t border-slate-700 px-4 py-3 text-sm text-slate-400">
+          <summary className="cursor-pointer text-slate-300">源码与数据版本</summary>
+          <p className="mt-3 leading-relaxed">直接读取当前Python文件，省略流程标注注释，保留原始行号。</p>
+          <dl className="mt-3 space-y-3">{[...flow.sources, ...flow.artifacts].map(item => <div key={item.path}><dt className="break-all font-mono text-slate-300">{item.path}</dt><dd className="mt-1 break-all font-mono">SHA-256 {item.sha256}</dd></div>)}</dl>
+        </details>
+      </section>
+
+      <article className="min-w-0 max-[767px]:order-2 space-y-5 p-4 sm:p-5 xl:max-h-[890px] xl:overflow-y-auto" aria-label="本步公式与变量">
+        <div><p className="mb-1 text-sm font-medium text-emerald-700">步骤 {selection.step + 1}</p><h3 className="text-xl font-bold leading-relaxed text-slate-900">{step.name}</h3><p className="mt-2 leading-relaxed text-slate-600">{step.description}</p></div>
+        <section className="min-w-0 rounded-xl bg-emerald-50/70 px-3 py-2 text-emerald-950" aria-label="本步公式"><MathText math={step.formula.expression} block /></section>
+        <dl className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">{step.formula.symbols.map((item, index) => <div key={index} className="flex min-w-0 items-center gap-2"><dt><MathText math={item.symbol} /></dt><dd>{item.meaning}</dd></div>)}</dl>
+        <Variables title="输入" items={step.inputs} />
+        <Variables title="输出" items={step.outputs} />
+        <section className="border-t border-slate-200 pt-4"><h4 className="font-semibold text-slate-800">依据与实现</h4><p className="mt-2 leading-relaxed text-slate-600">{step.basis}</p>{step.notes && <p className="mt-3 border-l-2 border-amber-300 pl-3 text-slate-600 leading-relaxed">{step.notes}</p>}</section>
+      </article>
+    </div>
+  </div>
 }
