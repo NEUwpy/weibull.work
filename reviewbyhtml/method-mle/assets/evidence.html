@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>极大似然估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L49"><h2>182-105 原文 L49–74</h2><pre>$$
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>极大似然估计 · 核对摘录</h1><p>以下是2026-11-02T21:17:20+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L49"><h2>182-105 原文 L49–74</h2><pre>$$
 x _ {p} = \gamma + \eta | \log (1 - p) | ^ {1 / \beta}\tag{2}
 $$
 
@@ -65,30 +65,32 @@ Step 5: Search for a maximum point of $\log L(\sigma(k_{\nu}), \mu(k_{\nu}), k_{
 
 Step 4: A similar process to Step 3 is taken in the opposite direction from $k = k_{-2}$ to $k = k^*$ , where usually $k^* = -1$ .
 
-Step 5: Search for a maximum point of $\log L(\sigma(k_{\nu}), \mu(k_{\nu}), k_{\nu})$ from all the knots which we are investigating. If $k_{\nu} \neq 1$ and $k_{\nu} \neq k^{*}$ , then do the 3-parameter Newton-Raphson iteration using the initial values $\sigma_{\nu}, \mu_{\nu}$ and $k_{\nu}$ (if $\nu = 0$ , use the next point $(\sigma_1, \mu_1, k_1)$ ). The converged variables may be the (local) MLE. We must check if this point is not a saddle point by using the determinants of the submatrices formed by the observed information matrix (Appendix 2); the log-likelihood at this point should also be checked if it is larger than the log-likelihood at the corner points, $k = 1$ and $k = k^{*}$ . If $\log L(\sigma(k = 1), \mu(k = 1), 1)$ is still maximum, the MLE of the Weibull parameters are $\widehat{\gamma} = x_{\min}$ , $\widehat{\beta} = 1$ and $\widehat{\eta} = \frac{1}{n} \sum_{i=1}^{n}(x_i - x_{\min})$ under the constraint that $k \leqslant 1$ ; $x_{\min}$ is the minimum observation in the experiment. If $\log L(\sigma(k^*)$ , $\mu(k^*)$ , $k^*)$ is maximum, $k^*$ should be set much smaller.</pre></section><section id="code-1"><h2>python/methods/profile_solvers.py L34–40</h2><pre><code>  34          g = float(g)
-  35          if g not in cache:
-  36              cache[g] = mle_profile(z, g, shape_lower=1.)
-  37          return cache[g]
-  38
-  39      grid = _location_grid()
-  40      points = [profile(g) for g in grid]</code></pre></section><section id="code-2"><h2>python/methods/conditional_profiles.py L16–20</h2><pre><code>  16      if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):
+Step 5: Search for a maximum point of $\log L(\sigma(k_{\nu}), \mu(k_{\nu}), k_{\nu})$ from all the knots which we are investigating. If $k_{\nu} \neq 1$ and $k_{\nu} \neq k^{*}$ , then do the 3-parameter Newton-Raphson iteration using the initial values $\sigma_{\nu}, \mu_{\nu}$ and $k_{\nu}$ (if $\nu = 0$ , use the next point $(\sigma_1, \mu_1, k_1)$ ). The converged variables may be the (local) MLE. We must check if this point is not a saddle point by using the determinants of the submatrices formed by the observed information matrix (Appendix 2); the log-likelihood at this point should also be checked if it is larger than the log-likelihood at the corner points, $k = 1$ and $k = k^{*}$ . If $\log L(\sigma(k = 1), \mu(k = 1), 1)$ is still maximum, the MLE of the Weibull parameters are $\widehat{\gamma} = x_{\min}$ , $\widehat{\beta} = 1$ and $\widehat{\eta} = \frac{1}{n} \sum_{i=1}^{n}(x_i - x_{\min})$ under the constraint that $k \leqslant 1$ ; $x_{\min}$ is the minimum observation in the experiment. If $\log L(\sigma(k^*)$ , $\mu(k^*)$ , $k^*)$ is maximum, $k^*$ should be set much smaller.</pre></section><section id="code-1"><h2>python/methods/profile_solvers.py L35–43</h2><pre><code>  35          g = float(g)
+  36          if g not in cache:
+  37              values = [] if trace else None
+  38              cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values)
+  39              if trace:
+  40                  shape_records[g] = values
+  41          return cache[g]
+  42
+  43      grid = _location_grid()</code></pre></section><section id="code-2"><h2>python/methods/conditional_profiles.py L16–20</h2><pre><code>  16      if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):
   17          raise ValueError(&quot;Expected a finite one-dimensional sample of at least two points&quot;)
   18      if not np.isfinite(gamma) or gamma &lt; 0 or np.any(d &lt;= 0):
   19          raise ValueError(&quot;Conditional location must satisfy 0 &lt;= gamma &lt; min(data)&quot;)
-  20      return d</code></pre></section><section id="code-3"><h2>python/methods/profile_solvers.py L98–109</h2><pre><code>  98      eta_limit = float(np.mean(x - x[0]))
-  99      limit_ll = float(-len(x) * (1 + np.log(eta_limit)))
- 100      best = max(candidates, key=lambda p: p[&#x27;ll&#x27;]) if candidates else None
- 101      info = dict(status=&#x27;ok&#x27; if best else &#x27;no_finite_local_maximum&#x27;,
- 102                  solver_version=SOLVER_VERSION, strategy=&#x27;profile_likelihood_finite_maxima&#x27;,
- 103                  constraint=&#x27;beta&gt;=1, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,
- 104                  profile_grid_points=len(grid), profile_evaluations=len(cache),
- 105                  candidate_count=len(candidates), candidates=candidates,
- 106                  support_boundary_limit=dict(beta=1., eta=eta_limit, gamma=float(x[0]),
- 107                                              log_likelihood=limit_ll, attained_in_open_support=False),
- 108                  boundary_limit_exceeds_selected=bool(best and limit_ll &gt; best[&#x27;ll&#x27;] + 1e-9))
- 109      if best:</code></pre></section><section id="code-4"><h2>python/methods/conditional_profiles.py L62–67</h2><pre><code>  62      z = t - t.mean()
-  63      log_mean_power = logsumexp(beta * z) - np.log(len(d))
-  64      log_eta = t.mean() + log_mean_power / beta
-  65      ll = len(d) * (np.log(beta) - t.mean() - log_mean_power - 1)
-  66      w = np.exp(beta * (z - z.max()))
-  67      w /= w.sum()</code></pre></section></html>
+  20      return d</code></pre></section><section id="code-3"><h2>python/methods/profile_solvers.py L102–113</h2><pre><code> 102      eta_limit = float(np.mean(x - x[0]))
+ 103      limit_ll = float(-len(x) * (1 + np.log(eta_limit)))
+ 104      best = max(candidates, key=lambda p: p[&#x27;ll&#x27;]) if candidates else None
+ 105      info = dict(status=&#x27;ok&#x27; if best else &#x27;no_finite_local_maximum&#x27;,
+ 106                  solver_version=SOLVER_VERSION, strategy=&#x27;profile_likelihood_finite_maxima&#x27;,
+ 107                  constraint=&#x27;beta&gt;=1, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,
+ 108                  profile_grid_points=len(grid), profile_evaluations=len(cache),
+ 109                  candidate_count=len(candidates), candidates=candidates,
+ 110                  support_boundary_limit=dict(beta=1., eta=eta_limit, gamma=float(x[0]),
+ 111                                              log_likelihood=limit_ll, attained_in_open_support=False),
+ 112                  boundary_limit_exceeds_selected=bool(best and limit_ll &gt; best[&#x27;ll&#x27;] + 1e-9))
+ 113      if best:</code></pre></section><section id="code-4"><h2>python/methods/conditional_profiles.py L76–81</h2><pre><code>  76      z = t - t.mean()
+  77      log_mean_power = logsumexp(beta * z) - np.log(len(d))
+  78      log_eta = t.mean() + log_mean_power / beta
+  79      ll = len(d) * (np.log(beta) - t.mean() - log_mean_power - 1)
+  80      w = np.exp(beta * (z - z.max()))
+  81      w /= w.sum()</code></pre></section></html>
