@@ -1,0 +1,123 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>矩估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L79"><h2>182-102 原文 L79–128</h2><pre>For the 3-parameter Weibull distribution with $\operatorname{Sf}\{x; a, b, c\} = \operatorname{weifc}((x - a) / b; c)$ and $a \geqslant 0$ , the Weibull moment $k$ is defined as:
+
+$$
+\begin{array}{l} \overline {{\mu}} _ {k} \equiv \int_ {0} ^ {\infty} [ \operatorname{weifc} ((x - a) / b; c) ] ^ {k} d x, \quad k = 1, 2, \dots . \\ \qquad = a + b \Gamma (1 + 1 / c) / k ^ {1 / c}. \end{array}\tag{1}
+$$
+
+The location parameter a is restricted to be non-negative, as is desirable in reliability and life-testing applications.
+
+The parameters can be expressed in terms of the lower order moments:
+
+$$
+c = \frac {\log_ {e} 2}{\log (\bar {\mu} _ {1} - \bar {\mu} _ {2}) - \log (\bar {\mu} _ {2} - \bar {\mu} _ {4})},\tag{2a}
+$$
+
+$$
+a = \frac {\overline {{{\mu}}} _ {1} \overline {{{\mu}}} _ {4} - \overline {{{\mu}}} _ {2} ^ {2}}{\overline {{{\mu}}} _ {1} + \overline {{{\mu}}} _ {4} - 2 \overline {{{\mu}}} _ {2}},\tag{2b}
+$$
+
+$$
+b = \frac {\bar {\mu} _ {1} - a}{\Gamma (1 + 1 / c)}.\tag{2c}
+$$
+
+$$
+\text { ESTIMATION   OF } \bar {\mu} _ {k} \text { AND } a, b, c
+$$
+
+Given the ordered random sample
+
+$$
+x _ {(1)} \leqslant x _ {(2)} \leqslant \dots \leqslant x _ {(n)}
+$$
+
+from the 3-parameter Weibull distribution, the Cdf $\{x; a, b, c\}$ is estimated by $S_{n}(x)$ :
+
+$$
+\begin{array}{r l} S _ {n} (x) &amp; = 0, \quad x &lt;   x _ {(1)}, \\ &amp; = r / n,   x _ {(r)} \leqslant x &lt;   x _ {(r + 1)}, \quad r = 1, \dots , n - 1, \\ &amp; = 1, \quad x _ {(n)} \leqslant x. \end{array}
+$$
+
+Then $\overline{\mu}_k$ is estimated by:
+
+$$
+\begin{array}{r l} \overline {{{m}}} _ {k} &amp; = \int_ {0} ^ {\infty} \left\{1 - S _ {n} (x) \right\} ^ {k} d x \\ &amp; = \sum_ {r = 0} ^ {n - 1} \left(1 - \frac {r}{n}\right) ^ {k} (x _ {(r + 1)} - x _ {(r)}), \quad x _ {(0)} = 0. \end{array}\tag{3}
+$$
+
+In particular, $\bar{m}_1 = \bar{x}$ , the sample mean.
+
+The Weibull moment estimates $a^*$ , $b^*$ , $c^*$ are obtained from (2) by substituting $\overline{m}_1$ , $\overline{m}_2$ , $\overline{m}_4$ for $\overline{\mu}_1$ , $\overline{\mu}_2$ , $\overline{\mu}_4$ respectively and appending \* to $a, b, c$ . From (2a) and (2c) it can be shown that the estimates $c^*$ and $b^*$ are nonpositive and hence inadmissible when $\overline{m}_2 \geqslant 1/2(\overline{m}_1 + \overline{m}_4)$ : an alternative method of estimation must then be used. In addition it is possible that the estimate $a^*$ is inadmissible by being negative or by exceeding $x_{(1)}$ ; in the former case, estimate $a$ by zero; in the latter case one possibility is to use the alternative estimate:
+
+$$
+a ^ {* *} = x _ {(1)} - b ^ {*} \Gamma (1 + 1 / c ^ {*}) / n ^ {1 / c ^ {*}}.</pre></section><section id="paper-L89"><h2>182-102 原文 L89–128</h2><pre>$$
+c = \frac {\log_ {e} 2}{\log (\bar {\mu} _ {1} - \bar {\mu} _ {2}) - \log (\bar {\mu} _ {2} - \bar {\mu} _ {4})},\tag{2a}
+$$
+
+$$
+a = \frac {\overline {{{\mu}}} _ {1} \overline {{{\mu}}} _ {4} - \overline {{{\mu}}} _ {2} ^ {2}}{\overline {{{\mu}}} _ {1} + \overline {{{\mu}}} _ {4} - 2 \overline {{{\mu}}} _ {2}},\tag{2b}
+$$
+
+$$
+b = \frac {\bar {\mu} _ {1} - a}{\Gamma (1 + 1 / c)}.\tag{2c}
+$$
+
+$$
+\text { ESTIMATION   OF } \bar {\mu} _ {k} \text { AND } a, b, c
+$$
+
+Given the ordered random sample
+
+$$
+x _ {(1)} \leqslant x _ {(2)} \leqslant \dots \leqslant x _ {(n)}
+$$
+
+from the 3-parameter Weibull distribution, the Cdf $\{x; a, b, c\}$ is estimated by $S_{n}(x)$ :
+
+$$
+\begin{array}{r l} S _ {n} (x) &amp; = 0, \quad x &lt;   x _ {(1)}, \\ &amp; = r / n,   x _ {(r)} \leqslant x &lt;   x _ {(r + 1)}, \quad r = 1, \dots , n - 1, \\ &amp; = 1, \quad x _ {(n)} \leqslant x. \end{array}
+$$
+
+Then $\overline{\mu}_k$ is estimated by:
+
+$$
+\begin{array}{r l} \overline {{{m}}} _ {k} &amp; = \int_ {0} ^ {\infty} \left\{1 - S _ {n} (x) \right\} ^ {k} d x \\ &amp; = \sum_ {r = 0} ^ {n - 1} \left(1 - \frac {r}{n}\right) ^ {k} (x _ {(r + 1)} - x _ {(r)}), \quad x _ {(0)} = 0. \end{array}\tag{3}
+$$
+
+In particular, $\bar{m}_1 = \bar{x}$ , the sample mean.
+
+The Weibull moment estimates $a^*$ , $b^*$ , $c^*$ are obtained from (2) by substituting $\overline{m}_1$ , $\overline{m}_2$ , $\overline{m}_4$ for $\overline{\mu}_1$ , $\overline{\mu}_2$ , $\overline{\mu}_4$ respectively and appending \* to $a, b, c$ . From (2a) and (2c) it can be shown that the estimates $c^*$ and $b^*$ are nonpositive and hence inadmissible when $\overline{m}_2 \geqslant 1/2(\overline{m}_1 + \overline{m}_4)$ : an alternative method of estimation must then be used. In addition it is possible that the estimate $a^*$ is inadmissible by being negative or by exceeding $x_{(1)}$ ; in the former case, estimate $a$ by zero; in the latter case one possibility is to use the alternative estimate:
+
+$$
+a ^ {* *} = x _ {(1)} - b ^ {*} \Gamma (1 + 1 / c ^ {*}) / n ^ {1 / c ^ {*}}.</pre></section><section id="paper-L123"><h2>182-102 原文 L123–128</h2><pre>In particular, $\bar{m}_1 = \bar{x}$ , the sample mean.
+
+The Weibull moment estimates $a^*$ , $b^*$ , $c^*$ are obtained from (2) by substituting $\overline{m}_1$ , $\overline{m}_2$ , $\overline{m}_4$ for $\overline{\mu}_1$ , $\overline{\mu}_2$ , $\overline{\mu}_4$ respectively and appending \* to $a, b, c$ . From (2a) and (2c) it can be shown that the estimates $c^*$ and $b^*$ are nonpositive and hence inadmissible when $\overline{m}_2 \geqslant 1/2(\overline{m}_1 + \overline{m}_4)$ : an alternative method of estimation must then be used. In addition it is possible that the estimate $a^*$ is inadmissible by being negative or by exceeding $x_{(1)}$ ; in the former case, estimate $a$ by zero; in the latter case one possibility is to use the alternative estimate:
+
+$$
+a ^ {* *} = x _ {(1)} - b ^ {*} \Gamma (1 + 1 / c ^ {*}) / n ^ {1 / c ^ {*}}.</pre></section><section id="paper-L174"><h2>182-102 原文 L174–186</h2><pre>A simple procedure for assessing whether a = 0 is reasonable is to estimate the parameters in the 3-parameter model and also in the 2-parameter model and compare the corresponding estimates of b and c. If they are reasonably close then it can be assumed that a = 0; otherwise the 3-parameter model is used.
+
+The method of Weibull moment estimation is particularly well suited for the above procedure. The Weibull moments for the 2-parameter Weibull distribution are given by (1) with a = 0. Hence the Weibull moment estimates of c and b are respectively
+
+$$
+c ^ {* *} = (\log_ {e} 2) / (\log \overline {{{m}}} _ {1} - \log \overline {{{m}}} _ {2}),
+$$
+
+$$
+b ^ {* *} = \overline {{{m}}} _ {1} / \Gamma (1 + 1 / c ^ {* *}).
+$$
+
+These estimates can be computed simultaneously with the 3-parameter estimates.</pre></section><section id="code-1"><h2>python/methods/mm.py L44–52</h2><pre><code>  44      d12 = m1 - m2
+  45      d24 = m2 - m4
+  46      if d24 &lt;= 0 or d12 &lt;= d24:
+  47          return None
+  48      shape = math.log(2.0) / (math.log(d12) - math.log(d24))
+  49      location = (m1 * m4 - m2 * m2) / (m1 + m4 - 2.0 * m2)
+  50      scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+  51      return shape, location, scale
+  52  </code></pre></section><section id="code-2"><h2>python/methods/mm.py L122–126</h2><pre><code> 122          if location &lt; 0.0:
+ 123              location = 0.0
+ 124              scale = m1 / gamma_fn(1.0 + 1.0 / shape)
+ 125              location_adjustment = &quot;clamped_to_zero&quot;
+ 126          elif location &gt;= x_min:</code></pre></section><section id="code-3"><h2>python/methods/mm.py L127–132</h2><pre><code> 127              alt = x_min - scale * gamma_fn(1.0 + 1.0 / shape) / (n ** (1.0 / shape))
+ 128              location = max(0.0, float(alt))
+ 129              scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+ 130              location_adjustment = &quot;alternative_a_star_star&quot;
+ 131              if location &gt;= x_min or scale &lt;= 0:
+ 132                  self.last_solution_info = {</code></pre></section></html>

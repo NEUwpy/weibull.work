@@ -66,7 +66,12 @@ backups/
 # Retired material and generated runtime data stay outside the software repository.
 /_archive/
 /output/
-/reviewbyhtml/
+# Retain old review exports outside Git; current method reviews are maintained.
+/reviewbyhtml/*
+!/reviewbyhtml/method-*/
+!/reviewbyhtml/README.md
+!/reviewbyhtml/build-method-reviews.py
+!/reviewbyhtml/method-reviews.json
 /plans/
 /src/content/*-pdf原文.md
 /src/content/*-pdf翻译.md

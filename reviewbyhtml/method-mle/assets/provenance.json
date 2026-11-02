@@ -1,0 +1,63 @@
+{
+  "method": "mle",
+  "checked_at": "2026-11-02T12:51:05+08:00",
+  "head": "2b3d01383c6210fd1bac1440334880587eb380e9",
+  "working_tree_modified": true,
+  "paper": {
+    "id": "182-105",
+    "title": "Maximum Likelihood Estimation in the 3-parameter Weibull Distribution: A Look through the Generalized Extreme-value Distribution",
+    "pdf_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-105_1996_IEEE TDEI_三参数威布尔MLE的GEV视角.pdf",
+    "pdf_sha256": "46d0b3a8ec106c7a5adff8953d55ee3b1cc71409d5c18a16a5240d7dc31f562f",
+    "markdown_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-105-pdf原文.md",
+    "markdown_sha256": "d3c032e4feb539afbf7f1f726cf85148aedcdef7c66d08993fc95b3375d6a6ed"
+  },
+  "sources": [
+    {
+      "path": "python/methods/conditional_profiles.py",
+      "sha256": "e3ed44ef690069acdecb64c61edbebe1d6b0c6bb5536079a17313ea1067b2762"
+    },
+    {
+      "path": "python/methods/mle.py",
+      "sha256": "3837bd9683388c5c0221d879f8f77c211f27e008894b42fc8aae7da6f9a7c778"
+    },
+    {
+      "path": "python/methods/profile_solvers.py",
+      "sha256": "74596fc14095673290fd9896db83614448f85342b3d1999a0356fe26b5b117d0"
+    }
+  ],
+  "cases": [
+    {
+      "beta_hat": 4.5290557592888465,
+      "eta_hat": 6.2389415351005475,
+      "gamma_hat": 22.09243063489853,
+      "converged": true,
+      "label": "Hirose Table 1 / case 2",
+      "expected": "Table 2约为 β=4.529，η=6.239，γ=22.092；这里只核对结果，不证明经过GEV流程。",
+      "n": 20,
+      "observations": [
+        27.15,
+        29.13,
+        28.28,
+        27.74,
+        28.87,
+        26.42,
+        24.46,
+        30.88,
+        29.11,
+        27.31,
+        27.54,
+        27.98,
+        28.49,
+        26.25,
+        28.5,
+        25.61,
+        29.5,
+        28.04,
+        27.94,
+        26.66
+      ],
+      "parameters": {}
+    }
+  ],
+  "tests": "80 passed in 7.22s; seven existing method suites, 2026-11-02"
+}

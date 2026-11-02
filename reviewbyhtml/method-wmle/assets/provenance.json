@@ -1,0 +1,57 @@
+{
+  "method": "wmle",
+  "checked_at": "2026-11-02T12:51:05+08:00",
+  "head": "2b3d01383c6210fd1bac1440334880587eb380e9",
+  "working_tree_modified": true,
+  "paper": {
+    "id": "182-088",
+    "title": "Nearly unbiased estimators for the three-parameter Weibull distribution with greater efficiency than the iterative likelihood method",
+    "pdf_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-088_2009_三参数威布尔分布近似无偏估计.pdf",
+    "pdf_sha256": "754b277fdcb2e1268b94c5293163645a6026081ed0a3e68b1b64e5261230b90e",
+    "markdown_path": "D:\\博士阶段\\100科研文献管理\\100科研文献管理\\180_AI辅助参数估计\\182_传统参数估计方法\\182-088-pdf原文.md",
+    "markdown_sha256": "f34a7cd8ef665315b1acfd85d5db6f0f669c93384863e01502bdaa3d7303b32b"
+  },
+  "sources": [
+    {
+      "path": "python/methods/conditional_profiles.py",
+      "sha256": "e3ed44ef690069acdecb64c61edbebe1d6b0c6bb5536079a17313ea1067b2762"
+    },
+    {
+      "path": "python/methods/profile_solvers.py",
+      "sha256": "74596fc14095673290fd9896db83614448f85342b3d1999a0356fe26b5b117d0"
+    },
+    {
+      "path": "python/methods/wmle.py",
+      "sha256": "0e63af8a0d17ea6426cc973142b176d827068a952f07abed6850fc30eddbc33b"
+    },
+    {
+      "path": "python/methods/j3_weights.tsv",
+      "sha256": "7716d9dec9d92715a532eba16b2b421ef09c2d2a4e5c69f0272288a656cbe0e1"
+    }
+  ],
+  "cases": [
+    {
+      "beta_hat": 2.3276508968711074,
+      "eta_hat": 117.54759342316333,
+      "gamma_hat": 282.3385714438181,
+      "converged": true,
+      "label": "Cousineau §4 十点算例",
+      "expected": "原文约 β=2.29，η=116.0，γ=283.7；当前权重表与印表分辨率不同。",
+      "n": 10,
+      "observations": [
+        310.0,
+        342.0,
+        353.0,
+        365.0,
+        383.0,
+        393.0,
+        403.0,
+        412.0,
+        451.0,
+        456.0
+      ],
+      "parameters": {}
+    }
+  ],
+  "tests": "80 passed in 7.22s; seven existing method suites, 2026-11-02"
+}

@@ -1,0 +1,99 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>加权极大似然估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L42"><h2>182-088 原文 L42–48</h2><pre>The best-fitting shape, scale, and shift parameters are found by maximizing the likelihood function (or, more commonly, the log of the likelihood function), performing a search in the parameter space (see Myung, 2003, for a tutorial). Let the true parameters be denoted by  $\gamma$ ,  $\beta$ , and  $\alpha$  for the shape, the scale, and the shift parameters, respectively. Figure 1 illustrates some Weibull distributions varying on their shape.
+
+
+![](182-088-图片/da0b41459560b4d7f368ef439ec1d843501fadf2b705cddba503584e45682f1f.jpg)
+Figure 1. Examples of Weibull distributions with identical scale and shift parameters  $\{\beta = 100, \alpha = 300\}$  but varying on the shape parameters. The case where  $\gamma = 1$  is the shifted exponential distribution. The values of  $\beta$  and  $\alpha$  were chosen so that the distribution resembles a distribution of response times of a well-trained participant.
+
+The domains of the parameters are given by  $\gamma \in \Gamma = \mathbb{R}^{+}$ ,  $\beta \in B = \mathbb{R}^{+}$ , and  $\alpha \in A = \{\alpha &lt; \min(X), \alpha \in \mathbb{R}\}$  where  $X$  denotes the sample and  $\mathbb{R}^{+}$ excludes zero. The iterative MLEs are obtained by performing a search over the three parameters simultaneously:</pre></section><section id="paper-L88"><h2>182-088 原文 L88–104</h2><pre>Overall, the weighted MLEs are given by
+
+$$
+\begin{array}{l} \{\hat {\gamma}, \hat {\alpha} \} _ {W} = \left\{\arg \min  _ {\gamma \in \Gamma , \alpha \in A} \left(\frac {W _ {2}}{\gamma} + \frac {1}{n} \sum_ {i = 1} ^ {n} \log (x _ {i} - \alpha) - \frac {\sum_ {i = 1} ^ {n} \log (x _ {i} - \alpha) (x _ {i} - \alpha) ^ {\gamma}}{\sum_ {i = 1} ^ {n} (x _ {i} - \alpha) ^ {\gamma}}\right) ^ {2}, \right. \\ \underset {\gamma \in \Gamma , \alpha \in A} {\arg \min } \left(\frac {1}{n} \sum_ {i = 1} ^ {n} \frac {1}{x _ {i} - \alpha} \times \frac {\sum_ {i = 1} ^ {n} \left(x _ {i} - \alpha\right) ^ {\gamma}}{\sum_ {i = 1} ^ {n} \left(x _ {i} - \alpha\right) ^ {\gamma - 1}} - W _ {3}\right) ^ {2} \}, \tag {3} \\ \end{array}
+$$
+
+$$
+[ \hat {\beta} | \hat {\gamma}, \hat {\alpha} ] _ {W} = \sqrt [ \gamma ]{\frac {1}{n W _ {1}} \sum_ {i = 1} ^ {n} (x _ {i} - \hat {\alpha}) ^ {\hat {\gamma}}}.
+$$
+
+
+Nearly unbiased Weibull parameters
+
+in which the quantities  $W_{1}$ ,  $W_{2}$ , and  $W_{3}$  are defined as:
+
+$$
+\begin{array}{l} W _ {1} = \frac {1}{n} \sum_ {i = 1} ^ {n} \log \left(\frac {1}{1 - F (x _ {i})}\right), \\ W _ {2} = \frac {\sum_ {i = 1} ^ {n} \log \left(\frac {1}{1 - F \left(x _ {i}\right)}\right) \log \left(\log \left(\frac {1}{1 - F \left(x _ {i}\right)}\right)\right)}{\sum_ {i = 1} ^ {n} \log \left(\frac {1}{1 - F \left(x _ {i}\right)}\right)} - \frac {1}{n} \sum_ {i = 1} ^ {n} \log \left(\log \left(\frac {1}{1 - F \left(x _ {i}\right)}\right)\right), \\ W _ {3} = W _ {1} \frac {\frac {1}{n} \sum_ {i = 1} ^ {n} \left(\log \left(\frac {1}{1 - F (x _ {i})}\right)\right) ^ {- 1 / \gamma}}{\frac {1}{n} \sum_ {i = 1} ^ {n} \left(\log \left(\frac {1}{1 - F (x _ {i})}\right)\right) ^ {(\gamma - 1) / \gamma}}. \\ \end{array}</pre></section><section id="paper-L144"><h2>182-088 原文 L144–150</h2><pre>In what follows, we use the following shortcuts:  $E_{i}$  to denote the mean value of  $W_{i}$ ,  $G_{i}$  to denote the geometric mean of  $W_{i}$  and  $J_{i}$  to denote the median value of  $W_{i}$ . As suggested by Proposition 3,  $J_{1}, J_{2}$ ,  $G_{1}$ ,  $G_{2}$ , and  $E_{2}$  depend only on  $n$ ;  $J_{3}$ ,  $G_{3}$ , and  $E_{3}$  depend on  $n$  and  $\gamma$ ; and  $E_{1}$  is a constant. Whenever these quantities were not available in closed form, we used Monte Carlo simulations to estimate them. To do so, we replaced in  $W_{1}$ ,  $W_{2}$ , and  $W_{3}$ , the terms  $\log (1 / (1 - F(x_i))) = ((x_i - \alpha) / \beta)^{\gamma}$  with  $z_{i}$ , which is a random variable sampled from a standard exponential distribution. In
+
+Table 2. The quantities  $E_{1}$ ,  $G_{1}$ , and  $J_{1}$ , for sample sizes 1-16. All these values are based on an exact formula
+
+&lt;table&gt;&lt;tr&gt;&lt;td&gt;n&lt;/td&gt;&lt;td&gt;E1&lt;/td&gt;&lt;td&gt;G1&lt;/td&gt;&lt;td&gt;J1&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.561&lt;/td&gt;&lt;td&gt;0.693&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.763&lt;/td&gt;&lt;td&gt;0.839&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.839&lt;/td&gt;&lt;td&gt;0.891&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.878&lt;/td&gt;&lt;td&gt;0.918&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.902&lt;/td&gt;&lt;td&gt;0.934&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.918&lt;/td&gt;&lt;td&gt;0.945&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;7&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.929&lt;/td&gt;&lt;td&gt;0.953&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;8&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.938&lt;/td&gt;&lt;td&gt;0.959&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;9&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.945&lt;/td&gt;&lt;td&gt;0.963&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;10&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.950&lt;/td&gt;&lt;td&gt;0.967&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;11&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.955&lt;/td&gt;&lt;td&gt;0.970&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;12&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.959&lt;/td&gt;&lt;td&gt;0.972&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;13&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.962&lt;/td&gt;&lt;td&gt;0.974&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;14&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.965&lt;/td&gt;&lt;td&gt;0.976&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;15&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.967&lt;/td&gt;&lt;td&gt;0.978&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;16&lt;/td&gt;&lt;td&gt;1.000&lt;/td&gt;&lt;td&gt;0.969&lt;/td&gt;&lt;td&gt;0.979&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+one simulation,  $n$  random deviates were sampled and the  $W_{i}$  estimated. This process was repeated  $2^{20}$  times before computing the arithmetic mean, median, or geometric mean. Tables 2-4 provide some values as a function of sample sizes (and as a function of  $\gamma$  for  $W_{3}$ ).</pre></section><section id="paper-L178"><h2>182-088 原文 L178–190</h2><pre>being raised to the power of 2) can be replaced by a single objective function:
+
+$$
+\begin{array}{l} \underset {\alpha , \gamma} {\arg \min } \left(\left(\frac {W _ {2}}{\gamma} + \frac {1}{n} \sum_ {i = 1} ^ {n} \log \left(x _ {i} - \alpha\right) - \frac {\sum_ {i = 1} ^ {n} \log \left(x _ {i} - \alpha\right) \left(x _ {i} - \alpha\right) ^ {\gamma}}{\sum_ {i = 1} ^ {n} \left(x _ {i} - \alpha\right) ^ {\gamma}}\right) ^ {2} \right. \tag {4} \\ \left. + \left(\frac {1}{n} \sum_ {i = 1} ^ {n} \frac {1}{x _ {i} - \alpha} \times \frac {\sum_ {i = 1} ^ {n} (x _ {i} - \alpha) ^ {\gamma}}{\sum_ {i = 1} ^ {n} (x _ {i} - \alpha) ^ {\gamma - 1}} - W _ {3}\right) ^ {2}\right) \\ \end{array}
+$$
+
+and a zero for the function is the solution sought. With the present sample, it occurs at  $\{\hat{\gamma},\hat{\alpha}\}_{\mathrm{MLE}} = \{2.62,280.9\}$ , from which  $\hat{\beta} = 119.0$
+
+Finally, the weighted MLE, assuming the median weights  $J_{1}, J_{2}$ , and  $J_{3}$ , is found in exactly the same fashion except that  $W_{1}$  is replaced by  $J_{1} = 0.967$ ,  $W_{2}$  by  $J_{2} = 0.853$ , and  $W_{3}$  by  $J_{3}$  whose value depends on the shape parameter (varied during the search); for example, at  $\hat{\gamma} = 2, J_{3} = 1.759$ . (see Tables 1-3). The zero of equation (4) is found at  $\{\hat{\gamma}, \hat{\alpha}\} = \{2.29, 283.7\}$ , from which  $\hat{\beta} = 116.0$ .
+
+As already observed, there is a tendency for the estimated  $\hat{\gamma}$  and  $\hat{\beta}$  to be smaller with the weighted MLE than with the MLE methods.
+
+The value of the third weight is not a constant but changes during the search as new values of  $\hat{\gamma}$  are explored. Hence, a fast algorithm to compute it would be valuable but we have none so far. We used a look-up table for some values of  $\gamma$  and linear interpolation in between.</pre></section><section id="paper-L178"><h2>182-088 原文 L178–192</h2><pre>being raised to the power of 2) can be replaced by a single objective function:
+
+$$
+\begin{array}{l} \underset {\alpha , \gamma} {\arg \min } \left(\left(\frac {W _ {2}}{\gamma} + \frac {1}{n} \sum_ {i = 1} ^ {n} \log \left(x _ {i} - \alpha\right) - \frac {\sum_ {i = 1} ^ {n} \log \left(x _ {i} - \alpha\right) \left(x _ {i} - \alpha\right) ^ {\gamma}}{\sum_ {i = 1} ^ {n} \left(x _ {i} - \alpha\right) ^ {\gamma}}\right) ^ {2} \right. \tag {4} \\ \left. + \left(\frac {1}{n} \sum_ {i = 1} ^ {n} \frac {1}{x _ {i} - \alpha} \times \frac {\sum_ {i = 1} ^ {n} (x _ {i} - \alpha) ^ {\gamma}}{\sum_ {i = 1} ^ {n} (x _ {i} - \alpha) ^ {\gamma - 1}} - W _ {3}\right) ^ {2}\right) \\ \end{array}
+$$
+
+and a zero for the function is the solution sought. With the present sample, it occurs at  $\{\hat{\gamma},\hat{\alpha}\}_{\mathrm{MLE}} = \{2.62,280.9\}$ , from which  $\hat{\beta} = 119.0$
+
+Finally, the weighted MLE, assuming the median weights  $J_{1}, J_{2}$ , and  $J_{3}$ , is found in exactly the same fashion except that  $W_{1}$  is replaced by  $J_{1} = 0.967$ ,  $W_{2}$  by  $J_{2} = 0.853$ , and  $W_{3}$  by  $J_{3}$  whose value depends on the shape parameter (varied during the search); for example, at  $\hat{\gamma} = 2, J_{3} = 1.759$ . (see Tables 1-3). The zero of equation (4) is found at  $\{\hat{\gamma}, \hat{\alpha}\} = \{2.29, 283.7\}$ , from which  $\hat{\beta} = 116.0$ .
+
+As already observed, there is a tendency for the estimated  $\hat{\gamma}$  and  $\hat{\beta}$  to be smaller with the weighted MLE than with the MLE methods.
+
+The value of the third weight is not a constant but changes during the search as new values of  $\hat{\gamma}$  are explored. Hence, a fast algorithm to compute it would be valuable but we have none so far. We used a look-up table for some values of  $\gamma$  and linear interpolation in between.
+
+For  $n$  larger than 16, the weights  $W_{2}$  and  $W_{3}$  must be estimated using Monte Carlo simulations. In the equations for  $W_{2}$  and  $W_{3}$ , replace all occurrences of  $\log (1 / (1 - F(x_i)))$  with  $z_{i}$ , then sample  $z_{i} s$  from an exponential distribution with rate parameter 1. Repeat this process a large number of times and then take the mean to get the weights  $E_{2}, E_{3}$  (or the median to get  $J_{2}, J_{3}$ , etc.).</pre></section><section id="paper-L186"><h2>182-088 原文 L186–194</h2><pre>Finally, the weighted MLE, assuming the median weights  $J_{1}, J_{2}$ , and  $J_{3}$ , is found in exactly the same fashion except that  $W_{1}$  is replaced by  $J_{1} = 0.967$ ,  $W_{2}$  by  $J_{2} = 0.853$ , and  $W_{3}$  by  $J_{3}$  whose value depends on the shape parameter (varied during the search); for example, at  $\hat{\gamma} = 2, J_{3} = 1.759$ . (see Tables 1-3). The zero of equation (4) is found at  $\{\hat{\gamma}, \hat{\alpha}\} = \{2.29, 283.7\}$ , from which  $\hat{\beta} = 116.0$ .
+
+As already observed, there is a tendency for the estimated  $\hat{\gamma}$  and  $\hat{\beta}$  to be smaller with the weighted MLE than with the MLE methods.
+
+The value of the third weight is not a constant but changes during the search as new values of  $\hat{\gamma}$  are explored. Hence, a fast algorithm to compute it would be valuable but we have none so far. We used a look-up table for some values of  $\gamma$  and linear interpolation in between.
+
+For  $n$  larger than 16, the weights  $W_{2}$  and  $W_{3}$  must be estimated using Monte Carlo simulations. In the equations for  $W_{2}$  and  $W_{3}$ , replace all occurrences of  $\log (1 / (1 - F(x_i)))$  with  $z_{i}$ , then sample  $z_{i} s$  from an exponential distribution with rate parameter 1. Repeat this process a large number of times and then take the mean to get the weights  $E_{2}, E_{3}$  (or the median to get  $J_{2}, J_{3}$ , etc.).
+
+Table 4. The quantities  $E_{3}$ ,  $G_{3}$ , and  $J_{3}$  for sample sizes 1-16 and for selected values of the shape parameter  $\gamma$ . All the values are obtained through Monte Carlo simulations and approximated to two digits for  $G_{3}, J_{3}$ , and  $E_{3}, \gamma &gt; 1$ ; the precision of  $E_{3}, \gamma \leq 1$  is unknown  </pre></section><section id="code-1"><h2>python/methods/wmle.py L214–222</h2><pre><code> 214      gamma_clamped = max(0.1, min(5.0, gamma))
+ 215
+ 216      # Calculate asymptotic value for very large n
+ 217      if gamma_clamped &gt; 1:
+ 218          asymp_val = gamma_clamped / (gamma_clamped - 1)
+ 219      else:
+ 220          asymp_val = float(&#x27;inf&#x27;)
+ 221
+ 222      # Helper function for gamma interpolation</code></pre></section><section id="code-2"><h2>python/methods/wmle.py L258–264</h2><pre><code> 258      if n &gt; available_ns[-1]:
+ 259          # Use asymptotic value for very large n
+ 260          if gamma_clamped &gt; 1:
+ 261              return asymp_val
+ 262          else:
+ 263              return 2.0
+ 264  </code></pre></section><section id="code-3"><h2>python/methods/conditional_profiles.py L80–83</h2><pre><code>  80              or np.any(~np.isfinite(b)) or np.any(b &lt;= 0)
+  81              or np.any(~np.isfinite(g)) or np.any(g &lt; 0) or np.any(d &lt;= 0)):
+  82          raise ValueError(&quot;Invalid WMLE residual sample or parameter&quot;)
+  83      t = np.log(d)</code></pre></section><section id="code-4"><h2>python/methods/profile_solvers.py L195–205</h2><pre><code> 195      if not candidates:
+ 196          boundary = wmle_objective_profile(z, 0., weights)
+ 197          if boundary[&#x27;objective&#x27;] &lt;= 1e-8:
+ 198              add(0., boundary, kind=&#x27;boundary_residual_tolerance&#x27;)
+ 199
+ 200      def proximity(p):
+ 201          return (np.log(p[&#x27;beta&#x27;] / 2.) ** 2
+ 202                  + ((p[&#x27;gamma&#x27;] - .9 * unit) / max(unit, 1.)) ** 2)
+ 203
+ 204      minimum = min((p[&#x27;objective&#x27;] for p in candidates), default=np.inf)
+ 205      near_best = [p for p in candidates if p[&#x27;objective&#x27;] &lt;= minimum + 1e-12]</code></pre></section><section id="code-5"><h2>python/methods/conditional_profiles.py L105–114</h2><pre><code> 105      j1, j2 = weights.get_weight_j1(n), weights.get_weight_j2(n)
+ 106      t = np.log(d)
+ 107      solution = _shape(t, weight=j2, upper=weights.SHAPE_UPPER)
+ 108      if solution is None:
+ 109          return None
+ 110      beta, _, _ = solution
+ 111      log_eta = t.mean() + (logsumexp(beta * (t - t.mean())) - np.log(n * j1)) / beta
+ 112      t1, t2 = wmle_residuals(data, beta, gamma, weights)
+ 113      j3 = float(weights.get_weight_j3(n, beta))
+ 114      return dict(beta=beta, eta=float(np.exp(log_eta)), t1=t1, t2=t2,</code></pre></section></html>

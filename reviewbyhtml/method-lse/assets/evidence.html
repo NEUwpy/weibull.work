@@ -1,0 +1,111 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>最小二乘估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L66"><h2>182-104 原文 L66–75</h2><pre>where $Y_{i} = \log (t_{i})$ , $\alpha = \log (b)$ , $\beta = 1 / c$ and $X_{i} = \log [-\log \{1 - F(t_{i})\}]$ . Here, $X_{i}$ are not known; however, they are order statistics from the distribution with a density given by
+
+$$
+h (w) = \exp (w - \exp (w)), \quad - \alpha &lt;   w &lt;   \alpha .\tag{5}
+$$
+
+White [5] suggested estimating $X_{i}$ by the expected values of the ith order statistics (in a sample of size n) from (5), which is defined as the reduced Log-Weibull distribution. Then $\alpha$ and $\beta$ are obtained through a least square method, with estimators obtained as
+
+$$
+\hat {b} = \exp (\hat {\alpha}) \quad \text { and } \quad \hat {c} = 1 / \beta .\tag{6}</pre></section><section id="paper-L66"><h2>182-104 原文 L66–100</h2><pre>where $Y_{i} = \log (t_{i})$ , $\alpha = \log (b)$ , $\beta = 1 / c$ and $X_{i} = \log [-\log \{1 - F(t_{i})\}]$ . Here, $X_{i}$ are not known; however, they are order statistics from the distribution with a density given by
+
+$$
+h (w) = \exp (w - \exp (w)), \quad - \alpha &lt;   w &lt;   \alpha .\tag{5}
+$$
+
+White [5] suggested estimating $X_{i}$ by the expected values of the ith order statistics (in a sample of size n) from (5), which is defined as the reduced Log-Weibull distribution. Then $\alpha$ and $\beta$ are obtained through a least square method, with estimators obtained as
+
+$$
+\hat {b} = \exp (\hat {\alpha}) \quad \text { and } \quad \hat {c} = 1 / \beta .\tag{6}
+$$
+
+For a three-parameter Weibull distribution the authors propose the following iterative process.
+
+## Procedure
+
+Step 1. Take $\hat{\mu} = t_{1} - 0.01$ , subtract $\hat{\mu}$ from each observation and find White&#x27;s least square estimators of $\hat{b}$ and $\hat{c}$ .
+
+Step 2. Compute Fisher&#x27;s $F$ -test ratio, $F = S_y^2 / S_{res}^2$ where
+
+$$
+S _ {y} ^ {2} = \frac {1}{n - 1} \sum (Y _ {i} - \bar {Y}) ^ {2}
+$$
+
+$$
+S _ {\mathrm{res}} ^ {2} = \frac {1}{n - 2} \sum (Y _ {i} - \hat {Y} _ {i}) ^ {2}
+$$
+
+$$
+\hat {Y} _ {i} = \hat {\alpha} + \hat {\beta} X _ {i}.
+$$
+
+Step 3. Reduce $\hat{\mu}$ and repeat steps (1) and (2).
+
+Step 4. Choose $\hat{\mu},\hat{c}$ and $\hat{b}$ corresponding to which $F$ is maximum.</pre></section><section id="paper-L80"><h2>182-104 原文 L80–100</h2><pre>## Procedure
+
+Step 1. Take $\hat{\mu} = t_{1} - 0.01$ , subtract $\hat{\mu}$ from each observation and find White&#x27;s least square estimators of $\hat{b}$ and $\hat{c}$ .
+
+Step 2. Compute Fisher&#x27;s $F$ -test ratio, $F = S_y^2 / S_{res}^2$ where
+
+$$
+S _ {y} ^ {2} = \frac {1}{n - 1} \sum (Y _ {i} - \bar {Y}) ^ {2}
+$$
+
+$$
+S _ {\mathrm{res}} ^ {2} = \frac {1}{n - 2} \sum (Y _ {i} - \hat {Y} _ {i}) ^ {2}
+$$
+
+$$
+\hat {Y} _ {i} = \hat {\alpha} + \hat {\beta} X _ {i}.
+$$
+
+Step 3. Reduce $\hat{\mu}$ and repeat steps (1) and (2).
+
+Step 4. Choose $\hat{\mu},\hat{c}$ and $\hat{b}$ corresponding to which $F$ is maximum.</pre></section><section id="paper-L132"><h2>182-104 原文 L132–168</h2><pre>White&#x27;s method [5] for two-parameter estimation, and its extension to the case of three-parameter estimation when $c &lt; 3$ , has already been discussed. For $3 &lt; c &lt; 6$ , the following procedure is proposed.
+
+Step 1. Assuming the location parameter to be zero, find the shape and the scale parameter using White&#x27;s least square method. Let them be $\hat{c}_0$ and $\hat{b}_0$ .
+
+Step 2. Calculate the approximate value of the mean minus 3.3 times the standard deviation of first order statistics using the expression
+
+$$
+\hat {\mu} _ {i} = \exp (\log (t _ {1} - \mu_ {i - 1}) - 3. 3 (1. 6 4 4 / \hat {c} _ {i - 1}) ^ {1 / 2}).\tag{7}
+$$
+
+Here $\mu_0 = 0$ .
+
+Step 3. Subtract $\hat{\mu}_i$ from data (data after subtracting $\mu_1$ for $i = 2$ ) and estimate shape and scale parameters. Let these be $\hat{c}_i$ and $\hat{b}_i$ .
+
+Step 4. Execute steps (2) and (3) for i=1,2 and obtain $\hat{\mu}_{1}$ , $\hat{\mu}_{2}$ , $\hat{c}_{2}$ and $\hat{b}_{2}$ . The final estimate is given by $\hat{\mu}=\hat{\mu}_{1}+\hat{\mu}_{2}$ , $\hat{c}=c_{2}$ and $\hat{b}=\hat{b}_{2}$ .
+
+Table 2. Partial print out of the results
+
+&lt;table&gt;&lt;tr&gt;&lt;td&gt;μ̂&lt;/td&gt;&lt;td&gt;ĉ&lt;/td&gt;&lt;td&gt;b̂&lt;/td&gt;&lt;td&gt;F-ratio&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;99.8&lt;/td&gt;&lt;td&gt;0.9047&lt;/td&gt;&lt;td&gt;8.9792&lt;/td&gt;&lt;td&gt;20.1853&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;99.85&lt;/td&gt;&lt;td&gt;0.8735&lt;/td&gt;&lt;td&gt;8.9115&lt;/td&gt;&lt;td&gt;23.1260&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;99.9&lt;/td&gt;&lt;td&gt;0.8361&lt;/td&gt;&lt;td&gt;8.8521&lt;/td&gt;&lt;td&gt;26.7412&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;99.99&lt;/td&gt;&lt;td&gt;0.7089&lt;/td&gt;&lt;td&gt;8.8663&lt;/td&gt;&lt;td&gt;20.2310&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100.0&lt;/td&gt;&lt;td&gt;0.6399&lt;/td&gt;&lt;td&gt;9.0185&lt;/td&gt;&lt;td&gt;10.2045&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+The values in bold face are the least square estimates.
+
+Table 3. Results of estimations
+
+&lt;table&gt;&lt;tr&gt;&lt;td rowspan=&quot;2&quot; colspan=&quot;3&quot;&gt;Parameter values used for simulation&lt;/td&gt;&lt;td colspan=&quot;6&quot;&gt;Estimated parameter values&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt; $\hat{\mu}$ &lt;/td&gt;&lt;td colspan=&quot;2&quot;&gt; $\hat{c}$ &lt;/td&gt;&lt;td colspan=&quot;2&quot;&gt; $\hat{b}$ &lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt; $\mu$ &lt;/td&gt;&lt;td&gt; $c$ &lt;/td&gt;&lt;td&gt; $b$ &lt;/td&gt;&lt;td&gt; $w$ &lt;/td&gt;&lt;td&gt; $s$ &lt;/td&gt;&lt;td&gt; $w$ &lt;/td&gt;&lt;td&gt; $s$ &lt;/td&gt;&lt;td&gt; $w$ &lt;/td&gt;&lt;td&gt; $s$ &lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;20&lt;/td&gt;&lt;td&gt;97.5&lt;/td&gt;&lt;td&gt;97.7&lt;/td&gt;&lt;td&gt;4.0&lt;/td&gt;&lt;td&gt;3.82&lt;/td&gt;&lt;td&gt;23.4&lt;/td&gt;&lt;td&gt;22.6&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;75&lt;/td&gt;&lt;td&gt;106.2&lt;/td&gt;&lt;td&gt;103.4&lt;/td&gt;&lt;td&gt;3.31&lt;/td&gt;&lt;td&gt;3.60&lt;/td&gt;&lt;td&gt;82.0&lt;/td&gt;&lt;td&gt;86.48&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;75&lt;/td&gt;&lt;td&gt;105.4&lt;/td&gt;&lt;td&gt;93.0&lt;/td&gt;&lt;td&gt;3.66&lt;/td&gt;&lt;td&gt;3.02&lt;/td&gt;&lt;td&gt;75.6&lt;/td&gt;&lt;td&gt;83.50&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;50&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;50&lt;/td&gt;&lt;td&gt;37.7&lt;/td&gt;&lt;td&gt;38.0&lt;/td&gt;&lt;td&gt;3.19&lt;/td&gt;&lt;td&gt;3.01&lt;/td&gt;&lt;td&gt;60.45&lt;/td&gt;&lt;td&gt;65.62&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;50&lt;/td&gt;&lt;td&gt;99.3&lt;/td&gt;&lt;td&gt;99.9&lt;/td&gt;&lt;td&gt;3.71&lt;/td&gt;&lt;td&gt;3.78&lt;/td&gt;&lt;td&gt;54.24&lt;/td&gt;&lt;td&gt;56.52&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;50&lt;/td&gt;&lt;td&gt;88.4&lt;/td&gt;&lt;td&gt;91.9&lt;/td&gt;&lt;td&gt;3.72&lt;/td&gt;&lt;td&gt;3.34&lt;/td&gt;&lt;td&gt;59.50&lt;/td&gt;&lt;td&gt;58.6&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;25&lt;/td&gt;&lt;td&gt;101.6&lt;/td&gt;&lt;td&gt;99.1&lt;/td&gt;&lt;td&gt;3.94&lt;/td&gt;&lt;td&gt;3.78&lt;/td&gt;&lt;td&gt;25.9&lt;/td&gt;&lt;td&gt;30.4&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;100&lt;/td&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;25&lt;/td&gt;&lt;td&gt;101.3&lt;/td&gt;&lt;td&gt;98.1&lt;/td&gt;&lt;td&gt;4.10&lt;/td&gt;&lt;td&gt;4.03&lt;/td&gt;&lt;td&gt;21.30&lt;/td&gt;&lt;td&gt;25.86&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+
+Estimation based on failure rate estimator
+
+This method is based on a failure rate estimator suggested by Sinha [8]. This is based on two fundamental concepts, namely:
+
+(i) conditional failure rate;
+
+(ii) the least square principle.
+
+The method of Ref. [8] has been modified for a three-parameter Weibull distribution with c ranging from 3 to 6. The procedure is the same as that used earlier except that the estimation of b and c is done by failure rate estimator. The main advantage of this method is that it does not require any tables for estimation.
+
+For different combinations of location, shape and scale parameters, data is simulated. In all cases the sample size is taken as 20. The results of estimations using both methods are given in Table 3. In Table 3, the values under w and s represent the estimates based on White&#x27;s method and those based on the failure rate estimator, respectively.</pre></section><section id="code-1"><h2>python/methods/lse.py L45–49</h2><pre><code>  45
+  46      guess = math.log(-math.log(1.0 - i / (n + 1.0)))
+  47      value, _ = integrate.quad(integrand, -60.0, 10.0, limit=400, points=[guess])
+  48      return value
+  49  </code></pre></section><section id="code-2"><h2>python/methods/lse.py L152–155</h2><pre><code> 152          mus = _build_geometric_mu_grid(t_min, mu_steps)
+ 153          f_values = np.array([profile_f(m) for m in mus])
+ 154
+ 155          if not np.any(np.isfinite(f_values) &amp; (f_values &gt; -np.inf)):</code></pre></section><section id="code-3"><h2>python/methods/lse.py L161–165</h2><pre><code> 161          best_idx = int(np.argmax(f_values))
+ 162          best_mu = float(mus[best_idx])
+ 163          best_f = float(f_values[best_idx])
+ 164
+ 165          # @step: 5 | 局部精化 | 在最优网格点邻域内用有界标量优化精化 μ</code></pre></section></html>

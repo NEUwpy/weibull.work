@@ -1,0 +1,74 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>最小差异法 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L65"><h2>182-046 原文 L65–76</h2><pre>例如，若有1个样本量为  $n$  的随机变量  $T$  的样本，用  $t_{(i)}$  表示从小到大排序的  $n$  个样本值（ $i = 1,2,\dots,n, t_{(1)} \leqslant t_{(2)} \leqslant \dots, t_{(n)}$ ），则可以通过秩估计法估计对应于  $t_{(i)}$  的累积概率分布函数：
+
+$$
+\hat {F} \left(t _ {(i)}\right) = \frac {i}{i + (n + 1 - i) F _ {2 (n + 1 - i), 2 i , 0 . 5}}, (i = 1, 2, \dots , n). \tag {3}
+$$
+
+式中，  $F_{2(n + 1 - i),2i,0.5}$  是自由度为  $2(n + 1 - i)$  和  $2i$  的  $F$  分布的中位数.
+
+因此，可以构建1个尺度参数的伪估计量  $\hat{\eta}_i$
+
+$$
+\hat {\eta} _ {i} = \left(t _ {(i)} - \gamma\right) / \left(- \ln \left(1 - \hat {F} \left(t _ {(i)}\right)\right)\right) ^ {1 / \beta}, (i = 1, 2, \dots , n). \tag {4}</pre></section><section id="paper-L123"><h2>182-046 原文 L123–127</h2><pre>首先，设置一系列可能的位置参数  $\gamma_{j}$  （从最小样本值  $t_{(1)}$  开始逐步递减），并对每个位置参数值测试一系列可能的形状参数值  $\beta_{k}$  （例如，0.10，0.11，0.12，直到可能的最大值，例如20).基于每对  $(\gamma_j,\beta_k)$  ，根据式(4)可获得与  $n$  个样本值对应的 $n$  个尺度参数估计值  $\hat{\eta}_i(\gamma_j,\beta_k)(i = 1,2,\dots ,n)$  .由上述最小差异原理可知，使得这  $n$  个尺度参数估计值之间的差异达到最小的参数对  $(\hat{\beta},\hat{\gamma})$  即为真实的形状参数和位置参数.本文采用  $n$  个尺度参数估计值的标准差  $\sigma_{\eta}$  表征  $n$  个尺度参数估计值的差异，根据该标准差随采用的位置参数值变化的梯度（标准差对位置参数的一阶导数）判断极值点的位置.
+
+根据1个样本量为  $n$  的随机变量样本，进行Weibull分布参数估计的具体流程如下：
+
+首先，给定1个位置参数  $\gamma_{1} = t_{(1)}$  ，它与每个不同的形状参数  $\beta_{k}(k = 1,2,\dots)$  共同使用，都可由式(4)产生  $n$  个不同的尺度参数估计值  $\widehat{\eta}_i(\gamma_1,\beta_k)$ $(i = 1,2,\dots ,n)$  ，这  $n$  个尺度参数估计值的标准差为 $\sigma_{\eta}(\gamma_1,\beta_k)$  .图3为基于来自同1个Weibull分布的样本量为7的3个不同样本进行参数估计过程中计算所得的  $\sigma_{\eta}(\gamma_j,\beta_k) - \beta_k$  关系.文中样本A和样本B是采用MonteCarlo抽样方法从Weibull分布 $W(2.0,1000,1000)$ 中随机抽取的，理想样本是根据Weibull分布的累积分布函数反算出来的7个样本值，分别对应于累积分布概率0.094，0.228，0.364，0.500，0.636，0.772和0.906（这7个概率值是应用式(3)在  $n = 7$  的条件下计算出来的 $\hat{F} (t_{(1)},\hat{F} (t_{(2)}),\dots ,\hat{F} (t_{(7)}))$ 。显然，对应于不同的  $\gamma_{j}$  值，不同的形状参数  $\beta_{k}$  将产生不同的7个尺度参数估计值的标准差  $\sigma_{\eta}(\gamma_{j},\beta_{k})$  ，并有1个相应的条件最小标准差  $\sigma_{\eta ,\min}(\gamma_j)$  （以位置参数  $\gamma_{j}$  为条件，对应于1个特定的形状参数），如图3所示（其中，  $L$  表示位置参数  $\gamma_{j}$  的取值）。不同的位置参数  $\gamma_{j}$  对应不同的  $\sigma_{\eta ,\min}(\gamma_j)$  ，使得  $\sigma_{\eta ,\min}(\gamma_j)$  达到最小（用 $\sigma_{\eta ,\min}$  表示）的位置参数  $\hat{\gamma}$  和与之一起实现该标准差的最小值的形状参数  $\hat{\beta}$  即为估计出的位置参数和形状参数。在此基础上，可以根据式(4)，由任意1个样本值  $t_{(i)}$  估计出1个尺度参数。</pre></section><section id="paper-L133"><h2>182-046 原文 L133–146</h2><pre>与样本值  $t_{(i)}$  对应的累积概率分布  $\hat{F}(t_{(i)})$  可以由秩估计得到。然而，由于样本具有不确定性，与累积分布概率  $\hat{F}(t_{(i)})$  精确对应的样本值未必等于  $t_{(i)}$ ，甚至有很大的差异。因此，将不同的样本值代入式(4)可以得到不同的尺度参数估计值（如图1所示）。为了减小样本不确定性的影响，本文将由  $n$  个样本值估计出的  $n$  个尺度参数的平均值作为最终估计出的Weibull分布的尺度参数：
+
+$$
+\hat {\eta} = \sum_ {i = 1} ^ {n} \left\{\frac {t _ {(i)} - \hat {\gamma}}{(- \ln (1 - F (t _ {(i)}))) ^ {1 / \hat {\beta}}} \right\} / n. \tag {6}
+$$
+
+# 3 误差分析与参数估计方法验证
+
+对于1个连续函数  $y = f(x)$  ，其一阶导数  $\mathrm{dy} / \mathrm{dx}$  在极值点的值为零，这是常用的极值判据.图4是在参数估计过程中产生的、 $n$  个尺度参数估计值标
+
+准差的条件最小值  $\sigma_{\eta ,\min}(\gamma_j)$  对位置参数  $\gamma_{j}$  的导数（尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度）与所采用的位置参数之间的关系曲线.尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度  $\nabla \gamma$  以离散的形式定义为
+
+$$
+\nabla \gamma = \frac {\sigma_ {\eta , \min } (\gamma + \nabla \gamma) - \sigma_ {\eta , \min } (\gamma)}{\nabla \gamma}. \tag {7}</pre></section><section id="paper-L141"><h2>182-046 原文 L141–146</h2><pre>对于1个连续函数  $y = f(x)$  ，其一阶导数  $\mathrm{dy} / \mathrm{dx}$  在极值点的值为零，这是常用的极值判据.图4是在参数估计过程中产生的、 $n$  个尺度参数估计值标
+
+准差的条件最小值  $\sigma_{\eta ,\min}(\gamma_j)$  对位置参数  $\gamma_{j}$  的导数（尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度）与所采用的位置参数之间的关系曲线.尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度  $\nabla \gamma$  以离散的形式定义为
+
+$$
+\nabla \gamma = \frac {\sigma_ {\eta , \min } (\gamma + \nabla \gamma) - \sigma_ {\eta , \min } (\gamma)}{\nabla \gamma}. \tag {7}</pre></section><section id="paper-L149"><h2>182-046 原文 L149–159</h2><pre>理论上（根据最小差异原理），尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度在位置参数的准确值处等于零.然而，这些曲线表明，由于样本不确定性效应，该梯度在位置参数的真实值处未必等于零(理想样本除外).基于某一样本得到的尺度参数估计值标准差的条件最小值  $\sigma_{\eta ,\mathrm{min}}(\gamma_j)$  的梯度在真实位置参数点的值可能大于零，也可能小于零.由图4可见，如果简单地应用极值判据，则对于某些样本，位置参数估计值的误差非常大.
+
+![](182-046-图片/images/ee2fcaf3b83a3c7bf7121c7ca467e054fb6126fd549a67d3f3357c153bbb288c.jpg)
+图4  $\nabla (\gamma) - \gamma$  关系曲线及最小值判据补偿效果
+Fig. 4  $\nabla (\gamma) - \gamma$  plots and effect of minimum value criterion offset
+
+由图4可知，这种基于最小值判据的参数估计方法，只有理想样本才能得到准确的位置参数估计值，而随机样本得到的位置参数估计值结果误差很大；如果使用1个大于零的数，例如0.1替换最小值判据中的零，即用梯度  $\nabla \gamma = 0.1$  的点定位位置参数的估计值，则在整体上可以显著提高参数估计结果的精度和稳健性。这样，由理想样本、样本A和样本B得到的位置参数估计值分别为1025,1000和1240。当直接应用最小值判据时，3个样本位置参数的估计值分别为990,350和1210。与样本A估计的位置参数误差从  $-65.0\%$  降低到  $0.0\%$  的有益效果（参数估计值调整幅度  $\Delta A$ ）相比，由样本B估计出的位置参数的误差从  $21.0\%$  增加到  $24.0\%$  （参数估计值调整幅度  $\Delta B$ ），由理想样本估计出的位置参数误差从  $-1.0\%$  增加到  $2.5\%$  （参数估计值调整幅度  $\Delta I$ ）的不利影响显
+
+然小得多.
+
+从总体上看，在最小值判据中使用1个大于零（例如0.1)的偏移值，对于提高参数估计方法（即本文采用的最小差异法)的精度和稳健性效果显著.本文偏移值0.1是根据120个参数估计案例得到的经验值，更适当的偏移值的取法需要进一步研究.由于样本存在不确定性，需要对极值判据进行偏置，而上文中所述参数估计方法依据的&quot;最小差异原理&quot;也具有统计不确定性，因而应称之为&quot;统计最小差异原理&quot;.下面采用更多的随机样本分析该参数估计方法的误差特性，研究减小误差的途径.</pre></section><section id="code-1"><h2>python/methods/mdm.py L121–126</h2><pre><code> 121          def calculate_eta_std(beta, gamma, current_t):
+ 122              if beta &lt;= 0: return float(&#x27;inf&#x27;)
+ 123              denom = np.power(neg_ln_1_minus_F, 1.0/beta)
+ 124              etas = (current_t - gamma) / denom
+ 125              return np.std(etas, ddof=1)
+ 126  </code></pre></section><section id="code-2"><h2>python/base.py L64–69</h2><pre><code>  64          i = np.arange(1, self.n + 1)
+  65          if self.rank_method == &#x27;exact&#x27;:
+  66              return betaincinv(i, self.n - i + 1, 0.5)
+  67          else:  # bernard
+  68              return (i - 0.3) / (self.n + 0.4)
+  69  </code></pre></section><section id="code-3"><h2>python/methods/mdm.py L168–177</h2><pre><code> 168              t_min_float = float(t_min)
+ 169              scale = max(abs(t_min_float), 1.0)
+ 170              nominal_h = scale * 1e-5
+ 171              left_room = max(gamma, 0.0)
+ 172              right_room = max(t_min_float - gamma, 0.0)
+ 173
+ 174              if right_room &lt;= 0:
+ 175                  return float(&quot;inf&quot;)
+ 176
+ 177              if gamma &lt;= 0.0 or left_room &lt;= nominal_h:</code></pre></section><section id="code-4"><h2>python/methods/mdm.py L150–155</h2><pre><code> 150              res = minimize_scalar(
+ 151                  beta_objective,
+ 152                  bounds=(0.1, 15.0),
+ 153                  method=&#x27;bounded&#x27;
+ 154              )
+ 155              beta_sigma_cache[cache_key] = (res.x, res.fun)</code></pre></section><section id="code-5"><h2>python/methods/mdm.py L233–239</h2><pre><code> 233              return {
+ 234                  &quot;gamma&quot;: virtual_gamma,
+ 235                  &quot;anchor_gradient&quot;: float(anchor_gradient),
+ 236                  &quot;virtual_gradient&quot;: float(offset),
+ 237                  &quot;model&quot;: &quot;right_endpoint_asymptote&quot;,
+ 238              }
+ 239  </code></pre></section></html>

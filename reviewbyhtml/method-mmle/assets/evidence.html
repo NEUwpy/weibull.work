@@ -1,0 +1,79 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>修正极大似然估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L25"><h2>182-119 原文 L25–44</h2><pre>## a b s t r a c t
+
+In this paper we consider the estimation of the stress–strength parameter $R = P ( Y &lt; X )$ when X and Y are independent and both are three-parameter Weibull distributions with the common shape and location parameters but different scale parameters. It is observed that the maximum likelihood estimators do not exist in this case, and we propose a modified maximum likelihood estimator, and also an approximate modified maximum likelihood estimator of R. We obtain the asymptotic distribution of the modified maximum likelihood estimators of the unknown parameters and it can be used to construct the confidence interval of R. Analyses of two data sets have also been presented for illustrative purposes.
+
+© 2009 Elsevier B.V. All rights reserved.
+
+## 1. Introduction
+
+In this paper we consider the problem of estimating the stress–strength parameter $R = P ( Y &lt; X )$ when X and Y are independent and both are three-parameter Weibull-distributed random variables. It is further assumed that both have the same shape and location parameters but different scale parameters. The estimation of R is very common in the statistica literature. For example, if X is the strength of a system which is subjected to a stress Y, then R is a measure of system performance and arises quite naturally in the mechanical reliability of a system. The system fails if and only if at anytime, the applied stress is greater than its strength. This particular problem was first considered by McCool (1991) and later by Kundu and Gupta (2006). In both cases it is assumed that the common location parameter is known. In the literature the estimation of R in the case of Weibull or exponential distributions has been obtained under the assumption of common location parameters, and when it is known, see for example Kotz et al. (2003). The assumption of the common location parameters is not very unrealistic. For example a measuring equipment has a calibration problem, and the measurements have been taken in this particular equipment, then all the observations will have a location shift. In this paper also, it is assumed that the location parameters are same, but the common location parameter is unknown.
+
+It should be mentioned that related problems have been widely used in the literature. Maximum likelihood estimation of R, when X and Y have bivariate exponential distribution, has been considered by Awad et al. (1981). Church and Harris (1970), Downtown (1973), Govidarajulu (1967), Woodward and Kelley (1977) and Owen et al. (1977) considered the estimation of R when both X and Y are normally distributed. A book length treatment of the different methods can be found in Kotz et al. (2003). Recently Kundu and Gupta (2005) and Raqab and Kundu (2005) considered the estimation of R for the two-parameter generalized exponential distribution and scaled Burr type-X distribution respectively. Although, extensive treatment for the stress–strength parameter for different models in the presence of shape and scale parameters, are available, but not much attempt has not been made when the location parameter is also present. Very recently Raqab et al. (2008) considered the statistical inference of the stress–strength parameter of the three-parameter generalized exponentia distribution. It is observed that in the presence of location parameter, the analysis becomes quite non-trivial and that is the main purpose of this paper.
+
+Note that when the location parameter is unknown for a three-parameter Weibull distribution, it is no longer a regular family. In fact for a three-parameter Weibull distribution, the maximum likelihood estimators (MLEs) of the unknown parameters do not exist. The non-existence of the MLEs are quite common in many embedded models, see for example Cheng et al. (1992), and the references cited therein. The condition on the non-existence ofthe MLEs for the three-parameter Weibull distribution can be found in Table 1 of Shao et al. (2004). The likelihood function monotonically increases along a particular parameter values. In this case using the idea of Smith (1985), we consider the modified MLEs (MMLEs) and they have to be obtained by solving a non-linear equation. We propose a simple iterative scheme to solve this non-linear equation. Although, we could not prove its convergence, but it is observed that in practice the proposed iterative scheme works very well. We derive the asymptotic distribution of the MMLE of the unknown parameters and based on that we obtain the asymptotic distribution of the MMLE of R. Using the asymptotic distribution, we obtain the asymptotic confidence interval of R.
+
+Since the MMLEs cannot be obtained explicitly, using the idea of Kundu and Gupta (2006), we propose approximate MMLEs (AMMLEs) and they can be obtained explicitly. It is observed that the performance of the MMLEs and AMMLEs are very similar in nature. Therefore, for all practical purposes, the computation of the MMLEs can be avoided. Moreover, AMMLEs may be used as initial guesses to compute the MMLEs.
+
+We use the following notation. A Weibull distribution with the shape, scale and location parameters, $\alpha , \theta$ and $\mu$ respectively, will be denoted by $W E ( \alpha , \theta , \mu )$ and the corresponding probability density function $f ( x ; \alpha , \theta , \mu )$ for $\alpha &gt; 0 ,$ $\theta &gt; 0$ is as follows;
+
+$$
+f (x; \alpha , \theta , \mu) = \frac {\alpha}{\theta} (x - \mu) ^ {\alpha - 1} \mathrm{e} ^ {- \frac {1}{\theta} (x - \mu) ^ {\alpha}}; \quad x &gt; \mu .\tag{1}</pre></section><section id="paper-L65"><h2>182-119 原文 L65–72</h2><pre>It is clear that if $\alpha &lt; 1 ,$ , for $\dot { \theta _ { 1 } } &gt; 0 , \theta _ { 2 } &gt; 0$ as $\mu$ approaches z, the likelihood function $l ( \alpha , \theta _ { 1 } , \theta _ { 2 } , \mu )$ gradually increases to infinity. Therefore, MLEs of $\alpha , \theta _ { 1 } , \theta _ { 2 } , \mu$ do not exist. To estimate the parameters, one can proceed by first estimating the location parameter $\mu$ by its natural consistent estimator $\widetilde { \mu } = z$ , see Smith (1985). The modified log-likelihood function based on the $( m + n - 1 )$ observations after ignoring the smallest observation and replacing $\mu$ by its estimator $\widetilde { \mu } = z$ , is given by for $x _ { ( 1 ) } &lt; y _ { ( 1 ) }$
+
+$$
+l (\alpha , \theta_ {1}, \theta_ {2}, \widetilde {\mu}) = (m + n - 1) \ln \alpha - (n - 1) \ln \theta_ {1} - m \ln \theta_ {2} + (\alpha - 1) \sum_ {i = 2} ^ {n} \ln (x _ {(i)} - \widetilde {\mu})
+$$
+
+$$
++ (\alpha - 1) \sum_ {j = 1} ^ {m} \ln (y _ {(j)} - \widetilde {\mu}) - \frac {1}{\theta_ {1}} \sum_ {i = 2} ^ {n} (x _ {(i)} - \widetilde {\mu}) ^ {\alpha} - \frac {1}{\theta_ {2}} \sum_ {j = 1} ^ {m} (y _ {(j)} - \widetilde {\mu}) ^ {\alpha}\tag{4}</pre></section><section id="paper-L65"><h2>182-119 原文 L65–88</h2><pre>It is clear that if $\alpha &lt; 1 ,$ , for $\dot { \theta _ { 1 } } &gt; 0 , \theta _ { 2 } &gt; 0$ as $\mu$ approaches z, the likelihood function $l ( \alpha , \theta _ { 1 } , \theta _ { 2 } , \mu )$ gradually increases to infinity. Therefore, MLEs of $\alpha , \theta _ { 1 } , \theta _ { 2 } , \mu$ do not exist. To estimate the parameters, one can proceed by first estimating the location parameter $\mu$ by its natural consistent estimator $\widetilde { \mu } = z$ , see Smith (1985). The modified log-likelihood function based on the $( m + n - 1 )$ observations after ignoring the smallest observation and replacing $\mu$ by its estimator $\widetilde { \mu } = z$ , is given by for $x _ { ( 1 ) } &lt; y _ { ( 1 ) }$
+
+$$
+l (\alpha , \theta_ {1}, \theta_ {2}, \widetilde {\mu}) = (m + n - 1) \ln \alpha - (n - 1) \ln \theta_ {1} - m \ln \theta_ {2} + (\alpha - 1) \sum_ {i = 2} ^ {n} \ln (x _ {(i)} - \widetilde {\mu})
+$$
+
+$$
++ (\alpha - 1) \sum_ {j = 1} ^ {m} \ln (y _ {(j)} - \widetilde {\mu}) - \frac {1}{\theta_ {1}} \sum_ {i = 2} ^ {n} (x _ {(i)} - \widetilde {\mu}) ^ {\alpha} - \frac {1}{\theta_ {2}} \sum_ {j = 1} ^ {m} (y _ {(j)} - \widetilde {\mu}) ^ {\alpha}\tag{4}
+$$
+
+and for $x _ { ( 1 ) } &gt; y _ { ( 1 ) }$ )
+
+$$
+l \left(\alpha , \theta_ {1}, \theta_ {2}, \widetilde {\mu}\right) = (m + n - 1) \ln \alpha - n \ln \theta_ {1} - (m - 1) \ln \theta_ {2} + (\alpha - 1) \sum_ {i = 1} ^ {n} \ln \left(x _ {(i)} - \widetilde {\mu}\right)
+$$
+
+$$
++ (\alpha - 1) \sum_ {j = 2} ^ {m} \ln (y _ {(j)} - \widetilde {\mu}) - \frac {1}{\theta_ {1}} \sum_ {i = 1} ^ {n} (x _ {(i)} - \widetilde {\mu}) ^ {\alpha} - \frac {1}{\theta_ {2}} \sum_ {j = 2} ^ {m} (y _ {(j)} - \widetilde {\mu}) ^ {\alpha}.\tag{5}
+$$
+
+Therefore, the modified MLEs of $\alpha , \theta _ { 1 }$ and $\theta _ { 2 }$ can be obtained by maximizing $l ( \alpha , \theta _ { 1 } , \theta _ { 2 } )$ with respect to $\alpha , \theta _ { 1 }$ and $\theta _ { 2 }$ . From the modified normal equation, it easily follows that for given α
+
+$$
+\widetilde {\theta} _ {1} (\alpha) = \frac {\sum_ {i = 2} ^ {n} (x _ {(i)} - \widetilde {\mu}) ^ {\alpha}}{n - 1} \quad \text {and} \quad \widetilde {\theta} _ {2} (\alpha) = \frac {\sum_ {j = 1} ^ {m} (y _ {(j)} - \widetilde {\mu}) ^ {\alpha}}{m} \quad \text {if} x _ {(1)} &lt;   y _ {(1)}\tag{6}</pre></section><section id="paper-L105"><h2>182-119 原文 L105–123</h2><pre>Our problem is to maximize $l ( \alpha , \widetilde { \boldsymbol { \theta } } _ { 1 } ( \alpha ) , \widetilde { \boldsymbol { \theta } } _ { 2 } ( \alpha ) , \widetilde { \mu } )$ with respect to α. Using similar technique as in Kundu and Gupta (2006), the modified MLE of α can be obtained as a solution of the non-linear equation of the form
+
+$$
+h (\alpha) = \alpha ,\tag{9}
+$$
+
+where
+
+$$
+h (\alpha) = \frac {(m + n - 1) + \sum_ {i = 2} ^ {n} \ln (x _ {(i)} - \widetilde {\mu}) ^ {\alpha} + \sum_ {j = 1} ^ {m} \ln (y _ {(j)} - \widetilde {\mu}) ^ {\alpha}}{\frac {\sum_ {i = 2} ^ {n} (x _ {(i)} - \widetilde {\mu}) ^ {\alpha} \ln (x _ {(i)} - \widetilde {\mu})}{\frac {1}{n - 1} \sum_ {i = 2} ^ {n} (x _ {k} - \widetilde {\mu}) ^ {\alpha}} + \frac {\sum_ {j = 1} ^ {n} (y _ {(j)} - \widetilde {\mu}) ^ {\alpha} \ln (y _ {(j)} - \widetilde {\mu})}{\frac {1}{m} \sum_ {i = 2} ^ {m} (y _ {k} - \widetilde {\mu}) ^ {\alpha}}}.\tag{10}
+$$
+
+Because α is a fixed point solution of the non-linear (9), therefore, it can be obtained by using a simple iterative procedure as
+
+$$
+h (\alpha_ {(j)}) = \alpha_ {(j + 1)},\tag{11}
+$$
+
+where $\alpha _ { ( j ) }$ is the jth iterate of $\widetilde { \alpha } .$ The iterative procedure should be stopped when the absolute difference between $\alpha _ { ( j ) }$ and $\alpha _ { ( j + 1 ) }$ is sufficiently small.</pre></section><section id="code-1"><h2>python/methods/mmle.py L48–52</h2><pre><code>  48          gamma = float(self.data[0])
+  49          y = self.data[1:] - gamma
+  50          beta = float(initial_shape)
+  51          converged = False
+  52          history = []</code></pre></section><section id="code-2"><h2>python/methods/mmle.py L59–66</h2><pre><code>  59                  weights = np.exp(beta * (logs - logs.max()))
+  60                  weights /= weights.sum()
+  61                  denominator = float(q * (weights @ logs))
+  62                  next_beta = float((q + beta * logs.sum()) / denominator)
+  63                  if not np.isfinite(next_beta) or next_beta &lt;= 0:
+  64                      break
+  65                  difference = abs(next_beta - beta)
+  66                  if iteration &lt;= 3:</code></pre></section><section id="code-3"><h2>python/methods/mmle.py L110–110</h2><pre><code> 110          return [beta, eta, gamma, 0., True]</code></pre></section></html>

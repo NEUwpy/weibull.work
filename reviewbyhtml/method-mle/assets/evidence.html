@@ -1,0 +1,94 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原文与源码摘录</title><style>body{max-width:1100px;margin:40px auto;padding:0 20px;font:16px/1.8 system-ui,sans-serif;color:#213930;background:#f5f7f4}section{margin:36px 0;scroll-margin-top:20px}h1{font-size:28px}h2{font-size:19px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.8 Consolas,monospace;background:white;padding:20px;border:1px solid #dbe4dc;border-radius:10px}a{color:#17634a}</style><h1>极大似然估计 · 核对摘录</h1><p>以下是2026-11-02T12:51:05+08:00读取的本地原文与当前源码片段。行号分别对应原文Markdown与Python文件；数学转录以原PDF核对为准。</p><a href="../index.html">返回本方法审阅</a><section id="paper-L49"><h2>182-105 原文 L49–74</h2><pre>$$
+x _ {p} = \gamma + \eta | \log (1 - p) | ^ {1 / \beta}\tag{2}
+$$
+
+This limiting value corresponds to the percentile point estimate in the 2-parameter Gumbel distribution (G2P). Cheng and Iles [5] also recommend the use of the G2P which are called the &#x27;embedded models&#x27; associated with the 3-parameter distribution models; in their example, however, the estimated location parameter is negative and not diverging to $-\infty$ . They go on to discuss which model between the original 3-parameter model (in their case, $\widehat{\gamma} &lt; 0$ ) and the embedded model should be used by using various hypothesis tests. However, there are highly negatively skewed samples in some experimental cases, for which other distribution models might be more appropriately fitted than the embedded model. The data case 4 in Table 1 and Figure 1 (histograms for Table 1) shows such a case. The coefficient of skewness $\sqrt{\beta_1} = -1.501$ for that case (see Table 1); in the Gumbel distribution, $\sqrt{\beta_1} = -1.14$ [14]. This leads us to introduce an extension of the Weibull distribution to the extreme-value distribution family, i.e. the generalized extreme-value distribution (GEV).
+
+The adoption of the GEV has other benefits. One is that the maximum likelihood parameter estimation in the GEV is easier than in the W3P, which will be discussed in Section 5. References [28] and [5] are relevant to the idea of the parameterization of the GEV model from the W3P model; however, they do not show that using the GEV is effective in estimating the Weibull parameters.
+
+![](182-105-图片/b0fcbd9511e214bc8079d4c9c0c503afd3ccc8500f55d0ae6987d3d30fbfb86a.jpg)
+
+![](182-105-图片/7a93ffa34011324ade94743e1d82ea228eb290ba45583568665c0d6488a7daec.jpg)
+
+![](182-105-图片/a6d7cb9b839a22fc2798dbe3f87d467be478c925792f82c8722df32efb7f59e2.jpg)
+
+![](182-105-图片/4157f75ca8b59cf744d6def80dd4cbccb8e3e097d40a1fb571fc76825300de3f.jpg)
+
+![](182-105-图片/1d7ea563543535da7850e6e941f376fbe8692147780e0a9334ccbe4c4c1c3092.jpg)
+
+![](182-105-图片/8fc350c046ba56f5aaad703a68fb3a585c220feb54fd80ebda74ab1837650992.jpg)
+Figure 1. Histograms of sampled data. Same as Table 1.
+
+Hosking [12] developed the estimation code for the GEV MLE in the case of GEV for maxima, but not for the case of GEV for minima, which are dealt with in this paper. The proposed algorithm is an extension of his algorithm. For all cases in the Monte Carlo simulation, this algorithm obtained the MLE of Weibull parameters under the condition that $\beta \geq 1$ . The algorithm is shown in Appendix 1.
+
+Secondly, the root mean squared errors (RMSE) can reasonably be simulated when the Weibull shape parameter is large, i.e. the GEV shape parameter is close to zero. The confidence interval of the percentile point estimate cannot be computed by using the observed information matrix (Appendix 2) in the W3P, when Weibull&#x27;s three parameters diverge. The Monte Carlo simulation supports the use of the percentile point estimate obtained from the GEV model.
+
+As pointed out by Hirose [11], estimates of the Weibull parameters and percentile points by Wyckoff, Bain and Engelhardt&#x27;s method (WBE) [31] were the best with respect to bias and RMSE, if the maximum likelihood estimation is excluded; so the comparison of the percentile point estimates is done between the MLE and the closed form method estimates, WBE.</pre></section><section id="paper-L252"><h2>182-105 原文 L252–290</h2><pre>## 7.1. MAXIMUM LIKELIHOOD PARAMETER ESTIMATION IN THE GEV MODEL
+
+The main idea of the proposed algorithm lies on a assumption that $\widehat{\sigma}(k)$ and $\widehat{\mu}(k)$ do not vary as much as k does; $\widehat{\sigma}(k)$ and $\widehat{\mu}(k)$ denote the MLE for the GEV distribution when k is fixed. Moreover, when $k \to 0$ , which corresponds to the Gumbel distribution, we can easily estimate the MLE of parameters in the Gumbel distribution by using the Newton-Raphson method. Since the MLE of parameters when using the Newton-Raphson method are very sensitive in general with respect to the initial guesses, the following method is one of the recommended methods for a stable and successful searching scheme of the MLE.
+
+Step 1: Obtain the sample&#x27;s mean and standard deviation as follows
+
+$$
+m = \frac {1}{n} \sum_ {i = 1} ^ {n} x _ {i}\tag{11}
+$$
+
+$$
+s ^ {2} = \frac {1}{n} \sum_ {i = 1} ^ {n} (x _ {i} - m) ^ {2}\tag{12}
+$$
+
+where n denotes the number of samples. Set initial guesses, $\sigma_{0}^{(0)}$ and $\mu_{0}^{(0)}$ , for the MLE of $\widehat{\mu}(G2P)$ and $\widehat{\sigma}(G2P)$ as
+
+$$
+\sigma_ {0} ^ {(0)} = \sqrt {\frac {6}{\pi}} s = 0. 7 7 9 6 9 7 s\tag{13}
+$$
+
+$$
+\mu_ {0} ^ {(0)} = m + 0. 5 7 7 2 1 6 \sigma\tag{14}
+$$
+
+Obtain the MLE of G2P using $\sigma_0^{(0)}$ and $\mu_0^{(0)}$ . Set $\sigma_0 = \widehat{\sigma} (\mathrm{G2P})$ , $\mu_0 = \widehat{\mu} (\mathrm{G2P})$ , and $k_{0} = 0$ .
+
+Step 2: Define a small number $\Delta k &gt; 0$ , say $\Delta k = 0.01$ . Set $k_{1} = \Delta k$ , and $k_{-1} = -\Delta k$ . Obtain the MLE of the 2-parameter GEV distribution under the constraint of $k = k_{1}$ , by using $\sigma_0$ and $\mu_0$ as initial guesses. Set these MLE as $\sigma_1$ and $\mu_1$ . Obtain $\sigma_{-1}$ and $\mu_{-1}$ corresponding to $k_{-1}$ in a very similar manner.
+
+![](182-105-图片/6e426de6db4d831539b0342031856f4ef5748365d018b5ce058b2ec13b266858.jpg)
+Figure 7. Maximum likelihood parameter estimation scheme in the GEV space.
+
+![](182-105-图片/2e7a067d2c95a1dff2fbb87b50aa12913701696be0d126a8cdc1b4c114ef75f9.jpg)
+Figure 8. The curve which consist of local maximum points $(\sigma(k), \mu(k), k)$ .
+
+Step 3: By using the three points, $(\sigma_{-1}, k_{-1})$ , $(\sigma_0, k_0)$ , and $(\sigma_1, k_1)$ , obtain an extrapolated point $(\sigma_2^{(0)}, k_2)$ by solving a quadratic equation, where $k_2 = k_1 + \Delta k$ (Figure 7). Obtain $(\mu_2^{(0)}, k_2)$ in a similar manner. By using $(\sigma_2^{(0)}, \mu_2^{(0)})$ as initial guesses, obtain the MLE, $\sigma_2$ and $\mu_2$ of the 2-parameter GEV distribution under the constraint of $k = k_2$ . Assuming that $(\sigma_{\nu-2}, \mu_{\nu-2})$ , $(\sigma_{\nu-1}, \mu_{\nu-1})$ and $(\sigma_{\nu}, \mu_{\nu})$ have already been obtained by the previous steps, then $\sigma_{\nu+1}$ and $\mu_{\nu+1}$ for $k_{\nu+1} = k_{\nu} + \Delta k$ are obtained by the Newton-Raphson method using $\sigma_{\nu+1}^{(0)}$ and $\mu_{\nu+1}^{(0)}$ as the initial values (Figure 7). $\sigma_{\nu+1}^{(0)}$ is an extrapolated value from $(\sigma_{\nu-2}, k_{\nu-2})$ , $(\sigma_{\nu-1}, k_{\nu-1})$ and $(\sigma_{\nu}, k_{\nu})$ ; $\mu_{\nu+1}^{(0)}$ is similarly obtained. If the constraint, $\sigma_{\nu+1}^{(j)} &gt; 0$ or $1 + k_{\nu+1}^{(j)} \{(x_i - \mu_{\nu+1}^{(j)}) / \sigma_{\nu+1}^{(j)})\} &gt; 0$ , is violated in the Newton-Raphson iteration, we use an alternative extrapolated point which is closer to the point $(\sigma_{\nu}, \mu_{\nu}, k_{\nu})$ ; $j$ denotes the Newton-Raphson iteration count for the point $(k_{\nu+1}, \sigma_{\nu+1}, \mu_{\nu+1})$ . If $\Delta k$ is small, then convergence would be confirmed. This continues until $k = 1 - \Delta k$ . Special treatment is needed at the corner, $k = 1$ , as Rockette et al. have pointed out [26].
+
+Step 4: A similar process to Step 3 is taken in the opposite direction from $k = k_{-2}$ to $k = k^*$ , where usually $k^* = -1$ .
+
+Step 5: Search for a maximum point of $\log L(\sigma(k_{\nu}), \mu(k_{\nu}), k_{\nu})$ from all the knots which we are investigating. If $k_{\nu} \neq 1$ and $k_{\nu} \neq k^{*}$ , then do the 3-parameter Newton-Raphson iteration using the initial values $\sigma_{\nu}, \mu_{\nu}$ and $k_{\nu}$ (if $\nu = 0$ , use the next point $(\sigma_1, \mu_1, k_1)$ ). The converged variables may be the (local) MLE. We must check if this point is not a saddle point by using the determinants of the submatrices formed by the observed information matrix (Appendix 2); the log-likelihood at this point should also be checked if it is larger than the log-likelihood at the corner points, $k = 1$ and $k = k^{*}$ . If $\log L(\sigma(k = 1), \mu(k = 1), 1)$ is still maximum, the MLE of the Weibull parameters are $\widehat{\gamma} = x_{\min}$ , $\widehat{\beta} = 1$ and $\widehat{\eta} = \frac{1}{n} \sum_{i=1}^{n}(x_i - x_{\min})$ under the constraint that $k \leqslant 1$ ; $x_{\min}$ is the minimum observation in the experiment. If $\log L(\sigma(k^*)$ , $\mu(k^*)$ , $k^*)$ is maximum, $k^*$ should be set much smaller.</pre></section><section id="paper-L286"><h2>182-105 原文 L286–290</h2><pre>Step 3: By using the three points, $(\sigma_{-1}, k_{-1})$ , $(\sigma_0, k_0)$ , and $(\sigma_1, k_1)$ , obtain an extrapolated point $(\sigma_2^{(0)}, k_2)$ by solving a quadratic equation, where $k_2 = k_1 + \Delta k$ (Figure 7). Obtain $(\mu_2^{(0)}, k_2)$ in a similar manner. By using $(\sigma_2^{(0)}, \mu_2^{(0)})$ as initial guesses, obtain the MLE, $\sigma_2$ and $\mu_2$ of the 2-parameter GEV distribution under the constraint of $k = k_2$ . Assuming that $(\sigma_{\nu-2}, \mu_{\nu-2})$ , $(\sigma_{\nu-1}, \mu_{\nu-1})$ and $(\sigma_{\nu}, \mu_{\nu})$ have already been obtained by the previous steps, then $\sigma_{\nu+1}$ and $\mu_{\nu+1}$ for $k_{\nu+1} = k_{\nu} + \Delta k$ are obtained by the Newton-Raphson method using $\sigma_{\nu+1}^{(0)}$ and $\mu_{\nu+1}^{(0)}$ as the initial values (Figure 7). $\sigma_{\nu+1}^{(0)}$ is an extrapolated value from $(\sigma_{\nu-2}, k_{\nu-2})$ , $(\sigma_{\nu-1}, k_{\nu-1})$ and $(\sigma_{\nu}, k_{\nu})$ ; $\mu_{\nu+1}^{(0)}$ is similarly obtained. If the constraint, $\sigma_{\nu+1}^{(j)} &gt; 0$ or $1 + k_{\nu+1}^{(j)} \{(x_i - \mu_{\nu+1}^{(j)}) / \sigma_{\nu+1}^{(j)})\} &gt; 0$ , is violated in the Newton-Raphson iteration, we use an alternative extrapolated point which is closer to the point $(\sigma_{\nu}, \mu_{\nu}, k_{\nu})$ ; $j$ denotes the Newton-Raphson iteration count for the point $(k_{\nu+1}, \sigma_{\nu+1}, \mu_{\nu+1})$ . If $\Delta k$ is small, then convergence would be confirmed. This continues until $k = 1 - \Delta k$ . Special treatment is needed at the corner, $k = 1$ , as Rockette et al. have pointed out [26].
+
+Step 4: A similar process to Step 3 is taken in the opposite direction from $k = k_{-2}$ to $k = k^*$ , where usually $k^* = -1$ .
+
+Step 5: Search for a maximum point of $\log L(\sigma(k_{\nu}), \mu(k_{\nu}), k_{\nu})$ from all the knots which we are investigating. If $k_{\nu} \neq 1$ and $k_{\nu} \neq k^{*}$ , then do the 3-parameter Newton-Raphson iteration using the initial values $\sigma_{\nu}, \mu_{\nu}$ and $k_{\nu}$ (if $\nu = 0$ , use the next point $(\sigma_1, \mu_1, k_1)$ ). The converged variables may be the (local) MLE. We must check if this point is not a saddle point by using the determinants of the submatrices formed by the observed information matrix (Appendix 2); the log-likelihood at this point should also be checked if it is larger than the log-likelihood at the corner points, $k = 1$ and $k = k^{*}$ . If $\log L(\sigma(k = 1), \mu(k = 1), 1)$ is still maximum, the MLE of the Weibull parameters are $\widehat{\gamma} = x_{\min}$ , $\widehat{\beta} = 1$ and $\widehat{\eta} = \frac{1}{n} \sum_{i=1}^{n}(x_i - x_{\min})$ under the constraint that $k \leqslant 1$ ; $x_{\min}$ is the minimum observation in the experiment. If $\log L(\sigma(k^*)$ , $\mu(k^*)$ , $k^*)$ is maximum, $k^*$ should be set much smaller.</pre></section><section id="code-1"><h2>python/methods/profile_solvers.py L34–40</h2><pre><code>  34          g = float(g)
+  35          if g not in cache:
+  36              cache[g] = mle_profile(z, g, shape_lower=1.)
+  37          return cache[g]
+  38
+  39      grid = _location_grid()
+  40      points = [profile(g) for g in grid]</code></pre></section><section id="code-2"><h2>python/methods/conditional_profiles.py L16–20</h2><pre><code>  16      if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):
+  17          raise ValueError(&quot;Expected a finite one-dimensional sample of at least two points&quot;)
+  18      if not np.isfinite(gamma) or gamma &lt; 0 or np.any(d &lt;= 0):
+  19          raise ValueError(&quot;Conditional location must satisfy 0 &lt;= gamma &lt; min(data)&quot;)
+  20      return d</code></pre></section><section id="code-3"><h2>python/methods/profile_solvers.py L98–109</h2><pre><code>  98      eta_limit = float(np.mean(x - x[0]))
+  99      limit_ll = float(-len(x) * (1 + np.log(eta_limit)))
+ 100      best = max(candidates, key=lambda p: p[&#x27;ll&#x27;]) if candidates else None
+ 101      info = dict(status=&#x27;ok&#x27; if best else &#x27;no_finite_local_maximum&#x27;,
+ 102                  solver_version=SOLVER_VERSION, strategy=&#x27;profile_likelihood_finite_maxima&#x27;,
+ 103                  constraint=&#x27;beta&gt;=1, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,
+ 104                  profile_grid_points=len(grid), profile_evaluations=len(cache),
+ 105                  candidate_count=len(candidates), candidates=candidates,
+ 106                  support_boundary_limit=dict(beta=1., eta=eta_limit, gamma=float(x[0]),
+ 107                                              log_likelihood=limit_ll, attained_in_open_support=False),
+ 108                  boundary_limit_exceeds_selected=bool(best and limit_ll &gt; best[&#x27;ll&#x27;] + 1e-9))
+ 109      if best:</code></pre></section><section id="code-4"><h2>python/methods/conditional_profiles.py L62–67</h2><pre><code>  62      z = t - t.mean()
+  63      log_mean_power = logsumexp(beta * z) - np.log(len(d))
+  64      log_eta = t.mean() + log_mean_power / beta
+  65      ll = len(d) * (np.log(beta) - t.mean() - log_mean_power - 1)
+  66      w = np.exp(beta * (z - z.max()))
+  67      w /= w.sum()</code></pre></section></html>
