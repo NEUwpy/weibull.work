@@ -1,0 +1,244 @@
+{
+  "id": "weibull-method-mdm-20261102",
+  "title": "最小差异法 MDM · 原文与实现",
+  "document": true,
+  "revision": 2,
+  "require_confirmation": true,
+  "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/mdm.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/mdm.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 方法与核对范围",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 方法与核对范围",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p>论文的伪尺度离散度、条件最小差异与正偏移已在现行程序中体现。</p><p><mark>本轮已确认保留：Bernard默认近似秩、连续数值求解和现有右端外推返回规则。</mark>估计算法不变。下文保留原文与实现的差异说明，作为同一个 mdm.py 的实现口径；右端外推不表述为已验证的方程根。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "title": "2 已对应的统计构造",
+      "mode": "content",
+      "options": [
+        {
+          "id": "core-content",
+          "label": "2 已对应的统计构造",
+          "blocks": [
+            {
+              "id": "core-body",
+              "kind": "text",
+              "html": "<p>给定位置和形状，每个观测反算一个伪尺度；在固定位置处最小化其标准差，最终尺度取均值。</p><a href=\"assets/evidence.html#paper-L65\" target=\"_blank\" rel=\"noopener\">182-046 原文 L65–76 · 式(3)(4)</a>；<a href=\"assets/evidence.html#paper-L133\" target=\"_blank\" rel=\"noopener\">182-046 原文 L133–146 · 式(6)(7)</a><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><msub><mi>t</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><mi>γ</mi></mrow><mrow><mo stretchy=\"false\">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy=\"false\">)</mo><msup><mo stretchy=\"false\">]</mo><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup></mrow></mfrac><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mi>β</mi></munder><msub><mi>σ</mi><mi>η</mi></msub><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"1em\"/><mover accent=\"true\"><mi>η</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>η</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><mover accent=\"true\"><mi>β</mi><mo stretchy=\"true\">^</mo></mover><mo separator=\"true\">,</mo><mover accent=\"true\"><mi>γ</mi><mo stretchy=\"true\">^</mo></mover><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>这不是直接把β、γ联合调到最小标准差，也不是按真值选择偏移。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-1\" target=\"_blank\" rel=\"noopener\">python/methods/mdm.py · L121–126</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 121          def calculate_eta_std(beta, gamma, current_t):\n 122              if beta &lt;= 0: return float(&#x27;inf&#x27;)\n 123              denom = np.power(neg_ln_1_minus_F, 1.0/beta)\n 124              etas = (current_t - gamma) / denom\n 125              return np.std(etas, ddof=1)\n 126  </code></pre><p><strong>标准差分母：</strong>代码取 <code>ddof=1</code>；本次核对的原文段落未明确分母。若改变分母，梯度和固定δ的含义一起改变，不能当成无关的代码清理。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ranks",
+      "title": "3 中位秩：精确式还是近似式",
+      "mode": "content",
+      "options": [
+        {
+          "id": "ranks-content",
+          "label": "3 中位秩：精确式还是近似式",
+          "blocks": [
+            {
+              "id": "ranks-body",
+              "kind": "text",
+              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>式(3)使用F分布中位数定义精确中位秩，等价于Beta分布中位数。</p><a href=\"assets/evidence.html#paper-L65\" target=\"_blank\" rel=\"noopener\">182-046 原文 L65–76 · PDF第2页／印刷109页</a><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><msubsup><mrow><mi mathvariant=\"normal\">Beta</mi><mo>⁡</mo></mrow><mrow><mi>i</mi><mo separator=\"true\">,</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo>−</mo><mi>i</mi></mrow><mrow><mo>−</mo><mn>1</mn></mrow></msubsup><mo stretchy=\"false\">(</mo><mn>0.5</mn><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>MDM默认 <code>rank_method=\"bernard\"</code>，精确秩已是同一程序的可选参数。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-2\" target=\"_blank\" rel=\"noopener\">python/base.py · L64–69</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  64          i = np.arange(1, self.n + 1)\n  65          if self.rank_method == &#x27;exact&#x27;:\n  66              return betaincinv(i, self.n - i + 1, 0.5)\n  67          else:  # bernard\n  68              return (i - 0.3) / (self.n + 0.4)\n  69  </code></pre></div></div><p><strong>核对判断：</strong>属于绘图概率定义的替换，不能只说“程序流程完全对应原文”。</p><p><strong>可能修改：</strong>如确定以2025年式(3)作为方法定义，在mdm.py中把默认秩改成精确式，计算、流程说明及概率图一起更新。</p><p><strong>影响：</strong>会改变伪尺度、β、γ、η；历史结果按旧源码追溯。AI偏移模型原有训练口径也需重新评估，不能只切换网站默认值。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ranks-choice",
+      "title": "3.1 中位秩的处理",
+      "mode": "content",
+      "inline": true,
+      "selection_mode": "single",
+      "selected_ids": [
+        "rank-keep"
+      ],
+      "options": [
+        {
+          "id": "rank-keep",
+          "label": "保持现有默认近似秩",
+          "blocks": [
+            {
+              "id": "rank-keep-text",
+              "kind": "text",
+              "html": "<p>不改变估计；明确标示Bernard近似与原文式(3)的差别。</p>"
+            }
+          ]
+        }
+      ],
+      "selected": "rank-keep",
+      "state": "converged"
+    },
+    {
+      "id": "search",
+      "title": "4 连续求解与原文离散搜索",
+      "mode": "content",
+      "options": [
+        {
+          "id": "search-content",
+          "label": "4 连续求解与原文离散搜索",
+          "blocks": [
+            {
+              "id": "search-body",
+              "kind": "text",
+              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>位置从最小观测向下搜索；形状序列举例0.10、0.11、0.12……最大值如20；式(7)给离散前向差分。</p><a href=\"assets/evidence.html#paper-L123\" target=\"_blank\" rel=\"noopener\">182-046 原文 L123–127 · §2搜索描述</a>；<a href=\"assets/evidence.html#paper-L141\" target=\"_blank\" rel=\"noopener\">182-046 原文 L141–146 · PDF第4页／印刷111页</a><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>g</mi><mi>h</mi></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><mfrac><mrow><msub><mi>σ</mi><mi>min</mi><mo>⁡</mo></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo>+</mo><mi>h</mi><mo stretchy=\"false\">)</mo><mo>−</mo><msub><mi>σ</mi><mi>min</mi><mo>⁡</mo></msub><mo stretchy=\"false\">(</mo><mi>γ</mi><mo stretchy=\"false\">)</mo></mrow><mi>h</mi></mfrac><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p>上式用h重写增量，避免原式中梯度与增量的符号混用。论文没有写全γ步长、下界、多交点与停止规则。</p></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>β在0.1–15内连续有界优化；内部位置梯度主要用中心差分，靠近边界用单侧差分，再用Brent求g(γ)=δ。60点几何曲线同时用于诊断。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-3\" target=\"_blank\" rel=\"noopener\">python/methods/mdm.py · L168–177</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 168              t_min_float = float(t_min)\n 169              scale = max(abs(t_min_float), 1.0)\n 170              nominal_h = scale * 1e-5\n 171              left_room = max(gamma, 0.0)\n 172              right_room = max(t_min_float - gamma, 0.0)\n 173  \n 174              if right_room &lt;= 0:\n 175                  return float(&quot;inf&quot;)\n 176  \n 177              if gamma &lt;= 0.0 or left_room &lt;= nominal_h:</code></pre><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-4\" target=\"_blank\" rel=\"noopener\">python/methods/mdm.py · L150–155</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 150              res = minimize_scalar(\n 151                  beta_objective,\n 152                  bounds=(0.1, 15.0),\n 153                  method=&#x27;bounded&#x27;\n 154              )\n 155              beta_sigma_cache[cache_key] = (res.x, res.fun)</code></pre></div></div><p><strong>核对判断：</strong>统计构造有对应，但具体数值算法不同。连续算法不因不同就必然错误；离散算法也不因更像论文就自动更准确。</p><p><strong>可能修改：</strong>先确定是否要求按离散构造计算。若采用，应在mdm.py中统一实现，并明确β步长、上限、γ序列及差分点归属；不能为凑图4的1025反推网格。</p><p><strong>影响：</strong>影响离散误差、速度、根的位置和无交点概率。当前理想样本测试验证的是连续程序，不是原图4逐值复现。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "search-choice",
+      "title": "4.1 搜索与差分的处理",
+      "mode": "content",
+      "inline": true,
+      "selection_mode": "single",
+      "selected_ids": [
+        "search-continuous"
+      ],
+      "options": [
+        {
+          "id": "search-continuous",
+          "label": "保留连续数值求解",
+          "blocks": [
+            {
+              "id": "search-continuous-text",
+              "kind": "text",
+              "html": "<p>保留现有估计口径，补清差分尺度、括根与网格的作用，准确说明与论文的数值差别。</p>"
+            }
+          ]
+        }
+      ],
+      "selected": "search-continuous",
+      "state": "converged"
+    },
+    {
+      "id": "boundary",
+      "title": "5 无交点时，是否仍返回成功",
+      "mode": "content",
+      "options": [
+        {
+          "id": "boundary-content",
+          "label": "5 无交点时，是否仍返回成功",
+          "blocks": [
+            {
+              "id": "boundary-body",
+              "kind": "text",
+              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>论文以梯度达到正偏移的位置定位，δ=.1是120个案例的经验值。</p><a href=\"assets/evidence.html#paper-L149\" target=\"_blank\" rel=\"noopener\">182-046 原文 L149–159 · §3</a><p>本次核对未见“近支撑端点自动设为交点”的规则；γ≥0截断和多交点选择也需作为项目规则说明。</p></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>g(0)≥δ时取γ=0；右端探测仍不足δ时，取极靠近最小观测的内部点，并记录 <code>virtual_gradient=offset</code>。该位置不是已验证的方程根。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-5\" target=\"_blank\" rel=\"noopener\">python/methods/mdm.py · L233–239</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 233              return {\n 234                  &quot;gamma&quot;: virtual_gamma,\n 235                  &quot;anchor_gradient&quot;: float(anchor_gradient),\n 236                  &quot;virtual_gradient&quot;: float(offset),\n 237                  &quot;model&quot;: &quot;right_endpoint_asymptote&quot;,\n 238              }\n 239  </code></pre></div></div><p><strong>核对判断：</strong>右端外推是当前增加的返回规则。真实过程图已将其标为外推，但run仍可能作为成功返回；显示真实不等于判据已满足。</p><p><strong>可能修改：</strong>优先决定外推结果的成功语义，再单独讨论非负位置约束；不能用人为目标梯度证明找到根。</p><p><strong>影响：</strong>改为失败会减少成功样本，并改变蒙特卡洛成功率和按成功样本汇总的统计。若保留近似估计，应与已达判据的结果区分。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "boundary-choice",
+      "title": "5.1 右端外推的返回方式",
+      "mode": "content",
+      "inline": true,
+      "selection_mode": "single",
+      "selected_ids": [
+        "edge-keep"
+      ],
+      "options": [
+        {
+          "id": "edge-keep",
+          "label": "保留现有返回规则",
+          "blocks": [
+            {
+              "id": "edge-keep-text",
+              "kind": "text",
+              "html": "<p>保持结果与成功口径；继续清楚显示right_edge_fit和未验证残差。</p>"
+            }
+          ]
+        }
+      ],
+      "selected": "edge-keep",
+      "state": "converged"
+    },
+    {
+      "id": "paper-images",
+      "title": "6 原PDF中的关键公式",
+      "mode": "content",
+      "options": [
+        {
+          "id": "paper-images-content",
+          "label": "6 原PDF中的关键公式",
+          "blocks": [
+            {
+              "id": "paper-images-body",
+              "kind": "text",
+              "html": "<p>精确秩见PDF第2页式(3)；离散差分见第4页式(7)。</p>"
+            },
+            {
+              "id": "pdf-rank",
+              "kind": "image",
+              "src": "assets/pdf-rank.png",
+              "alt": "原PDF第2页，精确秩与伪尺度公式(3)(4)"
+            },
+            {
+              "id": "pdf-difference",
+              "kind": "image",
+              "src": "assets/pdf-difference.png",
+              "alt": "原PDF第4页，离散梯度公式(7)及上下文"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "7 当前数值核对与测试能证明什么",
+      "mode": "content",
+      "options": [
+        {
+          "id": "verification-content",
+          "label": "7 当前数值核对与测试能证明什么",
+          "blocks": [
+            {
+              "id": "verification-body",
+              "kind": "visual",
+              "html": "<div style=\"overflow:auto\"><table style=\"font-size:16px\"><thead><tr><th>核对输入</th><th>β</th><th>η</th><th>γ</th></tr></thead><tbody><tr><td>理想样本，bernard秩，δ=0</td><td>1.9889272</td><td>998.32856</td><td>1001.8437</td></tr><tr><td>理想样本，bernard秩，δ=0.1</td><td>1.9813463</td><td>995.72946</td><td>1004.2661</td></tr><tr><td>理想样本，exact秩，δ=0</td><td>2.0000003</td><td>999.99994</td><td>1000</td></tr><tr><td>理想样本，exact秩，δ=0.1</td><td>1.9999762</td><td>999.99297</td><td>1000.0068</td></tr></tbody></table></div><p>原图4：δ=0时γ=990；δ=.1时γ=1025。原位置步长未完整给出，不能要求本连续程序逐值匹配。</p><p>本轮重新执行七个方法的既有原文/公式套件，共80项通过。通过的是已覆盖的公式、若干算例和边界；不是原文所有算法步骤、数据及蒙特卡洛表已复现。上表为少量确定性核对，不是新蒙特卡洛性能结论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "8 论文、源码与核对快照",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "8 论文、源码与核对快照",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><strong>谢里阳等，2025</strong> · 基于统计最小差异原理的Weibull分布参数估计方法</p><p>当前方法入口：<code>python/methods/mdm.py</code>。核对时间 2026-11-02T12:51:05+08:00；Git基线 2b3d01383c，工作区含未提交改动，以下哈希标识本轮实际文件。</p><p style=\"font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere\">入口SHA-256 ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381</p><p><a href=\"assets/evidence.html\" target=\"_blank\" rel=\"noopener\">查看逐项原文与源码摘录</a> · <a href=\"assets/provenance.json\" target=\"_blank\" rel=\"noopener\">查看来源与哈希</a> · <a href=\"assets/methods.html\" target=\"_blank\" rel=\"noopener\">其他方法</a></p><p>摘录用于本轮讨论，不是另一份可编辑的算法实现。源文件变化后应重新核对；审阅期间不修改估计器或原论文。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "last_applied_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238",
+  "review_complete": false,
+  "last_rendered_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238"
+}

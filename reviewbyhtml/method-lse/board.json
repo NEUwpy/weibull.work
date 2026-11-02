@@ -1,128 +1,177 @@
 {
   "id": "weibull-method-lse-20261102",
-  "title": "最小二乘估计 LSE · 原文与实现",
+  "title": "最小二乘估计 LSE · 流程与图的呈现评审",
   "document": true,
-  "revision": 1,
+  "revision": 2,
   "require_confirmation": true,
-  "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/lse.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/lse.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/lse.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
   "units": [
     {
       "id": "identity",
-      "title": "1 White回归与F比最大化",
+      "title": "1 整体呈现",
       "mode": "content",
       "options": [
         {
           "id": "identity-content",
-          "label": "1 White回归与F比最大化",
+          "label": "1 整体呈现",
           "blocks": [
             {
               "id": "identity-body",
               "kind": "text",
-              "html": "<p>当前LSE对应Soman–Misra论文的White回归/F比主方法。它的回归方向与LRE不同：</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>X</mi><mi>i</mi></msub><mo>=</mo><mi>E</mi><mo stretchy=\"false\">[</mo><msub><mi>W</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo>:</mo><mi>n</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo stretchy=\"false\">]</mo><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mi>a</mi><mo>+</mo><mi>b</mi><msub><mi>X</mi><mi>i</mi></msub><mo separator=\"true\">,</mo><mspace width=\"1em\"/><mover accent=\"true\"><mi>β</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>b</mi><mo separator=\"true\">,</mo><mspace width=\"1em\"/><mover accent=\"true\"><mi>η</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><msup><mi>e</mi><mi>a</mi></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><a href=\"assets/evidence.html#paper-L66\" target=\"_blank\" rel=\"noopener\">182-104 原文 L66–100 · 式(4)–(6)及Procedure</a><p>当前完整失效样本的F比判据与参数恢复有对应；没有理由为统一界面改成LRE的绘图位置回归。</p>"
+              "html": "<p><strong>建议主线：</strong>尝试不同位置γ，对数寿命与White顺序统计量期望作回归；选择F比最大的候选，再由回归斜率和截距恢复形状与尺度。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "means",
-      "title": "2 顺序统计量期望：数表与积分",
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
       "mode": "content",
       "options": [
         {
-          "id": "means-content",
-          "label": "2 顺序统计量期望：数表与积分",
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
           "blocks": [
             {
-              "id": "means-body",
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
               "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>White方法用reduced Log-Weibull顺序统计量的期望代替未知Xᵢ，并据此回归。</p><a href=\"assets/evidence.html#paper-L66\" target=\"_blank\" rel=\"noopener\">182-104 原文 L66–75 · White方法</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>不读取White原数表，直接对顺序统计量密度作数值积分，再按n缓存。积分区间[-60,10]、精度与预算是程序设置。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-1\" target=\"_blank\" rel=\"noopener\">python/methods/lse.py · L45–49</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  45  \n  46      guess = math.log(-math.log(1.0 - i / (n + 1.0)))\n  47      value, _ = integrate.quad(integrand, -60.0, 10.0, limit=400, points=[guess])\n  48      return value\n  49  </code></pre></div></div><p><strong>核对判断：</strong>目标量相同，数值获得方式不同。原表舍入与积分误差需分开；不是公式不一致就必须回退原数表。</p><p><strong>可能修改：</strong>优先保留积分，补不同n下误差和区间稳定性验证；若要求历史表逐值复现，再核得对应版本的原数表。</p><p><strong>影响：</strong>影响论文表值末位及速度；仅收紧算法容差不能证明已消除期望积分误差。</p>"
+              "html": "<p><strong>我的判断：</strong>建议保留两图，只加强“F定位置—White回归定形状和尺度”的衔接与符号解释。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "search",
-      "title": "3 位置搜索：递减试探与几何网格精化",
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
       "mode": "content",
       "options": [
         {
-          "id": "search-content",
-          "label": "3 位置搜索：递减试探与几何网格精化",
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
           "blocks": [
             {
-              "id": "search-body",
+              "id": "program-assessment",
               "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>从t₍₁₎−.01开始，递减位置、计算F比，选F最大的一行。原文没有列全递减序列。</p><a href=\"assets/evidence.html#paper-L80\" target=\"_blank\" rel=\"noopener\">182-104 原文 L80–100 · Procedure</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>在非负位置域用默认200点几何网格，取最大点后在邻域连续精化。只精化当前最优网格点邻域。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-2\" target=\"_blank\" rel=\"noopener\">python/methods/lse.py · L152–155</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 152          mus = _build_geometric_mu_grid(t_min, mu_steps)\n 153          f_values = np.array([profile_f(m) for m in mus])\n 154  \n 155          if not np.any(np.isfinite(f_values) &amp; (f_values &gt; -np.inf)):</code></pre><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-3\" target=\"_blank\" rel=\"noopener\">python/methods/lse.py · L161–165</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 161          best_idx = int(np.argmax(f_values))\n 162          best_mu = float(mus[best_idx])\n 163          best_f = float(f_values[best_idx])\n 164  \n 165          # @step: 5 | 局部精化 | 在最优网格点邻域内用有界标量优化精化 μ</code></pre></div></div><p><strong>核对判断：</strong>F比定义一致，但搜索序列与原文不同；连续最优点不必等于原表粗网格的峰值行。</p><p><strong>可能修改：</strong>可保留几何搜索并说明；若重点是减少漏峰，先验证F曲线是否存在多个峰，再决定是否逐峰精化。</p><p><strong>影响：</strong>网格与多峰处理会影响位置估计、运算量与稳定性；不应把原表峰值行当作连续最优点的唯一正确值。</p>"
+              "html": "<p><strong>当前判断：</strong>两幅现图已覆盖位置判据和最终回归，方向基本正确。主要应加强两图的同次计算关系，以及回归斜率与形状参数并不相同这一点。</p><p><strong>建议呈现：</strong>按“构造回归量—比较位置—恢复参数”组织三栏。积分和缓存属于顺序统计量期望的实现，主界面不将它们扩展成独立选择。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 计算顺序统计量期望 → 位置搜索与 White 回归 → 局部精化 → 反解参数 → 计算拟合优度并返回。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "search-choice",
-      "title": "3.1 位置搜索的优化方向",
-      "mode": "choices",
-      "inline": true,
-      "selection_mode": "single",
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "lse-search-keep",
-          "label": "保留当前网格及邻域精化",
-          "blocks": [
-            {
-              "id": "lse-search-keep-text",
-              "kind": "text",
-              "html": "<p>保持数值口径，补网格密度与论文表行对照。</p>"
-            }
-          ]
-        },
-        {
-          "id": "lse-search-peaks",
-          "label": "先核验多峰，再考虑逐峰精化",
-          "blocks": [
-            {
-              "id": "lse-search-peaks-text",
-              "kind": "text",
-              "html": "<p>以F曲线和独立搜索为证据；证实漏峰后修改同一lse.py。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "coverage",
-      "title": "4 原文覆盖与当前实现边界",
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
       "mode": "content",
       "options": [
         {
-          "id": "coverage-content",
-          "label": "4 原文覆盖与当前实现边界",
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
           "blocks": [
             {
-              "id": "coverage-body",
+              "id": "calculation-layout",
               "kind": "text",
-              "html": "<p>原文主方法重点讨论0&lt;形状&lt;3；另给3&lt;形状&lt;6的近似位置迭代和失效率估计方案。当前lse.py只实现White/F比主方法，不包含另两种构造。</p><a href=\"assets/evidence.html#paper-L132\" target=\"_blank\" rel=\"noopener\">182-104 原文 L132–168 · 高形状扩展</a><p>原文提到删失样本，当前统一输入与本方法验收以完整失效样本为准；不能据论文范围声称本网站已支持删失LSE。</p><p><strong>建议：</strong>先把当前名称与范围写清，不把全部原文内容强塞进一个含混LSE入口。若以后决定扩展，应先讨论方法身份、数据输入及判据，再修改这一个权威实现。</p>"
+              "html": "<p><strong>建议顺序：</strong>先看F(γ)选中位置，再看该位置的White回归。图中直接写清X是顺序统计量期望、Y是ln(t−γ)，斜率a=1/β，截距b=lnη；图后把a、b变成β、η。</p><p>下图沿用一组固定输入：Soman–Misra Example 1，n=30；结果 β̂=1.624419，η̂=39.16338，γ̂=501.9767。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
             }
           ]
         }
       ]
     },
     {
-      "id": "verification",
-      "title": "5 当前数值核对与测试能证明什么",
+      "id": "figure-f-location",
+      "title": "4.1 F比如何确定位置",
       "mode": "content",
       "options": [
         {
-          "id": "verification-content",
-          "label": "5 当前数值核对与测试能证明什么",
+          "id": "figure-f-location-content",
+          "label": "4.1 F比如何确定位置",
           "blocks": [
             {
-              "id": "verification-body",
-              "kind": "visual",
-              "html": "<div style=\"overflow:auto\"><table style=\"font-size:16px\"><thead><tr><th>核对输入</th><th>β</th><th>η</th><th>γ</th></tr></thead><tbody><tr><td>Soman–Misra Example 1</td><td>1.624419</td><td>39.163384</td><td>501.97674</td></tr><tr><td>Soman–Misra Example 2</td><td>0.78402217</td><td>8.8015301</td><td>99.952468</td></tr></tbody></table></div><p>原表峰值约 β=1.603，η=39.26，γ=502.1。</p><p>原表峰值约 β=.8361，η=8.8521，γ=99.9。</p><p>本轮重新执行七个方法的既有原文/公式套件，共80项通过。通过的是已覆盖的公式、若干算例和边界；不是原文所有算法步骤、数据及蒙特卡洛表已复现。上表为少量确定性核对，不是新蒙特卡洛性能结论。</p>"
+              "id": "chart-f-location-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>F比如何确定位置。</p><p><strong>建议：</strong>保留位置主图，突出F峰与选中γ，不让近支撑端的密集点淹没峰。</p><p><strong>核查意见：</strong>曲线是各位置的函数求值，不能称作F随迭代收敛。</p>"
+            },
+            {
+              "id": "record-f-location",
+              "kind": "image",
+              "src": "assets/record-f-location.svg",
+              "alt": "同一次运行记录重绘：位置参数的 F 比判据"
+            },
+            {
+              "id": "record-f-location-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-white-regression",
+      "title": "4.2 回归怎样给出形状与尺度",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-white-regression-content",
+          "label": "4.2 回归怎样给出形状与尺度",
+          "blocks": [
+            {
+              "id": "chart-white-regression-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>回归怎样给出形状与尺度。</p><p><strong>建议：</strong>保留散点与回归线，直接标注斜率取倒数得到β、截距取指数得到η。</p><p><strong>核查意见：</strong>它与LRE的回归方向及横坐标不同，不能共用含糊的“线性拟合”说明。</p>"
+            },
+            {
+              "id": "record-white-regression",
+              "kind": "image",
+              "src": "assets/record-white-regression.svg",
+              "alt": "同一次运行记录重绘：最终位置下的 White 回归"
+            },
+            {
+              "id": "record-white-regression-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>F 比最大处确定位置</strong>：γ̂=501.9767, F=22.92554</p><p><strong>回归斜率确定形状</strong>：b=0.6156047, β̂=1.624419</p><p><strong>回归截距确定尺度</strong>：a=3.667742, η̂=39.16338</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
             }
           ]
         }
@@ -130,17 +179,17 @@
     },
     {
       "id": "sources",
-      "title": "6 论文、源码与核对快照",
+      "title": "核查依据",
       "mode": "content",
       "options": [
         {
           "id": "sources-content",
-          "label": "6 论文、源码与核对快照",
+          "label": "核查依据",
           "blocks": [
             {
               "id": "sources-body",
               "kind": "text",
-              "html": "<p><strong>K. P. Soman 与 K. B. Misra，1992</strong> · A Least Square Estimation of Three Parameters of a Weibull Distribution</p><p>当前方法入口：<code>python/methods/lse.py</code>。核对时间 2026-11-02T12:51:05+08:00；Git基线 2b3d01383c，工作区含未提交改动，以下哈希标识本轮实际文件。</p><p style=\"font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere\">入口SHA-256 467508ff09cd6f1274a02c5f829e79fbe6729abf2d9621751b32589e7b9763c6</p><p><a href=\"assets/evidence.html\" target=\"_blank\" rel=\"noopener\">查看逐项原文与源码摘录</a> · <a href=\"assets/provenance.json\" target=\"_blank\" rel=\"noopener\">查看来源与哈希</a> · <a href=\"assets/methods.html\" target=\"_blank\" rel=\"noopener\">其他方法</a></p><p>摘录用于本轮讨论，不是另一份可编辑的算法实现。源文件变化后应重新核对；审阅期间不修改估计器或原论文。</p>"
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
             }
           ]
         }

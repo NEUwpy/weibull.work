@@ -1,0 +1,169 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流程核查依据</title><style>body{max-width:1000px;margin:32px auto;padding:20px;font:17px/1.8 system-ui;color:#213930}pre{overflow:auto;background:#f1f5f2;padding:16px;font-size:14px}math{display:block;overflow:auto}h2{font-size:24px}table{border-collapse:collapse}td,th{padding:8px}</style><h1>矩估计 MM · 核查依据</h1><p>读取时间 2026-11-03T00:21:38+08:00。以下从网站当前流程API及现行方法运行记录取得；本页仅供查证。</p><p><a href="process-run.json">完整输入、结果、绘图点及源码身份</a> · <a href="prior-algorithm-review.html">此前原文核对</a></p><h2>数据预处理</h2><p>获取排序后的失效时间数据和样本数量</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></p><p>python/base.py L22–34</p><pre><code>  22     def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23         &quot;&quot;&quot;
+  24         Input: data (list or np.array) of failure times.
+  25         Status is assumed to be Failure (F) for this mathematical implementation.
+  26         rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27         &quot;&quot;&quot;
+  28         values = np.asarray(data, dtype=float).reshape(-1)
+  29         if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30             raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31         self.data = np.sort(values)
+  32         self.n = len(self.data)
+  33         self.trace_data = [] # Store process data for visualization
+  34         self.rank_method = rank_method</code></pre><p>python/methods/mm.py L64–76</p><pre><code>  64         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  65         # @formula: x_{(1)} \leq x_{(2)} \leq \cdots \leq x_{(n)}
+  66         # @symbols: x|x|排序后的失效时间数组, n|n|样本数量
+  67         # @inputs: data|x_i|原始失效时间样本
+  68         # @outputs: x|x|排序后数组, n|n|样本数量
+  69         self.calculation_trace = None
+  70         x = self.data
+  71         n = self.n
+  72
+  73         if n &lt; 3:
+  74             self.last_solution_info = {&quot;status&quot;: &quot;insufficient_sample&quot;, &quot;n&quot;: int(n)}
+  75             return [0, 0, 0, 0, &quot;insufficient_sample&quot;]
+  76</code></pre><h2>计算样本 Weibull 矩</h2><p>用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mi>k</mi></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>r</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></munderover><msup><mrow><mo fence="true">(</mo><mn>1</mn><mo>−</mo><mfrac><mi>r</mi><mi>n</mi></mfrac><mo fence="true">)</mo></mrow><mi>k</mi></msup><mo stretchy="false">(</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>r</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>−</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>r</mi><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></msub><mo>=</mo><mn>0</mn></mrow></semantics></math></span></p><p>python/methods/mm.py L77–89</p><pre><code>  77         # @step: 2 | 计算样本 Weibull 矩 | 用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）
+  78         # @formula: \bar{m}_k = \sum_{r=0}^{n-1}\left(1-\frac{r}{n}\right)^k (x_{(r+1)} - x_{(r)}), \quad x_{(0)}=0
+  79         # @symbols: \bar{m}_k|\bar{m}_k|k 阶样本 Weibull 矩
+  80         # @inputs: x|x|排序后数组, n|n|样本数量
+  81         # @outputs: m1|\bar{m}_1|一阶矩（等于样本均值）, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
+  82         terms = {k: [] for k in (1, 2, 4)}
+  83         m1 = sample_weibull_moment(x, 1, terms[1] if trace else None)
+  84         m2 = sample_weibull_moment(x, 2, terms[2] if trace else None)
+  85         m4 = sample_weibull_moment(x, 4, terms[4] if trace else None)
+  86
+  87         if trace:
+  88             self.log_step({&quot;phase&quot;: &quot;moments&quot;, &quot;m1&quot;: m1, &quot;m2&quot;: m2, &quot;m4&quot;: m4})
+  89</code></pre><p>python/methods/mm.py L28–36</p><pre><code>  28 def sample_weibull_moment(sorted_x, k, trace_terms=None):
+  29     &quot;&quot;&quot;论文式(3)：样本 Weibull 矩 m̄_k = Σ (1 - r/n)^k (x_(r+1) - x_(r))，x_(0)=0。&quot;&quot;&quot;
+  30     n = len(sorted_x)
+  31     x_prev = np.concatenate(([0.0], sorted_x[:-1]))
+  32     weights = (1.0 - np.arange(n) / n) ** k
+  33     terms = weights * (sorted_x - x_prev)
+  34     if trace_terms is not None:
+  35         trace_terms.extend(float(v) for v in terms)
+  36     return float(np.sum(terms))</code></pre><h2>检查矩组合并解参数</h2><p>论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msub><mi>m</mi><mn>2</mn></msub><mo>&gt;</mo><msub><mi>m</mi><mn>2</mn></msub><mo>−</mo><msub><mi>m</mi><mn>4</mn></msub><mo>&gt;</mo><mn>0</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>β</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><mi>ln</mi><mo>⁡</mo><mn>2</mn></mrow><mrow><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msub><mi>m</mi><mn>2</mn></msub><mo stretchy="false">)</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>−</mo><msub><mi>m</mi><mn>4</mn></msub><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>γ</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mn>1</mn></msub><msub><mi>m</mi><mn>4</mn></msub><mo>−</mo><msubsup><mi>m</mi><mn>2</mn><mn>2</mn></msubsup></mrow><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>+</mo><msub><mi>m</mi><mn>4</mn></msub><mo>−</mo><mn>2</mn><msub><mi>m</mi><mn>2</mn></msub></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>η</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msup><mi>γ</mi><mo>∗</mo></msup></mrow><mrow><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr></mtable></mstyle></mtd></mtr></mtable></semantics></math></span></p><p>python/methods/mm.py L44–47</p><pre><code>  44     d12 = m1 - m2
+  45     d24 = m2 - m4
+  46     if d24 &lt;= 0 or d12 &lt;= d24:
+  47         return None</code></pre><p>python/methods/mm.py L48–51</p><pre><code>  48     shape = math.log(2.0) / (math.log(d12) - math.log(d24))
+  49     location = (m1 * m4 - m2 * m2) / (m1 + m4 - 2.0 * m2)
+  50     scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+  51     return shape, location, scale</code></pre><p>python/methods/mm.py L107–115</p><pre><code> 107         # @step: 4 | 显式解参数 | 论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度
+ 108         # @formula: c^* = \frac{\ln 2}{\ln(\bar{m}_1-\bar{m}_2) - \ln(\bar{m}_2-\bar{m}_4)}, \quad a^* = \frac{\bar{m}_1\bar{m}_4 - \bar{m}_2^2}{\bar{m}_1 + \bar{m}_4 - 2\bar{m}_2}, \quad b^* = \frac{\bar{m}_1 - a^*}{\Gamma(1+1/c^*)}
+ 109         # @symbols: c^*|c^*|形状参数估计, a^*|a^*|位置参数估计, b^*|b^*|尺度参数估计
+ 110         # @inputs: m1|\bar{m}_1|一阶矩, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
+ 111         # @outputs: shape|c^*|形状参数, location|a^*|位置参数, scale|b^*|尺度参数
+ 112         shape, location, scale = solved
+ 113         raw_estimate = dict(beta=float(shape), eta=float(scale), gamma=float(location))
+ 114         location_adjustment = None
+ 115</code></pre><h2>修正位置与尺度</h2><p>a*&lt;0 置零；a*&gt;=x_(1) 用论文替代式 a**</p><p>\[\begin{gathered}\gamma^*<0\Rightarrow\hat\gamma=0;\\[5pt]\gamma^*\ge t_{(1)}\Rightarrow\hat\gamma=\max\left(0,t_{(1)}-\frac{\eta^*\Gamma(1+1/\beta^*)}{n^{1/\beta^*}}\right)\\[5pt]\hat\eta=\frac{m_1-\hat\gamma}{\Gamma(1+1/\beta^*)}\end{gathered}\]</p><p>python/methods/mm.py L116–139</p><pre><code> 116         # @step: 5 | 位置参数可采纳性修正 | a*&lt;0 置零；a*&gt;=x_(1) 用论文替代式 a**
+ 117         # @formula: a^{**} = x_{(1)} - b^* \Gamma(1+1/c^*) / n^{1/c^*}
+ 118         # @symbols: a^{**}|a^{**}|替代位置估计, x_{(1)}|x_{(1)}|最小失效时间
+ 119         # @inputs: location|a^*|位置参数, shape|c^*|形状参数, scale|b^*|尺度参数
+ 120         # @outputs: location|\hat{a}|修正后的位置参数, scale|\hat{b}|修正后的尺度参数
+ 121         x_min = float(x[0])
+ 122         if location &lt; 0.0:
+ 123             location = 0.0
+ 124             scale = m1 / gamma_fn(1.0 + 1.0 / shape)
+ 125             location_adjustment = &quot;clamped_to_zero&quot;
+ 126         elif location &gt;= x_min:
+ 127             alt = x_min - scale * gamma_fn(1.0 + 1.0 / shape) / (n ** (1.0 / shape))
+ 128             location = max(0.0, float(alt))
+ 129             scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+ 130             location_adjustment = &quot;alternative_a_star_star&quot;
+ 131             if location &gt;= x_min or scale &lt;= 0:
+ 132                 self.last_solution_info = {
+ 133                     &quot;status&quot;: &quot;inadmissible_location&quot;,
+ 134                     &quot;a_star_star&quot;: float(alt),
+ 135                 }
+ 136                 if trace:
+ 137                     self.log_step({&quot;phase&quot;: &quot;failed&quot;, &quot;reason&quot;: &quot;inadmissible_location&quot;})
+ 138                 return [0, 0, 0, 0, &quot;inadmissible_location&quot;]
+ 139</code></pre><h2>计算两参数对照</h2><p>论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>c</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo>=</mo><mfrac><mrow><mi>ln</mi><mo>⁡</mo><mn>2</mn></mrow><mrow><mi>ln</mi><mo>⁡</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mo>−</mo><mi>ln</mi><mo>⁡</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn></msub></mrow></mfrac><mo separator="true">,</mo><mspace width="1em"/><msup><mi>b</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo>=</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mi mathvariant="normal">/</mi><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>c</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/mm.py L140–150</p><pre><code> 140         # @step: 6 | 2P 对照估计 | 论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断
+ 141         # @formula: c^{**} = \frac{\ln 2}{\ln \bar{m}_1 - \ln \bar{m}_2}, \quad b^{**} = \bar{m}_1 / \Gamma(1+1/c^{**})
+ 142         # @symbols: c^{**}|c^{**}|2P 形状估计, b^{**}|b^{**}|2P 尺度估计
+ 143         # @inputs: m1|\bar{m}_1|一阶矩, m2|\bar{m}_2|二阶矩
+ 144         # @outputs: two_param_shape|c^{**}|2P 形状, two_param_scale|b^{**}|2P 尺度
+ 145         two_param_shape = None
+ 146         two_param_scale = None
+ 147         if m1 &gt; 0 and m2 &gt; 0 and m1 &gt; m2:
+ 148             two_param_shape = math.log(2.0) / (math.log(m1) - math.log(m2))
+ 149             two_param_scale = m1 / gamma_fn(1.0 + 1.0 / two_param_shape)
+ 150</code></pre><h2>计算拟合优度并返回</h2><p>评估模型与数据的拟合程度</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></p><p>python/base.py L79–96</p><pre><code>  79     def _calculate_r2(self, beta, eta, gamma_val):
+  80         &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81         if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83         # Experimental
+  84         x = np.log(self.data - gamma_val)
+  85         y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87         # Theoretical / Predicted
+  88         # y = beta * x - beta * ln(eta)
+  89         y_pred = beta * x - beta * np.log(eta)
+  90
+  91         # R^2 calculation
+  92         ss_res = np.sum((y_exp - y_pred)**2)
+  93         ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95         if ss_tot == 0: return 0.0
+  96         return 1 - (ss_res / ss_tot)</code></pre><p>python/base.py L58–68</p><pre><code>  58     def _median_ranks(self):
+  59         &quot;&quot;&quot;
+  60         Helper: Calculate Median Ranks using configured method.
+  61         - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62         - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63         &quot;&quot;&quot;
+  64         i = np.arange(1, self.n + 1)
+  65         if self.rank_method == &#x27;exact&#x27;:
+  66             return betaincinv(i, self.n - i + 1, 0.5)
+  67         else:  # bernard
+  68             return (i - 0.3) / (self.n + 0.4)</code></pre><p>python/methods/mm.py L158–208</p><pre><code> 158         self.last_solution_info = {
+ 159             &quot;status&quot;: &quot;ok&quot;,
+ 160             &quot;m1&quot;: m1,
+ 161             &quot;m2&quot;: m2,
+ 162             &quot;m4&quot;: m4,
+ 163             &quot;location_adjustment&quot;: location_adjustment,
+ 164             &quot;two_param_shape&quot;: two_param_shape,
+ 165             &quot;two_param_scale&quot;: two_param_scale,
+ 166             &quot;raw_estimate&quot;: raw_estimate,
+ 167         }
+ 168
+ 169         if trace:
+ 170             self.log_step({
+ 171                 &quot;phase&quot;: &quot;final&quot;,
+ 172                 &quot;beta&quot;: float(shape),
+ 173                 &quot;eta&quot;: float(scale),
+ 174                 &quot;gamma&quot;: float(location),
+ 175                 &quot;location_adjustment&quot;: location_adjustment,
+ 176             })
+ 177             description = &#x27;先检验 m̄₁−m̄₂ &gt; m̄₂−m̄₄ &gt; 0，再由式(2a–c)显式解参数并执行记录的位置处理。&#x27;
+ 178             self.calculation_trace = dict(
+ 179                 schema_version=1, method=&#x27;mm&#x27;, criterion=dict(description=description),
+ 180                 selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(shape),
+ 181                                eta=float(scale), gamma=float(location),
+ 182                                raw_estimate=raw_estimate, location_adjustment=location_adjustment),
+ 183                 charts=[plot_chart(&#x27;weibull-moments&#x27;, &#x27;生存函数面积形成样本矩&#x27;, &#x27;失效时间 t&#x27;, &#x27;经验生存函数的幂 Sₙ(t)ᵏ&#x27;,
+ 184                                    [dict(**plot_series(f&#x27;survival-{k}&#x27;, f&#x27;k={k}，m̄={moment:.6g}&#x27;,
+ 185                                         [plot_point(0, 1)] + [plot_point(value, ((n-i-1)/n)**k)
+ 186                                                               for i, value in enumerate(x)], role=&#x27;diagnostic&#x27;),
+ 187                                          interpolation=&#x27;stepAfter&#x27;) for k, moment in ((1,m1),(2,m2),(4,m4))],
+ 188                                    formula=r&#x27;\bar m_k=\int_0^\infty S_n(t)^k\,dt=\sum_{r=0}^{n-1}(1-r/n)^k(t_{(r+1)}-t_{(r)})&#x27;,
+ 189                                    description=&#x27;三条阶梯曲线下的面积分别是 m̄₁、m̄₂、m̄₄，用来显式求解参数。&#x27;),
+ 190                         plot_chart(&#x27;moment-admissibility&#x27;, &#x27;样本矩能否给出正的形状和尺度&#x27;,
+ 191                                    &#x27;d₂₄ = m̄₂−m̄₄&#x27;, &#x27;d₁₂ = m̄₁−m̄₂&#x27;,
+ 192                                    [plot_series(&#x27;boundary&#x27;, &#x27;d₁₂=d₂₄ 边界&#x27;,
+ 193                                                 [plot_point(0,0),plot_point(m1-m2,m1-m2)], role=&#x27;diagnostic&#x27;)],
+ 194                                    selected=[plot_point(m2-m4,m1-m2,label=&#x27;本次矩组合&#x27;)],
+ 195                                    formula=r&#x27;d_{12}&gt;d_{24}&gt;0&#x27;,
+ 196                                    description=&#x27;本次矩组合应在对角线上方且横坐标大于零，随后代入显式解。&#x27;)],
+ 197                 recovery=[calculation_step(&#x27;样本矩与形状显式解&#x27;, r&#x27;\hat\beta=\frac{\ln2}{\ln(\bar m_1-\bar m_2)-\ln(\bar m_2-\bar m_4)}&#x27;,
+ 198                                            [(&#x27;m̄₁&#x27;,m1),(&#x27;m̄₂&#x27;,m2),(&#x27;m̄₄&#x27;,m4),(&#x27;β̂&#x27;,shape)]),
+ 199                           calculation_step(&#x27;位置显式解与当前处理&#x27;, r&#x27;\gamma^*=\frac{\bar m_1\bar m_4-\bar m_2^2}{\bar m_1+\bar m_4-2\bar m_2}&#x27;,
+ 200                                            [(&#x27;γ*（原始）&#x27;,raw_estimate[&#x27;gamma&#x27;]),(&#x27;γ̂（返回）&#x27;,location)]),
+ 201                           calculation_step(&#x27;尺度恢复&#x27;, r&#x27;\hat\eta=\frac{\bar m_1-\hat\gamma}{\Gamma(1+1/\hat\beta)}&#x27;,
+ 202                                            [(&#x27;η*（原始）&#x27;,raw_estimate[&#x27;eta&#x27;]),(&#x27;η̂（返回）&#x27;,scale)])],
+ 203                 details=dict(**self.last_solution_info,
+ 204                              moment_terms=terms,
+ 205                              scale_recomputed=location_adjustment is not None,
+ 206                              implementation_note=&#x27;位置处理后的尺度重算是当前实现的工程补充规则，未经修正参数保留在 raw_estimate。&#x27;))
+ 207
+ 208         return [float(shape), float(scale), float(location), float(r2), True]</code></pre></html>

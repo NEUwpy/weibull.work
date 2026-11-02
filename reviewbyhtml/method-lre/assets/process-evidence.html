@@ -1,0 +1,186 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流程核查依据</title><style>body{max-width:1000px;margin:32px auto;padding:20px;font:17px/1.8 system-ui;color:#213930}pre{overflow:auto;background:#f1f5f2;padding:16px;font-size:14px}math{display:block;overflow:auto}h2{font-size:24px}table{border-collapse:collapse}td,th{padding:8px}</style><h1>线性回归估计 LRE · 核查依据</h1><p>读取时间 2026-11-03T00:21:38+08:00。以下从网站当前流程API及现行方法运行记录取得；本页仅供查证。</p><p><a href="process-run.json">完整输入、结果、绘图点及源码身份</a> · <a href="prior-algorithm-review.html">此前原文核对</a></p><h2>数据预处理</h2><p>获取排序后的失效时间数据和样本数量</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></p><p>python/base.py L22–34</p><pre><code>  22     def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23         &quot;&quot;&quot;
+  24         Input: data (list or np.array) of failure times.
+  25         Status is assumed to be Failure (F) for this mathematical implementation.
+  26         rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27         &quot;&quot;&quot;
+  28         values = np.asarray(data, dtype=float).reshape(-1)
+  29         if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30             raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31         self.data = np.sort(values)
+  32         self.n = len(self.data)
+  33         self.trace_data = [] # Store process data for visualization
+  34         self.rank_method = rank_method</code></pre><p>python/methods/lre.py L28–49</p><pre><code>  28         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  29         # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
+  30         # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
+  31         # @inputs: data|t_i|原始失效时间样本
+  32         # @outputs: t|t|排序后数组, n|n|样本数量
+  33         self.calculation_trace = None
+  34         evaluations = []
+  35         n = self.n
+  36         t = self.data
+  37
+  38         if n &lt; 3:
+  39             self.last_solution_info = {&quot;status&quot;: &quot;insufficient_sample&quot;, &quot;n&quot;: int(n)}
+  40             return [0, 0, 0, 0, &quot;insufficient_sample&quot;]
+  41
+  42         # 进入优化前检查原始样本退化性：全等值或近全等值样本无信息。
+  43         # 使用尺度相关容差，不依赖优化后的对数变换精度。
+  44         t_range = float(np.ptp(t))
+  45         t_scale = float(np.max(t))
+  46         if t_range &lt;= t_scale * 1e-12:
+  47             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+  48             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+  49</code></pre><h2>计算绘图位置</h2><p>n≤10 用 Blom，n≥11 用 (i−1/2)/n</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mrow><mo fence="true">{</mo><mtable rowspacing="0.36em" columnalign="left left" columnspacing="1em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>−</mo><mn>3</mn><mi mathvariant="normal">/</mi><mn>8</mn><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><mn>4</mn><mo stretchy="false">)</mo><mo separator="true">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mi>n</mi><mo>≤</mo><mn>10</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>−</mo><mn>1</mn><mi mathvariant="normal">/</mi><mn>2</mn><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mi>n</mi><mo separator="true">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mi>n</mi><mo>≥</mo><mn>11</mn></mrow></mstyle></mtd></mtr></mtable></mrow><mo separator="true">,</mo><mspace width="1em"/><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/lre.py L50–67</p><pre><code>  50         # @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n
+  51         # @formula: p_i=\begin{cases}(i-3/8)/(n+1/4),&amp;n\leq10\\(i-1/2)/n,&amp;n\geq11\end{cases},\quad y_i=\ln(-\ln(1-p_i))
+  52         # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率, y_i|y_i|变换后的因变量
+  53         # @inputs: n|n|样本数量
+  54         # @outputs: y|y_i|双对数变换的因变量数组
+  55         # 此估计器的绘图位置由论文固定，不消费基础类的 Bernard/exact 开关。
+  56         ranks = np.arange(1, n + 1, dtype=float)
+  57         F = (ranks - 3 / 8) / (n + 1 / 4) if n &lt;= 10 else (ranks - 1 / 2) / n
+  58         self.plotting_positions = F
+  59         y = np.log(-np.log1p(-F))
+  60         y_centered = y - np.mean(y)
+  61         y_ss = float(np.dot(y_centered, y_centered))
+  62
+  63         y_var = float(np.var(y))
+  64         if y_var &lt;= 0:
+  65             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+  66             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+  67</code></pre><h2>优化位置参数</h2><p>保留网格最佳点并精化被夹住的峰，比较后恢复γ。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mrow><mi>γ</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>0</mn><mo separator="true">,</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">)</mo></mrow></munder><mi>ρ</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>ρ</mi><mo>=</mo><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false">(</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>t</mi><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/lre.py L75–81</p><pre><code>  75         t_min = float(t[0])
+  76         upper = float(np.nextafter(t_min, 0.0))
+  77         # s=log((t_min-γ)/t_min)。用对数间隔覆盖开区间的近端点；
+  78         # x 减去常数 log(t_min) 不改变相关系数或 OLS 斜率。
+  79         s_min = math.log((t_min - upper) / t_min)
+  80         relative_excess = (t - t_min) / t_min
+  81</code></pre><p>python/methods/lre.py L94–104</p><pre><code>  94         search_grid = np.unique(np.concatenate([
+  95             np.linspace(s_min, 0.0, 201),
+  96             np.log1p(-np.linspace(0.0, 0.99, 201)),
+  97         ]))
+  98         objective_grid = np.array([negative_correlation(s) for s in search_grid])
+  99
+ 100         finite = np.isfinite(objective_grid)
+ 101         if not np.any(finite):
+ 102             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 103             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 104</code></pre><p>python/methods/lre.py L82–92</p><pre><code>  82         def negative_correlation(s):
+  83             x = np.log(relative_excess + np.exp(s))
+  84             centered = x - np.mean(x)
+  85             x_ss = float(np.dot(centered, centered))
+  86             if x_ss &lt;= 0 or not np.isfinite(x_ss):
+  87                 return np.inf
+  88             rho = float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
+  89             if trace:
+  90                 evaluations.append(dict(x=float(-t_min * np.expm1(s)), y=rho,
+  91                                         evaluation=len(evaluations) + 1))
+  92             return -rho</code></pre><p>python/methods/lre.py L105–130</p><pre><code> 105         best_idx = int(np.argmin(np.where(finite, objective_grid, np.inf)))
+ 106         best_s = float(search_grid[best_idx])
+ 107         best_objective = float(objective_grid[best_idx])
+ 108         refined = False
+ 109         # 精化所有被网格夹住的峰，保留端点候选，不假定单峰。
+ 110         peaks = [i for i in range(1, len(search_grid) - 1)
+ 111                  if objective_grid[i] &lt;= objective_grid[i - 1]
+ 112                  and objective_grid[i] &lt;= objective_grid[i + 1]]
+ 113         for i in peaks:
+ 114             result = minimize_scalar(
+ 115                 negative_correlation,
+ 116                 bounds=(float(search_grid[i - 1]), float(search_grid[i + 1])),
+ 117                 method=&quot;bounded&quot;,
+ 118                 options={&quot;xatol&quot;: 1e-12},
+ 119             )
+ 120             if result.success and np.isfinite(result.fun) and float(result.fun) &lt;= best_objective:
+ 121                 best_s = float(result.x)
+ 122                 best_objective = float(result.fun)
+ 123                 refined = True
+ 124
+ 125         gamma_hat = min(upper, float(-t_min * np.expm1(best_s)))
+ 126
+ 127         if not np.isfinite(gamma_hat) or gamma_hat &gt;= t[0] or gamma_hat &lt; 0:
+ 128             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 129             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 130</code></pre><h2>OLS 线性回归</h2><p>在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mfrac><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi></mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mfrac><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></p><p>python/methods/lre.py L131–149</p><pre><code> 131         # @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合
+ 132         # @formula: \hat{\beta} = \frac{\sum(x_i-\bar{x})(y_i-\bar{y})}{\sum(x_i-\bar{x})^2},
+ 133         #   \hat{\eta} = e^{-\hat{\alpha}/\hat{\beta}},\ \hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}
+ 134         # @symbols: \hat{\beta}|\hat{\beta}|形状参数（回归斜率）, \hat{\eta}|\hat{\eta}|尺度参数（截距反解）
+ 135         # @inputs: gamma_hat|\hat{\gamma}|最优γ, t|t|失效时间数组, y|y_i|变换因变量
+ 136         # @outputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数
+ 137         x_vals = np.log((t - gamma_hat) / t_min)
+ 138         x_mean = float(np.mean(x_vals))
+ 139         y_mean = float(np.mean(y))
+ 140
+ 141         numerator = float(np.sum((x_vals - x_mean) * (y - y_mean)))
+ 142         denominator = float(np.sum((x_vals - x_mean) ** 2))
+ 143
+ 144         if not np.isfinite(denominator) or denominator &lt;= 0:
+ 145             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 146             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 147
+ 148         beta_hat = numerator / denominator
+ 149</code></pre><h2>检查系数并恢复尺度</h2><p>要求β为有限正数，使用归一化回归截距恢复η，并检查尺度可采纳性。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>&gt;</mo><mn>0</mn><mo separator="true">,</mo><mspace width="1em"/><mi>a</mi><mo>=</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><mo>−</mo><mover accent="true"><mi>β</mi><mo>^</mo></mover><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><msup><mi>e</mi><mrow><mo>−</mo><mi>a</mi><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></mrow></msup><mo>&gt;</mo><mn>0</mn></mrow></semantics></math></span></p><p>python/methods/lre.py L150–164</p><pre><code> 150         # @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳
+ 151         # @symbols: \hat{\beta}|\hat{\beta}|形状参数估计值
+ 152         # @inputs: beta_hat|\hat{\beta}|形状参数
+ 153         # @outputs: status|status|采纳性判定
+ 154         if not (np.isfinite(beta_hat) and beta_hat &gt; 0):
+ 155             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 156             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 157
+ 158         intercept = y_mean - beta_hat * x_mean
+ 159         eta_hat = t_min * math.exp(-intercept / beta_hat)
+ 160
+ 161         if not np.isfinite(eta_hat) or eta_hat &lt;= 0:
+ 162             self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 163             return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 164</code></pre><h2>计算拟合优度并返回</h2><p>与位置搜索采用同一组 Park 绘图位置</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac><mo>=</mo><msup><mi>ρ</mi><mn>2</mn></msup></mrow></semantics></math></span></p><p>python/methods/lre.py L165–217</p><pre><code> 165         # @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置
+ 166         # @formula: R^2 = 1-\frac{\sum(y_i-\hat{y}_i)^2}{\sum(y_i-\bar{y})^2}=\rho^2
+ 167         # @symbols: R^2|R^2|概率图决定系数, y_i|y_i|变换后的绘图分数
+ 168         # @inputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数, gamma_hat|\hat{\gamma}|位置参数
+ 169         # @outputs: r2|R^2|拟合优度
+ 170         residual = y - (beta_hat * x_vals + intercept)
+ 171         r2 = 1.0 - float(np.dot(residual, residual)) / y_ss
+ 172
+ 173         self.last_solution_info = {
+ 174             &quot;status&quot;: &quot;ok&quot;,
+ 175             &quot;implementation&quot;: &quot;park2017_proposed_plot&quot;,
+ 176             &quot;plotting_positions&quot;: &quot;blom&quot; if n &lt;= 10 else &quot;(i-0.5)/n&quot;,
+ 177             &quot;strategy&quot;: &quot;correlation_maximization&quot;,
+ 178             &quot;constraint&quot;: &quot;0 &lt;= gamma &lt; t[0]&quot;,
+ 179             &quot;gamma_grid_points&quot;: int(len(search_grid)),
+ 180             &quot;refined&quot;: bool(refined),
+ 181             &quot;rho_squared&quot;: float(r2),
+ 182             &quot;location_at_zero_boundary&quot;: bool(gamma_hat == 0.0),
+ 183         }
+ 184
+ 185         if trace:
+ 186             description = &#x27;按 Park Proposed+Plot 的绘图位置，在非负位置域内最大化相关系数，再作概率图 OLS。&#x27;
+ 187             rho = -best_objective
+ 188             physical_x = x_vals + math.log(t_min)
+ 189             physical_intercept = intercept - beta_hat * math.log(t_min)
+ 190             self.calculation_trace = dict(
+ 191                 schema_version=1, method=&#x27;lre&#x27;, criterion=dict(description=description),
+ 192                 selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(beta_hat),
+ 193                                eta=float(eta_hat), gamma=float(gamma_hat), rho=float(rho)),
+ 194                 charts=[plot_chart(
+ 195                     &#x27;correlation-location&#x27;, &#x27;位置参数的相关系数判据&#x27;, &#x27;位置参数 γ&#x27;, &#x27;相关系数 ρ&#x27;,
+ 196                     [plot_series(&#x27;rho&#x27;, &#x27;实际网格与精化求值&#x27;, evaluations)],
+ 197                     selected=[plot_point(gamma_hat, rho, label=&#x27;相关系数最大候选&#x27;)],
+ 198                     formula=r&#x27;\hat\gamma=\arg\max_\gamma\rho\!\left(\ln(t_i-\gamma),\ln[-\ln(1-p_i)]\right)&#x27;,
+ 199                     description=&#x27;选择使概率图最接近直线的位置，即相关系数最大处。&#x27;),
+ 200                     plot_chart(&#x27;park-probability-regression&#x27;, &#x27;最终位置下的概率图回归&#x27;,
+ 201                                &#x27;对数寿命 ln(tᵢ−γ̂)&#x27;, &#x27;Weibull 分数 ln[−ln(1−Fᵢ)]&#x27;,
+ 202                                [plot_series(&#x27;observations&#x27;, &#x27;Park 绘图位置&#x27;,
+ 203                                             [plot_point(a, b) for a, b in zip(physical_x, y)], kind=&#x27;scatter&#x27;),
+ 204                                 plot_series(&#x27;fit&#x27;, &#x27;本次 OLS 直线&#x27;,
+ 205                                             [plot_point(a, beta_hat * a + physical_intercept) for a in physical_x])],
+ 206                                formula=r&#x27;Y_i=a+b\ln(t_i-\hat\gamma),\quad\hat\beta=b,\quad\hat\eta=e^{-a/b}&#x27;,
+ 207                                description=&#x27;固定左图选中的位置后作 OLS；斜率 b=β̂，截距 a=−β̂ ln η̂。&#x27;)],
+ 208                 recovery=[calculation_step(&#x27;相关系数最大处确定位置&#x27;, r&#x27;\hat\gamma=\arg\max_\gamma\rho(\gamma)&#x27;,
+ 209                                            [(&#x27;γ̂&#x27;, gamma_hat), (&#x27;ρ&#x27;, rho)]),
+ 210                           calculation_step(&#x27;概率图斜率确定形状&#x27;, r&#x27;\hat\beta=b&#x27;, [(&#x27;b&#x27;, beta_hat), (&#x27;β̂&#x27;, beta_hat)]),
+ 211                           calculation_step(&#x27;概率图截距确定尺度&#x27;, r&#x27;\hat\eta=e^{-a/b}&#x27;,
+ 212                                            [(&#x27;a&#x27;, physical_intercept), (&#x27;η̂&#x27;, eta_hat)])],
+ 213                 details=dict(**self.last_solution_info, slope=float(beta_hat),
+ 214                              intercept=float(physical_intercept), evaluations=evaluations))
+ 215             self.trace_data = self.calculation_trace
+ 216
+ 217         return [float(beta_hat), float(eta_hat), float(gamma_hat), float(r2), True]</code></pre></html>

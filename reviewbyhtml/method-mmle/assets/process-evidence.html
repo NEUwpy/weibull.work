@@ -1,0 +1,101 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流程核查依据</title><style>body{max-width:1000px;margin:32px auto;padding:20px;font:17px/1.8 system-ui;color:#213930}pre{overflow:auto;background:#f1f5f2;padding:16px;font-size:14px}math{display:block;overflow:auto}h2{font-size:24px}table{border-collapse:collapse}td,th{padding:8px}</style><h1>修正极大似然估计 MMLE · 核查依据</h1><p>读取时间 2026-11-03T00:21:39+08:00。以下从网站当前流程API及现行方法运行记录取得；本页仅供查证。</p><p><a href="process-run.json">完整输入、结果、绘图点及源码身份</a> · <a href="prior-algorithm-review.html">此前原文核对</a></p><h2>数据预处理与控制量</h2><p>检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>β</mi><mn>0</mn></msub><mo>=</mo><mn>1</mn><mo separator="true">,</mo><mspace width="1em"/><mi>ε</mi><mo>=</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>8</mn></mrow></msup><mo separator="true">,</mo><mspace width="1em"/><msub><mi>K</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><mo>=</mo><mn>10000</mn><mo separator="true">,</mo><mspace width="1em"/><mi>n</mi><mo>≥</mo><mn>2</mn></mrow></semantics></math></span></p><p>python/base.py L22–34</p><pre><code>  22     def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23         &quot;&quot;&quot;
+  24         Input: data (list or np.array) of failure times.
+  25         Status is assumed to be Failure (F) for this mathematical implementation.
+  26         rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27         &quot;&quot;&quot;
+  28         values = np.asarray(data, dtype=float).reshape(-1)
+  29         if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30             raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31         self.data = np.sort(values)
+  32         self.n = len(self.data)
+  33         self.trace_data = [] # Store process data for visualization
+  34         self.rank_method = rank_method</code></pre><p>python/methods/mmle.py L26–47</p><pre><code>  26     def run(self, trace=False, *, initial_shape=INITIAL_SHAPE,
+  27             shape_absolute_step_tolerance=SHAPE_ABSOLUTE_STEP_TOLERANCE,
+  28             max_iterations=MAX_ITERATIONS):
+  29         &quot;&quot;&quot;Return [beta, eta, gamma, 0.0, converged], as in KROriginal.
+  30
+  31         R² is the archived zero placeholder; the original minimum has zero
+  32         shifted distance, so the full-sample log-linear R² is not evaluated.
+  33         &quot;&quot;&quot;
+  34         self.calculation_trace = None
+  35         if not np.isfinite(initial_shape) or initial_shape &lt;= 0:
+  36             raise ValueError(&#x27;initial_shape must be finite and positive&#x27;)
+  37         if (not np.isfinite(shape_absolute_step_tolerance)
+  38                 or shape_absolute_step_tolerance &lt;= 0):
+  39             raise ValueError(&#x27;shape_absolute_step_tolerance must be finite and positive&#x27;)
+  40         if (isinstance(max_iterations, bool)
+  41                 or not isinstance(max_iterations, (int, np.integer))
+  42                 or max_iterations &lt; 1):
+  43             raise ValueError(&#x27;max_iterations must be a positive integer&#x27;)
+  44         if self.n &lt; 2:
+  45             self.last_solution_info = {&#x27;status&#x27;: &#x27;insufficient_sample&#x27;, &#x27;n&#x27;: self.n}
+  46             return [None, None, None, 0., False]
+  47</code></pre><h2>固定位置并删除最小值</h2><p>以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo separator="true">,</mo><mspace width="1em"/><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>−</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo separator="true">,</mo><mspace width="1em"/><mi>q</mi><mo>=</mo><mi>n</mi><mo>−</mo><mn>1</mn></mrow></semantics></math></span></p><p>python/methods/mmle.py L48–53</p><pre><code>  48         gamma = float(self.data[0])
+  49         y = self.data[1:] - gamma
+  50         beta = float(initial_shape)
+  51         converged = False
+  52         history = []
+  53         difference = float(&#x27;inf&#x27;)</code></pre><h2>迭代求解形状</h2><p>用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msubsup><mi>w</mi><mi>i</mi><mrow><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo></mrow></msubsup><mo>=</mo><mfrac><msup><mi>e</mi><mrow><msub><mi>β</mi><mi>k</mi></msub><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>i</mi></msub></mrow></msup><mrow><munder><mo>∑</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><msub><mi>β</mi><mi>k</mi></msub><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>j</mi></msub></mrow></msup></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>β</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mfrac><mrow><mi>q</mi><mo>+</mo><msub><mi>β</mi><mi>k</mi></msub><munder><mo>∑</mo><mi>i</mi></munder><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>i</mi></msub></mrow><mrow><mi>q</mi><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>w</mi><mi>i</mi><mrow><mo stretchy="false">(</mo><mi>k</mi><mo stretchy="false">)</mo></mrow></msubsup><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>i</mi></msub></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi mathvariant="normal">∣</mi><msub><mi>β</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>−</mo><msub><mi>β</mi><mi>k</mi></msub><mi mathvariant="normal">∣</mi><mo>≤</mo><mi>ε</mi></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></p><p>python/methods/mmle.py L55–76</p><pre><code>  55         with np.errstate(divide=&#x27;ignore&#x27;, invalid=&#x27;ignore&#x27;, over=&#x27;ignore&#x27;):
+  56             logs = np.log(y)
+  57             q = len(y)
+  58             for iteration in range(1, max_iterations + 1):
+  59                 weights = np.exp(beta * (logs - logs.max()))
+  60                 weights /= weights.sum()
+  61                 denominator = float(q * (weights @ logs))
+  62                 next_beta = float((q + beta * logs.sum()) / denominator)
+  63                 if not np.isfinite(next_beta) or next_beta &lt;= 0:
+  64                     break
+  65                 difference = abs(next_beta - beta)
+  66                 if iteration &lt;= 3:
+  67                     history.append(dict(iteration=iteration, shape_before=beta,
+  68                                         shape_after=next_beta))
+  69                 if trace:
+  70                     self.log_step(dict(phase=&#x27;shape_iteration&#x27;, iteration=iteration,
+  71                                        shape_before=beta, shape_after=next_beta,
+  72                                        shape_step=float(difference)))
+  73                 beta = next_beta
+  74                 if difference &lt;= shape_absolute_step_tolerance:
+  75                     converged = True
+  76                     break</code></pre><h2>检查收敛并恢复尺度</h2><p>只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msup><mrow><mo fence="true">(</mo><mfrac><mn>1</mn><mi>q</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>y</mi><mi>i</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></msubsup><mo fence="true">)</mo></mrow><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></mrow></msup><mo separator="true">,</mo><mspace width="1em"/><mi>θ</mi><mo>=</mo><msup><mi>η</mi><mi>β</mi></msup></mrow></semantics></math></span></p><p>python/methods/mmle.py L77–88</p><pre><code>  77             self.last_solution_info = dict(
+  78                 status=&#x27;ok&#x27; if converged else &#x27;fixed_point_not_converged&#x27;,
+  79                 iterations=iteration, initial_shape=float(initial_shape),
+  80                 final_shape_step=float(difference), deleted_observations=1,
+  81                 gamma_is_original_sample_minimum=True,
+  82                 effective_sample_min=float(self.data[1]), first_iterations=history,
+  83                 no_firth=True, no_domain_caps=True, no_fallback=True,
+  84                 shape_absolute_step_tolerance=float(shape_absolute_step_tolerance),
+  85                 max_iterations=int(max_iterations))
+  86             if not converged:
+  87                 return [None, None, None, 0., False]
+  88             eta = float(np.exp((logsumexp(beta * logs) - np.log(q)) / beta))</code></pre><h2>返回估计结果</h2><p>返回形状、尺度、位置参数及收敛状态。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mo stretchy="false">(</mo><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo separator="true">,</mo><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo separator="true">,</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo separator="true">,</mo><mn>0</mn><mo separator="true">,</mo><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">v</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/mmle.py L89–119</p><pre><code>  89         if trace:
+  90             self.log_step(dict(phase=&#x27;final&#x27;, beta=beta, eta=eta, gamma=gamma,
+  91                                **self.last_solution_info))
+  92             iterations = [p for p in self.trace_data if p[&#x27;phase&#x27;] == &#x27;shape_iteration&#x27;]
+  93             description = &#x27;令 γ̂ 为原样本最小值并删除该观测；保留样本按不动点规则迭代，步长达到容差后接受。&#x27;
+  94             self.calculation_trace = dict(
+  95                 schema_version=1, method=&#x27;mmle&#x27;, criterion=dict(description=description),
+  96                 selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(beta),
+  97                                eta=float(eta), gamma=float(gamma), iterations=iteration),
+  98                 charts=[plot_chart(&#x27;shape-fixed-point&#x27;, &#x27;保留样本的形状不动点迭代&#x27;, &#x27;实际迭代次数&#x27;, &#x27;形状参数 β&#x27;,
+  99                                    [plot_series(&#x27;shape&#x27;, &#x27;实际迭代结果&#x27;,
+ 100                                                 [plot_point(p[&#x27;iteration&#x27;], p[&#x27;shape_after&#x27;]) for p in iterations])],
+ 101                                    formula=r&#x27;\beta_{k+1}=\frac{q+\beta_k\sum\ln y_i}{q\sum w_i(\beta_k)\ln y_i},\quad w_i=\frac{y_i^{\beta_k}}{\sum y_j^{\beta_k}}&#x27;,
+ 102                                    description=&#x27;原样本最小值确定 γ̂；删去该一个观测后，yᵢ=tᵢ−γ̂，q=n−1。&#x27;,
+ 103                                    selected=[plot_point(iteration, beta, label=&#x27;最终形状参数&#x27;)]),
+ 104                         plot_chart(&#x27;shape-step&#x27;, &#x27;停止判据&#x27;, &#x27;实际迭代次数&#x27;, &#x27;相邻形状参数绝对差 |Δβ|&#x27;,
+ 105                                    [plot_series(&#x27;step&#x27;, &#x27;实际绝对步长&#x27;,
+ 106                                                 [plot_point(p[&#x27;iteration&#x27;], p[&#x27;shape_step&#x27;]) for p in iterations])],
+ 107                                    references=[dict(axis=&#x27;y&#x27;, value=float(shape_absolute_step_tolerance), label=&#x27;停止容差&#x27;)],
+ 108                                    formula=r&#x27;|\beta_{k+1}-\beta_k|\leq\varepsilon&#x27;,
+ 109                                    selected=[plot_point(iteration, difference, label=&#x27;达到停止条件&#x27;)])],
+ 110                 recovery=[calculation_step(&#x27;样本最小值确定位置&#x27;, r&#x27;\hat\gamma=t_{(1)},\quad y_i=t_{(i)}-\hat\gamma\;(i\geq2)&#x27;,
+ 111                                            [(&#x27;γ̂&#x27;,gamma),(&#x27;保留样本数 q&#x27;,q)]),
+ 112                           calculation_step(&#x27;不动点迭代确定形状&#x27;, r&#x27;|\beta_{k+1}-\beta_k|\leq\varepsilon&#x27;,
+ 113                                            [(&#x27;β̂&#x27;,beta),(&#x27;|Δβ|&#x27;,difference),(&#x27;ε&#x27;,shape_absolute_step_tolerance)]),
+ 114                           calculation_step(&#x27;保留样本恢复尺度&#x27;, r&#x27;\hat\eta=\left(\frac1q\sum y_i^{\hat\beta}\right)^{1/\hat\beta}&#x27;,
+ 115                                            [(&#x27;η̂&#x27;,eta)])],
+ 116                 details=dict(**self.last_solution_info, deleted_value=gamma,
+ 117                              retained_observations=(y+gamma).tolist(), shifted_observations=y.tolist(),
+ 118                              r_squared_note=&#x27;原流程0占位，不解释为拟合优度为零。&#x27;))
+ 119         return [beta, eta, gamma, 0., True]</code></pre></html>

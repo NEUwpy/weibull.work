@@ -1,184 +1,237 @@
 {
   "id": "weibull-method-mle-20261102",
-  "title": "极大似然估计 MLE · 原文与实现",
+  "title": "极大似然估计 MLE · 流程与图的呈现评审",
   "document": true,
-  "revision": 2,
+  "revision": 3,
   "require_confirmation": true,
-  "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/mle.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/mle.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/mle.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
   "units": [
     {
       "id": "identity",
-      "title": "1 先明确MLE要对应什么",
+      "title": "1 整体呈现",
       "mode": "content",
       "options": [
         {
           "id": "identity-content",
-          "label": "1 先明确MLE要对应什么",
+          "label": "1 整体呈现",
           "blocks": [
             {
               "id": "identity-body",
               "kind": "text",
-              "html": "<p>现行 <code>mle.py</code> 调用公共辅助函数，在<mark>β≥1、γ非负的范围内寻找标准似然的有限局部极大候选</mark>。Hirose论文则给出GEV空间的具体求解方案。部分算例数值一致，不能证明经过了同一算法。</p><p>辅助函数仍属于这一个MLE实现，不是供用户选择的第二版本。</p>"
+              "html": "<p><strong>建议主线：</strong>不断尝试位置γ；每到一个位置，都求对应的形状β和尺度η。再比较合格候选的似然，确定最终三参数。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "algorithm",
-      "title": "2 Weibull条件剖面与GEV流程",
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
       "mode": "content",
       "options": [
         {
-          "id": "algorithm-content",
-          "label": "2 Weibull条件剖面与GEV流程",
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
           "blocks": [
             {
-              "id": "algorithm-body",
-              "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>附录1：Gumbel初值，k=±Δk，逐k二次外推σ、μ并作Newton求解，再精化三参数、检查鞍点和角点。Δk=.01为建议例值。</p><a href=\"assets/evidence.html#paper-L252\" target=\"_blank\" rel=\"noopener\">182-105 原文 L252–290 · 附录1／PDF第9–10页</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>固定γ求β，恢复η，扫描位置得分与似然峰，选择有限候选中似然最大的点；没有GEV参数化、Gumbel初值或观察信息矩阵检验。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-1\" target=\"_blank\" rel=\"noopener\">python/methods/profile_solvers.py · L35–43</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  35          g = float(g)\n  36          if g not in cache:\n  37              values = [] if trace else None\n  38              cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values)\n  39              if trace:\n  40                  shape_records[g] = values\n  41          return cache[g]\n  42\n  43      grid = _location_grid()</code></pre></div></div><p><strong>核对判断：</strong>标准似然函数对应，不等于完整复现Hirose的数值流程。是否改求解器，取决于产品希望实现一般MLE还是作者的具体算法。</p><p><strong>可能修改：</strong>先选定目标；若保留条件剖面，引用Hirose只作数值基准。若决定按附录重做，在mle.py及其同一套辅助函数内修改。</p><p><strong>影响：</strong>GEV路线是实质求解改造，涉及参数变换、初值、可行性、鞍点及角点；不能只替换流程文字。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "algorithm-choice",
-      "title": "2.1 MLE的实现目标",
-      "mode": "choices",
-      "inline": true,
-      "selection_mode": "single",
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "mle-profile",
-          "label": "保留标准似然条件剖面实现",
-          "blocks": [
-            {
-              "id": "mle-profile-text",
-              "kind": "text",
-              "html": "<p>说明受限域及有限候选的含义，以论文数据作数值核对；不称Hirose完整算法复现。</p>"
-            }
-          ]
-        },
-        {
-          "id": "mle-gev",
-          "label": "按Hirose附录改造同一MLE实现",
-          "blocks": [
-            {
-              "id": "mle-gev-text",
-              "kind": "text",
-              "html": "<p>先确定参数域和边界约定，再在现有入口内实施GEV算法，逐步骤与原算例验收。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "domain",
-      "title": "3 非负位置约束与参数发散",
-      "mode": "content",
-      "options": [
-        {
-          "id": "domain-content",
-          "label": "3 非负位置约束与参数发散",
-          "blocks": [
-            {
-              "id": "domain-body",
-              "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>论文讨论负位置、参数发散和Gumbel极限；部分样本不应简单等同于非负位置下的两参数拟合。</p><a href=\"assets/evidence.html#paper-L49\" target=\"_blank\" rel=\"noopener\">182-105 原文 L49–74 · 引言及嵌入模型</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>公共距离函数拒绝γ&lt;0；β下界为1。当前会在受限域中比较γ=0候选，不能搜索论文涉及的负位置方向。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-2\" target=\"_blank\" rel=\"noopener\">python/methods/conditional_profiles.py · L16–20</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  16      if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):\n  17          raise ValueError(&quot;Expected a finite one-dimensional sample of at least two points&quot;)\n  18      if not np.isfinite(gamma) or gamma &lt; 0 or np.any(d &lt;= 0):\n  19          raise ValueError(&quot;Conditional location must satisfy 0 &lt;= gamma &lt; min(data)&quot;)\n  20      return d</code></pre></div></div><p><strong>核对判断：</strong>β≥1与Hirose本文采用的条件并不冲突；γ≥0则缩小了当前的估计域。受限MLE与一般三参数模型的结论须分开。</p><p><strong>可能修改：</strong>如果目标是寿命场景下的受限MLE，可以保留并明示。若要扩展位置域，需设计负方向搜索与发散识别，不宜只删一个if。</p><p><strong>影响：</strong>会改变边界解、失败/发散分类和结果比较；增加搜索范围也不能自动证明找到全局最大值。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "endpoint",
-      "title": "4 支撑边界：报告极限还是接纳角点",
-      "mode": "content",
-      "options": [
-        {
-          "id": "endpoint-content",
-          "label": "4 支撑边界：报告极限还是接纳角点",
-          "blocks": [
-            {
-              "id": "endpoint-body",
-              "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>附录Step 5在k=1角点最优时给出γ=x_min、β=1、η=mean(x−x_min)。</p><a href=\"assets/evidence.html#paper-L286\" target=\"_blank\" rel=\"noopener\">182-105 原文 L286–290 · PDF第10页／印刷52页</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>仅返回γ&lt;x_min的有限候选。β=1的支撑边界似然单列诊断，即便它高于所选候选，也不作为实际估计返回。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-3\" target=\"_blank\" rel=\"noopener\">python/methods/profile_solvers.py · L102–113</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 102      eta_limit = float(np.mean(x - x[0]))\n 103      limit_ll = float(-len(x) * (1 + np.log(eta_limit)))\n 104      best = max(candidates, key=lambda p: p[&#x27;ll&#x27;]) if candidates else None\n 105      info = dict(status=&#x27;ok&#x27; if best else &#x27;no_finite_local_maximum&#x27;,\n 106                  solver_version=SOLVER_VERSION, strategy=&#x27;profile_likelihood_finite_maxima&#x27;,\n 107                  constraint=&#x27;beta&gt;=1, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,\n 108                  profile_grid_points=len(grid), profile_evaluations=len(cache),\n 109                  candidate_count=len(candidates), candidates=candidates,\n 110                  support_boundary_limit=dict(beta=1., eta=eta_limit, gamma=float(x[0]),\n 111                                              log_likelihood=limit_ll, attained_in_open_support=False),\n 112                  boundary_limit_exceeds_selected=bool(best and limit_ll &gt; best[&#x27;ll&#x27;] + 1e-9))\n 113      if best:</code></pre></div></div><p><strong>核对判断：</strong>这是不同的输出约定，不是显示格式差异。不能把当前no_finite_local_maximum解释为已经覆盖了作者角点处理。</p><p><strong>可能修改：</strong>与实现目标一起确定是否接纳角点。若接纳，输入支持检查、概率图及后续模拟有效性检查也要同步定义。</p><p><strong>影响：</strong>γ等于最小观测会改变后续对数距离及拟合度处理；不能在未同步约定时只放宽求解器边界。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "endpoint-choice",
-      "title": "4.1 支撑边界的输出约定",
-      "mode": "choices",
-      "inline": true,
-      "selection_mode": "single",
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "endpoint-open",
-          "label": "保持开放支持域，边界仅作诊断",
-          "blocks": [
-            {
-              "id": "endpoint-open-text",
-              "kind": "text",
-              "html": "<p>保留当前有限估计口径；明确显示边界极限与有限候选的似然比较。</p>"
-            }
-          ]
-        },
-        {
-          "id": "endpoint-corner",
-          "label": "按作者规则纳入β=1角点",
-          "blocks": [
-            {
-              "id": "endpoint-corner-text",
-              "kind": "text",
-              "html": "<p>在同一MLE实现中纳入，并统一后续支持检查和未定义的概率图量。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "numerics",
-      "title": "5 可以保留的数值处理与验证边界",
-      "mode": "content",
-      "options": [
-        {
-          "id": "numerics-content",
-          "label": "5 可以保留的数值处理与验证边界",
-          "blocks": [
-            {
-              "id": "numerics-body",
-              "kind": "text",
-              "html": "<p>归一化、中心化对数距离、log-sum-exp和Brent括根用于数值稳定，不必为了“像原文”删除。位置有限网格及各峰精化仍不构成穷尽全部峰的证明。</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mover accent=\"true\"><mi>η</mi><mo stretchy=\"true\">^</mo></mover><mo stretchy=\"false\">(</mo><mi>β</mi><mo separator=\"true\">,</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mo>=</mo><msup><mrow><mo fence=\"true\">[</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy=\"false\">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><msup><mo stretchy=\"false\">)</mo><mi>β</mi></msup><mo fence=\"true\">]</mo></mrow><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mi>β</mi></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-4\" target=\"_blank\" rel=\"noopener\">python/methods/conditional_profiles.py · L76–81</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  76      z = t - t.mean()\n  77      log_mean_power = logsumexp(beta * z) - np.log(len(d))\n  78      log_eta = t.mean() + log_mean_power / beta\n  79      ll = len(d) * (np.log(beta) - t.mean() - log_mean_power - 1)\n  80      w = np.exp(beta * (z - z.max()))\n  81      w /= w.sum()</code></pre><p><strong>转录核对：</strong>附录式(13)原PDF为σ₀=(√6/π)s≈0.779697s；现有Markdown把根号范围转录得不一致。下图用于核对，当前程序没有使用该GEV初值，不据此修改估计器。</p>"
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
             },
             {
-              "id": "pdf-initial",
-              "kind": "image",
-              "src": "assets/pdf-initial.png",
-              "alt": "Hirose原PDF第10页，印刷52页，式(13)(14)"
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议沿用当前三类图，调整主次和联动，让“定位置—说明形状—恢复尺度”成为一条可读主线；无需为了形式统一改写估计规则。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "verification",
-      "title": "6 当前数值核对与测试能证明什么",
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
       "mode": "content",
       "options": [
         {
-          "id": "verification-content",
-          "label": "6 当前数值核对与测试能证明什么",
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
           "blocks": [
             {
-              "id": "verification-body",
-              "kind": "visual",
-              "html": "<div style=\"overflow:auto\"><table style=\"font-size:16px\"><thead><tr><th>核对输入</th><th>β</th><th>η</th><th>γ</th></tr></thead><tbody><tr><td>Hirose Table 1 / case 2</td><td>4.5290558</td><td>6.2389415</td><td>22.092431</td></tr></tbody></table></div><p>Table 2约为 β=4.529，η=6.239，γ=22.092；这里只核对结果，不证明经过GEV流程。</p><p>本轮重新执行MLE的既有原文/公式套件，9项通过；首轮七方法套件共80项通过。通过的是已覆盖的公式、若干算例和边界；不是原文所有算法步骤、数据及蒙特卡洛表已复现。上表为少量确定性核对，不是新蒙特卡洛性能结论。</p>"
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>当前源码、公式已有对应；但左侧六步偏线性，循环关系主要藏在文字里。建议保留六步和三栏，在步骤概览补明“换一个位置，就重复条件形状和尺度求解”。</p><p><strong>建议呈现：</strong>保留现有“步骤—源码—公式”三栏。步骤按估计任务组织，并在主线中显出位置搜索与条件求解的循环。归一化、稳定求和及旁录留在对应步骤内部，不再变成需要用户选择的流程。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "gallery",
+              "aspect_ratio": 1.3,
+              "images": [
+                {
+                  "id": "conditional",
+                  "label": "当前网站：条件形状求解",
+                  "src": "assets/current-process.png",
+                  "alt": "当前网站程序流程第二步"
+                },
+                {
+                  "id": "location",
+                  "label": "当前网站：位置搜索",
+                  "src": "assets/current-process-search.png",
+                  "alt": "当前网站程序流程第四步"
+                }
+              ]
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 条件形状求解 → 恢复尺度与似然 → 搜索并校验位置候选 → 比较候选与边界处理 → 计算拟合优度并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>先用“剖面对数似然＋位置得分”回答位置为什么取这里，两图共用位置γ的阅读位置；随后展开选中位置的形状方程，最后由尺度公式连到结果。桌面前两图并排，手机依次上下排。</p><p>下图沿用一组固定输入：Hirose Table 1 / case 2，n=20；结果 β̂=4.529056，η̂=6.238942，γ̂=22.09243。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-profile-likelihood",
+      "title": "4.1 位置为什么选这里",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-profile-likelihood-content",
+          "label": "4.1 位置为什么选这里",
+          "blocks": [
+            {
+              "id": "chart-profile-likelihood-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置为什么选这里。</p><p><strong>建议：</strong>保留。主图展示位置变化时的剖面似然，标出所有被接受的有限候选和最终点。</p><p><strong>核查意见：</strong>它是函数形态图，线上的点按γ排列，不是算法沿这条线迭代。</p>"
+            },
+            {
+              "id": "current-profile-likelihood",
+              "kind": "image",
+              "src": "assets/current-chart-1.png",
+              "alt": "当前网站：位置参数与剖面对数似然"
+            },
+            {
+              "id": "record-profile-likelihood",
+              "kind": "image",
+              "src": "assets/record-profile-likelihood.svg",
+              "alt": "同一次运行记录重绘：位置参数与剖面对数似然"
+            },
+            {
+              "id": "record-profile-likelihood-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-location-score",
+      "title": "4.2 这个峰是否满足判据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-location-score-content",
+          "label": "4.2 这个峰是否满足判据",
+          "blocks": [
+            {
+              "id": "chart-location-score-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这个峰是否满足判据。</p><p><strong>建议：</strong>保留并与似然主图配对。默认看清最终点左右的正负变化，全范围作为补充。</p><p><strong>核查意见：</strong>当前右端的陡降仍会压扁零点附近；建议让默认视窗服务于判据解释。</p>"
+            },
+            {
+              "id": "current-location-score",
+              "kind": "image",
+              "src": "assets/current-chart-2.png",
+              "alt": "当前网站：位置得分与极大值判据"
+            },
+            {
+              "id": "record-location-score",
+              "kind": "image",
+              "src": "assets/record-location-score.svg",
+              "alt": "同一次运行记录重绘：位置得分与极大值判据"
+            },
+            {
+              "id": "record-location-score-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-conditional-shape-equation",
+      "title": "4.3 在选中位置，形状怎样确定",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-conditional-shape-equation-content",
+          "label": "4.3 在选中位置，形状怎样确定",
+          "blocks": [
+            {
+              "id": "chart-conditional-shape-equation-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>在选中位置，形状怎样确定。</p><p><strong>建议：</strong>放在位置判据之后，标题直接写明固定的γ值。保留零点与β=1边界的区别。</p><p><strong>核查意见：</strong>曲线含同一方程的辅助采样，用来解释方程，不称为迭代轨迹。</p>"
+            },
+            {
+              "id": "current-conditional-shape-equation",
+              "kind": "image",
+              "src": "assets/current-chart-3.png",
+              "alt": "当前网站：固定选中位置，求形状参数"
+            },
+            {
+              "id": "record-conditional-shape-equation",
+              "kind": "image",
+              "src": "assets/record-conditional-shape-equation.svg",
+              "alt": "同一次运行记录重绘：固定选中位置，求形状参数"
+            },
+            {
+              "id": "record-conditional-shape-equation-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>比较似然，确定位置</strong>：γ̂=22.09243, ℓ=-35.37474</p><p><strong>在该位置确定形状</strong>：β̂=4.529056</p><p><strong>幂均值恢复尺度</strong>：η̂=6.238942</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
             }
           ]
         }
@@ -186,17 +239,17 @@
     },
     {
       "id": "sources",
-      "title": "7 论文、源码与核对快照",
+      "title": "核查依据",
       "mode": "content",
       "options": [
         {
           "id": "sources-content",
-          "label": "7 论文、源码与核对快照",
+          "label": "核查依据",
           "blocks": [
             {
               "id": "sources-body",
               "kind": "text",
-              "html": "<p><strong>Hideo Hirose，1996</strong> · Maximum Likelihood Estimation in the 3-parameter Weibull Distribution: A Look through the Generalized Extreme-value Distribution</p><p>当前方法入口：<code>python/methods/mle.py</code>。核对时间 2026-11-02T21:17:20+08:00；Git基线 62e9931617，工作区含未提交改动，以下哈希标识本轮实际文件。</p><p style=\"font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere\">入口SHA-256 0657dc83fa2291874e26fd1b1da2577992bf6d52e825cccbccaa14a1d1231eec</p><p><a href=\"assets/evidence.html\" target=\"_blank\" rel=\"noopener\">查看逐项原文与源码摘录</a> · <a href=\"assets/provenance.json\" target=\"_blank\" rel=\"noopener\">查看来源与哈希</a> · <a href=\"assets/methods.html\" target=\"_blank\" rel=\"noopener\">其他方法</a></p><p>摘录用于本轮讨论，不是另一份可编辑的算法实现。源文件变化后应重新核对；审阅期间不修改估计器或原论文。</p>"
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
             }
           ]
         }

@@ -1,114 +1,177 @@
 {
   "id": "weibull-method-lre-20261102",
-  "title": "线性回归估计 LRE · 原文与实现",
+  "title": "线性回归估计 LRE · 流程与图的呈现评审",
   "document": true,
-  "revision": 1,
+  "revision": 2,
   "require_confirmation": true,
-  "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/lre.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/lre.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/lre.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
   "units": [
     {
       "id": "identity",
-      "title": "1 当前实现对应Proposed+Plot",
+      "title": "1 整体呈现",
       "mode": "content",
       "options": [
         {
           "id": "identity-content",
-          "label": "1 当前实现对应Proposed+Plot",
+          "label": "1 整体呈现",
           "blocks": [
             {
               "id": "identity-body",
               "kind": "text",
-              "html": "<p>Park论文既包含Weibullness检验，也包含Proposed+Plot、Proposed+MLE2等不同组合。<mark>现行LRE明确对应Proposed+Plot</mark>：先最大化相关系数估位置，再作概率图OLS。</p><a href=\"assets/evidence.html#paper-L156\" target=\"_blank\" rel=\"noopener\">182-115 原文 L156–170 · §5与Table 1</a><p>本次没有发现必须替换核心统计构造的证据。以下首先列出可保留内容，不为了优化而硬造另一套LRE。</p>"
+              "html": "<p><strong>建议主线：</strong>按Park绘图概率形成概率图，选择相关系数最大的γ；在这个位置的概率图上回归，斜率得到β、截距恢复η。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "positions",
-      "title": "2 绘图位置与回归方向已对应",
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
       "mode": "content",
       "options": [
         {
-          "id": "positions-content",
-          "label": "2 绘图位置与回归方向已对应",
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
           "blocks": [
             {
-              "id": "positions-body",
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
               "kind": "text",
-              "html": "<p>原文与当前都使用n≤10时的Blom位置，n≥11时用(i−.5)/n。</p><a href=\"assets/evidence.html#paper-L47\" target=\"_blank\" rel=\"noopener\">182-115 原文 L47–55 · §2</a><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mrow><mo fence=\"true\">{</mo><mtable rowspacing=\"0.36em\" columnalign=\"left left\" columnspacing=\"1em\"><mtr><mtd><mstyle scriptlevel=\"0\" displaystyle=\"false\"><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo>−</mo><mn>3</mn><mi mathvariant=\"normal\">/</mi><mn>8</mn><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">/</mi><mo stretchy=\"false\">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mn>4</mn><mo stretchy=\"false\">)</mo><mo separator=\"true\">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel=\"0\" displaystyle=\"false\"><mrow><mi>n</mi><mo>≤</mo><mn>10</mn><mo separator=\"true\">,</mo></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel=\"0\" displaystyle=\"false\"><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo>−</mo><mn>1</mn><mi mathvariant=\"normal\">/</mi><mn>2</mn><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">/</mi><mi>n</mi><mo separator=\"true\">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel=\"0\" displaystyle=\"false\"><mrow><mi>n</mi><mo>≥</mo><mn>11</mn><mo separator=\"true\">,</mo></mrow></mstyle></mtd></mtr></mtable></mrow><mspace width=\"1em\"/><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy=\"false\">)</mo><mo stretchy=\"false\">]</mo><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msub><mi>x</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy=\"false\">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy=\"false\">)</mo><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-1\" target=\"_blank\" rel=\"noopener\">python/methods/lre.py · L56–61</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  56          ranks = np.arange(1, n + 1, dtype=float)\n  57          F = (ranks - 3 / 8) / (n + 1 / 4) if n &lt;= 10 else (ranks - 1 / 2) / n\n  58          self.plotting_positions = F\n  59          y = np.log(-np.log1p(-F))\n  60          y_centered = y - np.mean(y)\n  61          y_ss = float(np.dot(y_centered, y_centered))</code></pre><p>β是OLS斜率，η由截距恢复。代码中的时间归一化只平移横坐标，在恢复尺度时乘回t_min，不改变这一回归含义。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-2\" target=\"_blank\" rel=\"noopener\">python/methods/lre.py · L158–161</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 158          intercept = y_mean - beta_hat * x_mean\n 159          eta_hat = t_min * math.exp(-intercept / beta_hat)\n 160  \n 161          if not np.isfinite(eta_hat) or eta_hat &lt;= 0:</code></pre>"
+              "html": "<p><strong>我的判断：</strong>建议保留两图，突出“先定位，再回归”，并把概率图量与参数恢复写在一起。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "location",
-      "title": "3 相关系数最大化与导数求根",
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
       "mode": "content",
       "options": [
         {
-          "id": "location-content",
-          "label": "3 相关系数最大化与导数求根",
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
           "blocks": [
             {
-              "id": "location-body",
+              "id": "program-assessment",
               "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>论文明确允许最大化R(μ)，或求式(3)的驻点。位置域为[0,x₍₁₎)。</p><a href=\"assets/evidence.html#paper-L128\" target=\"_blank\" rel=\"noopener\">182-115 原文 L128–148 · 式(2)(3)</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>在同一位置域内，对数间隔网格覆盖近端点，精化所有被网格夹住的相关系数峰，并比较候选。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-3\" target=\"_blank\" rel=\"noopener\">python/methods/lre.py · L109–117</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 109          # 精化所有被网格夹住的峰，保留端点候选，不假定单峰。\n 110          peaks = [i for i in range(1, len(search_grid) - 1)\n 111                   if objective_grid[i] &lt;= objective_grid[i - 1]\n 112                   and objective_grid[i] &lt;= objective_grid[i + 1]]\n 113          for i in peaks:\n 114              result = minimize_scalar(\n 115                  negative_correlation,\n 116                  bounds=(float(search_grid[i - 1]), float(search_grid[i + 1])),\n 117                  method=&quot;bounded&quot;,</code></pre></div></div><p><strong>核对判断：</strong>属于作者明确给出的求解途径之一，不能因为没有直接求式(3)就判为不忠实。</p><p><strong>可能修改：</strong>当前保留。后续若出现具体漏峰、单位变化或退化样本故障，再凭案例修改数值实现。</p><p><strong>影响：</strong>不建议在没有故障证据时替换求解器；现有独立式(3)定根测试已能交叉核对结果。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rounding",
-      "title": "4 原表末位与程序复算",
-      "mode": "content",
-      "options": [
-        {
-          "id": "rounding-content",
-          "label": "4 原表末位与程序复算",
-          "blocks": [
+              "html": "<p><strong>当前判断：</strong>现图的相关系数判据与概率图回归相互对应，基本结构可保留。需要让读者看出不是在已知位置上普通拟合，也不能把高相关当成模型已经通过统计检验。</p><p><strong>建议呈现：</strong>保留三栏；把绘图概率、相关系数定位和概率图回归串成一条主线，不将边界搜索和退化保护拆成多条平行方法。</p>"
+            },
             {
-              "id": "rounding-body",
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
               "kind": "text",
-              "html": "<p>原表Proposed+Plot印β=1.363；现行程序与独立式(3)+OLS复算约1.363761，通常三位小数会写1.364。η、γ和相关系数与表中精度对应。</p><a href=\"assets/evidence.html#paper-L158\" target=\"_blank\" rel=\"noopener\">182-115 原文 L158–170 · Table 1</a><p><strong>判断：</strong>这是需要保留记录的表值末位差异，不能靠改绘图位置、回归方向或截断数值去强凑。当前证据不足以断言原文究竟采用了哪种末位处理。</p>"
+              "html": "<p>当前网站步骤：数据预处理 → 计算绘图位置 → 优化位置参数 → OLS 线性回归 → 检查系数并恢复尺度 → 计算拟合优度并返回。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "scope",
-      "title": "5 需要明确的范围与后续验证",
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
       "mode": "content",
       "options": [
         {
-          "id": "scope-content",
-          "label": "5 需要明确的范围与后续验证",
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
           "blocks": [
             {
-              "id": "scope-body",
+              "id": "calculation-layout",
               "kind": "text",
-              "html": "<p>当前R²按同一组Park分数计算，并等于最终OLS的ρ²；它不是原文Weibullness检验的p值或AD统计量。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-4\" target=\"_blank\" rel=\"noopener\">python/methods/lre.py · L170–173</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 170          residual = y - (beta_hat * x_vals + intercept)\n 171          r2 = 1.0 - float(np.dot(residual, residual)) / y_ss\n 172  \n 173          self.last_solution_info = {</code></pre><p>建议保留当前核心实现，维持n=10/11切换、时间单位变化、全等和近等样本的回归测试。正式的p值、AD检验以及Proposed+MLE2不在本次LRE优化中混入。</p>"
+              "html": "<p><strong>建议顺序：</strong>相关系数ρ(γ)为位置主图；选中点对应下方的概率图散点和直线。直线斜率β、截距与尺度η的关系直接附在图上。</p><p>下图沿用一组固定输入：Park 24点 Proposed+Plot，n=24；结果 β̂=1.363761，η̂=15.11603，γ̂=9.197683。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
             }
           ]
         }
       ]
     },
     {
-      "id": "verification",
-      "title": "6 当前数值核对与测试能证明什么",
+      "id": "figure-correlation-location",
+      "title": "4.1 位置是怎样选出来的",
       "mode": "content",
       "options": [
         {
-          "id": "verification-content",
-          "label": "6 当前数值核对与测试能证明什么",
+          "id": "figure-correlation-location-content",
+          "label": "4.1 位置是怎样选出来的",
           "blocks": [
             {
-              "id": "verification-body",
-              "kind": "visual",
-              "html": "<div style=\"overflow:auto\"><table style=\"font-size:16px\"><thead><tr><th>核对输入</th><th>β</th><th>η</th><th>γ</th></tr></thead><tbody><tr><td>Park 24点 Proposed+Plot</td><td>1.3637606</td><td>15.116027</td><td>9.1976835</td></tr></tbody></table></div><p>Table 1印β=1.363、η=15.116、γ=9.198；独立方程+OLS约β=1.363761，不能为凑末位改公式。</p><p>本轮重新执行七个方法的既有原文/公式套件，共80项通过。通过的是已覆盖的公式、若干算例和边界；不是原文所有算法步骤、数据及蒙特卡洛表已复现。上表为少量确定性核对，不是新蒙特卡洛性能结论。</p>"
+              "id": "chart-correlation-location-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置是怎样选出来的。</p><p><strong>建议：</strong>保留ρ随γ的变化及选中峰；让峰附近差异可见。</p><p><strong>核查意见：</strong>ρ高表示这里线性相关更强，不等于三参数Weibull模型检验已通过。</p>"
+            },
+            {
+              "id": "record-correlation-location",
+              "kind": "image",
+              "src": "assets/record-correlation-location.svg",
+              "alt": "同一次运行记录重绘：位置参数的相关系数判据"
+            },
+            {
+              "id": "record-correlation-location-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-park-probability-regression",
+      "title": "4.2 这条直线怎样给出参数",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-park-probability-regression-content",
+          "label": "4.2 这条直线怎样给出参数",
+          "blocks": [
+            {
+              "id": "chart-park-probability-regression-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这条直线怎样给出参数。</p><p><strong>建议：</strong>保留概率图散点和拟合线，明确X=ln(t−γ)、Y=ln[−ln(1−p)]。</p><p><strong>核查意见：</strong>这里斜率就是β；与LSE中a=1/β的规则要在表达上区分。</p>"
+            },
+            {
+              "id": "record-park-probability-regression",
+              "kind": "image",
+              "src": "assets/record-park-probability-regression.svg",
+              "alt": "同一次运行记录重绘：最终位置下的概率图回归"
+            },
+            {
+              "id": "record-park-probability-regression-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>相关系数最大处确定位置</strong>：γ̂=9.197683, ρ=0.9902309</p><p><strong>概率图斜率确定形状</strong>：b=1.363761, β̂=1.363761</p><p><strong>概率图截距确定尺度</strong>：a=-3.703641, η̂=15.11603</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
             }
           ]
         }
@@ -116,17 +179,17 @@
     },
     {
       "id": "sources",
-      "title": "7 论文、源码与核对快照",
+      "title": "核查依据",
       "mode": "content",
       "options": [
         {
           "id": "sources-content",
-          "label": "7 论文、源码与核对快照",
+          "label": "核查依据",
           "blocks": [
             {
               "id": "sources-body",
               "kind": "text",
-              "html": "<p><strong>Chanseok Park，2017</strong> · Weibullness Test and Parameter Estimation of the Three-Parameter Weibull Model Using the Sample Correlation Coefficient</p><p>当前方法入口：<code>python/methods/lre.py</code>。核对时间 2026-11-02T12:51:05+08:00；Git基线 2b3d01383c，工作区含未提交改动，以下哈希标识本轮实际文件。</p><p style=\"font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere\">入口SHA-256 df9bacbdc0316573231b1d8c1ecfd500886cff4bcf2c3737a90e719e4565d32e</p><p><a href=\"assets/evidence.html\" target=\"_blank\" rel=\"noopener\">查看逐项原文与源码摘录</a> · <a href=\"assets/provenance.json\" target=\"_blank\" rel=\"noopener\">查看来源与哈希</a> · <a href=\"assets/methods.html\" target=\"_blank\" rel=\"noopener\">其他方法</a></p><p>摘录用于本轮讨论，不是另一份可编辑的算法实现。源文件变化后应重新核对；审阅期间不修改估计器或原论文。</p>"
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
             }
           ]
         }

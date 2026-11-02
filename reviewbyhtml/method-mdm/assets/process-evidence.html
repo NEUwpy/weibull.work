@@ -1,0 +1,422 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流程核查依据</title><style>body{max-width:1000px;margin:32px auto;padding:20px;font:17px/1.8 system-ui;color:#213930}pre{overflow:auto;background:#f1f5f2;padding:16px;font-size:14px}math{display:block;overflow:auto}h2{font-size:24px}table{border-collapse:collapse}td,th{padding:8px}</style><h1>最小差异法 MDM · 核查依据</h1><p>读取时间 2026-11-03T00:21:38+08:00。以下从网站当前流程API及现行方法运行记录取得；本页仅供查证。</p><p><a href="process-run.json">完整输入、结果、绘图点及源码身份</a> · <a href="prior-algorithm-review.html">此前原文核对</a></p><h2>数据预处理</h2><p>获取排序后的失效时间数据和样本数量</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>δ</mi><mo mathvariant="normal">≠</mo><mrow><mi mathvariant="normal">N</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi></mrow><mo separator="true">,</mo><mspace width="1em"/><mi>t</mi><mo>=</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">d</mi></mrow><mo stretchy="false">(</mo><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">a</mi></mrow><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="1em"/><mi>n</mi><mo>=</mo><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/base.py L22–34</p><pre><code>  22     def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23         &quot;&quot;&quot;
+  24         Input: data (list or np.array) of failure times.
+  25         Status is assumed to be Failure (F) for this mathematical implementation.
+  26         rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27         &quot;&quot;&quot;
+  28         values = np.asarray(data, dtype=float).reshape(-1)
+  29         if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30             raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31         self.data = np.sort(values)
+  32         self.n = len(self.data)
+  33         self.trace_data = [] # Store process data for visualization
+  34         self.rank_method = rank_method</code></pre><p>python/methods/mdm.py L94–107</p><pre><code>  94         if offset is None:
+  95             raise ValueError(&quot;offset parameter is required (e.g., offset=0.1)&quot;)
+  96         self.calculation_trace = None
+  97
+  98         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  99         # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
+ 100         # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
+ 101         # @inputs: data|t_i|原始失效时间样本
+ 102         # @outputs: t|t|排序后数组, n|n|样本数量
+ 103         original_rank_method = self.rank_method
+ 104         self.rank_method = rank_method
+ 105         t = self.data
+ 106         n = self.n
+ 107</code></pre><h2>计算中位秩</h2><p>使用 Bernard 公式计算经验累积分布函数值</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>F</mi><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mi>i</mi><mo>−</mo><mn>0.3</mn></mrow><mrow><mi>n</mi><mo>+</mo><mn>0.4</mn></mrow></mfrac><mo separator="true">,</mo><mspace width="1em"/><msub><mi>x</mi><mi>i</mi></msub><mo>=</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>F</mi><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/mdm.py L108–115</p><pre><code> 108         # @step: 2 | 计算中位秩 | 使用 Bernard 公式计算经验累积分布函数值
+ 109         # @formula: F(t_i) = \frac{i - 0.3}{n + 0.4}, \quad x_i = -\ln(1 - F(t_i))
+ 110         # @symbols: F(t_i)|F(t_i)|第i个样本点的经验累积概率, x_i|x_i|变换后的中位秩
+ 111         # @inputs: t|t|失效时间数组, n|n|样本数量
+ 112         # @outputs: ranks|F(t_i)|中位秩数组, neg_ln_1_minus_F|x_i|变换数组
+ 113         ranks = self._median_ranks()
+ 114         neg_ln_1_minus_F = -np.log(1 - ranks)
+ 115</code></pre><p>python/base.py L58–68</p><pre><code>  58     def _median_ranks(self):
+  59         &quot;&quot;&quot;
+  60         Helper: Calculate Median Ranks using configured method.
+  61         - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62         - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63         &quot;&quot;&quot;
+  64         i = np.arange(1, self.n + 1)
+  65         if self.rank_method == &#x27;exact&#x27;:
+  66             return betaincinv(i, self.n - i + 1, 0.5)
+  67         else:  # bernard
+  68             return (i - 0.3) / (self.n + 0.4)</code></pre><h2>设置位置搜索网格</h2><p>按最小寿命生成近右端加密的位置候选，再进入离散扫描。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>γ</mi><mi>j</mi></msub><mo>=</mo><msub><mi>t</mi><mi>min</mi><mo>⁡</mo></msub><mo>−</mo><msub><mi>d</mi><mi>j</mi></msub><mo separator="true">,</mo><mspace width="1em"/><msub><mi>d</mi><mi>j</mi></msub><mo>∈</mo><mi mathvariant="normal">geomspace</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>ϵ</mi><mo separator="true">,</mo><msub><mi>t</mi><mi>min</mi><mo>⁡</mo></msub><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/mdm.py L240–246</p><pre><code> 240         # @step: 5 | 初始化搜索范围 | 设置 γ 的离散候选网格，约束条件：0 &lt;= γ &lt; t_min
+ 241         # @formula: \gamma_j = t_{\min} - d_j,\quad d_j \in \text{geomspace}(\epsilon, t_{\min})
+ 242         # @symbols: t_{\min}|t_{\min}|最小失效时间, gamma_steps|N|搜索步数
+ 243         # @inputs: t|t|失效时间数组
+ 244         # @outputs: t_min|t_{\min}|最小失效时间
+ 245         t_min = t[0]
+ 246</code></pre><p>python/methods/mdm.py L22–30</p><pre><code>  22 def _build_geometric_gamma_grid(t_min, gamma_steps):
+  23     &quot;&quot;&quot;Build a discrete gamma grid searched from t_min downward to 0.&quot;&quot;&quot;
+  24     steps = max(4, int(gamma_steps))
+  25     min_gap = max(abs(float(t_min)) * 1e-9, 1e-12)
+  26     gaps = np.geomspace(min_gap, float(t_min), steps)
+  27     gammas = float(t_min) - gaps
+  28     gammas[0] = float(t_min) - min_gap
+  29     gammas[-1] = 0.0
+  30     return gammas</code></pre><h2>搜索各位置的最优形状</h2><p>对给定 γ，使用有界优化寻找使标准差最小的 β</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi></mrow><mrow><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><msup><mo stretchy="false">]</mo><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mi>β</mi></mrow></msup></mrow></mfrac><mo separator="true">,</mo><mspace width="1em"/><msub><mi>σ</mi><mi>η</mi></msub><mo>=</mo><msqrt><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>η</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>η</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></mfrac></msqrt></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mrow><mi>β</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>0.1</mn><mo separator="true">,</mo><mn>15.0</mn><mo stretchy="false">]</mo></mrow></munder><msub><mi>σ</mi><mi>η</mi></msub><mo stretchy="false">(</mo><mi>β</mi><mo separator="true">,</mo><mi>γ</mi><mo stretchy="false">)</mo></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></p><p>python/methods/mdm.py L256–263</p><pre><code> 256         for g in gammas:
+ 257             b, sig = find_best_beta_for_gamma(g)
+ 258             sigma_mins.append(sig)
+ 259             best_betas.append(b)
+ 260
+ 261         sigma_mins = np.array(sigma_mins, dtype=float)
+ 262         best_betas = np.array(best_betas, dtype=float)
+ 263</code></pre><p>python/methods/mdm.py L137–156</p><pre><code> 137         def find_best_beta_for_gamma(gamma):
+ 138             if gamma &gt;= t[0]:
+ 139                 return None, float(&#x27;inf&#x27;)
+ 140             cache_key = float(gamma)
+ 141             if cache_key in beta_sigma_cache:
+ 142                 return beta_sigma_cache[cache_key]
+ 143             def beta_objective(beta):
+ 144                 sigma = calculate_eta_std(beta, gamma, t)
+ 145                 if trace:
+ 146                     beta_evaluations.setdefault(cache_key, []).append(
+ 147                         dict(beta=float(beta), sigma=float(sigma)))
+ 148                 return sigma
+ 149
+ 150             res = minimize_scalar(
+ 151                 beta_objective,
+ 152                 bounds=(0.1, 15.0),
+ 153                 method=&#x27;bounded&#x27;
+ 154             )
+ 155             beta_sigma_cache[cache_key] = (res.x, res.fun)
+ 156             return beta_sigma_cache[cache_key]</code></pre><p>python/methods/mdm.py L121–125</p><pre><code> 121         def calculate_eta_std(beta, gamma, current_t):
+ 122             if beta &lt;= 0: return float(&#x27;inf&#x27;)
+ 123             denom = np.power(neg_ln_1_minus_F, 1.0/beta)
+ 124             etas = (current_t - gamma) / denom
+ 125             return np.std(etas, ddof=1)</code></pre><h2>计算廓线梯度</h2><p>使用与求解器相同的 profile_gradient 计算 g(gamma)</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>g</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><mi mathvariant="normal">∂</mi><msub><mi>σ</mi><mi>min</mi><mo>⁡</mo></msub><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo></mrow><mrow><mi mathvariant="normal">∂</mi><mi>γ</mi></mrow></mfrac></mrow></semantics></math></span></p><p>python/methods/mdm.py L269–269</p><pre><code> 269         grads = np.array([profile_gradient(g) for g in gammas], dtype=float)</code></pre><p>python/methods/mdm.py L162–195</p><pre><code> 162         def profile_gradient(gamma):
+ 163             &quot;&quot;&quot;Finite-difference derivative of the profiled sigma curve.&quot;&quot;&quot;
+ 164             gamma = float(gamma)
+ 165             cache_key = gamma
+ 166             if cache_key in profile_gradient_cache:
+ 167                 return profile_gradient_cache[cache_key]
+ 168             t_min_float = float(t_min)
+ 169             scale = max(abs(t_min_float), 1.0)
+ 170             nominal_h = scale * 1e-5
+ 171             left_room = max(gamma, 0.0)
+ 172             right_room = max(t_min_float - gamma, 0.0)
+ 173
+ 174             if right_room &lt;= 0:
+ 175                 return float(&quot;inf&quot;)
+ 176
+ 177             if gamma &lt;= 0.0 or left_room &lt;= nominal_h:
+ 178                 h = min(nominal_h, right_room * 0.25)
+ 179                 h = max(h, np.finfo(float).eps * scale)
+ 180                 gradient = (profile_sigma(gamma + h) - profile_sigma(gamma)) / h
+ 181                 profile_gradient_cache[cache_key] = float(gradient)
+ 182                 return profile_gradient_cache[cache_key]
+ 183
+ 184             if right_room &lt;= nominal_h:
+ 185                 h = min(nominal_h, left_room * 0.25, right_room * 0.5)
+ 186                 h = max(h, np.finfo(float).eps * scale)
+ 187                 gradient = (profile_sigma(gamma) - profile_sigma(gamma - h)) / h
+ 188                 profile_gradient_cache[cache_key] = float(gradient)
+ 189                 return profile_gradient_cache[cache_key]
+ 190
+ 191             h = min(nominal_h, left_room * 0.25, right_room * 0.25)
+ 192             h = max(h, np.finfo(float).eps * scale)
+ 193             gradient = (profile_sigma(gamma + h) - profile_sigma(gamma - h)) / (2.0 * h)
+ 194             profile_gradient_cache[cache_key] = float(gradient)
+ 195             return profile_gradient_cache[cache_key]</code></pre><p>python/methods/mdm.py L158–160</p><pre><code> 158         def profile_sigma(gamma):
+ 159             _, sigma = find_best_beta_for_gamma(float(gamma))
+ 160             return float(sigma)</code></pre><h2>离散交点诊断</h2><p>保留离散梯度曲线用于 trace，可视化和历史对照</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">∇</mi><mo stretchy="false">(</mo><msup><mi>γ</mi><mo>∗</mo></msup><mo stretchy="false">)</mo><mo>=</mo><mi>δ</mi></mrow></semantics></math></span></p><p>python/methods/mdm.py L33–73</p><pre><code>  33 def _find_offset_crossing(gammas, gradients, offset):
+  34     &quot;&quot;&quot;Find the discrete bracket whose interpolated crossing is closest to t_min.&quot;&quot;&quot;
+  35     diffs = gradients - offset
+  36     candidates = []
+  37
+  38     for i in range(len(diffs) - 1):
+  39         y1, y2 = diffs[i], diffs[i + 1]
+  40         if not (np.isfinite(y1) and np.isfinite(y2)):
+  41             continue
+  42         if y1 == 0 or y2 == 0 or y1 * y2 &lt; 0:
+  43             candidates.append(i)
+  44
+  45     if not candidates:
+  46         return None, diffs
+  47
+  48     idx = max(candidates, key=lambda i: max(gammas[i], gammas[i + 1]))
+  49     y1, y2 = diffs[idx], diffs[idx + 1]
+  50     x1, x2 = gammas[idx], gammas[idx + 1]
+  51
+  52     if y1 == 0:
+  53         gamma = x1
+  54     elif y2 == 0:
+  55         gamma = x2
+  56     elif y2 != y1:
+  57         gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
+  58     else:
+  59         gamma = x1
+  60
+  61     bracket = {
+  62         &quot;left&quot;: {
+  63             &quot;gamma&quot;: _json_float(x1),
+  64             &quot;gradient&quot;: _json_float(gradients[idx]),
+  65             &quot;diff&quot;: _json_float(y1),
+  66         },
+  67         &quot;right&quot;: {
+  68             &quot;gamma&quot;: _json_float(x2),
+  69             &quot;gradient&quot;: _json_float(gradients[idx + 1]),
+  70             &quot;diff&quot;: _json_float(y2),
+  71         },
+  72     }
+  73     return (float(gamma), bracket), diffs</code></pre><h2>偏移方程与边界处理</h2><p>先求g(0)。若g(0)≥δ，选γ=0；否则继续右端探测。</p><p>\[g(0)\ge\delta \Rightarrow \hat{\gamma}=0;\quad g(0)<\delta \Rightarrow g(\hat{\gamma})=\delta\]</p><p>python/methods/mdm.py L283–296</p><pre><code> 283         probe_gradient_at_zero = float(profile_gradient(0.0))
+ 284         root_bracket = None
+ 285         root_solver = None
+ 286         root_solver_iterations = 0
+ 287         right_anchor_gamma = None
+ 288         right_anchor_gradient = None
+ 289         right_edge_extrapolation = None
+ 290         legacy_grid_crossing = root_info is not None
+ 291
+ 292         if probe_gradient_at_zero &gt;= offset:
+ 293             found_gamma = 0.0
+ 294             found_beta, _ = find_best_beta_for_gamma(found_gamma)
+ 295             solution_strategy = &quot;truncated_at_zero&quot;
+ 296         else:</code></pre><p>python/methods/mdm.py L197–221</p><pre><code> 197         def find_right_anchor():
+ 198             &quot;&quot;&quot;Probe points increasingly close to t_min until g(gamma) exceeds offset.&quot;&quot;&quot;
+ 199             t_min_float = float(t_min)
+ 200             min_gap = max(abs(t_min_float) * 1e-12, 1e-12)
+ 201             gaps = np.geomspace(max(abs(t_min_float) * 1e-3, min_gap), min_gap, 24)
+ 202
+ 203             best_anchor = None
+ 204             for gap in gaps:
+ 205                 gamma = max(0.0, t_min_float - float(gap))
+ 206                 if gamma &gt;= t_min_float:
+ 207                     gamma = t_min_float - min_gap
+ 208                 grad = float(profile_gradient(gamma))
+ 209                 if not np.isfinite(grad):
+ 210                     continue
+ 211                 anchor = (gamma, grad)
+ 212                 if best_anchor is None or gamma &gt; best_anchor[0]:
+ 213                     best_anchor = anchor
+ 214                 if grad &gt;= offset:
+ 215                     return anchor
+ 216
+ 217             if best_anchor is not None:
+ 218                 return best_anchor
+ 219
+ 220             gamma = max(0.0, t_min_float - min_gap)
+ 221             return gamma, float(profile_gradient(gamma))</code></pre><p>python/methods/mdm.py L301–337</p><pre><code> 301             if right_diff &gt;= 0:
+ 302                 root_bracket = {
+ 303                     &quot;left&quot;: {
+ 304                         &quot;gamma&quot;: 0.0,
+ 305                         &quot;gradient&quot;: _json_float(probe_gradient_at_zero),
+ 306                         &quot;diff&quot;: _json_float(left_diff),
+ 307                     },
+ 308                     &quot;right&quot;: {
+ 309                         &quot;gamma&quot;: _json_float(right_anchor_gamma),
+ 310                         &quot;gradient&quot;: _json_float(right_anchor_gradient),
+ 311                         &quot;diff&quot;: _json_float(right_diff),
+ 312                     },
+ 313                 }
+ 314
+ 315                 def root_objective(gamma):
+ 316                     gradient = profile_gradient(gamma)
+ 317                     if trace:
+ 318                         root_evaluations.append(dict(gamma=float(gamma), gradient=float(gradient),
+ 319                                                      residual=float(gradient - offset),
+ 320                                                      evaluation=len(root_evaluations) + 1))
+ 321                     return gradient - offset
+ 322
+ 323                 root = root_scalar(
+ 324                     root_objective,
+ 325                     bracket=(0.0, float(right_anchor_gamma)),
+ 326                     method=&quot;brentq&quot;,
+ 327                     xtol=1e-8,
+ 328                     rtol=1e-10,
+ 329                     maxiter=80,
+ 330                 )
+ 331                 found_gamma = float(root.root)
+ 332                 found_gamma = min(max(found_gamma, 0.0), float(t_min) - 1e-12)
+ 333                 found_beta, _ = find_best_beta_for_gamma(found_gamma)
+ 334                 solution_strategy = &quot;brent_root&quot;
+ 335                 root_solver = &quot;brent&quot;
+ 336                 root_solver_iterations = int(root.iterations)
+ 337             else:</code></pre><p>python/methods/mdm.py L223–238</p><pre><code> 223         def fit_right_edge_root(anchor_gamma, anchor_gradient):
+ 224             &quot;&quot;&quot;Return an interior root estimate when the sampled right edge is still below offset.&quot;&quot;&quot;
+ 225             t_min_float = float(t_min)
+ 226             virtual_gamma = float(np.nextafter(t_min_float, 0.0))
+ 227             if virtual_gamma &lt;= anchor_gamma:
+ 228                 gap = max(t_min_float - float(anchor_gamma), 0.0)
+ 229                 fallback_gap = max(gap * 0.5, np.finfo(float).eps * max(abs(t_min_float), 1.0))
+ 230                 virtual_gamma = min(t_min_float - fallback_gap, float(np.nextafter(t_min_float, 0.0)))
+ 231             virtual_gamma = min(max(float(virtual_gamma), 0.0), float(np.nextafter(t_min_float, 0.0)))
+ 232
+ 233             return {
+ 234                 &quot;gamma&quot;: virtual_gamma,
+ 235                 &quot;anchor_gradient&quot;: float(anchor_gradient),
+ 236                 &quot;virtual_gradient&quot;: float(offset),
+ 237                 &quot;model&quot;: &quot;right_endpoint_asymptote&quot;,
+ 238             }</code></pre><h2>计算尺度参数</h2><p>使用最优的 γ* 和 β* 计算所有伪尺度参数的均值</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><mfrac><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover></mrow><msubsup><mi>x</mi><mi>i</mi><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></mrow></msubsup></mfrac></mrow></semantics></math></span></p><p>python/methods/mdm.py L360–368</p><pre><code> 360         # @step: 11 | 计算最终尺度参数 η | 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值
+ 361         # @formula: \hat{\eta} = \frac{1}{n}\sum_{i=1}^n \frac{t_i - \hat{\gamma}}{x_i^{1/\hat{\beta}}}
+ 362         # @symbols: \hat{\eta}|\hat{\eta}|尺度参数估计值
+ 363         # @inputs: found_gamma|\hat{\gamma}|最优γ, found_beta|\hat{\beta}|最优β, t|t|失效时间数组
+ 364         # @outputs: found_eta|\hat{\eta}|尺度参数估计值
+ 365         denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
+ 366         etas = (t - found_gamma) / denom
+ 367         found_eta = np.mean(etas)
+ 368</code></pre><h2>计算拟合优度</h2><p>评估模型与数据的拟合程度</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></p><p>python/base.py L79–96</p><pre><code>  79     def _calculate_r2(self, beta, eta, gamma_val):
+  80         &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81         if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83         # Experimental
+  84         x = np.log(self.data - gamma_val)
+  85         y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87         # Theoretical / Predicted
+  88         # y = beta * x - beta * ln(eta)
+  89         y_pred = beta * x - beta * np.log(eta)
+  90
+  91         # R^2 calculation
+  92         ss_res = np.sum((y_exp - y_pred)**2)
+  93         ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95         if ss_tot == 0: return 0.0
+  96         return 1 - (ss_res / ss_tot)</code></pre><p>python/base.py L58–68</p><pre><code>  58     def _median_ranks(self):
+  59         &quot;&quot;&quot;
+  60         Helper: Calculate Median Ranks using configured method.
+  61         - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62         - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63         &quot;&quot;&quot;
+  64         i = np.arange(1, self.n + 1)
+  65         if self.rank_method == &#x27;exact&#x27;:
+  66             return betaincinv(i, self.n - i + 1, 0.5)
+  67         else:  # bernard
+  68             return (i - 0.3) / (self.n + 0.4)</code></pre><h2>记录诊断并返回</h2><p>返回估计参数和拟合优度。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">T</mi><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>β</mi><mi>j</mi></msub><mo separator="true">,</mo><msub><mi>σ</mi><mi>η</mi></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mo stretchy="false">(</mo><msub><mi>γ</mi><mi>j</mi></msub><mo separator="true">,</mo><mi>g</mi><mo stretchy="false">(</mo><msub><mi>γ</mi><mi>j</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">)</mo><mo separator="true">,</mo><mo stretchy="false">(</mo><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo separator="true">,</mo><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo separator="true">,</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">}</mo></mrow></semantics></math></span></p><p>python/methods/mdm.py L394–531</p><pre><code> 394         # @step: 13 | 生成追踪数据 | 若启用 trace，生成用于可视化的详细数据
+ 395         # @inputs: found_gamma|\gamma^*|最优γ, found_beta|\beta^*|最优β, gammas|\gamma|γ数组, sigma_mins|\sigma_{min}|标准差数组, best_betas|\beta^*|最优β数组
+ 396         # @outputs: trace_data|trace_{data}|可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）
+ 397         if trace:
+ 398             # Capture the actual solver state before the supplementary legacy
+ 399             # surface sampling below. No surrogate values enter these charts.
+ 400             selected_sigma = float(beta_sigma_cache[float(found_gamma)][1])
+ 401             beta_points = [plot_point(p[&#x27;beta&#x27;], p[&#x27;sigma&#x27;], beta=p[&#x27;beta&#x27;],
+ 402                                       gamma=float(found_gamma), evaluation=i + 1)
+ 403                            for i, p in enumerate(beta_evaluations.get(float(found_gamma), []))]
+ 404             gradient_values = list(root_evaluations)
+ 405             if not gradient_values:
+ 406                 gradient_values = [dict(gamma=0., gradient=float(probe_gradient_at_zero))]
+ 407                 if right_anchor_gamma is not None:
+ 408                     gradient_values.append(dict(gamma=float(right_anchor_gamma),
+ 409                                                 gradient=float(right_anchor_gradient)))
+ 410             gradient_points = [plot_point(p[&#x27;gamma&#x27;], p[&#x27;gradient&#x27;], **p) for p in gradient_values]
+ 411             selected_gradient = profile_gradient_cache.get(float(found_gamma))
+ 412             approximate = root_solver == &#x27;right_edge_fit&#x27;
+ 413             if solution_strategy == &#x27;truncated_at_zero&#x27;:
+ 414                 selection_description = &#x27;g(0)≥δ，按当前 γ≥0 工程约束选择 γ=0，再求对应 β 与 η。&#x27;
+ 415             elif approximate:
+ 416                 selection_description = (&#x27;右锚点梯度仍低于 δ，当前实现使用端点外推位置；&#x27;
+ 417                                          &#x27;此位置不是实际求得的 g(γ)=δ 根。&#x27;)
+ 418             else:
+ 419                 selection_description = &#x27;用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。&#x27;
+ 420             gradient_series = [plot_series(&#x27;gradient&#x27;, &#x27;实际求根函数求值&#x27;, gradient_points)]
+ 421             if approximate:
+ 422                 gradient_series.append(plot_series(
+ 423                     &#x27;endpoint-fit&#x27;, &#x27;端点外推目标（非函数值）&#x27;,
+ 424                     [plot_point(found_gamma, offset, virtual=True)], role=&#x27;virtual&#x27;, kind=&#x27;scatter&#x27;))
+ 425             self.calculation_trace = dict(
+ 426                 schema_version=1, method=&#x27;mdm&#x27;,
+ 427                 criterion=dict(description=selection_description),
+ 428                 charts=[
+ 429                     plot_chart(
+ 430                         &#x27;shape-discrepancy&#x27;, &#x27;固定最终位置后的形状搜索&#x27;,
+ 431                         &#x27;形状参数 β&#x27;, &#x27;伪尺度标准差 σ₍η₎&#x27;,
+ 432                         [plot_series(&#x27;sigma&#x27;, &#x27;本次内层实际求值&#x27;, beta_points)],
+ 433                         description=&#x27;固定本次最终 γ，展示内层有界搜索实际计算的标准差；选中点直接使用求解器返回的最小值。&#x27;,
+ 434                         selected=[plot_point(found_beta, selected_sigma, label=&#x27;选中形状参数&#x27;)]),
+ 435                     plot_chart(
+ 436                         &#x27;location-criterion&#x27;, &#x27;位置参数的梯度偏移判据&#x27;,
+ 437                         &#x27;位置参数 γ&#x27;, &#x27;剖面标准差梯度 g(γ)&#x27;, gradient_series,
+ 438                         description=selection_description + &#x27; 曲线按 γ 排列，详细记录保留真实求值次序。&#x27;,
+ 439                         references=[dict(axis=&#x27;y&#x27;, value=float(offset), label=&#x27;目标偏移量 δ&#x27;)],
+ 440                         selected=[plot_point(found_gamma, selected_gradient, label=&#x27;最终位置参数&#x27;)]
+ 441                         if selected_gradient is not None and not approximate else []),
+ 442                 ],
+ 443                 selection=dict(description=selection_description, beta=float(found_beta),
+ 444                                eta=float(found_eta), gamma=float(found_gamma),
+ 445                                sigma=selected_sigma, target_offset=float(offset),
+ 446                                gradient=float(selected_gradient) if selected_gradient is not None else None,
+ 447                                approximate=approximate, strategy=solution_strategy, solver=root_solver),
+ 448                 details=dict(rank_method=rank_method, shape_search_bounds=[0.1, 15.0],
+ 449                              sigma_ddof=1, root_bracket=root_bracket,
+ 450                              root_solver_iterations=root_solver_iterations,
+ 451                              root_evaluations=root_evaluations,
+ 452                              gradient_scan=[dict(gamma=float(g), gradient=float(v))
+ 453                                             for g, v in zip(gammas, grads) if np.isfinite(v)],
+ 454                              pseudo_scales=[dict(observation=float(ti), rank=float(ri),
+ 455                                                  eta=float(ei)) for ti, ri, ei in zip(t, ranks, etas)],
+ 456                              boundary_rule=&#x27;gamma &gt;= 0&#x27;,
+ 457                              supplementary_legacy_curves=&#x27;旧 trace_data 中的曲面为额外函数采样，不是迭代轨迹&#x27;),
+ 458             )
+ 459             # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility
+ 460             beta_scan = np.linspace(0.5, 5, 100)
+ 461             sigma_beta_curve = []
+ 462             for b_val in beta_scan:
+ 463                 s = calculate_eta_std(b_val, found_gamma, t)
+ 464                 sigma_beta_curve.append({&quot;beta&quot;: b_val, &quot;sigma&quot;: s})
+ 465
+ 466             # 2. Full 2D surface data: sigma_beta_gamma for 3D visualization
+ 467             num_gamma_samples = 20
+ 468             gamma_indices = np.linspace(0, len(gammas) - 1, num_gamma_samples, dtype=int)
+ 469             sampled_gammas = gammas[gamma_indices]
+ 470             beta_range = np.linspace(0.5, 5, 100)
+ 471             sigma_beta_gamma = []
+ 472
+ 473             for idx, g in enumerate(sampled_gammas):
+ 474                 sigma_curve = []
+ 475                 for b_val in beta_range:
+ 476                     s = calculate_eta_std(b_val, g, t)
+ 477                     sigma_curve.append(float(s))
+ 478
+ 479                 sigma_beta_gamma.append({
+ 480                     &quot;gamma&quot;: float(g),
+ 481                     &quot;betas&quot;: [float(b) for b in beta_range],
+ 482                     &quot;sigmas&quot;: sigma_curve
+ 483                 })
+ 484
+ 485             # 3. Gradient vs Gamma curve. This uses the same profile_gradient
+ 486             # function as the backend solver, so the visual trace and result match.
+ 487             grad_gamma_points = {}
+ 488
+ 489             def add_gradient_point(gamma, gradient, source=&quot;trace_grid&quot;, virtual=False):
+ 490                 gamma = float(gamma)
+ 491                 b, sig = find_best_beta_for_gamma(gamma)
+ 492                 denom = np.power(neg_ln_1_minus_F, 1.0/b)
+ 493                 etas_g = (t - gamma) / denom
+ 494                 eta_mean = float(np.mean(etas_g))
+ 495                 point = {
+ 496                     &quot;gamma&quot;: gamma,
+ 497                     &quot;gradient&quot;: float(gradient),
+ 498                     &quot;sigma_min&quot;: float(sig),
+ 499                     &quot;best_beta&quot;: float(b),
+ 500                     &quot;best_eta&quot;: eta_mean,
+ 501                     &quot;source&quot;: source,
+ 502                 }
+ 503                 if virtual:
+ 504                     point[&quot;virtual&quot;] = True
+ 505                 grad_gamma_points[gamma] = point
+ 506
+ 507             for i in range(len(gammas)):
+ 508                 add_gradient_point(gammas[i], grads[i])
+ 509
+ 510             if solution_strategy == &quot;brent_root&quot;:
+ 511                 if root_solver == &quot;right_edge_fit&quot;:
+ 512                     add_gradient_point(found_gamma, offset, source=&quot;solver_root&quot;, virtual=True)
+ 513                 else:
+ 514                     add_gradient_point(found_gamma, profile_gradient(found_gamma), source=&quot;solver_root&quot;)
+ 515             elif solution_strategy == &quot;truncated_at_zero&quot;:
+ 516                 add_gradient_point(0.0, probe_gradient_at_zero, source=&quot;solver_root&quot;)
+ 517
+ 518             grad_gamma_curve = sorted(
+ 519                 grad_gamma_points.values(),
+ 520                 key=lambda point: point[&quot;gamma&quot;],
+ 521                 reverse=True,
+ 522             )
+ 523
+ 524             self.trace_data = {
+ 525                 &quot;sigma_beta_curve&quot;: sigma_beta_curve,
+ 526                 &quot;grad_gamma_curve&quot;: grad_gamma_curve,
+ 527                 &quot;sigma_beta_gamma&quot;: sigma_beta_gamma,
+ 528                 **self.last_solution_info,
+ 529             }
+ 530
+ 531         return float(found_beta), float(found_eta), float(found_gamma), float(r2), True</code></pre></html>

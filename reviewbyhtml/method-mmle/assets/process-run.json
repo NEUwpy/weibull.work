@@ -1,0 +1,1448 @@
+{
+  "method": "mmle",
+  "checked_at": "2026-11-03T00:21:39+08:00",
+  "case": {
+    "beta_hat": 1.4485886121720157,
+    "eta_hat": 379.2748797548912,
+    "gamma_hat": 1095.152505835801,
+    "converged": true,
+    "label": "既有七点存档样本",
+    "expected": "单样本化简的独立得分根对照，非原文双样本R的完整算例。",
+    "n": 7,
+    "observations": [
+      1095.152505835801,
+      1183.164246506551,
+      1193.7594200675674,
+      1378.183094629827,
+      1455.4795722007577,
+      1498.7728191194542,
+      1916.043346962928
+    ],
+    "parameters": {}
+  },
+  "calculation": {
+    "schema_version": 1,
+    "method": "mmle",
+    "criterion": {
+      "description": "令 γ̂ 为原样本最小值并删除该观测；保留样本按不动点规则迭代，步长达到容差后接受。"
+    },
+    "selection": {
+      "description": "令 γ̂ 为原样本最小值并删除该观测；保留样本按不动点规则迭代，步长达到容差后接受。",
+      "status": "ok",
+      "beta": 1.4485886121720157,
+      "eta": 379.2748797548912,
+      "gamma": 1095.152505835801,
+      "iterations": 81
+    },
+    "charts": [
+      {
+        "id": "shape-fixed-point",
+        "title": "保留样本的形状不动点迭代",
+        "description": "原样本最小值确定 γ̂；删去该一个观测后，yᵢ=tᵢ−γ̂，q=n−1。",
+        "x": {
+          "key": "x",
+          "label": "实际迭代次数"
+        },
+        "y": {
+          "key": "y",
+          "label": "形状参数 β"
+        },
+        "series": [
+          {
+            "id": "shape",
+            "label": "实际迭代结果",
+            "kind": "line",
+            "role": "solver",
+            "points": [
+              {
+                "x": 1.0,
+                "y": 1.0771989807242714
+              },
+              {
+                "x": 2.0,
+                "y": 1.1418772756240436
+              },
+              {
+                "x": 3.0,
+                "y": 1.1957827689293263
+              },
+              {
+                "x": 4.0,
+                "y": 1.2405312313400867
+              },
+              {
+                "x": 5.0,
+                "y": 1.2775646322645076
+              },
+              {
+                "x": 6.0,
+                "y": 1.308140380883455
+              },
+              {
+                "x": 7.0,
+                "y": 1.3333376158570844
+              },
+              {
+                "x": 8.0,
+                "y": 1.3540720349047393
+              },
+              {
+                "x": 9.0,
+                "y": 1.371114235721476
+              },
+              {
+                "x": 10.0,
+                "y": 1.3851087109256812
+              },
+              {
+                "x": 11.0,
+                "y": 1.3965919619927836
+              },
+              {
+                "x": 12.0,
+                "y": 1.4060089859679257
+              },
+              {
+                "x": 13.0,
+                "y": 1.413727848221394
+              },
+              {
+                "x": 14.0,
+                "y": 1.4200523130206884
+              },
+              {
+                "x": 15.0,
+                "y": 1.4252326409812526
+              },
+              {
+                "x": 16.0,
+                "y": 1.429474727690355
+              },
+              {
+                "x": 17.0,
+                "y": 1.4329477811342268
+              },
+              {
+                "x": 18.0,
+                "y": 1.4357907353876085
+              },
+              {
+                "x": 19.0,
+                "y": 1.4381175854626091
+              },
+              {
+                "x": 20.0,
+                "y": 1.4400218098839366
+              },
+              {
+                "x": 21.0,
+                "y": 1.4415800273176858
+              },
+              {
+                "x": 22.0,
+                "y": 1.4428550135933427
+              },
+              {
+                "x": 23.0,
+                "y": 1.4438981868565084
+              },
+              {
+                "x": 24.0,
+                "y": 1.444751651890185
+              },
+              {
+                "x": 25.0,
+                "y": 1.44544988000307
+              },
+              {
+                "x": 26.0,
+                "y": 1.4460210882604445
+              },
+              {
+                "x": 27.0,
+                "y": 1.4464883710783794
+              },
+              {
+                "x": 28.0,
+                "y": 1.446870628119416
+              },
+              {
+                "x": 29.0,
+                "y": 1.4471833248088903
+              },
+              {
+                "x": 30.0,
+                "y": 1.447439115432666
+              },
+              {
+                "x": 31.0,
+                "y": 1.4476483534919184
+              },
+              {
+                "x": 32.0,
+                "y": 1.4478195096114654
+              },
+              {
+                "x": 33.0,
+                "y": 1.447959513678709
+              },
+              {
+                "x": 34.0,
+                "y": 1.4480740349047023
+              },
+              {
+                "x": 35.0,
+                "y": 1.4481677110400943
+              },
+              {
+                "x": 36.0,
+                "y": 1.4482443359563928
+              },
+              {
+                "x": 37.0,
+                "y": 1.448307013141348
+              },
+              {
+                "x": 38.0,
+                "y": 1.4483582812931337
+              },
+              {
+                "x": 39.0,
+                "y": 1.4484002170788695
+              },
+              {
+                "x": 40.0,
+                "y": 1.4484345192053911
+              },
+              {
+                "x": 41.0,
+                "y": 1.4484625771981057
+              },
+              {
+                "x": 42.0,
+                "y": 1.4484855276675943
+              },
+              {
+                "x": 43.0,
+                "y": 1.4485043003389728
+              },
+              {
+                "x": 44.0,
+                "y": 1.4485196557057674
+              },
+              {
+                "x": 45.0,
+                "y": 1.4485322158317633
+              },
+              {
+                "x": 46.0,
+                "y": 1.4485424895473462
+              },
+              {
+                "x": 47.0,
+                "y": 1.4485508930602191
+              },
+              {
+                "x": 48.0,
+                "y": 1.4485577668148901
+              },
+              {
+                "x": 49.0,
+                "y": 1.4485633892835643
+              },
+              {
+                "x": 50.0,
+                "y": 1.4485679882468803
+              },
+              {
+                "x": 51.0,
+                "y": 1.4485717500213235
+              },
+              {
+                "x": 52.0,
+                "y": 1.4485748270070418
+              },
+              {
+                "x": 53.0,
+                "y": 1.4485773438617526
+              },
+              {
+                "x": 54.0,
+                "y": 1.4485794025508272
+              },
+              {
+                "x": 55.0,
+                "y": 1.448581086478101
+              },
+              {
+                "x": 56.0,
+                "y": 1.448582463864746
+              },
+              {
+                "x": 57.0,
+                "y": 1.4485835905130728
+              },
+              {
+                "x": 58.0,
+                "y": 1.4485845120672272
+              },
+              {
+                "x": 59.0,
+                "y": 1.4485852658623568
+              },
+              {
+                "x": 60.0,
+                "y": 1.4485858824371671
+              },
+              {
+                "x": 61.0,
+                "y": 1.4485863867711306
+              },
+              {
+                "x": 62.0,
+                "y": 1.4485867992964827
+              },
+              {
+                "x": 63.0,
+                "y": 1.448587136725994
+              },
+              {
+                "x": 64.0,
+                "y": 1.4485874127300564
+              },
+              {
+                "x": 65.0,
+                "y": 1.4485876384905165
+              },
+              {
+                "x": 66.0,
+                "y": 1.448587823153685
+              },
+              {
+                "x": 67.0,
+                "y": 1.448587974200886
+              },
+              {
+                "x": 68.0,
+                "y": 1.448588097751548
+              },
+              {
+                "x": 69.0,
+                "y": 1.448588198811123
+              },
+              {
+                "x": 70.0,
+                "y": 1.4485882814738753
+              },
+              {
+                "x": 71.0,
+                "y": 1.44858834908875
+              },
+              {
+                "x": 72.0,
+                "y": 1.4485884043950534
+              },
+              {
+                "x": 73.0,
+                "y": 1.4485884496334307
+              },
+              {
+                "x": 74.0,
+                "y": 1.4485884866366412
+              },
+              {
+                "x": 75.0,
+                "y": 1.4485885169038095
+              },
+              {
+                "x": 76.0,
+                "y": 1.4485885416611604
+              },
+              {
+                "x": 77.0,
+                "y": 1.448588561911698
+              },
+              {
+                "x": 78.0,
+                "y": 1.4485885784758399
+              },
+              {
+                "x": 79.0,
+                "y": 1.4485885920246548
+              },
+              {
+                "x": 80.0,
+                "y": 1.4485886031070518
+              },
+              {
+                "x": 81.0,
+                "y": 1.4485886121720157
+              }
+            ]
+          }
+        ],
+        "references": [],
+        "selected": [
+          {
+            "x": 81.0,
+            "y": 1.4485886121720157,
+            "label": "最终形状参数"
+          }
+        ],
+        "formula": "\\beta_{k+1}=\\frac{q+\\beta_k\\sum\\ln y_i}{q\\sum w_i(\\beta_k)\\ln y_i},\\quad w_i=\\frac{y_i^{\\beta_k}}{\\sum y_j^{\\beta_k}}"
+      },
+      {
+        "id": "shape-step",
+        "title": "停止判据",
+        "description": "",
+        "x": {
+          "key": "x",
+          "label": "实际迭代次数"
+        },
+        "y": {
+          "key": "y",
+          "label": "相邻形状参数绝对差 |Δβ|"
+        },
+        "series": [
+          {
+            "id": "step",
+            "label": "实际绝对步长",
+            "kind": "line",
+            "role": "solver",
+            "points": [
+              {
+                "x": 1.0,
+                "y": 0.07719898072427145
+              },
+              {
+                "x": 2.0,
+                "y": 0.06467829489977217
+              },
+              {
+                "x": 3.0,
+                "y": 0.053905493305282715
+              },
+              {
+                "x": 4.0,
+                "y": 0.04474846241076036
+              },
+              {
+                "x": 5.0,
+                "y": 0.03703340092442087
+              },
+              {
+                "x": 6.0,
+                "y": 0.030575748618947518
+              },
+              {
+                "x": 7.0,
+                "y": 0.025197234973629357
+              },
+              {
+                "x": 8.0,
+                "y": 0.02073441904765483
+              },
+              {
+                "x": 9.0,
+                "y": 0.017042200816736797
+              },
+              {
+                "x": 10.0,
+                "y": 0.013994475204205159
+              },
+              {
+                "x": 11.0,
+                "y": 0.011483251067102351
+              },
+              {
+                "x": 12.0,
+                "y": 0.009417023975142103
+              },
+              {
+                "x": 13.0,
+                "y": 0.007718862253468295
+              },
+              {
+                "x": 14.0,
+                "y": 0.0063244647992943825
+              },
+              {
+                "x": 15.0,
+                "y": 0.005180327960564224
+              },
+              {
+                "x": 16.0,
+                "y": 0.004242086709102422
+              },
+              {
+                "x": 17.0,
+                "y": 0.003473053443871832
+              },
+              {
+                "x": 18.0,
+                "y": 0.0028429542533816576
+              },
+              {
+                "x": 19.0,
+                "y": 0.0023268500750006638
+              },
+              {
+                "x": 20.0,
+                "y": 0.0019042244213274273
+              },
+              {
+                "x": 21.0,
+                "y": 0.001558217433749176
+              },
+              {
+                "x": 22.0,
+                "y": 0.0012749862756569197
+              },
+              {
+                "x": 23.0,
+                "y": 0.0010431732631657198
+              },
+              {
+                "x": 24.0,
+                "y": 0.0008534650336766703
+              },
+              {
+                "x": 25.0,
+                "y": 0.0006982281128848911
+              },
+              {
+                "x": 26.0,
+                "y": 0.0005712082573745558
+              },
+              {
+                "x": 27.0,
+                "y": 0.0004672828179348443
+              },
+              {
+                "x": 28.0,
+                "y": 0.00038225704103656
+              },
+              {
+                "x": 29.0,
+                "y": 0.0003126966894744232
+              },
+              {
+                "x": 30.0,
+                "y": 0.00025579062377567574
+              },
+              {
+                "x": 31.0,
+                "y": 0.00020923805925243677
+              },
+              {
+                "x": 32.0,
+                "y": 0.00017115611954698906
+              },
+              {
+                "x": 33.0,
+                "y": 0.00014000406724345993
+              },
+              {
+                "x": 34.0,
+                "y": 0.00011452122599342474
+              },
+              {
+                "x": 35.0,
+                "y": 9.367613539201791e-05
+              },
+              {
+                "x": 36.0,
+                "y": 7.662491629845114e-05
+              },
+              {
+                "x": 37.0,
+                "y": 6.267718495522878e-05
+              },
+              {
+                "x": 38.0,
+                "y": 5.126815178568833e-05
+              },
+              {
+                "x": 39.0,
+                "y": 4.193578573574719e-05
+              },
+              {
+                "x": 40.0,
+                "y": 3.4302126521668086e-05
+              },
+              {
+                "x": 41.0,
+                "y": 2.8057992714547453e-05
+              },
+              {
+                "x": 42.0,
+                "y": 2.2950469488636216e-05
+              },
+              {
+                "x": 43.0,
+                "y": 1.8772671378508576e-05
+              },
+              {
+                "x": 44.0,
+                "y": 1.5355366794533865e-05
+              },
+              {
+                "x": 45.0,
+                "y": 1.2560125995930704e-05
+              },
+              {
+                "x": 46.0,
+                "y": 1.0273715582931331e-05
+              },
+              {
+                "x": 47.0,
+                "y": 8.403512872900976e-06
+              },
+              {
+                "x": 48.0,
+                "y": 6.873754671010701e-06
+              },
+              {
+                "x": 49.0,
+                "y": 5.62246867419347e-06
+              },
+              {
+                "x": 50.0,
+                "y": 4.598963315949334e-06
+              },
+              {
+                "x": 51.0,
+                "y": 3.7617744432782985e-06
+              },
+              {
+                "x": 52.0,
+                "y": 3.0769857182200155e-06
+              },
+              {
+                "x": 53.0,
+                "y": 2.5168547108656014e-06
+              },
+              {
+                "x": 54.0,
+                "y": 2.058689074546649e-06
+              },
+              {
+                "x": 55.0,
+                "y": 1.6839272738433664e-06
+              },
+              {
+                "x": 56.0,
+                "y": 1.3773866449628969e-06
+              },
+              {
+                "x": 57.0,
+                "y": 1.1266483268546068e-06
+              },
+              {
+                "x": 58.0,
+                "y": 9.21554154320603e-07
+              },
+              {
+                "x": 59.0,
+                "y": 7.537951296487932e-07
+              },
+              {
+                "x": 60.0,
+                "y": 6.165748103192925e-07
+              },
+              {
+                "x": 61.0,
+                "y": 5.043339634802635e-07
+              },
+              {
+                "x": 62.0,
+                "y": 4.125253521003458e-07
+              },
+              {
+                "x": 63.0,
+                "y": 3.374295112212877e-07
+              },
+              {
+                "x": 64.0,
+                "y": 2.760040624938398e-07
+              },
+              {
+                "x": 65.0,
+                "y": 2.2576046010414075e-07
+              },
+              {
+                "x": 66.0,
+                "y": 1.8466316853427145e-07
+              },
+              {
+                "x": 67.0,
+                "y": 1.5104720096914548e-07
+              },
+              {
+                "x": 68.0,
+                "y": 1.235506619234883e-07
+              },
+              {
+                "x": 69.0,
+                "y": 1.0105957515271768e-07
+              },
+              {
+                "x": 70.0,
+                "y": 8.266275219881436e-08
+              },
+              {
+                "x": 71.0,
+                "y": 6.761487458817328e-08
+              },
+              {
+                "x": 72.0,
+                "y": 5.530630353689503e-08
+              },
+              {
+                "x": 73.0,
+                "y": 4.523837726644331e-08
+              },
+              {
+                "x": 74.0,
+                "y": 3.700321049571187e-08
+              },
+              {
+                "x": 75.0,
+                "y": 3.026716832721377e-08
+              },
+              {
+                "x": 76.0,
+                "y": 2.475735083606878e-08
+              },
+              {
+                "x": 77.0,
+                "y": 2.0250537691168802e-08
+              },
+              {
+                "x": 78.0,
+                "y": 1.656414183592858e-08
+              },
+              {
+                "x": 79.0,
+                "y": 1.3548814958852518e-08
+              },
+              {
+                "x": 80.0,
+                "y": 1.1082397000095057e-08
+              },
+              {
+                "x": 81.0,
+                "y": 9.064963890637046e-09
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "axis": "y",
+            "value": 1e-08,
+            "label": "停止容差"
+          }
+        ],
+        "selected": [
+          {
+            "x": 81.0,
+            "y": 9.064963890637046e-09,
+            "label": "达到停止条件"
+          }
+        ],
+        "formula": "|\\beta_{k+1}-\\beta_k|\\leq\\varepsilon"
+      }
+    ],
+    "recovery": [
+      {
+        "title": "样本最小值确定位置",
+        "formula": "\\hat\\gamma=t_{(1)},\\quad y_i=t_{(i)}-\\hat\\gamma\\;(i\\geq2)",
+        "values": [
+          {
+            "label": "γ̂",
+            "value": 1095.152505835801
+          },
+          {
+            "label": "保留样本数 q",
+            "value": 6.0
+          }
+        ]
+      },
+      {
+        "title": "不动点迭代确定形状",
+        "formula": "|\\beta_{k+1}-\\beta_k|\\leq\\varepsilon",
+        "values": [
+          {
+            "label": "β̂",
+            "value": 1.4485886121720157
+          },
+          {
+            "label": "|Δβ|",
+            "value": 9.064963890637046e-09
+          },
+          {
+            "label": "ε",
+            "value": 1e-08
+          }
+        ]
+      },
+      {
+        "title": "保留样本恢复尺度",
+        "formula": "\\hat\\eta=\\left(\\frac1q\\sum y_i^{\\hat\\beta}\\right)^{1/\\hat\\beta}",
+        "values": [
+          {
+            "label": "η̂",
+            "value": 379.2748797548912
+          }
+        ]
+      }
+    ],
+    "details": {
+      "status": "ok",
+      "iterations": 81,
+      "initial_shape": 1.0,
+      "final_shape_step": 9.064963890637046e-09,
+      "deleted_observations": 1,
+      "gamma_is_original_sample_minimum": true,
+      "effective_sample_min": 1183.164246506551,
+      "first_iterations": [
+        {
+          "iteration": 1,
+          "shape_before": 1.0,
+          "shape_after": 1.0771989807242714
+        },
+        {
+          "iteration": 2,
+          "shape_before": 1.0771989807242714,
+          "shape_after": 1.1418772756240436
+        },
+        {
+          "iteration": 3,
+          "shape_before": 1.1418772756240436,
+          "shape_after": 1.1957827689293263
+        }
+      ],
+      "no_firth": true,
+      "no_domain_caps": true,
+      "no_fallback": true,
+      "shape_absolute_step_tolerance": 1e-08,
+      "max_iterations": 10000,
+      "deleted_value": 1095.152505835801,
+      "retained_observations": [
+        1183.164246506551,
+        1193.7594200675674,
+        1378.183094629827,
+        1455.4795722007577,
+        1498.7728191194542,
+        1916.043346962928
+      ],
+      "shifted_observations": [
+        88.01174067074999,
+        98.60691423176627,
+        283.030588794026,
+        360.32706636495664,
+        403.6203132836531,
+        820.8908411271268
+      ],
+      "r_squared_note": "原流程0占位，不解释为拟合优度为零。"
+    },
+    "run": {
+      "id": "b771c702-2fff-431a-a434-3467c7f2e11a",
+      "completed_at": "2026-11-02T16:21:38.980996+00:00",
+      "sample_sha256": "c8c17b7fffd7facce2d0e2dfd53ea9e89a6273980dc40952eb53e8d14e995a07",
+      "observations": [
+        1095.152505835801,
+        1183.164246506551,
+        1193.7594200675674,
+        1378.183094629827,
+        1455.4795722007577,
+        1498.7728191194542,
+        1916.043346962928
+      ],
+      "n": 7,
+      "parameters": {
+        "initial_shape": 1.0,
+        "shape_absolute_step_tolerance": 1e-08,
+        "max_iterations": 10000
+      },
+      "duration_seconds": 0.0016509999986737967,
+      "sources": [
+        {
+          "path": "methods/mmle.py",
+          "sha256": "853989b9ed153eaaf69fdeba00b1801bb8debf5382af3666d052de9711c75cdc"
+        },
+        {
+          "path": "base.py",
+          "sha256": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2"
+        },
+        {
+          "path": "methods/calculation_trace.py",
+          "sha256": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd"
+        }
+      ],
+      "runtime": {
+        "python": "3.11.15",
+        "numpy": "2.4.6",
+        "scipy": "1.17.1"
+      }
+    }
+  },
+  "result": {
+    "beta_hat": 1.4485886121720157,
+    "eta_hat": 379.2748797548912,
+    "gamma_hat": 1095.152505835801,
+    "r_squared": 0.0,
+    "converged": true
+  },
+  "source_sha256": {
+    "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "python/methods/mmle.py": "853989b9ed153eaaf69fdeba00b1801bb8debf5382af3666d052de9711c75cdc",
+    "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+    "src/data/method_flows/mmle.json": "dfcbda680b1be509a37baad30dea17fa9cebc18b5aa32f2ebbac72fbe9036ef4",
+    "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+    "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+    "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+  },
+  "flow": {
+    "schemaVersion": 2,
+    "methodId": "mmle",
+    "methodName": "修正极大似然法 MMLE",
+    "description": "Kundu–Raqab单样本构造：删除一个最小值 → 固定点形状迭代 → 尺度恢复。",
+    "steps": [
+      {
+        "name": "数据预处理与控制量",
+        "description": "检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。",
+        "basis": "Kundu–Raqab (2009)单样本版本与既有数值控制。",
+        "notes": "论文整理门槛尚未完成，此页补充程序说明，不开放计算器。不是旧Cohen–Whitten版本，也没有Firth修正。",
+        "formula": {
+          "expression": "\\beta_0=1,\\quad\\varepsilon=10^{-8},\\quad K_{max}=10000,\\quad n\\ge2",
+          "explanation": "检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。",
+          "symbols": [
+            {
+              "symbol": "t_{(i)}",
+              "meaning": "排序样本"
+            },
+            {
+              "symbol": "ε",
+              "meaning": "绝对步差容差"
+            },
+            {
+              "symbol": "K_{max}",
+              "meaning": "迭代上限"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "data",
+            "symbol": "t_i",
+            "meaning": "原始样本"
+          },
+          {
+            "code": "initial_shape",
+            "symbol": "β_0",
+            "meaning": "初始形状"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "self.data",
+            "symbol": "t_{(i)}",
+            "meaning": "排序样本"
+          }
+        ],
+        "sources": [
+          {
+            "file": "python/base.py",
+            "symbol": "WeibullBase.__init__",
+            "label": "WeibullBase.__init__",
+            "start": 21,
+            "end": 34
+          },
+          {
+            "file": "python/methods/mmle.py",
+            "symbol": "MMLE.run",
+            "label": "控制量检查",
+            "start": 25,
+            "end": 47
+          }
+        ],
+        "id": 1,
+        "primarySource": 1,
+        "depth": 0,
+        "kind": "step",
+        "number": "1"
+      },
+      {
+        "name": "固定位置并删除最小值",
+        "description": "以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。",
+        "basis": "原构造：保留样本定义支撑，不用已删除的最小值检查。",
+        "notes": "重复最小值使剩余距离出现0；随后按原固定点规则失败，不扰动、不重启。",
+        "formula": {
+          "expression": "\\hat\\gamma=t_{(1)},\\quad y_i=t_{(i+1)}-t_{(1)},\\quad q=n-1",
+          "explanation": "以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。",
+          "symbols": [
+            {
+              "symbol": "\\hatγ",
+              "meaning": "固定位置"
+            },
+            {
+              "symbol": "y_i",
+              "meaning": "保留样本平移距离"
+            },
+            {
+              "symbol": "q",
+              "meaning": "保留样本量 n−1"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "self.data",
+            "symbol": "t_{(i)}",
+            "meaning": "排序样本"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "gamma",
+            "symbol": "\\hatγ",
+            "meaning": "固定位置"
+          },
+          {
+            "code": "y",
+            "symbol": "y_i",
+            "meaning": "保留样本平移距离"
+          }
+        ],
+        "sources": [
+          {
+            "file": "python/methods/mmle.py",
+            "symbol": "MMLE.run",
+            "label": "删除最小观测",
+            "start": 47,
+            "end": 53
+          }
+        ],
+        "id": 2,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "2"
+      },
+      {
+        "name": "迭代求解形状",
+        "description": "用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。",
+        "basis": "原固定点构造；指数先减最大值用于数值稳定。",
+        "notes": "下一步非有限或非正立即停止；达到上限仍不收敛则失败。没有形状/位置截断、重启或后备求解器。",
+        "formula": {
+          "expression": "\\begin{gathered}w_i^{(k)}=\\frac{e^{\\beta_k\\ln y_i}}{\\sum_j e^{\\beta_k\\ln y_j}}\\\\[5pt]\\beta_{k+1}=\\frac{q+\\beta_k\\sum_i\\ln y_i}{q\\sum_iw_i^{(k)}\\ln y_i}\\\\[5pt]|\\beta_{k+1}-\\beta_k|\\le\\varepsilon\\end{gathered}",
+          "explanation": "用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。",
+          "symbols": [
+            {
+              "symbol": "β_{k+1}",
+              "meaning": "下一步形状"
+            },
+            {
+              "symbol": "\\mathrm{converged}",
+              "meaning": "步差收敛标志"
+            },
+            {
+              "symbol": "w_i^{(k)}",
+              "meaning": "归一化幂权重"
+            },
+            {
+              "symbol": "q",
+              "meaning": "保留样本量"
+            },
+            {
+              "symbol": "ε",
+              "meaning": "绝对步差容差"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "y",
+            "symbol": "y_i",
+            "meaning": "平移样本"
+          },
+          {
+            "code": "beta",
+            "symbol": "β_k",
+            "meaning": "当前形状"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "next_beta",
+            "symbol": "β_{k+1}",
+            "meaning": "下一步形状"
+          },
+          {
+            "code": "converged",
+            "symbol": "\\mathrm{converged}",
+            "meaning": "步差收敛标志"
+          }
+        ],
+        "sources": [
+          {
+            "file": "python/methods/mmle.py",
+            "symbol": "MMLE.run",
+            "label": "固定点循环",
+            "start": 54,
+            "end": 76
+          }
+        ],
+        "id": 3,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "3"
+      },
+      {
+        "name": "检查收敛并恢复尺度",
+        "description": "只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。",
+        "basis": "参数映射：原文α对应全站β，θ对应η^β。",
+        "notes": "未收敛返回None参数及False，不把最后一个迭代值作为成功估计。",
+        "formula": {
+          "expression": "\\hat\\eta=\\left(\\frac1q\\sum_i y_i^{\\hat\\beta}\\right)^{1/\\hat\\beta},\\quad\\theta=\\eta^\\beta",
+          "explanation": "只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。",
+          "symbols": [
+            {
+              "symbol": "\\hatη",
+              "meaning": "尺度"
+            },
+            {
+              "symbol": "\\mathrm{status}",
+              "meaning": "收敛诊断"
+            },
+            {
+              "symbol": "θ",
+              "meaning": "原文尺度参数化 η^β"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "beta",
+            "symbol": "\\hatβ",
+            "meaning": "最终形状"
+          },
+          {
+            "code": "logs",
+            "symbol": "\\ln y_i",
+            "meaning": "保留样本对数"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "eta",
+            "symbol": "\\hatη",
+            "meaning": "尺度"
+          },
+          {
+            "code": "last_solution_info",
+            "symbol": "\\mathrm{status}",
+            "meaning": "收敛诊断"
+          }
+        ],
+        "sources": [
+          {
+            "file": "python/methods/mmle.py",
+            "symbol": "MMLE.run",
+            "label": "收敛、失败与尺度",
+            "start": 76,
+            "end": 88
+          }
+        ],
+        "id": 4,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "4"
+      },
+      {
+        "name": "返回估计结果",
+        "description": "返回形状、尺度、位置参数及收敛状态。",
+        "basis": "接口兼容：保持KROriginal返回结构。",
+        "notes": "R²=0是存档占位，未计算全样本概率图拟合优度；与其他方法R²不直接比较。",
+        "formula": {
+          "expression": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,0,\\mathrm{converged})",
+          "explanation": "返回形状、尺度、位置参数及收敛状态。",
+          "symbols": [
+            {
+              "symbol": "(β,η,γ,0,\\mathrm{True})",
+              "meaning": "成功返回"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "beta, eta, gamma",
+            "symbol": "(β,η,γ)",
+            "meaning": "收敛参数"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "return",
+            "symbol": "(β,η,γ,0,\\mathrm{True})",
+            "meaning": "成功返回"
+          }
+        ],
+        "sources": [
+          {
+            "file": "python/methods/mmle.py",
+            "symbol": "MMLE.run",
+            "label": "MMLE.run",
+            "start": 88,
+            "end": 119
+          }
+        ],
+        "id": 5,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "5"
+      }
+    ],
+    "presentation": "steps",
+    "implementation": "采用 Kundu–Raqab（2009）两样本构造的单样本形式：取最小值定位，删去一个最小观测后按剖面不动点规则估计形状与尺度；旧 Cohen–Whitten 版保留为 mmle_ch。",
+    "sources": [
+      {
+        "path": "python/base.py",
+        "sha256": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "lines": [
+          "import numpy as np",
+          "from scipy.special import betaincinv",
+          "from dataclasses import dataclass, field",
+          "from typing import Any, Union, List, Optional",
+          "",
+          "",
+          "@dataclass",
+          "class MethodResult:",
+          "    \"\"\"统一的参数估计结果\"\"\"",
+          "    beta: float",
+          "    eta: float",
+          "    gamma: float",
+          "    r_squared: float",
+          "    converged: Union[bool, str] = True",
+          "    trace_data: Any = field(default=None, repr=False)",
+          "",
+          "    def to_list(self) -> list:",
+          "        \"\"\"向后兼容：转换为 [beta, eta, gamma, r2, converged] 列表\"\"\"",
+          "        return [self.beta, self.eta, self.gamma, self.r_squared, self.converged]",
+          "",
+          "class WeibullBase:",
+          "    def __init__(self, data, rank_method='bernard'):",
+          "        \"\"\"",
+          "        Input: data (list or np.array) of failure times.",
+          "        Status is assumed to be Failure (F) for this mathematical implementation.",
+          "        rank_method: 'bernard' or 'exact' - method for calculating median ranks",
+          "        \"\"\"",
+          "        values = np.asarray(data, dtype=float).reshape(-1)",
+          "        if not np.isfinite(values).all() or np.any(values <= 0):",
+          "            raise ValueError(\"invalid sample: observations must all be finite and greater than zero\")",
+          "        self.data = np.sort(values)",
+          "        self.n = len(self.data)",
+          "        self.trace_data = [] # Store process data for visualization",
+          "        self.rank_method = rank_method",
+          "",
+          "    def log_step(self, step_info: dict):",
+          "        \"\"\"Helper: Log a step for visualization\"\"\"",
+          "        # Add iteration number automatically if not present",
+          "        if \"step\" not in step_info:",
+          "            step_info[\"step\"] = len(self.trace_data) + 1",
+          "",
+          "        # Convert numpy types to native python types for JSON serialization",
+          "        clean_info = {}",
+          "        for k, v in step_info.items():",
+          "            if isinstance(v, (np.intc, np.intp, np.int8,",
+          "                np.int16, np.int32, np.int64, np.uint8,",
+          "                np.uint16, np.uint32, np.uint64)):",
+          "                clean_info[k] = int(v)",
+          "            elif isinstance(v, (np.float16, np.float32, np.float64)):",
+          "                clean_info[k] = float(v)",
+          "            elif isinstance(v, (np.ndarray,)):",
+          "                clean_info[k] = v.tolist()",
+          "            else:",
+          "                clean_info[k] = v",
+          "",
+          "        self.trace_data.append(clean_info)",
+          "",
+          "    def _median_ranks(self):",
+          "        \"\"\"",
+          "        Helper: Calculate Median Ranks using configured method.",
+          "        - 'bernard': Bernard's approximation (i - 0.3) / (n + 0.4)",
+          "        - 'exact': Exact median rank using inverse incomplete beta function",
+          "        \"\"\"",
+          "        i = np.arange(1, self.n + 1)",
+          "        if self.rank_method == 'exact':",
+          "            return betaincinv(i, self.n - i + 1, 0.5)",
+          "        else:  # bernard",
+          "            return (i - 0.3) / (self.n + 0.4)",
+          "",
+          "    def _cdf_3p(self, t, beta, eta, gamma_val):",
+          "        \"\"\"Helper: 3-Parameter Weibull CDF\"\"\"",
+          "        t = np.array(t)",
+          "        vals = np.zeros_like(t, dtype=float)",
+          "        mask = t > gamma_val",
+          "        if np.any(mask):",
+          "            vals[mask] = 1 - np.exp(-((t[mask] - gamma_val) / eta)**beta)",
+          "        return vals",
+          "",
+          "    def _calculate_r2(self, beta, eta, gamma_val):",
+          "        \"\"\"Helper to calculate R-squared for any method\"\"\"",
+          "        if gamma_val >= self.data[0]: return 0.0",
+          "        ",
+          "        # Experimental",
+          "        x = np.log(self.data - gamma_val)",
+          "        y_exp = np.log(-np.log(1 - self._median_ranks()))",
+          "        ",
+          "        # Theoretical / Predicted",
+          "        # y = beta * x - beta * ln(eta)",
+          "        y_pred = beta * x - beta * np.log(eta)",
+          "        ",
+          "        # R^2 calculation",
+          "        ss_res = np.sum((y_exp - y_pred)**2)",
+          "        ss_tot = np.sum((y_exp - np.mean(y_exp))**2)",
+          "        ",
+          "        if ss_tot == 0: return 0.0",
+          "        return 1 - (ss_res / ss_tot)",
+          ""
+        ]
+      },
+      {
+        "path": "python/methods/mmle.py",
+        "sha256": "853989b9ed153eaaf69fdeba00b1801bb8debf5382af3666d052de9711c75cdc",
+        "lines": [
+          "\"\"\"Kundu–Raqab (2009) MMLE, single-sample minimum-delete-one construction.",
+          "",
+          "Matches the archived Research09 KROriginal fixed-point arithmetic. The paper",
+          "uses alpha for shape and theta=eta**beta for its scale parametrization:",
+          "SPL 79(17), 1839–1846; p.1840 (4), p.1841 (6), (9)–(11).",
+          "The previous Cohen–Whitten implementation is preserved in methods.mmle_ch.",
+          "\"\"\"",
+          "import numpy as np",
+          "from scipy.special import logsumexp",
+          "",
+          "from base import WeibullBase",
+          "from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step",
+          "",
+          "INITIAL_SHAPE = 1.0",
+          "SHAPE_ABSOLUTE_STEP_TOLERANCE = 1e-8",
+          "MAX_ITERATIONS = 10000",
+          "",
+          "",
+          "class MMLE(WeibullBase):",
+          "    \"\"\"Fix gamma at the original minimum, delete it, then fit shifted data.",
+          "",
+          "    No Firth adjustment, shape/location caps, restart or fallback solver.",
+          "    The retained observations, rather than the deleted minimum, define support.",
+          "    \"\"\"",
+          "",
+          "    def run(self, trace=False, *, initial_shape=INITIAL_SHAPE,",
+          "            shape_absolute_step_tolerance=SHAPE_ABSOLUTE_STEP_TOLERANCE,",
+          "            max_iterations=MAX_ITERATIONS):",
+          "        \"\"\"Return [beta, eta, gamma, 0.0, converged], as in KROriginal.",
+          "",
+          "        R² is the archived zero placeholder; the original minimum has zero",
+          "        shifted distance, so the full-sample log-linear R² is not evaluated.",
+          "        \"\"\"",
+          "        self.calculation_trace = None",
+          "        if not np.isfinite(initial_shape) or initial_shape <= 0:",
+          "            raise ValueError('initial_shape must be finite and positive')",
+          "        if (not np.isfinite(shape_absolute_step_tolerance)",
+          "                or shape_absolute_step_tolerance <= 0):",
+          "            raise ValueError('shape_absolute_step_tolerance must be finite and positive')",
+          "        if (isinstance(max_iterations, bool)",
+          "                or not isinstance(max_iterations, (int, np.integer))",
+          "                or max_iterations < 1):",
+          "            raise ValueError('max_iterations must be a positive integer')",
+          "        if self.n < 2:",
+          "            self.last_solution_info = {'status': 'insufficient_sample', 'n': self.n}",
+          "            return [None, None, None, 0., False]",
+          "",
+          "        gamma = float(self.data[0])",
+          "        y = self.data[1:] - gamma",
+          "        beta = float(initial_shape)",
+          "        converged = False",
+          "        history = []",
+          "        difference = float('inf')",
+          "        # Invalid steps fail under the original rule; they do not trigger rescue.",
+          "        with np.errstate(divide='ignore', invalid='ignore', over='ignore'):",
+          "            logs = np.log(y)",
+          "            q = len(y)",
+          "            for iteration in range(1, max_iterations + 1):",
+          "                weights = np.exp(beta * (logs - logs.max()))",
+          "                weights /= weights.sum()",
+          "                denominator = float(q * (weights @ logs))",
+          "                next_beta = float((q + beta * logs.sum()) / denominator)",
+          "                if not np.isfinite(next_beta) or next_beta <= 0:",
+          "                    break",
+          "                difference = abs(next_beta - beta)",
+          "                if iteration <= 3:",
+          "                    history.append(dict(iteration=iteration, shape_before=beta,",
+          "                                        shape_after=next_beta))",
+          "                if trace:",
+          "                    self.log_step(dict(phase='shape_iteration', iteration=iteration,",
+          "                                       shape_before=beta, shape_after=next_beta,",
+          "                                       shape_step=float(difference)))",
+          "                beta = next_beta",
+          "                if difference <= shape_absolute_step_tolerance:",
+          "                    converged = True",
+          "                    break",
+          "            self.last_solution_info = dict(",
+          "                status='ok' if converged else 'fixed_point_not_converged',",
+          "                iterations=iteration, initial_shape=float(initial_shape),",
+          "                final_shape_step=float(difference), deleted_observations=1,",
+          "                gamma_is_original_sample_minimum=True,",
+          "                effective_sample_min=float(self.data[1]), first_iterations=history,",
+          "                no_firth=True, no_domain_caps=True, no_fallback=True,",
+          "                shape_absolute_step_tolerance=float(shape_absolute_step_tolerance),",
+          "                max_iterations=int(max_iterations))",
+          "            if not converged:",
+          "                return [None, None, None, 0., False]",
+          "            eta = float(np.exp((logsumexp(beta * logs) - np.log(q)) / beta))",
+          "        if trace:",
+          "            self.log_step(dict(phase='final', beta=beta, eta=eta, gamma=gamma,",
+          "                               **self.last_solution_info))",
+          "            iterations = [p for p in self.trace_data if p['phase'] == 'shape_iteration']",
+          "            description = '令 γ̂ 为原样本最小值并删除该观测；保留样本按不动点规则迭代，步长达到容差后接受。'",
+          "            self.calculation_trace = dict(",
+          "                schema_version=1, method='mmle', criterion=dict(description=description),",
+          "                selection=dict(description=description, status='ok', beta=float(beta),",
+          "                               eta=float(eta), gamma=float(gamma), iterations=iteration),",
+          "                charts=[plot_chart('shape-fixed-point', '保留样本的形状不动点迭代', '实际迭代次数', '形状参数 β',",
+          "                                   [plot_series('shape', '实际迭代结果',",
+          "                                                [plot_point(p['iteration'], p['shape_after']) for p in iterations])],",
+          "                                   formula=r'\\beta_{k+1}=\\frac{q+\\beta_k\\sum\\ln y_i}{q\\sum w_i(\\beta_k)\\ln y_i},\\quad w_i=\\frac{y_i^{\\beta_k}}{\\sum y_j^{\\beta_k}}',",
+          "                                   description='原样本最小值确定 γ̂；删去该一个观测后，yᵢ=tᵢ−γ̂，q=n−1。',",
+          "                                   selected=[plot_point(iteration, beta, label='最终形状参数')]),",
+          "                        plot_chart('shape-step', '停止判据', '实际迭代次数', '相邻形状参数绝对差 |Δβ|',",
+          "                                   [plot_series('step', '实际绝对步长',",
+          "                                                [plot_point(p['iteration'], p['shape_step']) for p in iterations])],",
+          "                                   references=[dict(axis='y', value=float(shape_absolute_step_tolerance), label='停止容差')],",
+          "                                   formula=r'|\\beta_{k+1}-\\beta_k|\\leq\\varepsilon',",
+          "                                   selected=[plot_point(iteration, difference, label='达到停止条件')])],",
+          "                recovery=[calculation_step('样本最小值确定位置', r'\\hat\\gamma=t_{(1)},\\quad y_i=t_{(i)}-\\hat\\gamma\\;(i\\geq2)',",
+          "                                           [('γ̂',gamma),('保留样本数 q',q)]),",
+          "                          calculation_step('不动点迭代确定形状', r'|\\beta_{k+1}-\\beta_k|\\leq\\varepsilon',",
+          "                                           [('β̂',beta),('|Δβ|',difference),('ε',shape_absolute_step_tolerance)]),",
+          "                          calculation_step('保留样本恢复尺度', r'\\hat\\eta=\\left(\\frac1q\\sum y_i^{\\hat\\beta}\\right)^{1/\\hat\\beta}',",
+          "                                           [('η̂',eta)])],",
+          "                details=dict(**self.last_solution_info, deleted_value=gamma,",
+          "                             retained_observations=(y+gamma).tolist(), shifted_observations=y.tolist(),",
+          "                             r_squared_note='原流程0占位，不解释为拟合优度为零。'))",
+          "        return [beta, eta, gamma, 0., True]",
+          ""
+        ]
+      }
+    ],
+    "artifacts": []
+  },
+  "website_open": false,
+  "screenshots_checked_at": "2026-11-03T00:31:28+08:00"
+}

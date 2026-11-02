@@ -1,0 +1,2115 @@
+{
+  "method": "mdm",
+  "checked_at": "2026-11-03T00:21:38+08:00",
+  "case": {
+    "beta_hat": 1.9889271957318437,
+    "eta_hat": 998.3285606613732,
+    "gamma_hat": 1001.8437343695615,
+    "converged": true,
+    "label": "理想样本，bernard秩，δ=0",
+    "expected": "原图4：δ=0时γ=990；δ=.1时γ=1025。原位置步长未完整给出，不能要求本连续程序逐值匹配。",
+    "n": 7,
+    "observations": [
+      1314.6760648576212,
+      1509.3187589308427,
+      1672.859018044384,
+      1832.5546111576978,
+      2005.1281228658254,
+      2215.015634877692,
+      2536.725436579375
+    ],
+    "parameters": {
+      "offset": 0.0,
+      "rank_method": "bernard"
+    }
+  },
+  "calculation": {
+    "schema_version": 1,
+    "method": "mdm",
+    "criterion": {
+      "description": "用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。"
+    },
+    "charts": [
+      {
+        "id": "shape-discrepancy",
+        "title": "固定最终位置后的形状搜索",
+        "description": "固定本次最终 γ，展示内层有界搜索实际计算的标准差；选中点直接使用求解器返回的最小值。",
+        "x": {
+          "key": "x",
+          "label": "形状参数 β"
+        },
+        "y": {
+          "key": "y",
+          "label": "伪尺度标准差 σ₍η₎"
+        },
+        "series": [
+          {
+            "id": "sigma",
+            "label": "本次内层实际求值",
+            "kind": "line",
+            "role": "solver",
+            "points": [
+              {
+                "x": 1.4435321618671664,
+                "y": 238.60514488185038,
+                "beta": 1.4435321618671664,
+                "gamma": 1001.8437343695615,
+                "evaluation": 5
+              },
+              {
+                "x": 1.7606970820250685,
+                "y": 73.67501157923326,
+                "beta": 1.7606970820250685,
+                "gamma": 1001.8437343695615,
+                "evaluation": 8
+              },
+              {
+                "x": 1.9567157827217985,
+                "y": 9.007032124695984,
+                "beta": 1.9567157827217985,
+                "gamma": 1001.8437343695615,
+                "evaluation": 7
+              },
+              {
+                "x": 1.9819092923483377,
+                "y": 2.129088813429148,
+                "beta": 1.9819092923483377,
+                "gamma": 1001.8437343695615,
+                "evaluation": 10
+              },
+              {
+                "x": 1.9859934398334225,
+                "y": 1.2218655118508712,
+                "beta": 1.9859934398334225,
+                "gamma": 1001.8437343695615,
+                "evaluation": 15
+              },
+              {
+                "x": 1.9885175817942724,
+                "y": 0.9304488146198903,
+                "beta": 1.9885175817942724,
+                "gamma": 1001.8437343695615,
+                "evaluation": 14
+              },
+              {
+                "x": 1.9889146088124534,
+                "y": 0.9237267179915785,
+                "beta": 1.9889146088124534,
+                "gamma": 1001.8437343695615,
+                "evaluation": 16
+              },
+              {
+                "x": 1.9889238328979526,
+                "y": 0.9237201134421662,
+                "beta": 1.9889238328979526,
+                "gamma": 1001.8437343695615,
+                "evaluation": 19
+              },
+              {
+                "x": 1.9889271957318437,
+                "y": 0.9237194005484081,
+                "beta": 1.9889271957318437,
+                "gamma": 1001.8437343695615,
+                "evaluation": 18
+              },
+              {
+                "x": 1.9889305585657846,
+                "y": 0.9237195933069843,
+                "beta": 1.9889305585657846,
+                "gamma": 1001.8437343695615,
+                "evaluation": 17
+              },
+              {
+                "x": 1.989859552530618,
+                "y": 0.9577831804731372,
+                "beta": 1.989859552530618,
+                "gamma": 1001.8437343695615,
+                "evaluation": 13
+              },
+              {
+                "x": 1.9903844454819306,
+                "y": 1.0049025857752676,
+                "beta": 1.9903844454819306,
+                "gamma": 1001.8437343695615,
+                "evaluation": 11
+              },
+              {
+                "x": 2.0020559236294693,
+                "y": 3.6572407709653283,
+                "beta": 2.0020559236294693,
+                "gamma": 1001.8437343695615,
+                "evaluation": 12
+              },
+              {
+                "x": 2.0259771378356985,
+                "y": 9.87028651570117,
+                "beta": 2.0259771378356985,
+                "gamma": 1001.8437343695615,
+                "evaluation": 9
+              },
+              {
+                "x": 2.2738807028797003,
+                "y": 64.88120797959468,
+                "beta": 2.2738807028797003,
+                "gamma": 1001.8437343695615,
+                "evaluation": 4
+              },
+              {
+                "x": 2.573030738381076,
+                "y": 113.71138469911855,
+                "beta": 2.573030738381076,
+                "gamma": 1001.8437343695615,
+                "evaluation": 6
+              },
+              {
+                "x": 3.617412864746866,
+                "y": 211.50803188750268,
+                "beta": 3.617412864746866,
+                "gamma": 1001.8437343695615,
+                "evaluation": 3
+              },
+              {
+                "x": 5.791293567626566,
+                "y": 293.6481334375034,
+                "beta": 5.791293567626566,
+                "gamma": 1001.8437343695615,
+                "evaluation": 1
+              },
+              {
+                "x": 9.308706432373432,
+                "y": 342.57946713316704,
+                "beta": 9.308706432373432,
+                "gamma": 1001.8437343695615,
+                "evaluation": 2
+              }
+            ]
+          }
+        ],
+        "references": [],
+        "selected": [
+          {
+            "x": 1.9889271957318437,
+            "y": 0.9237194005484081,
+            "label": "选中形状参数"
+          }
+        ]
+      },
+      {
+        "id": "location-criterion",
+        "title": "位置参数的梯度偏移判据",
+        "description": "用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。 曲线按 γ 排列，详细记录保留真实求值次序。",
+        "x": {
+          "key": "x",
+          "label": "位置参数 γ"
+        },
+        "y": {
+          "key": "y",
+          "label": "剖面标准差梯度 g(γ)"
+        },
+        "series": [
+          {
+            "id": "gradient",
+            "label": "实际求根函数求值",
+            "kind": "line",
+            "role": "solver",
+            "points": [
+              {
+                "x": 0.0,
+                "y": -0.021856125420046606,
+                "gamma": 0.0,
+                "gradient": -0.021856125420046606,
+                "residual": -0.021856125420046606,
+                "evaluation": 1
+              },
+              {
+                "x": 15.935880802372525,
+                "y": -0.022309910719786254,
+                "gamma": 15.935880802372525,
+                "gradient": -0.022309910719786254,
+                "residual": -0.022309910719786254,
+                "evaluation": 3
+              },
+              {
+                "x": 664.648634797568,
+                "y": -0.06871499831127026,
+                "gamma": 664.648634797568,
+                "gradient": -0.06871499831127026,
+                "residual": -0.06871499831127026,
+                "evaluation": 4
+              },
+              {
+                "x": 989.0050117951657,
+                "y": -0.1835305941163948,
+                "gamma": 989.0050117951657,
+                "gradient": -0.1835305941163948,
+                "residual": -0.1835305941163948,
+                "evaluation": 5
+              },
+              {
+                "x": 998.7525893942661,
+                "y": -0.11532130651109242,
+                "gamma": 998.7525893942661,
+                "gradient": -0.11532130651109242,
+                "residual": -0.11532130651109242,
+                "evaluation": 9
+              },
+              {
+                "x": 1001.7350160483074,
+                "y": -0.005018440557868265,
+                "gamma": 1001.7350160483074,
+                "gradient": -0.005018440557868265,
+                "residual": -0.005018440557868265,
+                "evaluation": 11
+              },
+              {
+                "x": 1001.8437338667408,
+                "y": -2.3260744323408783e-08,
+                "gamma": 1001.8437338667408,
+                "gradient": -2.3260744323408783e-08,
+                "residual": -2.3260744323408783e-08,
+                "evaluation": 13
+              },
+              {
+                "x": 1001.8437343695615,
+                "y": -5.066904559848634e-13,
+                "gamma": 1001.8437343695615,
+                "gradient": -5.066904559848634e-13,
+                "residual": -5.066904559848634e-13,
+                "evaluation": 14
+              },
+              {
+                "x": 1001.8437344246537,
+                "y": 2.5470358065651777e-09,
+                "gamma": 1001.8437344246537,
+                "gradient": 2.5470358065651777e-09,
+                "residual": 2.5470358065651777e-09,
+                "evaluation": 15
+              },
+              {
+                "x": 1001.8439658329976,
+                "y": 1.070761801447505e-05,
+                "gamma": 1001.8439658329976,
+                "gradient": 1.070761801447505e-05,
+                "residual": 1.070761801447505e-05,
+                "evaluation": 12
+              },
+              {
+                "x": 1002.4136402592943,
+                "y": 0.02624032028918938,
+                "gamma": 1002.4136402592943,
+                "gradient": 0.02624032028918938,
+                "residual": 0.02624032028918938,
+                "evaluation": 10
+              },
+              {
+                "x": 1007.853659564892,
+                "y": 0.17135793980897535,
+                "gamma": 1007.853659564892,
+                "gradient": 0.17135793980897535,
+                "residual": 0.17135793980897535,
+                "evaluation": 8
+              },
+              {
+                "x": 1032.1946435535815,
+                "y": 0.23700985383137163,
+                "gamma": 1032.1946435535815,
+                "gradient": 0.23700985383137163,
+                "residual": 0.23700985383137163,
+                "evaluation": 7
+              },
+              {
+                "x": 1151.1832002939645,
+                "y": 0.5056315514280701,
+                "gamma": 1151.1832002939645,
+                "gradient": 0.5056315514280701,
+                "residual": 0.5056315514280701,
+                "evaluation": 6
+              },
+              {
+                "x": 1313.3613887927636,
+                "y": 1.7794243680326685,
+                "gamma": 1313.3613887927636,
+                "gradient": 1.7794243680326685,
+                "residual": 1.7794243680326685,
+                "evaluation": 2
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "axis": "y",
+            "value": 0.0,
+            "label": "目标偏移量 δ"
+          }
+        ],
+        "selected": [
+          {
+            "x": 1001.8437343695615,
+            "y": -5.066904559848634e-13,
+            "label": "最终位置参数"
+          }
+        ]
+      }
+    ],
+    "selection": {
+      "description": "用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。",
+      "beta": 1.9889271957318437,
+      "eta": 998.3285606613732,
+      "gamma": 1001.8437343695615,
+      "sigma": 0.9237194005484081,
+      "target_offset": 0.0,
+      "gradient": -5.066904559848634e-13,
+      "approximate": false,
+      "strategy": "brent_root",
+      "solver": "brent"
+    },
+    "details": {
+      "rank_method": "bernard",
+      "shape_search_bounds": [
+        0.1,
+        15.0
+      ],
+      "sigma_ddof": 1,
+      "root_bracket": {
+        "left": {
+          "gamma": 0.0,
+          "gradient": -0.021856125420046606,
+          "diff": -0.021856125420046606
+        },
+        "right": {
+          "gamma": 1313.3613887927636,
+          "gradient": 1.7794243680326685,
+          "diff": 1.7794243680326685
+        }
+      },
+      "root_solver_iterations": 14,
+      "root_evaluations": [
+        {
+          "gamma": 0.0,
+          "gradient": -0.021856125420046606,
+          "residual": -0.021856125420046606,
+          "evaluation": 1
+        },
+        {
+          "gamma": 1313.3613887927636,
+          "gradient": 1.7794243680326685,
+          "residual": 1.7794243680326685,
+          "evaluation": 2
+        },
+        {
+          "gamma": 15.935880802372525,
+          "gradient": -0.022309910719786254,
+          "residual": -0.022309910719786254,
+          "evaluation": 3
+        },
+        {
+          "gamma": 664.648634797568,
+          "gradient": -0.06871499831127026,
+          "residual": -0.06871499831127026,
+          "evaluation": 4
+        },
+        {
+          "gamma": 989.0050117951657,
+          "gradient": -0.1835305941163948,
+          "residual": -0.1835305941163948,
+          "evaluation": 5
+        },
+        {
+          "gamma": 1151.1832002939645,
+          "gradient": 0.5056315514280701,
+          "residual": 0.5056315514280701,
+          "evaluation": 6
+        },
+        {
+          "gamma": 1032.1946435535815,
+          "gradient": 0.23700985383137163,
+          "residual": 0.23700985383137163,
+          "evaluation": 7
+        },
+        {
+          "gamma": 1007.853659564892,
+          "gradient": 0.17135793980897535,
+          "residual": 0.17135793980897535,
+          "evaluation": 8
+        },
+        {
+          "gamma": 998.7525893942661,
+          "gradient": -0.11532130651109242,
+          "residual": -0.11532130651109242,
+          "evaluation": 9
+        },
+        {
+          "gamma": 1002.4136402592943,
+          "gradient": 0.02624032028918938,
+          "residual": 0.02624032028918938,
+          "evaluation": 10
+        },
+        {
+          "gamma": 1001.7350160483074,
+          "gradient": -0.005018440557868265,
+          "residual": -0.005018440557868265,
+          "evaluation": 11
+        },
+        {
+          "gamma": 1001.8439658329976,
+          "gradient": 1.070761801447505e-05,
+          "residual": 1.070761801447505e-05,
+          "evaluation": 12
+        },
+        {
+          "gamma": 1001.8437338667408,
+          "gradient": -2.3260744323408783e-08,
+          "residual": -2.3260744323408783e-08,
+          "evaluation": 13
+        },
+        {
+          "gamma": 1001.8437343695615,
+          "gradient": -5.066904559848634e-13,
+          "residual": -5.066904559848634e-13,
+          "evaluation": 14
+        },
+        {
+          "gamma": 1001.8437344246537,
+          "gradient": 2.5470358065651777e-09,
+          "residual": 2.5470358065651777e-09,
+          "evaluation": 15
+        }
+      ],
+      "gradient_scan": [
+        {
+          "gamma": 1314.6760635429453,
+          "gradient": 1.756862756628063
+        },
+        {
+          "gamma": 1314.676062989689,
+          "gradient": 1.756862600579678
+        },
+        {
+          "gamma": 1314.6760622036054,
+          "gradient": 1.75686272032048
+        },
+        {
+          "gamma": 1314.6760610867138,
+          "gradient": 1.7568628318781503
+        },
+        {
+          "gamma": 1314.6760594997995,
+          "gradient": 1.7568628140385127
+        },
+        {
+          "gamma": 1314.676057245063,
+          "gradient": 1.7568628840438962
+        },
+        {
+          "gamma": 1314.6760540414639,
+          "gradient": 1.7568630387625066
+        },
+        {
+          "gamma": 1314.6760494896914,
+          "gradient": 1.7568631011289284
+        },
+        {
+          "gamma": 1314.6760430223928,
+          "gradient": 1.756863241917958
+        },
+        {
+          "gamma": 1314.6760338334554,
+          "gradient": 1.7568634397073521
+        },
+        {
+          "gamma": 1314.6760207775299,
+          "gradient": 1.756863725438149
+        },
+        {
+          "gamma": 1314.6760022272686,
+          "gradient": 1.7568641222929633
+        },
+        {
+          "gamma": 1314.675975870485,
+          "gradient": 1.7568646919615853
+        },
+        {
+          "gamma": 1314.6759384219542,
+          "gradient": 1.7568654987402088
+        },
+        {
+          "gamma": 1314.6758852139274,
+          "gradient": 1.756866645693045
+        },
+        {
+          "gamma": 1314.6758096143221,
+          "gradient": 1.7568682778743452
+        },
+        {
+          "gamma": 1314.675702200072,
+          "gradient": 1.7568705968000375
+        },
+        {
+          "gamma": 1314.6755495825937,
+          "gradient": 1.7568738911777633
+        },
+        {
+          "gamma": 1314.675332738975,
+          "gradient": 1.7568785727057794
+        },
+        {
+          "gamma": 1314.6750246408753,
+          "gradient": 1.7568852229715681
+        },
+        {
+          "gamma": 1314.6745868855962,
+          "gradient": 1.7568948100768262
+        },
+        {
+          "gamma": 1314.6739649093986,
+          "gradient": 1.756908372437277
+        },
+        {
+          "gamma": 1314.6730811864397,
+          "gradient": 1.7569274470082974
+        },
+        {
+          "gamma": 1314.6718255656124,
+          "gradient": 1.7569545482285946
+        },
+        {
+          "gamma": 1314.6700415408268,
+          "gradient": 1.756993053911147
+        },
+        {
+          "gamma": 1314.6675067434057,
+          "gradient": 1.7570477626644616
+        },
+        {
+          "gamma": 1314.6639052250755,
+          "gradient": 1.7571257133990832
+        },
+        {
+          "gamma": 1314.658788076788,
+          "gradient": 1.7571616241739727
+        },
+        {
+          "gamma": 1314.6515174747265,
+          "gradient": 1.7572872809848514
+        },
+        {
+          "gamma": 1314.6411871791463,
+          "gradient": 1.7574658576631614
+        },
+        {
+          "gamma": 1314.6265095766769,
+          "gradient": 1.7577195484570136
+        },
+        {
+          "gamma": 1314.6056551865406,
+          "gradient": 1.7580799350551748
+        },
+        {
+          "gamma": 1314.5760246260413,
+          "gradient": 1.758591846627973
+        },
+        {
+          "gamma": 1314.5339246120986,
+          "gradient": 1.7593189066311639
+        },
+        {
+          "gamma": 1314.4741076142388,
+          "gradient": 1.7603513657851118
+        },
+        {
+          "gamma": 1314.38911777937,
+          "gradient": 1.7618171491766828
+        },
+        {
+          "gamma": 1314.2683616015363,
+          "gradient": 1.7638973800863202
+        },
+        {
+          "gamma": 1314.0967875008514,
+          "gradient": 1.7668480637280093
+        },
+        {
+          "gamma": 1313.853009728534,
+          "gradient": 1.771030074173038
+        },
+        {
+          "gamma": 1313.5066427533388,
+          "gradient": 1.77694989856994
+        },
+        {
+          "gamma": 1313.0145138756102,
+          "gradient": 1.785313168650133
+        },
+        {
+          "gamma": 1312.3152819925529,
+          "gradient": 1.7970901113690667
+        },
+        {
+          "gamma": 1311.3217917740144,
+          "gradient": 1.813581677528925
+        },
+        {
+          "gamma": 1309.910210239694,
+          "gradient": 1.8364423656872375
+        },
+        {
+          "gamma": 1307.904591673096,
+          "gradient": 1.8675167231951488
+        },
+        {
+          "gamma": 1305.0549469753712,
+          "gradient": 1.9080512634201783
+        },
+        {
+          "gamma": 1301.006083927077,
+          "gradient": 1.9560069958455457
+        },
+        {
+          "gamma": 1295.2533344713531,
+          "gradient": 1.9982948895080155
+        },
+        {
+          "gamma": 1287.0796506728182,
+          "gradient": 1.9941639145903607
+        },
+        {
+          "gamma": 1275.4662287164765,
+          "gradient": 1.866713605513884
+        },
+        {
+          "gamma": 1258.9655207296798,
+          "gradient": 1.5686693512361551
+        },
+        {
+          "gamma": 1235.5208060634004,
+          "gradient": 1.1742225024690771
+        },
+        {
+          "gamma": 1202.2098326055905,
+          "gradient": 0.804766439121121
+        },
+        {
+          "gamma": 1154.8805744550148,
+          "gradient": 0.5209075007867628
+        },
+        {
+          "gamma": 1087.6337051937194,
+          "gradient": 0.3248451730219038
+        },
+        {
+          "gamma": 992.0872799558942,
+          "gradient": -0.17900349723410441
+        },
+        {
+          "gamma": 856.3319730395935,
+          "gradient": -0.11750211197905683
+        },
+        {
+          "gamma": 663.4466472928077,
+          "gradient": -0.06851649118659567
+        },
+        {
+          "gamma": 389.389229328425,
+          "gradient": -0.0391103238346597
+        },
+        {
+          "gamma": 0.0,
+          "gradient": -0.021856125420046606
+        }
+      ],
+      "pseudo_scales": [
+        {
+          "observation": 1314.6760648576212,
+          "rank": 0.09459459459459459,
+          "eta": 998.7799181683431
+        },
+        {
+          "observation": 1509.3187589308427,
+          "rank": 0.22972972972972971,
+          "eta": 997.0264964452751
+        },
+        {
+          "observation": 1672.859018044384,
+          "rank": 0.36486486486486486,
+          "eta": 998.1568608360965
+        },
+        {
+          "observation": 1832.5546111576978,
+          "rank": 0.5,
+          "eta": 998.8039393013631
+        },
+        {
+          "observation": 2005.1281228658254,
+          "rank": 0.6351351351351351,
+          "eta": 999.1592698606055
+        },
+        {
+          "observation": 2215.015634877692,
+          "rank": 0.7702702702702703,
+          "eta": 999.2437605397286
+        },
+        {
+          "observation": 2536.725436579375,
+          "rank": 0.9054054054054054,
+          "eta": 997.1296794782002
+        }
+      ],
+      "boundary_rule": "gamma >= 0",
+      "supplementary_legacy_curves": "旧 trace_data 中的曲面为额外函数采样，不是迭代轨迹"
+    },
+    "run": {
+      "id": "4da77f88-b59c-447a-bb1d-60ec4969eda7",
+      "completed_at": "2026-11-02T16:21:38.749462+00:00",
+      "sample_sha256": "6a30b4322e93c7e2420b2133382f260616c9e8c869cfbafe3e928c656d0610ee",
+      "observations": [
+        1314.6760648576212,
+        1509.3187589308427,
+        1672.859018044384,
+        1832.5546111576978,
+        2005.1281228658254,
+        2215.015634877692,
+        2536.725436579375
+      ],
+      "n": 7,
+      "parameters": {
+        "offset": 0.0,
+        "gamma_steps": 60,
+        "rank_method": "bernard"
+      },
+      "duration_seconds": 0.062201199936680496,
+      "sources": [
+        {
+          "path": "methods/mdm.py",
+          "sha256": "ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381"
+        },
+        {
+          "path": "base.py",
+          "sha256": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2"
+        },
+        {
+          "path": "methods/calculation_trace.py",
+          "sha256": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd"
+        }
+      ],
+      "runtime": {
+        "python": "3.11.15",
+        "numpy": "2.4.6",
+        "scipy": "1.17.1"
+      }
+    }
+  },
+  "result": {
+    "beta_hat": 1.9889271957318437,
+    "eta_hat": 998.3285606613732,
+    "gamma_hat": 1001.8437343695615,
+    "r_squared": 0.9999970837851766,
+    "converged": true
+  },
+  "source_sha256": {
+    "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+    "python/methods/mdm.py": "ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381",
+    "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+    "src/data/method_flows/mdm.json": "ae456a7b7db91ae976c85fbdba3afc4ce1c3a7352df47f021c02fd99c3e68e1e",
+    "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+    "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+    "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+  },
+  "flow": {
+    "schemaVersion": 2,
+    "methodId": "mdm",
+    "methodName": "最小差异法 (MDM)",
+    "description": "伪尺度离散度 → 条件形状优化 → 梯度偏移定位 → 尺度恢复。",
+    "steps": [
+      {
+        "name": "数据预处理",
+        "description": "获取排序后的失效时间数据和样本数量",
+        "formula": {
+          "expression": "\\delta\\ne\\mathrm{None},\\quad t=\\mathrm{sorted}(\\mathrm{data}),\\quad n=\\mathrm{len}(t)",
+          "symbols": [
+            {
+              "symbol": "t",
+              "meaning": "排序后的失效时间数组"
+            },
+            {
+              "symbol": "n",
+              "meaning": "样本数量"
+            }
+          ],
+          "explanation": "获取排序后的失效时间数据和样本数量"
+        },
+        "inputs": [
+          {
+            "code": "self.data",
+            "symbol": "t_i",
+            "meaning": "已排序样本"
+          },
+          {
+            "code": "offset",
+            "symbol": "\\delta",
+            "meaning": "必填梯度偏移"
+          },
+          {
+            "code": "rank_method",
+            "symbol": "p",
+            "meaning": "本次绘图位置规则"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "t",
+            "symbol": "t",
+            "meaning": "排序后数组"
+          },
+          {
+            "code": "n",
+            "symbol": "n",
+            "meaning": "样本数量"
+          }
+        ],
+        "basis": "公共输入规则：有限、严格为正的失效时间，统一排序。",
+        "notes": "当前实现处理完整失效样本；不包含删失样本似然。offset 为必填求解控制量；默认使用 Bernard 秩，可选择 exact。",
+        "sources": [
+          {
+            "file": "python/base.py",
+            "symbol": "WeibullBase.__init__",
+            "label": "WeibullBase.__init__",
+            "start": 21,
+            "end": 34
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "MDM.run",
+            "start": 93,
+            "end": 107
+          }
+        ],
+        "id": 1,
+        "primarySource": 1,
+        "depth": 0,
+        "kind": "step",
+        "number": "1"
+      },
+      {
+        "name": "计算中位秩",
+        "description": "使用 Bernard 公式计算经验累积分布函数值",
+        "formula": {
+          "expression": "F(t_i) = \\frac{i - 0.3}{n + 0.4}, \\quad x_i = -\\ln(1 - F(t_i))",
+          "symbols": [
+            {
+              "symbol": "F(t_i)",
+              "meaning": "第i个样本点的经验累积概率"
+            },
+            {
+              "symbol": "x_i",
+              "meaning": "变换后的中位秩"
+            }
+          ],
+          "explanation": "使用 Bernard 公式计算经验累积分布函数值"
+        },
+        "inputs": [
+          {
+            "code": "t",
+            "symbol": "t",
+            "meaning": "失效时间数组"
+          },
+          {
+            "code": "n",
+            "symbol": "n",
+            "meaning": "样本数量"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "ranks",
+            "symbol": "F(t_i)",
+            "meaning": "中位秩数组"
+          },
+          {
+            "code": "neg_ln_1_minus_F",
+            "symbol": "x_i",
+            "meaning": "变换数组"
+          }
+        ],
+        "basis": "方法构造：以中位秩变换得到伪尺度计算的经验分数。",
+        "notes": "所示主公式为默认 Bernard；exact 分支使用 Beta 分布中位数，见绘图位置源码。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "本步实现",
+            "start": 107,
+            "end": 115
+          },
+          {
+            "file": "python/base.py",
+            "symbol": "WeibullBase._median_ranks",
+            "label": "WeibullBase._median_ranks",
+            "start": 57,
+            "end": 68
+          }
+        ],
+        "id": 2,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "2"
+      },
+      {
+        "name": "设置位置搜索网格",
+        "description": "按最小寿命生成近右端加密的位置候选，再进入离散扫描。",
+        "notes": "",
+        "basis": "按当前源码的调用与执行次序展示。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "本步实现",
+            "start": 239,
+            "end": 246
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "_build_geometric_gamma_grid",
+            "label": "_build_geometric_gamma_grid",
+            "start": 21,
+            "end": 30
+          }
+        ],
+        "inputs": [
+          {
+            "code": "t_min",
+            "symbol": "t_{\\min}",
+            "meaning": "最小寿命"
+          },
+          {
+            "code": "gamma_steps",
+            "symbol": "N",
+            "meaning": "网格密度"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "gammas",
+            "symbol": "\\gamma_j",
+            "meaning": "位置候选"
+          }
+        ],
+        "formula": {
+          "expression": "\\gamma_j=t_{\\min}-d_j,\\quad d_j\\in\\operatorname{geomspace}(\\epsilon,t_{\\min})",
+          "explanation": "按最小寿命生成近右端加密的位置候选，再进入离散扫描。",
+          "symbols": [
+            {
+              "symbol": "\\gamma_j",
+              "meaning": "位置候选"
+            }
+          ]
+        },
+        "id": 3,
+        "primarySource": 1,
+        "depth": 0,
+        "kind": "step",
+        "number": "3"
+      },
+      {
+        "name": "搜索各位置的最优形状",
+        "description": "对给定 γ，使用有界优化寻找使标准差最小的 β",
+        "formula": {
+          "expression": "\\begin{gathered}\\eta_i=\\frac{t_i-\\gamma}{[-\\ln(1-p_i)]^{1/\\beta}},\\quad\\sigma_\\eta=\\sqrt{\\frac{\\sum_i(\\eta_i-\\bar\\eta)^2}{n-1}}\\\\[6pt]\\beta^*(\\gamma) = \\arg\\min_{\\beta \\in [0.1, 15.0]} \\sigma_\\eta(\\beta, \\gamma)\\end{gathered}",
+          "symbols": [
+            {
+              "symbol": "\\beta^*(\\gamma)",
+              "meaning": "给定γ时的最优β"
+            }
+          ],
+          "explanation": "对给定 γ，使用有界优化寻找使标准差最小的 β"
+        },
+        "inputs": [
+          {
+            "code": "gamma",
+            "symbol": "\\gamma",
+            "meaning": "位置参数候选值"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "best_beta",
+            "symbol": "\\beta^*",
+            "meaning": "最优β值"
+          },
+          {
+            "code": "min_sigma",
+            "symbol": "\\sigma_{min}",
+            "meaning": "最小标准差"
+          }
+        ],
+        "basis": "数值策略：每个位置候选调用有界标量优化并缓存结果。",
+        "notes": "β∈[0.1,15]是当前工程搜索范围，不是所有MDM版本的普遍理论约束。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "MDM.run",
+            "start": 255,
+            "end": 263
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.find_best_beta_for_gamma",
+            "label": "MDM.run.find_best_beta_for_gamma",
+            "start": 136,
+            "end": 156
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.calculate_eta_std",
+            "label": "MDM.run.calculate_eta_std",
+            "start": 120,
+            "end": 125
+          }
+        ],
+        "id": 4,
+        "primarySource": 1,
+        "depth": 0,
+        "kind": "step",
+        "number": "4"
+      },
+      {
+        "name": "计算廓线梯度",
+        "description": "使用与求解器相同的 profile_gradient 计算 g(gamma)",
+        "formula": {
+          "expression": "g(\\gamma) = \\frac{\\partial \\sigma_{\\min}(\\gamma)}{\\partial \\gamma}",
+          "symbols": [
+            {
+              "symbol": "\\nabla",
+              "meaning": "梯度值"
+            }
+          ],
+          "explanation": "使用与求解器相同的 profile_gradient 计算 g(gamma)"
+        },
+        "inputs": [
+          {
+            "code": "gamma",
+            "symbol": "\\gamma",
+            "meaning": "当前求值位置"
+          },
+          {
+            "code": "profile_sigma",
+            "symbol": "\\sigma_{\\min}",
+            "meaning": "条件优化后的廓线"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "gradient",
+            "symbol": "g(\\gamma)",
+            "meaning": "当前位置的差分梯度"
+          }
+        ],
+        "basis": "数值策略：内部点中心差分，靠近端点时使用单边差分。",
+        "notes": "",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "MDM.run",
+            "start": 268,
+            "end": 269
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.profile_gradient",
+            "label": "MDM.run.profile_gradient",
+            "start": 161,
+            "end": 195
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.profile_sigma",
+            "label": "MDM.run.profile_sigma",
+            "start": 157,
+            "end": 160
+          }
+        ],
+        "id": 5,
+        "primarySource": 1,
+        "depth": 0,
+        "kind": "step",
+        "number": "5"
+      },
+      {
+        "name": "离散交点诊断",
+        "description": "保留离散梯度曲线用于 trace，可视化和历史对照",
+        "formula": {
+          "expression": "\\nabla(\\gamma^*) = \\delta",
+          "symbols": [
+            {
+              "symbol": "\\delta",
+              "meaning": "偏移阈值(offset)"
+            }
+          ],
+          "explanation": "保留离散梯度曲线用于 trace，可视化和历史对照"
+        },
+        "inputs": [
+          {
+            "code": "grads",
+            "symbol": "\\nabla",
+            "meaning": "梯度数组"
+          },
+          {
+            "code": "offset",
+            "symbol": "\\delta",
+            "meaning": "偏移阈值"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "root_info",
+            "symbol": "root",
+            "meaning": "交点插值结果"
+          },
+          {
+            "code": "diffs",
+            "symbol": "\\nabla-\\delta",
+            "meaning": "梯度差值数组"
+          }
+        ],
+        "basis": "诊断输出：离散交点供曲线与历史对照，不直接作为最终解。",
+        "notes": "有多个离散交点时选择最靠近样本最小值的一段。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "_find_offset_crossing",
+            "label": "_find_offset_crossing",
+            "start": 32,
+            "end": 73
+          }
+        ],
+        "id": 6,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "6"
+      },
+      {
+        "name": "偏移方程与边界处理",
+        "description": "先求g(0)。若g(0)≥δ，选γ=0；否则继续右端探测。",
+        "formula": {
+          "expression": "g(0)\\ge\\delta \\Rightarrow \\hat{\\gamma}=0;\\quad g(0)<\\delta \\Rightarrow g(\\hat{\\gamma})=\\delta",
+          "symbols": [
+            {
+              "symbol": "\\gamma^*",
+              "meaning": "最优位置参数"
+            }
+          ],
+          "explanation": "先求g(0)。若g(0)≥δ，选γ=0；否则继续右端探测。"
+        },
+        "inputs": [
+          {
+            "code": "profile_gradient",
+            "symbol": "g(\\gamma)",
+            "meaning": "廓线梯度函数"
+          },
+          {
+            "code": "offset",
+            "symbol": "\\delta",
+            "meaning": "要求的梯度偏移"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "found_gamma",
+            "symbol": "\\gamma^*",
+            "meaning": "最优γ值"
+          },
+          {
+            "code": "solution_strategy",
+            "symbol": "strategy",
+            "meaning": "求解策略"
+          }
+        ],
+        "basis": "工程求解规则：零边界截断、Brent定根及右端点近似分别记录。",
+        "notes": "right_edge_fit 是逼近右端的工程返回，不是经Brent求得的精确偏移根；源码保留原有策略标签。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "MDM.run",
+            "start": 282,
+            "end": 296
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.find_right_anchor",
+            "label": "MDM.run.find_right_anchor",
+            "start": 196,
+            "end": 221
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "MDM.run",
+            "start": 300,
+            "end": 337
+          },
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run.fit_right_edge_root",
+            "label": "MDM.run.fit_right_edge_root",
+            "start": 222,
+            "end": 238
+          }
+        ],
+        "id": 7,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "7"
+      },
+      {
+        "name": "计算尺度参数",
+        "description": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
+        "formula": {
+          "expression": "\\hat{\\eta} = \\frac{1}{n}\\sum_{i=1}^n \\frac{t_i - \\hat{\\gamma}}{x_i^{1/\\hat{\\beta}}}",
+          "symbols": [
+            {
+              "symbol": "\\hat{\\eta}",
+              "meaning": "尺度参数估计值"
+            }
+          ],
+          "explanation": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值"
+        },
+        "inputs": [
+          {
+            "code": "found_gamma",
+            "symbol": "\\hat{\\gamma}",
+            "meaning": "最优γ"
+          },
+          {
+            "code": "found_beta",
+            "symbol": "\\hat{\\beta}",
+            "meaning": "最优β"
+          },
+          {
+            "code": "t",
+            "symbol": "t",
+            "meaning": "失效时间数组"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "found_eta",
+            "symbol": "\\hat{\\eta}",
+            "meaning": "尺度参数估计值"
+          }
+        ],
+        "basis": "方法构造：在选定β、γ后，以伪尺度的均值恢复η。",
+        "notes": "",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "本步实现",
+            "start": 359,
+            "end": 368
+          }
+        ],
+        "id": 8,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "8"
+      },
+      {
+        "name": "计算拟合优度",
+        "description": "评估模型与数据的拟合程度",
+        "formula": {
+          "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad \\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
+          "explanation": "评估模型与数据的拟合程度",
+          "symbols": [
+            {
+              "symbol": "R^2",
+              "meaning": "概率图决定系数"
+            },
+            {
+              "symbol": "p_i",
+              "meaning": "绘图位置"
+            },
+            {
+              "symbol": "y_i",
+              "meaning": "变换后的经验值"
+            },
+            {
+              "symbol": "\\hat y_i",
+              "meaning": "参数预测值"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "beta",
+            "symbol": "\\hat\\beta",
+            "meaning": "形状参数"
+          },
+          {
+            "code": "eta",
+            "symbol": "\\hat\\eta",
+            "meaning": "尺度参数"
+          },
+          {
+            "code": "gamma_val",
+            "symbol": "\\hat\\gamma",
+            "meaning": "位置参数"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "return",
+            "symbol": "R^2",
+            "meaning": "概率图决定系数"
+          }
+        ],
+        "basis": "项目诊断：共用基础类的概率图 R²，不参与核心参数求解。",
+        "notes": "γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。",
+        "sources": [
+          {
+            "file": "python/base.py",
+            "symbol": "WeibullBase._calculate_r2",
+            "label": "WeibullBase._calculate_r2",
+            "start": 78,
+            "end": 96
+          },
+          {
+            "file": "python/base.py",
+            "symbol": "WeibullBase._median_ranks",
+            "label": "WeibullBase._median_ranks",
+            "start": 57,
+            "end": 68
+          }
+        ],
+        "id": 9,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "9"
+      },
+      {
+        "name": "记录诊断并返回",
+        "description": "返回估计参数和拟合优度。",
+        "formula": {
+          "expression": "\\mathcal T=\\{(\\beta_j,\\sigma_\\eta),(\\gamma_j,g(\\gamma_j)),(\\hat\\beta,\\hat\\eta,\\hat\\gamma)\\}",
+          "explanation": "返回估计参数和拟合优度。",
+          "symbols": [
+            {
+              "symbol": "\\mathcal T",
+              "meaning": "追踪数据"
+            },
+            {
+              "symbol": "\\sigma_\\eta",
+              "meaning": "伪尺度标准差"
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "code": "found_gamma",
+            "symbol": "\\gamma^*",
+            "meaning": "最优γ"
+          },
+          {
+            "code": "found_beta",
+            "symbol": "\\beta^*",
+            "meaning": "最优β"
+          },
+          {
+            "code": "gammas",
+            "symbol": "\\gamma",
+            "meaning": "γ数组"
+          },
+          {
+            "code": "sigma_mins",
+            "symbol": "\\sigma_{min}",
+            "meaning": "标准差数组"
+          },
+          {
+            "code": "best_betas",
+            "symbol": "\\beta^*",
+            "meaning": "最优β数组"
+          }
+        ],
+        "outputs": [
+          {
+            "code": "trace_data",
+            "symbol": "trace_{data}",
+            "meaning": "可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）"
+          }
+        ],
+        "basis": "诊断输出：额外采样曲线、曲面和最终点，用于计算过程展示。",
+        "notes": "只有 trace=True 时生成；原 rank_method 在返回前恢复。",
+        "sources": [
+          {
+            "file": "python/methods/mdm.py",
+            "symbol": "MDM.run",
+            "label": "本步实现",
+            "start": 393,
+            "end": 531
+          }
+        ],
+        "id": 10,
+        "primarySource": 0,
+        "depth": 0,
+        "kind": "step",
+        "number": "10"
+      }
+    ],
+    "presentation": "steps",
+    "implementation": "采用Bernard近似秩、连续形状优化、梯度探测及Brent定根，并保留非负位置与端点外推规则。与原文精确秩、离散搜索和前向差分存在实现差异，外推结果不等同于已验证的梯度交点。",
+    "sources": [
+      {
+        "path": "python/base.py",
+        "sha256": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "lines": [
+          "import numpy as np",
+          "from scipy.special import betaincinv",
+          "from dataclasses import dataclass, field",
+          "from typing import Any, Union, List, Optional",
+          "",
+          "",
+          "@dataclass",
+          "class MethodResult:",
+          "    \"\"\"统一的参数估计结果\"\"\"",
+          "    beta: float",
+          "    eta: float",
+          "    gamma: float",
+          "    r_squared: float",
+          "    converged: Union[bool, str] = True",
+          "    trace_data: Any = field(default=None, repr=False)",
+          "",
+          "    def to_list(self) -> list:",
+          "        \"\"\"向后兼容：转换为 [beta, eta, gamma, r2, converged] 列表\"\"\"",
+          "        return [self.beta, self.eta, self.gamma, self.r_squared, self.converged]",
+          "",
+          "class WeibullBase:",
+          "    def __init__(self, data, rank_method='bernard'):",
+          "        \"\"\"",
+          "        Input: data (list or np.array) of failure times.",
+          "        Status is assumed to be Failure (F) for this mathematical implementation.",
+          "        rank_method: 'bernard' or 'exact' - method for calculating median ranks",
+          "        \"\"\"",
+          "        values = np.asarray(data, dtype=float).reshape(-1)",
+          "        if not np.isfinite(values).all() or np.any(values <= 0):",
+          "            raise ValueError(\"invalid sample: observations must all be finite and greater than zero\")",
+          "        self.data = np.sort(values)",
+          "        self.n = len(self.data)",
+          "        self.trace_data = [] # Store process data for visualization",
+          "        self.rank_method = rank_method",
+          "",
+          "    def log_step(self, step_info: dict):",
+          "        \"\"\"Helper: Log a step for visualization\"\"\"",
+          "        # Add iteration number automatically if not present",
+          "        if \"step\" not in step_info:",
+          "            step_info[\"step\"] = len(self.trace_data) + 1",
+          "",
+          "        # Convert numpy types to native python types for JSON serialization",
+          "        clean_info = {}",
+          "        for k, v in step_info.items():",
+          "            if isinstance(v, (np.intc, np.intp, np.int8,",
+          "                np.int16, np.int32, np.int64, np.uint8,",
+          "                np.uint16, np.uint32, np.uint64)):",
+          "                clean_info[k] = int(v)",
+          "            elif isinstance(v, (np.float16, np.float32, np.float64)):",
+          "                clean_info[k] = float(v)",
+          "            elif isinstance(v, (np.ndarray,)):",
+          "                clean_info[k] = v.tolist()",
+          "            else:",
+          "                clean_info[k] = v",
+          "",
+          "        self.trace_data.append(clean_info)",
+          "",
+          "    def _median_ranks(self):",
+          "        \"\"\"",
+          "        Helper: Calculate Median Ranks using configured method.",
+          "        - 'bernard': Bernard's approximation (i - 0.3) / (n + 0.4)",
+          "        - 'exact': Exact median rank using inverse incomplete beta function",
+          "        \"\"\"",
+          "        i = np.arange(1, self.n + 1)",
+          "        if self.rank_method == 'exact':",
+          "            return betaincinv(i, self.n - i + 1, 0.5)",
+          "        else:  # bernard",
+          "            return (i - 0.3) / (self.n + 0.4)",
+          "",
+          "    def _cdf_3p(self, t, beta, eta, gamma_val):",
+          "        \"\"\"Helper: 3-Parameter Weibull CDF\"\"\"",
+          "        t = np.array(t)",
+          "        vals = np.zeros_like(t, dtype=float)",
+          "        mask = t > gamma_val",
+          "        if np.any(mask):",
+          "            vals[mask] = 1 - np.exp(-((t[mask] - gamma_val) / eta)**beta)",
+          "        return vals",
+          "",
+          "    def _calculate_r2(self, beta, eta, gamma_val):",
+          "        \"\"\"Helper to calculate R-squared for any method\"\"\"",
+          "        if gamma_val >= self.data[0]: return 0.0",
+          "        ",
+          "        # Experimental",
+          "        x = np.log(self.data - gamma_val)",
+          "        y_exp = np.log(-np.log(1 - self._median_ranks()))",
+          "        ",
+          "        # Theoretical / Predicted",
+          "        # y = beta * x - beta * ln(eta)",
+          "        y_pred = beta * x - beta * np.log(eta)",
+          "        ",
+          "        # R^2 calculation",
+          "        ss_res = np.sum((y_exp - y_pred)**2)",
+          "        ss_tot = np.sum((y_exp - np.mean(y_exp))**2)",
+          "        ",
+          "        if ss_tot == 0: return 0.0",
+          "        return 1 - (ss_res / ss_tot)",
+          ""
+        ]
+      },
+      {
+        "path": "python/methods/mdm.py",
+        "sha256": "ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381",
+        "lines": [
+          "\"\"\"",
+          "最小差异法 (MDM)",
+          "Minimum Discrepancy Method",
+          "",
+          "算法文档: ../../src/content/algorithms/mdm.md",
+          "描述: 通过最小化伪尺度参数的标准差来估计参数，引入梯度偏移判据提高稳健性",
+          "\"\"\"",
+          "",
+          "from base import WeibullBase",
+          "import numpy as np",
+          "from scipy.optimize import minimize_scalar, root_scalar",
+          "from .calculation_trace import plot_point, plot_series, plot_chart",
+          "",
+          "",
+          "def _json_float(value):",
+          "    \"\"\"Convert numpy scalars to plain floats while preserving None.\"\"\"",
+          "    if value is None:",
+          "        return None",
+          "    return float(value)",
+          "",
+          "",
+          "def _build_geometric_gamma_grid(t_min, gamma_steps):",
+          "    \"\"\"Build a discrete gamma grid searched from t_min downward to 0.\"\"\"",
+          "    steps = max(4, int(gamma_steps))",
+          "    min_gap = max(abs(float(t_min)) * 1e-9, 1e-12)",
+          "    gaps = np.geomspace(min_gap, float(t_min), steps)",
+          "    gammas = float(t_min) - gaps",
+          "    gammas[0] = float(t_min) - min_gap",
+          "    gammas[-1] = 0.0",
+          "    return gammas",
+          "",
+          "",
+          "def _find_offset_crossing(gammas, gradients, offset):",
+          "    \"\"\"Find the discrete bracket whose interpolated crossing is closest to t_min.\"\"\"",
+          "    diffs = gradients - offset",
+          "    candidates = []",
+          "",
+          "    for i in range(len(diffs) - 1):",
+          "        y1, y2 = diffs[i], diffs[i + 1]",
+          "        if not (np.isfinite(y1) and np.isfinite(y2)):",
+          "            continue",
+          "        if y1 == 0 or y2 == 0 or y1 * y2 < 0:",
+          "            candidates.append(i)",
+          "",
+          "    if not candidates:",
+          "        return None, diffs",
+          "",
+          "    idx = max(candidates, key=lambda i: max(gammas[i], gammas[i + 1]))",
+          "    y1, y2 = diffs[idx], diffs[idx + 1]",
+          "    x1, x2 = gammas[idx], gammas[idx + 1]",
+          "",
+          "    if y1 == 0:",
+          "        gamma = x1",
+          "    elif y2 == 0:",
+          "        gamma = x2",
+          "    elif y2 != y1:",
+          "        gamma = x1 - y1 * (x2 - x1) / (y2 - y1)",
+          "    else:",
+          "        gamma = x1",
+          "",
+          "    bracket = {",
+          "        \"left\": {",
+          "            \"gamma\": _json_float(x1),",
+          "            \"gradient\": _json_float(gradients[idx]),",
+          "            \"diff\": _json_float(y1),",
+          "        },",
+          "        \"right\": {",
+          "            \"gamma\": _json_float(x2),",
+          "            \"gradient\": _json_float(gradients[idx + 1]),",
+          "            \"diff\": _json_float(y2),",
+          "        },",
+          "    }",
+          "    return (float(gamma), bracket), diffs",
+          "",
+          "",
+          "class MDM(WeibullBase):",
+          "    def run(self, trace=False, offset=None, gamma_steps=60, rank_method='bernard'):",
+          "        \"\"\"",
+          "        Run the Minimum Discrepancy Method.",
+          "",
+          "        Args:",
+          "            trace (bool): Whether to record trace data.",
+          "            offset (float): Gradient offset target (required, e.g., 0.1).",
+          "            gamma_steps (int): 几何 gamma 网格采样点数 / 搜索与可视化采样密度 (default 60).",
+          "            rank_method (str): Median rank method - 'bernard' or 'exact' (default 'bernard').",
+          "",
+          "        Returns:",
+          "            (beta, eta, gamma, r_squared, status) where status is True for either",
+          "            an in-domain offset root or the gamma=0 constraint truncation. The",
+          "            default engineering solver follows the S4.9.3 rule: probe g(0),",
+          "            bracket near t_min, solve by Brent when possible, and use a right",
+          "            edge fit when the fixed trace grid still misses the near-t_min root.",
+          "        \"\"\"",
+          "        if offset is None:",
+          "            raise ValueError(\"offset parameter is required (e.g., offset=0.1)\")",
+          "        self.calculation_trace = None",
+          "",
+          "        # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量",
+          "        # @formula: t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}",
+          "        # @symbols: t|t|排序后的失效时间数组, n|n|样本数量",
+          "        # @inputs: data|t_i|原始失效时间样本",
+          "        # @outputs: t|t|排序后数组, n|n|样本数量",
+          "        original_rank_method = self.rank_method",
+          "        self.rank_method = rank_method",
+          "        t = self.data",
+          "        n = self.n",
+          "",
+          "        # @step: 2 | 计算中位秩 | 使用 Bernard 公式计算经验累积分布函数值",
+          "        # @formula: F(t_i) = \\frac{i - 0.3}{n + 0.4}, \\quad x_i = -\\ln(1 - F(t_i))",
+          "        # @symbols: F(t_i)|F(t_i)|第i个样本点的经验累积概率, x_i|x_i|变换后的中位秩",
+          "        # @inputs: t|t|失效时间数组, n|n|样本数量",
+          "        # @outputs: ranks|F(t_i)|中位秩数组, neg_ln_1_minus_F|x_i|变换数组",
+          "        ranks = self._median_ranks()",
+          "        neg_ln_1_minus_F = -np.log(1 - ranks)",
+          "",
+          "        # @step: 3 | 定义伪尺度参数计算函数 | 计算给定 β 和 γ 下每个样本点的伪尺度参数及其标准差",
+          "        # @formula: \\eta_i = \\frac{t_i - \\gamma}{x_i^{1/\\beta}}, \\quad \\sigma_\\eta = \\text{std}(\\eta_1, \\eta_2, \\ldots, \\eta_n)",
+          "        # @symbols: \\eta_i|\\eta_i|第i个伪尺度参数, \\sigma_\\eta|\\sigma_\\eta|伪尺度参数标准差, \\beta|\\beta|形状参数, \\gamma|\\gamma|位置参数",
+          "        # @inputs: beta|\\beta|形状参数, gamma|\\gamma|位置参数, t|t|失效时间数组",
+          "        # @outputs: \\sigma_\\eta|\\sigma_\\eta|标准差值",
+          "        def calculate_eta_std(beta, gamma, current_t):",
+          "            if beta <= 0: return float('inf')",
+          "            denom = np.power(neg_ln_1_minus_F, 1.0/beta)",
+          "            etas = (current_t - gamma) / denom",
+          "            return np.std(etas, ddof=1)",
+          "",
+          "        # @step: 4 | 定义最优 β 搜索函数 | 对给定 γ，使用有界优化寻找使标准差最小的 β",
+          "        # @formula: \\beta^*(\\gamma) = \\arg\\min_{\\beta \\in [0.1, 15.0]} \\sigma_\\eta(\\beta, \\gamma)",
+          "        # @symbols: \\beta^*(\\gamma)|\\beta^*(\\gamma)|给定γ时的最优β",
+          "        # @inputs: gamma|\\gamma|位置参数候选值",
+          "        # @outputs: best_beta|\\beta^*|最优β值, min_sigma|\\sigma_{min}|最小标准差",
+          "        beta_sigma_cache = {}",
+          "        profile_gradient_cache = {}",
+          "        beta_evaluations = {} if trace else None",
+          "        root_evaluations = []",
+          "",
+          "        def find_best_beta_for_gamma(gamma):",
+          "            if gamma >= t[0]:",
+          "                return None, float('inf')",
+          "            cache_key = float(gamma)",
+          "            if cache_key in beta_sigma_cache:",
+          "                return beta_sigma_cache[cache_key]",
+          "            def beta_objective(beta):",
+          "                sigma = calculate_eta_std(beta, gamma, t)",
+          "                if trace:",
+          "                    beta_evaluations.setdefault(cache_key, []).append(",
+          "                        dict(beta=float(beta), sigma=float(sigma)))",
+          "                return sigma",
+          "",
+          "            res = minimize_scalar(",
+          "                beta_objective,",
+          "                bounds=(0.1, 15.0),",
+          "                method='bounded'",
+          "            )",
+          "            beta_sigma_cache[cache_key] = (res.x, res.fun)",
+          "            return beta_sigma_cache[cache_key]",
+          "",
+          "        def profile_sigma(gamma):",
+          "            _, sigma = find_best_beta_for_gamma(float(gamma))",
+          "            return float(sigma)",
+          "",
+          "        def profile_gradient(gamma):",
+          "            \"\"\"Finite-difference derivative of the profiled sigma curve.\"\"\"",
+          "            gamma = float(gamma)",
+          "            cache_key = gamma",
+          "            if cache_key in profile_gradient_cache:",
+          "                return profile_gradient_cache[cache_key]",
+          "            t_min_float = float(t_min)",
+          "            scale = max(abs(t_min_float), 1.0)",
+          "            nominal_h = scale * 1e-5",
+          "            left_room = max(gamma, 0.0)",
+          "            right_room = max(t_min_float - gamma, 0.0)",
+          "",
+          "            if right_room <= 0:",
+          "                return float(\"inf\")",
+          "",
+          "            if gamma <= 0.0 or left_room <= nominal_h:",
+          "                h = min(nominal_h, right_room * 0.25)",
+          "                h = max(h, np.finfo(float).eps * scale)",
+          "                gradient = (profile_sigma(gamma + h) - profile_sigma(gamma)) / h",
+          "                profile_gradient_cache[cache_key] = float(gradient)",
+          "                return profile_gradient_cache[cache_key]",
+          "",
+          "            if right_room <= nominal_h:",
+          "                h = min(nominal_h, left_room * 0.25, right_room * 0.5)",
+          "                h = max(h, np.finfo(float).eps * scale)",
+          "                gradient = (profile_sigma(gamma) - profile_sigma(gamma - h)) / h",
+          "                profile_gradient_cache[cache_key] = float(gradient)",
+          "                return profile_gradient_cache[cache_key]",
+          "",
+          "            h = min(nominal_h, left_room * 0.25, right_room * 0.25)",
+          "            h = max(h, np.finfo(float).eps * scale)",
+          "            gradient = (profile_sigma(gamma + h) - profile_sigma(gamma - h)) / (2.0 * h)",
+          "            profile_gradient_cache[cache_key] = float(gradient)",
+          "            return profile_gradient_cache[cache_key]",
+          "",
+          "        def find_right_anchor():",
+          "            \"\"\"Probe points increasingly close to t_min until g(gamma) exceeds offset.\"\"\"",
+          "            t_min_float = float(t_min)",
+          "            min_gap = max(abs(t_min_float) * 1e-12, 1e-12)",
+          "            gaps = np.geomspace(max(abs(t_min_float) * 1e-3, min_gap), min_gap, 24)",
+          "",
+          "            best_anchor = None",
+          "            for gap in gaps:",
+          "                gamma = max(0.0, t_min_float - float(gap))",
+          "                if gamma >= t_min_float:",
+          "                    gamma = t_min_float - min_gap",
+          "                grad = float(profile_gradient(gamma))",
+          "                if not np.isfinite(grad):",
+          "                    continue",
+          "                anchor = (gamma, grad)",
+          "                if best_anchor is None or gamma > best_anchor[0]:",
+          "                    best_anchor = anchor",
+          "                if grad >= offset:",
+          "                    return anchor",
+          "",
+          "            if best_anchor is not None:",
+          "                return best_anchor",
+          "",
+          "            gamma = max(0.0, t_min_float - min_gap)",
+          "            return gamma, float(profile_gradient(gamma))",
+          "",
+          "        def fit_right_edge_root(anchor_gamma, anchor_gradient):",
+          "            \"\"\"Return an interior root estimate when the sampled right edge is still below offset.\"\"\"",
+          "            t_min_float = float(t_min)",
+          "            virtual_gamma = float(np.nextafter(t_min_float, 0.0))",
+          "            if virtual_gamma <= anchor_gamma:",
+          "                gap = max(t_min_float - float(anchor_gamma), 0.0)",
+          "                fallback_gap = max(gap * 0.5, np.finfo(float).eps * max(abs(t_min_float), 1.0))",
+          "                virtual_gamma = min(t_min_float - fallback_gap, float(np.nextafter(t_min_float, 0.0)))",
+          "            virtual_gamma = min(max(float(virtual_gamma), 0.0), float(np.nextafter(t_min_float, 0.0)))",
+          "",
+          "            return {",
+          "                \"gamma\": virtual_gamma,",
+          "                \"anchor_gradient\": float(anchor_gradient),",
+          "                \"virtual_gradient\": float(offset),",
+          "                \"model\": \"right_endpoint_asymptote\",",
+          "            }",
+          "",
+          "        # @step: 5 | 初始化搜索范围 | 设置 γ 的离散候选网格，约束条件：0 <= γ < t_min",
+          "        # @formula: \\gamma_j = t_{\\min} - d_j,\\quad d_j \\in \\text{geomspace}(\\epsilon, t_{\\min})",
+          "        # @symbols: t_{\\min}|t_{\\min}|最小失效时间, gamma_steps|N|搜索步数",
+          "        # @inputs: t|t|失效时间数组",
+          "        # @outputs: t_min|t_{\\min}|最小失效时间",
+          "        t_min = t[0]",
+          "",
+          "        # @step: 6 | 离散搜索 | 从接近 t_min 的位置向 0 展开几何加密网格，记录每个 γ 对应的最小标准差和最优 β",
+          "        # @formula: \\sigma_{\\min}(\\gamma) = \\min_\\beta \\sigma_\\eta(\\beta, \\gamma)",
+          "        # @loop: gamma_steps 次 (默认 60)",
+          "        # @inputs: t_min|t_{\\min}|最小失效时间, gamma_steps|N|搜索步数",
+          "        # @outputs: gammas|\\gamma|γ候选值数组, sigma_mins|\\sigma_{min}|最小标准差数组, best_betas|\\beta^*|最优β数组",
+          "        gammas = _build_geometric_gamma_grid(t_min, gamma_steps)",
+          "        sigma_mins = []",
+          "        best_betas = []",
+          "",
+          "        for g in gammas:",
+          "            b, sig = find_best_beta_for_gamma(g)",
+          "            sigma_mins.append(sig)",
+          "            best_betas.append(b)",
+          "",
+          "        sigma_mins = np.array(sigma_mins, dtype=float)",
+          "        best_betas = np.array(best_betas, dtype=float)",
+          "",
+          "        # @step: 7 | 计算廓线梯度 | 使用与求解器相同的 profile_gradient 计算 g(gamma)",
+          "        # @formula: g(\\gamma) = \\frac{\\partial \\sigma_{\\min}(\\gamma)}{\\partial \\gamma}",
+          "        # @symbols: \\nabla(\\gamma)|\\nabla|梯度值",
+          "        # @inputs: sigma_mins|\\sigma_{min}|标准差数组, gammas|\\gamma|γ数组",
+          "        # @outputs: grads|\\nabla|梯度数组",
+          "        grads = np.array([profile_gradient(g) for g in gammas], dtype=float)",
+          "",
+          "        # @step: 8 | 离散曲线诊断 | 保留离散梯度曲线用于 trace，可视化和历史对照",
+          "        # @formula: \\nabla(\\gamma^*) = \\delta",
+          "        # @symbols: \\delta|\\delta|偏移阈值(offset)",
+          "        # @inputs: grads|\\nabla|梯度数组, offset|\\delta|偏移阈值",
+          "        # @outputs: root_info|root|交点插值结果, diffs|\\nabla-\\delta|梯度差值数组",
+          "        root_info, diffs = _find_offset_crossing(gammas, grads, offset)",
+          "",
+          "        # @step: 9 | 始终有解求解器 | 探测 g(0)，近 t_min 构造右端括弧，Brent 定根或边界截断",
+          "        # @formula: g(0)\\ge\\delta \\Rightarrow \\hat{\\gamma}=0;\\quad g(0)<\\delta \\Rightarrow g(\\hat{\\gamma})=\\delta",
+          "        # @symbols: \\gamma^*|\\gamma^*|最优位置参数",
+          "        # @inputs: root_info|root|交点结果, grads|\\nabla|梯度数组, offset|\\delta|偏移阈值",
+          "        # @outputs: found_gamma|\\gamma^*|最优γ值, solution_strategy|strategy|求解策略",
+          "        probe_gradient_at_zero = float(profile_gradient(0.0))",
+          "        root_bracket = None",
+          "        root_solver = None",
+          "        root_solver_iterations = 0",
+          "        right_anchor_gamma = None",
+          "        right_anchor_gradient = None",
+          "        right_edge_extrapolation = None",
+          "        legacy_grid_crossing = root_info is not None",
+          "",
+          "        if probe_gradient_at_zero >= offset:",
+          "            found_gamma = 0.0",
+          "            found_beta, _ = find_best_beta_for_gamma(found_gamma)",
+          "            solution_strategy = \"truncated_at_zero\"",
+          "        else:",
+          "            right_anchor_gamma, right_anchor_gradient = find_right_anchor()",
+          "            right_diff = right_anchor_gradient - offset",
+          "            left_diff = probe_gradient_at_zero - offset",
+          "",
+          "            if right_diff >= 0:",
+          "                root_bracket = {",
+          "                    \"left\": {",
+          "                        \"gamma\": 0.0,",
+          "                        \"gradient\": _json_float(probe_gradient_at_zero),",
+          "                        \"diff\": _json_float(left_diff),",
+          "                    },",
+          "                    \"right\": {",
+          "                        \"gamma\": _json_float(right_anchor_gamma),",
+          "                        \"gradient\": _json_float(right_anchor_gradient),",
+          "                        \"diff\": _json_float(right_diff),",
+          "                    },",
+          "                }",
+          "",
+          "                def root_objective(gamma):",
+          "                    gradient = profile_gradient(gamma)",
+          "                    if trace:",
+          "                        root_evaluations.append(dict(gamma=float(gamma), gradient=float(gradient),",
+          "                                                     residual=float(gradient - offset),",
+          "                                                     evaluation=len(root_evaluations) + 1))",
+          "                    return gradient - offset",
+          "",
+          "                root = root_scalar(",
+          "                    root_objective,",
+          "                    bracket=(0.0, float(right_anchor_gamma)),",
+          "                    method=\"brentq\",",
+          "                    xtol=1e-8,",
+          "                    rtol=1e-10,",
+          "                    maxiter=80,",
+          "                )",
+          "                found_gamma = float(root.root)",
+          "                found_gamma = min(max(found_gamma, 0.0), float(t_min) - 1e-12)",
+          "                found_beta, _ = find_best_beta_for_gamma(found_gamma)",
+          "                solution_strategy = \"brent_root\"",
+          "                root_solver = \"brent\"",
+          "                root_solver_iterations = int(root.iterations)",
+          "            else:",
+          "                right_edge_extrapolation = fit_right_edge_root(",
+          "                    right_anchor_gamma,",
+          "                    right_anchor_gradient,",
+          "                )",
+          "                found_gamma = right_edge_extrapolation[\"gamma\"]",
+          "                found_beta, _ = find_best_beta_for_gamma(found_gamma)",
+          "                solution_strategy = \"brent_root\"",
+          "                root_solver = \"right_edge_fit\"",
+          "                root_bracket = {",
+          "                    \"left\": {",
+          "                        \"gamma\": _json_float(right_anchor_gamma),",
+          "                        \"gradient\": _json_float(right_anchor_gradient),",
+          "                        \"diff\": _json_float(right_diff),",
+          "                    },",
+          "                    \"right\": {",
+          "                        \"gamma\": _json_float(found_gamma),",
+          "                        \"gradient\": _json_float(offset),",
+          "                        \"diff\": 0.0,",
+          "                        \"virtual\": True,",
+          "                    },",
+          "                }",
+          "",
+          "        # @step: 11 | 计算最终尺度参数 η | 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
+          "        # @formula: \\hat{\\eta} = \\frac{1}{n}\\sum_{i=1}^n \\frac{t_i - \\hat{\\gamma}}{x_i^{1/\\hat{\\beta}}}",
+          "        # @symbols: \\hat{\\eta}|\\hat{\\eta}|尺度参数估计值",
+          "        # @inputs: found_gamma|\\hat{\\gamma}|最优γ, found_beta|\\hat{\\beta}|最优β, t|t|失效时间数组",
+          "        # @outputs: found_eta|\\hat{\\eta}|尺度参数估计值",
+          "        denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)",
+          "        etas = (t - found_gamma) / denom",
+          "        found_eta = np.mean(etas)",
+          "",
+          "        # @step: 12 | 计算拟合优度 R² | 评估模型与数据的拟合程度",
+          "        # @formula: R^2 = 1 - \\frac{\\sum(F_i - \\hat{F}_i)^2}{\\sum(F_i - \\bar{F})^2}",
+          "        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \\hat{F}_i|\\hat{F}_i|模型预测概率",
+          "        # @inputs: found_beta|\\hat{\\beta}|形状参数, found_eta|\\hat{\\eta}|尺度参数, found_gamma|\\hat{\\gamma}|位置参数",
+          "        # @outputs: r2|R^2|拟合优度",
+          "        r2 = self._calculate_r2(found_beta, found_eta, found_gamma)",
+          "",
+          "        self.last_solution_info = {",
+          "            \"target_offset\": offset,",
+          "            \"search_strategy\": \"geometric_from_tmin\",",
+          "            \"solution_strategy\": solution_strategy,",
+          "            \"constraint\": \"gamma >= 0\",",
+          "            \"probe_gradient_at_zero\": probe_gradient_at_zero,",
+          "            \"root_bracket\": root_bracket,",
+          "            \"root_solver\": root_solver,",
+          "            \"right_anchor_gamma\": right_anchor_gamma,",
+          "            \"right_anchor_gradient\": right_anchor_gradient,",
+          "            \"root_solver_iterations\": root_solver_iterations,",
+          "            \"legacy_grid_crossing\": legacy_grid_crossing,",
+          "            \"right_edge_extrapolation\": right_edge_extrapolation,",
+          "            \"gamma_steps\": len(gammas),",
+          "            \"optimal_gamma\": found_gamma,",
+          "            \"optimal_beta\": found_beta,",
+          "        }",
+          "",
+          "        # @step: 13 | 生成追踪数据 | 若启用 trace，生成用于可视化的详细数据",
+          "        # @inputs: found_gamma|\\gamma^*|最优γ, found_beta|\\beta^*|最优β, gammas|\\gamma|γ数组, sigma_mins|\\sigma_{min}|标准差数组, best_betas|\\beta^*|最优β数组",
+          "        # @outputs: trace_data|trace_{data}|可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）",
+          "        if trace:",
+          "            # Capture the actual solver state before the supplementary legacy",
+          "            # surface sampling below. No surrogate values enter these charts.",
+          "            selected_sigma = float(beta_sigma_cache[float(found_gamma)][1])",
+          "            beta_points = [plot_point(p['beta'], p['sigma'], beta=p['beta'],",
+          "                                      gamma=float(found_gamma), evaluation=i + 1)",
+          "                           for i, p in enumerate(beta_evaluations.get(float(found_gamma), []))]",
+          "            gradient_values = list(root_evaluations)",
+          "            if not gradient_values:",
+          "                gradient_values = [dict(gamma=0., gradient=float(probe_gradient_at_zero))]",
+          "                if right_anchor_gamma is not None:",
+          "                    gradient_values.append(dict(gamma=float(right_anchor_gamma),",
+          "                                                gradient=float(right_anchor_gradient)))",
+          "            gradient_points = [plot_point(p['gamma'], p['gradient'], **p) for p in gradient_values]",
+          "            selected_gradient = profile_gradient_cache.get(float(found_gamma))",
+          "            approximate = root_solver == 'right_edge_fit'",
+          "            if solution_strategy == 'truncated_at_zero':",
+          "                selection_description = 'g(0)≥δ，按当前 γ≥0 工程约束选择 γ=0，再求对应 β 与 η。'",
+          "            elif approximate:",
+          "                selection_description = ('右锚点梯度仍低于 δ，当前实现使用端点外推位置；'",
+          "                                         '此位置不是实际求得的 g(γ)=δ 根。')",
+          "            else:",
+          "                selection_description = '用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。'",
+          "            gradient_series = [plot_series('gradient', '实际求根函数求值', gradient_points)]",
+          "            if approximate:",
+          "                gradient_series.append(plot_series(",
+          "                    'endpoint-fit', '端点外推目标（非函数值）',",
+          "                    [plot_point(found_gamma, offset, virtual=True)], role='virtual', kind='scatter'))",
+          "            self.calculation_trace = dict(",
+          "                schema_version=1, method='mdm',",
+          "                criterion=dict(description=selection_description),",
+          "                charts=[",
+          "                    plot_chart(",
+          "                        'shape-discrepancy', '固定最终位置后的形状搜索',",
+          "                        '形状参数 β', '伪尺度标准差 σ₍η₎',",
+          "                        [plot_series('sigma', '本次内层实际求值', beta_points)],",
+          "                        description='固定本次最终 γ，展示内层有界搜索实际计算的标准差；选中点直接使用求解器返回的最小值。',",
+          "                        selected=[plot_point(found_beta, selected_sigma, label='选中形状参数')]),",
+          "                    plot_chart(",
+          "                        'location-criterion', '位置参数的梯度偏移判据',",
+          "                        '位置参数 γ', '剖面标准差梯度 g(γ)', gradient_series,",
+          "                        description=selection_description + ' 曲线按 γ 排列，详细记录保留真实求值次序。',",
+          "                        references=[dict(axis='y', value=float(offset), label='目标偏移量 δ')],",
+          "                        selected=[plot_point(found_gamma, selected_gradient, label='最终位置参数')]",
+          "                        if selected_gradient is not None and not approximate else []),",
+          "                ],",
+          "                selection=dict(description=selection_description, beta=float(found_beta),",
+          "                               eta=float(found_eta), gamma=float(found_gamma),",
+          "                               sigma=selected_sigma, target_offset=float(offset),",
+          "                               gradient=float(selected_gradient) if selected_gradient is not None else None,",
+          "                               approximate=approximate, strategy=solution_strategy, solver=root_solver),",
+          "                details=dict(rank_method=rank_method, shape_search_bounds=[0.1, 15.0],",
+          "                             sigma_ddof=1, root_bracket=root_bracket,",
+          "                             root_solver_iterations=root_solver_iterations,",
+          "                             root_evaluations=root_evaluations,",
+          "                             gradient_scan=[dict(gamma=float(g), gradient=float(v))",
+          "                                            for g, v in zip(gammas, grads) if np.isfinite(v)],",
+          "                             pseudo_scales=[dict(observation=float(ti), rank=float(ri),",
+          "                                                 eta=float(ei)) for ti, ri, ei in zip(t, ranks, etas)],",
+          "                             boundary_rule='gamma >= 0',",
+          "                             supplementary_legacy_curves='旧 trace_data 中的曲面为额外函数采样，不是迭代轨迹'),",
+          "            )",
+          "            # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility",
+          "            beta_scan = np.linspace(0.5, 5, 100)",
+          "            sigma_beta_curve = []",
+          "            for b_val in beta_scan:",
+          "                s = calculate_eta_std(b_val, found_gamma, t)",
+          "                sigma_beta_curve.append({\"beta\": b_val, \"sigma\": s})",
+          "",
+          "            # 2. Full 2D surface data: sigma_beta_gamma for 3D visualization",
+          "            num_gamma_samples = 20",
+          "            gamma_indices = np.linspace(0, len(gammas) - 1, num_gamma_samples, dtype=int)",
+          "            sampled_gammas = gammas[gamma_indices]",
+          "            beta_range = np.linspace(0.5, 5, 100)",
+          "            sigma_beta_gamma = []",
+          "",
+          "            for idx, g in enumerate(sampled_gammas):",
+          "                sigma_curve = []",
+          "                for b_val in beta_range:",
+          "                    s = calculate_eta_std(b_val, g, t)",
+          "                    sigma_curve.append(float(s))",
+          "",
+          "                sigma_beta_gamma.append({",
+          "                    \"gamma\": float(g),",
+          "                    \"betas\": [float(b) for b in beta_range],",
+          "                    \"sigmas\": sigma_curve",
+          "                })",
+          "",
+          "            # 3. Gradient vs Gamma curve. This uses the same profile_gradient",
+          "            # function as the backend solver, so the visual trace and result match.",
+          "            grad_gamma_points = {}",
+          "",
+          "            def add_gradient_point(gamma, gradient, source=\"trace_grid\", virtual=False):",
+          "                gamma = float(gamma)",
+          "                b, sig = find_best_beta_for_gamma(gamma)",
+          "                denom = np.power(neg_ln_1_minus_F, 1.0/b)",
+          "                etas_g = (t - gamma) / denom",
+          "                eta_mean = float(np.mean(etas_g))",
+          "                point = {",
+          "                    \"gamma\": gamma,",
+          "                    \"gradient\": float(gradient),",
+          "                    \"sigma_min\": float(sig),",
+          "                    \"best_beta\": float(b),",
+          "                    \"best_eta\": eta_mean,",
+          "                    \"source\": source,",
+          "                }",
+          "                if virtual:",
+          "                    point[\"virtual\"] = True",
+          "                grad_gamma_points[gamma] = point",
+          "",
+          "            for i in range(len(gammas)):",
+          "                add_gradient_point(gammas[i], grads[i])",
+          "",
+          "            if solution_strategy == \"brent_root\":",
+          "                if root_solver == \"right_edge_fit\":",
+          "                    add_gradient_point(found_gamma, offset, source=\"solver_root\", virtual=True)",
+          "                else:",
+          "                    add_gradient_point(found_gamma, profile_gradient(found_gamma), source=\"solver_root\")",
+          "            elif solution_strategy == \"truncated_at_zero\":",
+          "                add_gradient_point(0.0, probe_gradient_at_zero, source=\"solver_root\")",
+          "",
+          "            grad_gamma_curve = sorted(",
+          "                grad_gamma_points.values(),",
+          "                key=lambda point: point[\"gamma\"],",
+          "                reverse=True,",
+          "            )",
+          "",
+          "            self.trace_data = {",
+          "                \"sigma_beta_curve\": sigma_beta_curve,",
+          "                \"grad_gamma_curve\": grad_gamma_curve,",
+          "                \"sigma_beta_gamma\": sigma_beta_gamma,",
+          "                **self.last_solution_info,",
+          "            }",
+          "",
+          "        return float(found_beta), float(found_eta), float(found_gamma), float(r2), True",
+          ""
+        ]
+      }
+    ],
+    "artifacts": []
+  },
+  "website_open": true,
+  "screenshots_checked_at": "2026-11-03T00:31:28+08:00"
+}

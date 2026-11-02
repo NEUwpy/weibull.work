@@ -1,0 +1,211 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>流程核查依据</title><style>body{max-width:1000px;margin:32px auto;padding:20px;font:17px/1.8 system-ui;color:#213930}pre{overflow:auto;background:#f1f5f2;padding:16px;font-size:14px}math{display:block;overflow:auto}h2{font-size:24px}table{border-collapse:collapse}td,th{padding:8px}</style><h1>极大似然估计 MLE · 核查依据</h1><p>读取时间 2026-11-03T00:19:49+08:00。以下从网站当前流程API及现行方法运行记录取得；本页仅供查证。</p><p><a href="process-run.json">完整输入、结果、绘图点及源码身份</a> · <a href="prior-algorithm-review.html">此前原文核对</a></p><h2>数据预处理</h2><p>进入求解器，以最小寿命u归一化样本。返回候选时恢复原单位。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub><mo separator="true">,</mo><mspace width="1em"/><mi>u</mi><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo separator="true">,</mo><mspace width="1em"/><msub><mi>z</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mi>i</mi></msub><mi mathvariant="normal">/</mi><mi>u</mi></mrow></semantics></math></span></p><p>python/base.py L22–34</p><pre><code>  22     def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23         &quot;&quot;&quot;
+  24         Input: data (list or np.array) of failure times.
+  25         Status is assumed to be Failure (F) for this mathematical implementation.
+  26         rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27         &quot;&quot;&quot;
+  28         values = np.asarray(data, dtype=float).reshape(-1)
+  29         if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30             raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31         self.data = np.sort(values)
+  32         self.n = len(self.data)
+  33         self.trace_data = [] # Store process data for visualization
+  34         self.rank_method = rank_method</code></pre><p>python/methods/profile_solvers.py L28–31</p><pre><code>  28     x = np.sort(np.asarray(data, float))
+  29     unit = float(x[0])
+  30     z = x / unit
+  31     cache = {}</code></pre><h2>条件形状求解</h2><p>固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>d</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>v</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><msub><mi>d</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mrow><mi>ln</mi><mo>⁡</mo><mi>d</mi></mrow><mo stretchy="true">‾</mo></mover></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>i</mi></msub></mrow></msup><mrow><munder><mo>∑</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>j</mi></msub></mrow></msup></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>s</mi><mi>β</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>β</mi></mfrac><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msub><mi>v</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></p><p>python/methods/profile_solvers.py L14–19</p><pre><code>  14 def _location_grid():
+  15     # Dimensionless locations: ordinary range, near zero, and near support.
+  16     end = np.log(1. - np.nextafter(1., 0.))
+  17     return np.unique(np.r_[np.linspace(0., .99, 97),
+  18                            -np.expm1(np.linspace(0., end, 97)),
+  19                            np.geomspace(1e-12, .1, 33)])</code></pre><p>python/methods/profile_solvers.py L34–44</p><pre><code>  34     def profile(g):
+  35         g = float(g)
+  36         if g not in cache:
+  37             values = [] if trace else None
+  38             cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values)
+  39             if trace:
+  40                 shape_records[g] = values
+  41         return cache[g]
+  42
+  43     grid = _location_grid()
+  44     points = [profile(g) for g in grid]</code></pre><p>python/methods/conditional_profiles.py L61–74</p><pre><code>  61 def mle_profile(data, gamma, *, shape_lower=1.0, shape_evaluations=None):
+  62     &quot;&quot;&quot;Maximize the standard likelihood at fixed gamma over beta&gt;=shape_lower.
+  63
+  64     shape_lower=1 is the R00 diagnostic domain. shape_lower=0 is an explicitly
+  65     unrestricted diagnostic (also needed by the distinct MMLE construction).
+  66     At beta=1 the scale is recalculated; the shape score need not be zero.
+  67     &quot;&quot;&quot;
+  68     if shape_lower &lt; 0 or not np.isfinite(shape_lower):
+  69         raise ValueError(&quot;shape_lower must be finite and nonnegative&quot;)
+  70     d = _distances(data, gamma)
+  71     t = np.log(d)
+  72     solution = _shape(t, lower=shape_lower, evaluations=shape_evaluations)
+  73     if solution is None:
+  74         return None</code></pre><p>python/methods/conditional_profiles.py L13–20</p><pre><code>  13 def _distances(data, gamma):
+  14     x = np.asarray(data, dtype=float)
+  15     d = x - gamma
+  16     if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):
+  17         raise ValueError(&quot;Expected a finite one-dimensional sample of at least two points&quot;)
+  18     if not np.isfinite(gamma) or gamma &lt; 0 or np.any(d &lt;= 0):
+  19         raise ValueError(&quot;Conditional location must satisfy 0 &lt;= gamma &lt; min(data)&quot;)
+  20     return d</code></pre><p>python/methods/conditional_profiles.py L23–58</p><pre><code>  23 def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
+  24     z = logd - logd.mean()
+  25
+  26     def score(beta, source=&#x27;solver&#x27;):
+  27         w = np.exp(beta * (z - z.max()))
+  28         w /= w.sum()
+  29         value = float(weight / beta - w @ z)
+  30         if evaluations is not None:
+  31             evaluations.append(dict(beta=float(beta), score=value, source=source))
+  32         return value
+  33
+  34     def recorded_result(beta, residual, boundary):
+  35         # Supplement the same score function around its returned shape so the
+  36         # criterion is readable. These calls occur after selection, never enter
+  37         # root finding, and are identified separately from solver evaluations.
+  38         if evaluations is not None:
+  39             start = max(lower, beta * .5, 1e-8)
+  40             stop = min(upper, beta * 1.5) if upper is not None else beta * 1.5
+  41             for value in np.unique(np.r_[np.linspace(start, stop, 61), beta]):
+  42                 score(float(value), source=&#x27;diagnostic&#x27;)
+  43         return beta, residual, boundary
+  44
+  45     if np.ptp(logd) == 0:
+  46         return None  # No finite shape root for an equal-valued sample.
+  47     if lower &gt; 0 and score(lower) &lt;= 0:
+  48         return recorded_result(float(lower), score(lower), True)
+  49     if upper is None:
+  50         upper = 2.0
+  51         while score(upper) &gt; 0:
+  52             upper *= 2
+  53             if not np.isfinite(upper):
+  54                 return None
+  55     elif score(upper) &gt;= 0:
+  56         return None  # WMLE needs an interior T1 zero, never a clamped boundary.
+  57     beta = float(brentq(score, max(lower, 1e-8), upper, xtol=1e-11, rtol=2e-14))
+  58     return recorded_result(beta, score(beta), False)</code></pre><h2>恢复尺度与似然</h2><p>在条件形状下恢复η，计算用于位置搜索的似然及位置得分。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>η</mi><mo>=</mo><msup><mrow><mo fence="true">(</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>d</mi><mi>i</mi><mi>β</mi></msubsup><mo fence="true">)</mo></mrow><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mi>β</mi></mrow></msup></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi mathvariant="normal">ℓ</mi><mi>p</mi></msub><mo>=</mo><mi>n</mi><mo stretchy="false">[</mo><mi>ln</mi><mo>⁡</mo><mi>β</mi><mo>−</mo><mover accent="true"><mrow><mi>ln</mi><mo>⁡</mo><mi>d</mi></mrow><mo stretchy="true">‾</mo></mover><mo>−</mo><mi>ln</mi><mo>⁡</mo><mover accent="true"><msup><mi>e</mi><mrow><mi>β</mi><mi>v</mi></mrow></msup><mo stretchy="true">‾</mo></mover><mo>−</mo><mn>1</mn><mo stretchy="false">]</mo></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>s</mi><mi>γ</mi></msub><mo>=</mo><mi>n</mi><mrow><mo fence="true">[</mo><mi>β</mi><munder><mo>∑</mo><mi>i</mi></munder><mfrac><msub><mi>w</mi><mi>i</mi></msub><msub><mi>d</mi><mi>i</mi></msub></mfrac><mo>−</mo><mo stretchy="false">(</mo><mi>β</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mover accent="true"><msup><mi>d</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo stretchy="true">‾</mo></mover><mo fence="true">]</mo></mrow></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></p><p>python/methods/conditional_profiles.py L75–85</p><pre><code>  75     beta, score, boundary = solution
+  76     z = t - t.mean()
+  77     log_mean_power = logsumexp(beta * z) - np.log(len(d))
+  78     log_eta = t.mean() + log_mean_power / beta
+  79     ll = len(d) * (np.log(beta) - t.mean() - log_mean_power - 1)
+  80     w = np.exp(beta * (z - z.max()))
+  81     w /= w.sum()
+  82     grad = len(d) * (beta * float(w @ (1 / d)) - (beta - 1) * np.mean(1 / d))
+  83     return dict(beta=beta, eta=float(np.exp(log_eta)), ll=float(ll),
+  84                 location_score=float(grad), shape_score=score,
+  85                 shape_at_lower_boundary=boundary)</code></pre><h2>搜索并校验位置候选</h2><p>回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。</p><p>\[s_\gamma(\gamma_L)>0>s_\gamma(\gamma_R),\quad0\le\gamma<t_{(1)}\]</p><p>python/methods/profile_solvers.py L62–101</p><pre><code>  62     zero = points[0]
+  63     if zero is not None and zero[&#x27;location_score&#x27;] &lt;= 0:
+  64         add(0., &#x27;zero_location_boundary&#x27;)
+  65     for i in range(len(grid) - 1):
+  66         left, right = points[i:i + 2]
+  67         if left is None or right is None:
+  68             continue
+  69         if left[&#x27;location_score&#x27;] &gt; 0 and right[&#x27;location_score&#x27;] &lt; 0:
+  70             root = brentq(lambda g: profile(g)[&#x27;location_score&#x27;], grid[i], grid[i + 1],
+  71                           xtol=5e-15, rtol=1e-13)
+  72             add(float(root), &#x27;interior&#x27;)
+  73     # A narrow maximum/minimum pair can lie between two positive grid scores.
+  74     # Refine sampled derivative valleys before concluding that no peak exists.
+  75     for i in range(1, len(grid) - 1):
+  76         a, b, c = points[i - 1:i + 2]
+  77         if (a is None or b is None or c is None or b[&#x27;beta&#x27;] &lt;= 1
+  78                 or not (0 &lt; b[&#x27;location_score&#x27;] &lt; a[&#x27;location_score&#x27;]
+  79                         and b[&#x27;location_score&#x27;] &lt; c[&#x27;location_score&#x27;])):
+  80             continue
+  81         valley = minimize_scalar(lambda g: profile(g)[&#x27;location_score&#x27;],
+  82                                  bounds=(grid[i - 1], grid[i + 1]), method=&#x27;bounded&#x27;,
+  83                                  options={&#x27;xatol&#x27;: 1e-14})
+  84         if valley.success and valley.fun &lt; 0 and a[&#x27;location_score&#x27;] &gt; 0:
+  85             root = brentq(lambda g: profile(g)[&#x27;location_score&#x27;], grid[i - 1], valley.x,
+  86                           xtol=5e-15, rtol=1e-13)
+  87             add(float(root), &#x27;interior&#x27;)
+  88     # Catch a peak whose derivative is too flat to resolve on the coarse grid.
+  89     for i in range(1, len(grid) - 1):
+  90         p = points[i]
+  91         if (p is None or p[&#x27;beta&#x27;] &lt;= 1 or points[i - 1] is None or points[i + 1] is None
+  92                 or not (p[&#x27;ll&#x27;] &gt; points[i - 1][&#x27;ll&#x27;] and p[&#x27;ll&#x27;] &gt; points[i + 1][&#x27;ll&#x27;])):
+  93             continue
+  94         optimum = minimize_scalar(lambda g: -profile(g)[&#x27;ll&#x27;],
+  95                                   bounds=(grid[i - 1], grid[i + 1]), method=&#x27;bounded&#x27;,
+  96                                   options={&#x27;xatol&#x27;: 1e-13})
+  97         if optimum.success:
+  98             g = float(optimum.x)
+  99             h = min(1e-6, g / 2, (1 - g) / 2)
+ 100             if h &gt; 0 and profile(g - h)[&#x27;location_score&#x27;] &gt;= 0 and profile(g + h)[&#x27;location_score&#x27;] &lt;= 0:
+ 101                 add(g, &#x27;interior&#x27;)</code></pre><p>python/methods/profile_solvers.py L47–60</p><pre><code>  47     def add(g, kind):
+  48         p = profile(g)
+  49         if p is None or not np.isfinite(p[&#x27;ll&#x27;]):
+  50             return
+  51         gamma = float(g * unit)
+  52         if not 0 &lt;= gamma &lt; unit:
+  53             return
+  54         if kind == &#x27;interior&#x27; and p[&#x27;beta&#x27;] &lt;= 1.:
+  55             return
+  56         if any(abs(g - c[&#x27;gamma&#x27;] / unit) &lt;= 1e-9 for c in candidates):
+  57             return
+  58         candidates.append(dict(beta=float(p[&#x27;beta&#x27;]), eta=float(p[&#x27;eta&#x27;] * unit),
+  59                                gamma=gamma, ll=float(p[&#x27;ll&#x27;] - len(x) * np.log(unit)),
+  60                                kind=kind, location_score=float(p[&#x27;location_score&#x27;] / unit)))</code></pre><h2>比较候选与边界处理</h2><p>选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>c</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mrow><mi>c</mi><mo>∈</mo><mi mathvariant="script">C</mi></mrow></munder><mi mathvariant="normal">ℓ</mi><mo stretchy="false">(</mo><mi>c</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mi>η</mi><mrow><mi>l</mi><mi>i</mi><mi>m</mi></mrow></msub><mo>=</mo><mover accent="true"><mrow><mi>t</mi><mo>−</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mrow><mo stretchy="true">‾</mo></mover><mo separator="true">,</mo><mspace width="1em"/><msub><mi mathvariant="normal">ℓ</mi><mrow><mi>l</mi><mi>i</mi><mi>m</mi></mrow></msub><mo>=</mo><mo>−</mo><mi>n</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>ln</mi><mo>⁡</mo><msub><mi>η</mi><mrow><mi>l</mi><mi>i</mi><mi>m</mi></mrow></msub><mo stretchy="false">)</mo></mrow></semantics></math></span></p><p>python/methods/profile_solvers.py L102–127</p><pre><code> 102     eta_limit = float(np.mean(x - x[0]))
+ 103     limit_ll = float(-len(x) * (1 + np.log(eta_limit)))
+ 104     best = max(candidates, key=lambda p: p[&#x27;ll&#x27;]) if candidates else None
+ 105     info = dict(status=&#x27;ok&#x27; if best else &#x27;no_finite_local_maximum&#x27;,
+ 106                 solver_version=SOLVER_VERSION, strategy=&#x27;profile_likelihood_finite_maxima&#x27;,
+ 107                 constraint=&#x27;beta&gt;=1, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,
+ 108                 profile_grid_points=len(grid), profile_evaluations=len(cache),
+ 109                 candidate_count=len(candidates), candidates=candidates,
+ 110                 support_boundary_limit=dict(beta=1., eta=eta_limit, gamma=float(x[0]),
+ 111                                             log_likelihood=limit_ll, attained_in_open_support=False),
+ 112                 boundary_limit_exceeds_selected=bool(best and limit_ll &gt; best[&#x27;ll&#x27;] + 1e-9))
+ 113     if best:
+ 114         info.update(log_likelihood=best[&#x27;ll&#x27;], location_at_zero_boundary=best[&#x27;gamma&#x27;] == 0.)
+ 115     if trace:
+ 116         # Cache insertion order is the order of actual conditional evaluations.
+ 117         # These are function evaluations, not outer optimizer iterations.
+ 118         info[&#x27;selected_shape_evaluations&#x27;] = shape_records[min(shape_records, key=lambda g: abs(g - best[&#x27;gamma&#x27;] / unit))] if best else []
+ 119         info[&#x27;profile_trace&#x27;] = [dict(
+ 120             evaluation=i + 1, gamma=float(g * unit),
+ 121             beta=float(p[&#x27;beta&#x27;]), eta=float(p[&#x27;eta&#x27;] * unit),
+ 122             log_likelihood=float(p[&#x27;ll&#x27;] - len(x) * np.log(unit)),
+ 123             location_score=float(p[&#x27;location_score&#x27;] / unit),
+ 124             shape_score=float(p[&#x27;shape_score&#x27;]),
+ 125             shape_at_lower_boundary=bool(p[&#x27;shape_at_lower_boundary&#x27;]),
+ 126         ) for i, (g, p) in enumerate(cache.items()) if p is not None]
+ 127     return best, info</code></pre><p>python/methods/mle.py L23–34</p><pre><code>  23         self.last_solution_info = {k: v for k, v in info.items() if k not in (&#x27;profile_trace&#x27;, &#x27;selected_shape_evaluations&#x27;)}
+  24         if trace:
+  25             self.calculation_trace = profile_calculation(&#x27;mle&#x27;, info, selected)
+  26             for candidate in info.get(&#x27;candidates&#x27;, []):
+  27                 self.log_step(dict(phase=&#x27;candidate&#x27;, beta=candidate[&#x27;beta&#x27;],
+  28                                    eta=candidate[&#x27;eta&#x27;], gamma=candidate[&#x27;gamma&#x27;],
+  29                                    log_likelihood=candidate[&#x27;ll&#x27;], kind=candidate[&#x27;kind&#x27;]))
+  30         if selected is None:
+  31             if trace:
+  32                 self.log_step(dict(phase=&#x27;failed&#x27;, reason=info[&#x27;status&#x27;]))
+  33             return [None, None, None, 0., info[&#x27;status&#x27;]]
+  34         beta, eta, gamma = (selected[p] for p in [&#x27;beta&#x27;, &#x27;eta&#x27;, &#x27;gamma&#x27;])</code></pre><h2>计算拟合优度并返回</h2><p>计算拟合优度，返回形状、尺度和位置参数。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></p><p>python/base.py L79–96</p><pre><code>  79     def _calculate_r2(self, beta, eta, gamma_val):
+  80         &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81         if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83         # Experimental
+  84         x = np.log(self.data - gamma_val)
+  85         y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87         # Theoretical / Predicted
+  88         # y = beta * x - beta * ln(eta)
+  89         y_pred = beta * x - beta * np.log(eta)
+  90
+  91         # R^2 calculation
+  92         ss_res = np.sum((y_exp - y_pred)**2)
+  93         ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95         if ss_tot == 0: return 0.0
+  96         return 1 - (ss_res / ss_tot)</code></pre><p>python/base.py L58–68</p><pre><code>  58     def _median_ranks(self):
+  59         &quot;&quot;&quot;
+  60         Helper: Calculate Median Ranks using configured method.
+  61         - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62         - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63         &quot;&quot;&quot;
+  64         i = np.arange(1, self.n + 1)
+  65         if self.rank_method == &#x27;exact&#x27;:
+  66             return betaincinv(i, self.n - i + 1, 0.5)
+  67         else:  # bernard
+  68             return (i - 0.3) / (self.n + 0.4)</code></pre><p>python/methods/mle.py L38–38</p><pre><code>  38         return [beta, eta, gamma, self._calculate_r2(beta, eta, gamma), True]</code></pre></html>

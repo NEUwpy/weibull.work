@@ -1,184 +1,177 @@
 {
   "id": "weibull-method-mmle-20261102",
-  "title": "修正极大似然估计 MMLE · 原文与实现",
+  "title": "修正极大似然估计 MMLE · 流程与图的呈现评审",
   "document": true,
-  "revision": 1,
+  "revision": 2,
   "require_confirmation": true,
-  "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/mmle.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/mmle.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/mmle.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
   "units": [
     {
       "id": "identity",
-      "title": "1 原文双样本与当前单样本化简",
+      "title": "1 整体呈现",
       "mode": "content",
       "options": [
         {
           "id": "identity-content",
-          "label": "1 原文双样本与当前单样本化简",
+          "label": "1 整体呈现",
           "blocks": [
             {
               "id": "identity-body",
               "kind": "text",
-              "html": "<p>Kundu–Raqab原文研究两组独立Weibull样本，共同形状和位置、不同尺度，并估计R=P(Y&lt;X)。现行mmle.py采用它的<mark>固定最小值、删除一个观测、再迭代形状</mark>构造，化简为单样本参数估计。</p><a href=\"assets/evidence.html#paper-L25\" target=\"_blank\" rel=\"noopener\">182-119 原文 L25–44 · 原文模型</a>；<a href=\"assets/evidence.html#paper-L65\" target=\"_blank\" rel=\"noopener\">182-119 原文 L65–88 · 式(4)(6)</a><p>可称“基于Kundu–Raqab构造的单样本化简”；不能称已经实现整篇双样本应力–强度推断。本文只讨论当前这一套MMLE，不启用其他历史实现。</p>"
+              "html": "<p><strong>建议主线：</strong>原样本最小值确定γ，删除其中一个最小观测；对保留距离迭代求β，再恢复η。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p><p><strong>现状：</strong>计算过程页未开放，以下仅为呈现建议与后端核对记录。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "construction",
-      "title": "2 删除最小观测与尺度映射",
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
       "mode": "content",
       "options": [
         {
-          "id": "construction-content",
-          "label": "2 删除最小观测与尺度映射",
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
           "blocks": [
             {
-              "id": "construction-body",
-              "kind": "text",
-              "html": "<p>原文尺度θ用于指数项exp[−(x−μ)^α/θ]，与网站参数的对应是α=β、μ=γ、θ=η^β。</p><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><mover accent=\"true\"><mi>γ</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy=\"false\">(</mo><mn>1</mn><mo stretchy=\"false\">)</mo></mrow></msub><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy=\"false\">(</mo><mi>i</mi><mo stretchy=\"false\">)</mo></mrow></msub><mo>−</mo><mover accent=\"true\"><mi>γ</mi><mo stretchy=\"true\">^</mo></mover><mo separator=\"true\">,</mo><mtext> </mtext><mi>i</mi><mo>=</mo><mn>2</mn><mo separator=\"true\">,</mo><mo>…</mo><mo separator=\"true\">,</mo><mi>n</mi><mo separator=\"true\">,</mo><mspace width=\"1em\"/><mi>q</mi><mo>=</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo separator=\"true\">,</mo><mspace width=\"1em\"/><mover accent=\"true\"><mi>η</mi><mo stretchy=\"true\">^</mo></mover><mo>=</mo><msup><mrow><mo fence=\"true\">(</mo><msup><mi>q</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>2</mn></mrow><mi>n</mi></munderover><msubsup><mi>y</mi><mi>i</mi><mover accent=\"true\"><mi>β</mi><mo stretchy=\"true\">^</mo></mover></msubsup><mo fence=\"true\">)</mo></mrow><mrow><mn>1</mn><mi mathvariant=\"normal\">/</mi><mover accent=\"true\"><mi>β</mi><mo stretchy=\"true\">^</mo></mover></mrow></msup><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-1\" target=\"_blank\" rel=\"noopener\">python/methods/mmle.py · L48–52</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  48          gamma = float(self.data[0])\n  49          y = self.data[1:] - gamma\n  50          beta = float(initial_shape)\n  51          converged = False\n  52          history = []</code></pre><p>删除的是一个最小观测，不是删除所有与最小值相同的观测。原文连续模型以严格次序统计量叙述；舍入造成并列最小值时，当前会失败，不能无声多删数据。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "iteration",
-      "title": "3 不动点公式与数值停止条件",
-      "mode": "content",
-      "options": [
-        {
-          "id": "iteration-content",
-          "label": "3 不动点公式与数值停止条件",
-          "blocks": [
-            {
-              "id": "iteration-body",
-              "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>式(9)–(11)给h(α)=α和不动点更新，要求相邻迭代绝对差足够小；作者未证明收敛。</p><a href=\"assets/evidence.html#paper-L105\" target=\"_blank\" rel=\"noopener\">182-119 原文 L105–123 · PDF第4页／印刷1841页</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>把两组构造化简为一组保留样本，初值1、绝对步长容差10⁻⁸、预算10000次；用稳定指数权重计算。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-2\" target=\"_blank\" rel=\"noopener\">python/methods/mmle.py · L59–66</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code>  59                  weights = np.exp(beta * (logs - logs.max()))\n  60                  weights /= weights.sum()\n  61                  denominator = float(q * (weights @ logs))\n  62                  next_beta = float((q + beta * logs.sum()) / denominator)\n  63                  if not np.isfinite(next_beta) or next_beta &lt;= 0:\n  64                      break\n  65                  difference = abs(next_beta - beta)\n  66                  if iteration &lt;= 3:</code></pre><p><span class=\"katex\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><semantics><mrow><msub><mi>β</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mfrac><mrow><mi>q</mi><mo>+</mo><msub><mi>β</mi><mi>j</mi></msub><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>2</mn></mrow><mi>n</mi></munderover><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>i</mi></msub></mrow><mrow><mi>q</mi><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>2</mn></mrow><mi>n</mi></munderover><msub><mi>w</mi><mi>i</mi></msub><mo stretchy=\"false\">(</mo><msub><mi>β</mi><mi>j</mi></msub><mo stretchy=\"false\">)</mo><mi>ln</mi><mo>⁡</mo><msub><mi>y</mi><mi>i</mi></msub></mrow></mfrac><mo separator=\"true\">,</mo><mspace width=\"1em\"/><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msubsup><mi>y</mi><mi>i</mi><mi>β</mi></msubsup><mrow><mo>∑</mo><msubsup><mi>y</mi><mi>i</mi><mi>β</mi></msubsup></mrow></mfrac><mi mathvariant=\"normal\">.</mi></mrow></semantics></math></span></p></div></div><p><strong>核对判断：</strong>这里的单样本式是化简推导，不是原文直接印出的单样本公式。现有独立剖面得分根测试支持该化简；初值、容差与预算是明确的数值设置。</p><p><strong>可能修改：</strong>可保留构造和现有停止条件；考虑在同一程序增加最终得分残差及尺度无关的停止诊断。若改变接受标准，须明确会改变哪些成功/失败。</p><p><strong>影响：</strong>迭代步长小不总能独自证明满足得分方程。增加诊断不必改变返回值；把诊断升级为拒绝条件则需要讨论后验证。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "iteration-choice",
-      "title": "3.1 停止与残差检查",
-      "mode": "choices",
-      "inline": true,
-      "selection_mode": "single",
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "mmle-diagnostic",
-          "label": "保留停止规则，补残差诊断",
-          "blocks": [
-            {
-              "id": "mmle-diagnostic-text",
-              "kind": "text",
-              "html": "<p>优先增加可核对证据，暂不改变成功集合。</p>"
-            }
-          ]
-        },
-        {
-          "id": "mmle-score",
-          "label": "共同设定步长与得分的接受标准",
-          "blocks": [
-            {
-              "id": "mmle-score-text",
-              "kind": "text",
-              "html": "<p>先确定残差归一化及容差，再更新同一mmle.py的停止/失败规则。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "r2",
-      "title": "4 R²=0是占位值，不是拟合结果",
-      "mode": "content",
-      "options": [
-        {
-          "id": "r2-content",
-          "label": "4 R²=0是占位值，不是拟合结果",
-          "blocks": [
-            {
-              "id": "r2-body",
-              "kind": "text",
-              "html": "<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:24px\"><div><p style=\"color:#526d64;font-weight:650\">原文依据</p><p>原文并未定义本网站的全样本概率图R²。当前位置取样本最小值，该点对数平移距离为−∞，不能直接套通常全样本图。</p><a href=\"assets/evidence.html#paper-L65\" target=\"_blank\" rel=\"noopener\">182-119 原文 L65–72 · 删最小值构造</a></div><div><p style=\"color:#526d64;font-weight:650\">当前实现</p><p>run返回R²=0.0；代码注释及过程记录明确它是历史占位。页面或导出若按普通R²排序，仍可能误解。</p><p style=\"font-size:14px;color:#52645d\"><a href=\"assets/evidence.html#code-3\" target=\"_blank\" rel=\"noopener\">python/methods/mmle.py · L110–110</a></p><pre style=\"overflow:auto;background:#132723;color:#e9f0ec;padding:16px;border-radius:8px;font:14px/1.7 Consolas,monospace\"><code> 110          return [beta, eta, gamma, 0., True]</code></pre></div></div><p><strong>核对判断：</strong>这是返回契约与呈现语义的问题，不是形状/尺度公式错。原样保留0会有被误用的风险。</p><p><strong>可能修改：</strong>可以保留兼容字段并带未定义标志，或把R²正式改为null；不能自行补一个“看着合理”的全样本值。</p><p><strong>影响：</strong>改null涉及结果类型、API、表格、排序及既有导出。若定义保留样本R²，也必须命名清楚，不与全样本指标混用。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "r2-choice",
-      "title": "4.1 未定义拟合度的输出方式",
-      "mode": "choices",
-      "inline": true,
-      "selection_mode": "single",
-      "selected_ids": [],
-      "options": [
-        {
-          "id": "mmle-r2-flag",
-          "label": "暂保留兼容值，明确未定义",
-          "blocks": [
-            {
-              "id": "mmle-r2-flag-text",
-              "kind": "text",
-              "html": "<p>新增有效性语义，展示为“未定义”，统计与排序跳过该占位。</p>"
-            }
-          ]
-        },
-        {
-          "id": "mmle-r2-null",
-          "label": "统一返回null并调整调用方",
-          "blocks": [
-            {
-              "id": "mmle-r2-null-text",
-              "kind": "text",
-              "html": "<p>使数据本身表达未定义；同步更新API类型、展示、统计和导出契约。</p>"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "pdf-proof",
-      "title": "5 原PDF的不动点构造",
-      "mode": "content",
-      "options": [
-        {
-          "id": "pdf-proof-content",
-          "label": "5 原PDF的不动点构造",
-          "blocks": [
-            {
-              "id": "pdf-proof-body",
-              "kind": "text",
-              "html": "<p>下图为原PDF第4页、印刷1841页的式(9)–(11)及停止条件。原始公式保留双样本，前面用网站符号呈现的是有标识的化简推导。</p>"
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
             },
             {
-              "id": "pdf-fixed-point",
-              "kind": "image",
-              "src": "assets/pdf-fixed-point.png",
-              "alt": "Kundu–Raqab原PDF第4页，式(9)–(11)与绝对差停止条件"
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议以“最小值及删除—形状迭代—尺度恢复”呈现。此次只评审展示方案，不改变MMLE开放状态。</p>"
             }
           ]
         }
       ]
     },
     {
-      "id": "verification",
-      "title": "6 当前数值核对与测试能证明什么",
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
       "mode": "content",
       "options": [
         {
-          "id": "verification-content",
-          "label": "6 当前数值核对与测试能证明什么",
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
           "blocks": [
             {
-              "id": "verification-body",
-              "kind": "visual",
-              "html": "<div style=\"overflow:auto\"><table style=\"font-size:16px\"><thead><tr><th>核对输入</th><th>β</th><th>η</th><th>γ</th></tr></thead><tbody><tr><td>既有七点存档样本</td><td>1.4485886</td><td>379.27488</td><td>1095.1525</td></tr></tbody></table></div><p>单样本化简的独立得分根对照，非原文双样本R的完整算例。</p><p>本轮重新执行七个方法的既有原文/公式套件，共80项通过。通过的是已覆盖的公式、若干算例和边界；不是原文所有算法步骤、数据及蒙特卡洛表已复现。上表为少量确定性核对，不是新蒙特卡洛性能结论。</p>"
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>MMLE现有后端记录与程序流程可核对，但计算过程页面仍未开放。以下运行图是同一现行实现的记录重绘，用于审阅未来呈现，不代表已在网站上线。</p><p><strong>建议呈现：</strong>程序流程显示最小值、单次删除、形状不动点迭代和尺度恢复。需要讲清这里的循环是形状迭代，不是位置搜索。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理与控制量 → 固定位置并删除最小值 → 迭代求解形状 → 检查收敛并恢复尺度 → 返回估计结果。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>先以样本示意明确哪个观测给出γ、哪个观测被删除；随后展示β随实际迭代步的变化及停止判据，最后给出η。未计算的拟合优度不得呈现为有效R²。</p><p>下图沿用一组固定输入：既有七点存档样本，n=7；结果 β̂=1.448589，η̂=379.2749，γ̂=1095.153。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-shape-fixed-point",
+      "title": "4.1 形状迭代怎样接近最终值",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-shape-fixed-point-content",
+          "label": "4.1 形状迭代怎样接近最终值",
+          "blocks": [
+            {
+              "id": "chart-shape-fixed-point-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>形状迭代怎样接近最终值。</p><p><strong>建议：</strong>使用真实迭代序号和β值，显示最终接受点。</p><p><strong>核查意见：</strong>这才是实际迭代图；不要把它与其他方法按参数排序的函数图混为一谈。</p>"
+            },
+            {
+              "id": "record-shape-fixed-point",
+              "kind": "image",
+              "src": "assets/record-shape-fixed-point.svg",
+              "alt": "同一次运行记录重绘：保留样本的形状不动点迭代"
+            },
+            {
+              "id": "record-shape-fixed-point-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-shape-step",
+      "title": "4.2 为什么在这一轮停止",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-shape-step-content",
+          "label": "4.2 为什么在这一轮停止",
+          "blocks": [
+            {
+              "id": "chart-shape-step-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>为什么在这一轮停止。</p><p><strong>建议：</strong>紧邻形状图展示相邻β变化量与停止线。</p><p><strong>核查意见：</strong>达到数值停止条件不等于已证明一般情形都收敛；迭代失败要按失败呈现。</p>"
+            },
+            {
+              "id": "record-shape-step",
+              "kind": "image",
+              "src": "assets/record-shape-step.svg",
+              "alt": "同一次运行记录重绘：停止判据"
+            },
+            {
+              "id": "record-shape-step-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>样本最小值确定位置</strong>：γ̂=1095.153, 保留样本数 q=6</p><p><strong>不动点迭代确定形状</strong>：β̂=1.448589, |Δβ|=9.064964e-09, ε=1e-08</p><p><strong>保留样本恢复尺度</strong>：η̂=379.2749</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
             }
           ]
         }
@@ -186,17 +179,17 @@
     },
     {
       "id": "sources",
-      "title": "7 论文、源码与核对快照",
+      "title": "核查依据",
       "mode": "content",
       "options": [
         {
           "id": "sources-content",
-          "label": "7 论文、源码与核对快照",
+          "label": "核查依据",
           "blocks": [
             {
               "id": "sources-body",
               "kind": "text",
-              "html": "<p><strong>Debasis Kundu 与 Mohammad Z. Raqab，2009</strong> · Estimation of R = P(Y &lt; X) for three-parameter Weibull distribution</p><p>当前方法入口：<code>python/methods/mmle.py</code>。核对时间 2026-11-02T12:51:05+08:00；Git基线 2b3d01383c，工作区含未提交改动，以下哈希标识本轮实际文件。</p><p style=\"font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere\">入口SHA-256 eebc150796acbe565a356c13dc8c9e5ebfd69302870cc1c1b7c63bbf8bf948ec</p><p><a href=\"assets/evidence.html\" target=\"_blank\" rel=\"noopener\">查看逐项原文与源码摘录</a> · <a href=\"assets/provenance.json\" target=\"_blank\" rel=\"noopener\">查看来源与哈希</a> · <a href=\"assets/methods.html\" target=\"_blank\" rel=\"noopener\">其他方法</a></p><p>摘录用于本轮讨论，不是另一份可编辑的算法实现。源文件变化后应重新核对；审阅期间不修改估计器或原论文。</p>"
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
             }
           ]
         }

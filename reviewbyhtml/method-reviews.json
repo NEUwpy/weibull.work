@@ -6,7 +6,7 @@
       "name": "最小差异法",
       "root": "D:\\weibull\\reviewbyhtml\\method-mdm",
       "paper": "182-046",
-      "units": 11,
+      "units": 9,
       "sources": [
         {
           "path": "python/base.py",
@@ -16,7 +16,18 @@
           "path": "python/methods/mdm.py",
           "sha256": "ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 3,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/mdm.py": "ac2b4354e492cf17cb0bb55f6a8e84b5ca07e74f79f0e6289a16eedd4dd24381",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/mdm.json": "ae456a7b7db91ae976c85fbdba3afc4ce1c3a7352df47f021c02fd99c3e68e1e",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "mle",
@@ -38,14 +49,27 @@
           "sha256": "b0f9bb06b8bf850bede14a78d2759cb029e10d3c197a76ad4df3ee3c9a471739"
         }
       ],
-      "checked_at": "2026-11-02T21:17:20+08:00"
+      "checked_at": "2026-11-02T21:17:20+08:00",
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 3,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/profile_solvers.py": "b0f9bb06b8bf850bede14a78d2759cb029e10d3c197a76ad4df3ee3c9a471739",
+        "python/methods/conditional_profiles.py": "a3de30e43a58564c62f0941adb1e5ce403ea1240f3c0c264cd7fda744a6a34a6",
+        "python/methods/mle.py": "0657dc83fa2291874e26fd1b1da2577992bf6d52e825cccbccaa14a1d1231eec",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/mle.json": "0c641f5b50cc103910c25d98d94123c6b9bfaf8c161090d0d669fc7d7fc5160c",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "wmle",
       "name": "加权极大似然估计",
       "root": "D:\\weibull\\reviewbyhtml\\method-wmle",
       "paper": "182-088",
-      "units": 10,
+      "units": 9,
       "sources": [
         {
           "path": "python/methods/conditional_profiles.py",
@@ -59,33 +83,68 @@
           "path": "python/methods/wmle.py",
           "sha256": "0e63af8a0d17ea6426cc973142b176d827068a952f07abed6850fc30eddbc33b"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 2,
+      "presentation_sources": {
+        "python/methods/wmle.py": "c822d0b6a227d66a82548ce7f4eec0b07c92bb8ea1589cb6399295c8ff0c7e3f",
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/profile_solvers.py": "b0f9bb06b8bf850bede14a78d2759cb029e10d3c197a76ad4df3ee3c9a471739",
+        "python/methods/conditional_profiles.py": "a3de30e43a58564c62f0941adb1e5ce403ea1240f3c0c264cd7fda744a6a34a6",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/wmle.json": "fc506d0db631a0d2b03582417718643bdc15746347bcf19d2f672c0ba056307e",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "lse",
       "name": "最小二乘估计",
       "root": "D:\\weibull\\reviewbyhtml\\method-lse",
       "paper": "182-104",
-      "units": 7,
+      "units": 8,
       "sources": [
         {
           "path": "python/methods/lse.py",
           "sha256": "467508ff09cd6f1274a02c5f829e79fbe6729abf2d9621751b32589e7b9763c6"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 2,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/lse.py": "117a418d86d396da6f6aa8cdde928cd4c9539f27e2d9075ef51e0bc874ede81c",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/lse.json": "2affce86901f59fcc5fe52205040bc7bc48ed3aede0f5affdd9420084058dbbb",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "lre",
       "name": "线性回归估计",
       "root": "D:\\weibull\\reviewbyhtml\\method-lre",
       "paper": "182-115",
-      "units": 7,
+      "units": 8,
       "sources": [
         {
           "path": "python/methods/lre.py",
           "sha256": "df9bacbdc0316573231b1d8c1ecfd500886cff4bcf2c3737a90e719e4565d32e"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 2,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/lre.py": "63cd2665892297ce0fbb829752534f1e792fb8687b91c8770f7e75829e9e4f33",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/lre.json": "43aa08782b1fef4f413c8eb0a598d2955842341b241fa264d9c8a15feb076672",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "mm",
@@ -98,20 +157,43 @@
           "path": "python/methods/mm.py",
           "sha256": "8ea778cb9f7ad33ddccde03cdc8ca16696e1427a37ef1c582271183f42cc690e"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 2,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/mm.py": "33642b175a0d9131025b304bad73e0e7ee8188601d86edfc20126db6545deb5b",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/mm.json": "2d403d6a723a183b5fee5fa6d25a1759a159ac15d065f62d3534488ef33c34df",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     },
     {
       "method": "mmle",
       "name": "修正极大似然估计",
       "root": "D:\\weibull\\reviewbyhtml\\method-mmle",
       "paper": "182-119",
-      "units": 9,
+      "units": 8,
       "sources": [
         {
           "path": "python/methods/mmle.py",
           "sha256": "eebc150796acbe565a356c13dc8c9e5ebfd69302870cc1c1b7c63bbf8bf948ec"
         }
-      ]
+      ],
+      "review_scope": "program_calculation_and_figure_presentation",
+      "revision": 2,
+      "presentation_sources": {
+        "python/base.py": "21ee6abad7523a51b862263abea4397e284ffbcb085df517eff1147d5bf857d2",
+        "python/methods/mmle.py": "853989b9ed153eaaf69fdeba00b1801bb8debf5382af3666d052de9711c75cdc",
+        "python/methods/calculation_trace.py": "a8bfd67dcf49c8818b7e7f277405ebe1062231a424b5ad30c32268909ef26acd",
+        "src/data/method_flows/mmle.json": "dfcbda680b1be509a37baad30dea17fa9cebc18b5aa32f2ebbac72fbe9036ef4",
+        "src/components/methods/VariableFlowViewer.tsx": "314cb2ff76838a070fad2f9bcb18892c1a25115ee671dd020da251d4cbd2f13c",
+        "src/components/shared/charts/CalculationProcessViewer.tsx": "00d7a698b02e247ed33497910611bd407ef05fa3e6764f9a484c0c583fd598dd",
+        "src/lib/calculation-trace.ts": "f306576040e1bb99561ee490522032d240490de3d0b4c23dd4ff1a22da93e32c"
+      }
     }
-  ]
+  ],
+  "presentation_checked_at": "2026-11-03T00:31:28+08:00"
 }
