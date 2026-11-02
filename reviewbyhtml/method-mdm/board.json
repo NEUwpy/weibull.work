@@ -2,7 +2,7 @@
   "id": "weibull-method-mdm-20261102",
   "title": "最小差异法 MDM · 原文与实现",
   "document": true,
-  "revision": 1,
+  "revision": 2,
   "require_confirmation": true,
   "archive_plan": "依据最终确认的逐项决定修改 D:/weibull/python/methods/mdm.py 及实际共用辅助函数，同步方法说明、流程引用和测试；保留同一方法入口，不新建原文/工程分支。先展示具体修改与核对结果，再完成本方法审定记录 D:/weibull/docs/method-reviews/mdm.md。未决定的算法问题保持现状；历史数据不重算，不推送或部署。",
   "units": [
@@ -18,7 +18,7 @@
             {
               "id": "identity-body",
               "kind": "text",
-              "html": "<p>论文的<mark>伪尺度离散度、条件最小差异与正偏移</mark>已在现行程序中体现；默认秩、搜索方式和边界返回规则仍有差异。优先讨论这三处，再决定怎样修改同一个 <code>mdm.py</code>。</p><p>以下提议尚未实施。原文未写全的网格与多交点规则，按“实现设置”讨论，不冒充作者规定。</p>"
+              "html": "<p>论文的伪尺度离散度、条件最小差异与正偏移已在现行程序中体现。</p><p><mark>本轮已确认保留：Bernard默认近似秩、连续数值求解和现有右端外推返回规则。</mark>估计算法不变。下文保留原文与实现的差异说明，作为同一个 mdm.py 的实现口径；右端外推不表述为已验证的方程根。</p>"
             }
           ]
         }
@@ -63,10 +63,12 @@
     {
       "id": "ranks-choice",
       "title": "3.1 中位秩的处理",
-      "mode": "choices",
+      "mode": "content",
       "inline": true,
       "selection_mode": "single",
-      "selected_ids": [],
+      "selected_ids": [
+        "rank-keep"
+      ],
       "options": [
         {
           "id": "rank-keep",
@@ -78,19 +80,10 @@
               "html": "<p>不改变估计；明确标示Bernard近似与原文式(3)的差别。</p>"
             }
           ]
-        },
-        {
-          "id": "rank-exact",
-          "label": "把同一MDM程序的默认秩改为精确式",
-          "blocks": [
-            {
-              "id": "rank-exact-text",
-              "kind": "text",
-              "html": "<p>按原文式(3)统一默认概率；补充旧结果差异和AI适用性核对。</p>"
-            }
-          ]
         }
-      ]
+      ],
+      "selected": "rank-keep",
+      "state": "converged"
     },
     {
       "id": "search",
@@ -113,10 +106,12 @@
     {
       "id": "search-choice",
       "title": "4.1 搜索与差分的处理",
-      "mode": "choices",
+      "mode": "content",
       "inline": true,
       "selection_mode": "single",
-      "selected_ids": [],
+      "selected_ids": [
+        "search-continuous"
+      ],
       "options": [
         {
           "id": "search-continuous",
@@ -128,19 +123,10 @@
               "html": "<p>保留现有估计口径，补清差分尺度、括根与网格的作用，准确说明与论文的数值差别。</p>"
             }
           ]
-        },
-        {
-          "id": "search-discrete",
-          "label": "在mdm.py内统一改为离散搜索",
-          "blocks": [
-            {
-              "id": "search-discrete-text",
-              "kind": "text",
-              "html": "<p>先确定步长、范围、交点和停止规则，再改同一文件；新增设置单独明示。</p>"
-            }
-          ]
         }
-      ]
+      ],
+      "selected": "search-continuous",
+      "state": "converged"
     },
     {
       "id": "boundary",
@@ -163,10 +149,12 @@
     {
       "id": "boundary-choice",
       "title": "5.1 右端外推的返回方式",
-      "mode": "choices",
+      "mode": "content",
       "inline": true,
       "selection_mode": "single",
-      "selected_ids": [],
+      "selected_ids": [
+        "edge-keep"
+      ],
       "options": [
         {
           "id": "edge-keep",
@@ -178,30 +166,10 @@
               "html": "<p>保持结果与成功口径；继续清楚显示right_edge_fit和未验证残差。</p>"
             }
           ]
-        },
-        {
-          "id": "edge-approx",
-          "label": "返回近似状态，单独统计",
-          "blocks": [
-            {
-              "id": "edge-approx-text",
-              "kind": "text",
-              "html": "<p>保留估计值，状态明确为近似；API、页面和统计不得混作已求得偏移方程根。</p>"
-            }
-          ]
-        },
-        {
-          "id": "edge-fail",
-          "label": "未验证交点则返回失败",
-          "blocks": [
-            {
-              "id": "edge-fail-text",
-              "kind": "text",
-              "html": "<p>不返回外推三参数；保留探测证据和失败原因，更新成功率解释。</p>"
-            }
-          ]
         }
-      ]
+      ],
+      "selected": "edge-keep",
+      "state": "converged"
     },
     {
       "id": "paper-images",
@@ -269,5 +237,8 @@
         }
       ]
     }
-  ]
+  ],
+  "last_applied_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238",
+  "review_complete": false,
+  "last_rendered_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238"
 }
