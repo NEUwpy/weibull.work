@@ -122,7 +122,9 @@ test('authenticated content reads retain body and private cache headers', () => 
 }))
 
 test('public metadata and search expose introductions and excerpts without raw source or neighbouring context', async () => {
-  const paper = { slug: '182-001', title: 'Selected paper', author: 'Author', year: 2024, tags: [], summary: 'Public introduction', privateNotes: 'PRIVATE_NOTES' }
+  const category = { key: '180/182', name: '传统估计方法', groupKey: '180', groupName: '参数估计' }
+  const paper = { slug: '182-001', title: 'Selected paper', author: 'Author', year: 2024, tags: [], category,
+    summary: 'Public introduction', privateNotes: 'PRIVATE_NOTES', sourceDirectory: 'PRIVATE_SOURCE_DIRECTORY' }
   const metadata = loadServerModule('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': {
     readPaperMetadata: () => ({ ...paper, availableVersions: ['原文', '翻译'] }),
     LibraryConfigurationError: class extends Error {},
@@ -132,7 +134,8 @@ test('public metadata and search expose introductions and excerpts without raw s
   const body = await response.json()
   assert.deepEqual(body.versions, ['原文', '翻译'])
   assert.equal(body.paper.summary, 'Public introduction')
-  assert.doesNotMatch(JSON.stringify(body), /COMPLETE_DOCUMENT|TRANSLATION_DOCUMENT|PRIVATE_NOTES|raw/)
+  assert.deepEqual(body.paper.category, category)
+  assert.doesNotMatch(JSON.stringify(body), /COMPLETE_DOCUMENT|TRANSLATION_DOCUMENT|PRIVATE_NOTES|PRIVATE_SOURCE_DIRECTORY|raw/)
 
   const search = loadServerModule('src/app/api/library/search/route.ts', {
     '@/lib/server/library-search': { startLibrarySearchPrewarm: async () => {}, searchLibrary: () => ({ query: 'weibull', total: 1, terms: ['weibull'], results: [{

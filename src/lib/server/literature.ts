@@ -6,6 +6,7 @@ import { getDataRoot } from './data-root'
 import { indexSourcePapers, sourceDocument, sourceAsset, readSourceNoteSummary, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 import type { LibraryVersion } from '../library-search-types'
+import { libraryCategoryForSource, libraryCategoryMappingVersion, type LibraryCategory } from '../library-categories'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -40,6 +41,7 @@ export interface PaperMetadata {
   summary: string
   related_method_id?: string
   availableVersions: LibraryVersion[]
+  category?: LibraryCategory
 }
 
 export interface PreferredPaper {
@@ -194,7 +196,8 @@ function metadataFrom(paths: LibraryPaths, slug: string): PaperMetadata | null {
     // Legacy partial tickets keep their original metadata adapter.
     const catalog = source.catalog
     const metadata = catalog?.title && catalog.year ? catalog : preferredFrom(paths, slug)?.metadata ?? catalog ?? {}
-    return publicPaperMetadata(slug, { ...metadata, summary: readSourceNoteSummary(source) || metadata.summary || '' }, new Map(), availableVersions)
+    return { ...publicPaperMetadata(slug, { ...metadata, summary: readSourceNoteSummary(source) || metadata.summary || '' }, new Map(), availableVersions),
+      category: libraryCategoryForSource(source.directory) }
   }
   const preferred = preferredFrom(paths, slug)
   if (!preferred?.metadata.title) return null
@@ -227,7 +230,7 @@ interface SearchDocumentCache {
 
 // Shared across Next's independently compiled instrumentation and route modules.
 // Bump the namespace when the snapshot representation changes.
-const documentCacheKey = Symbol.for('weibull.library-documents.v3')
+const documentCacheKey = Symbol.for('weibull.library-documents.v4')
 const documentCaches = globalThis as unknown as Record<symbol, SearchDocumentCache>
 const documentCache = documentCaches[documentCacheKey] ??= {
   selector: '', guards: new Map(), documents: [], versions: new Map(),
@@ -266,7 +269,7 @@ function snapshotGuards(paths: LibraryPaths): Map<string, string> {
 
 /** Check file metadata; unchanged selected sources never require body reads or full-text hashes. */
 export function readLibraryDocuments(): LibraryDocument[] {
-  const selector = JSON.stringify([process.cwd(), configuredLibraryRoot()])
+  const selector = JSON.stringify([process.cwd(), configuredLibraryRoot(), libraryCategoryMappingVersion])
   if (documentCache.selector === selector && documentCache.guards.size &&
     Array.from(documentCache.guards).every(([file, revision]) => fileRevision(file) === revision)) return documentCache.documents
   const paths = getLibraryPaths()
@@ -292,6 +295,8 @@ export function readLibraryDocuments(): LibraryDocument[] {
     const data = matter(preferred.raw).data
     if (!data.title) continue
     const paper = publicPaperMetadata(slug, data, sourceDois, versions.map(document => document.version))
+    const source = paths.sourceIndex?.get(slug)
+    if (source) paper.category = libraryCategoryForSource(source.directory)
     // A translation may omit a DOI present in its explicitly selected original.
     const versionMetadata = versions.map(document => matter(document.raw).data)
     const doi = paper.doi || versionMetadata.map(data => data.doi).find(value => typeof value === 'string')

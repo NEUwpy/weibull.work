@@ -118,6 +118,9 @@ test('source selection holds configuration only and maps Chinese note metadata w
   assert.equal(paper.publication, noteData.期刊或类型)
   assert.equal(paper.short_publication, 'RESS')
   assert.equal(paper.type, '期刊')
+  assert.equal(paper.category.key, '180/182')
+  assert.equal(readPaperMetadata(id).category.name, '传统估计方法')
+  assert.equal(readLibraryDocuments()[0].paper.category.key, '180/182')
   assert.equal(paper.year, 2025)
   assert.deepEqual(Array.from(paper.tags), ['Weibull', 'MDM'])
   assert.equal(paper.summary, 'PUBLIC_NOTE_SUMMARY_994')
@@ -173,6 +176,19 @@ test('website JSON catalog overrides document YAML and Chinese notes without rew
   assert.equal(readPreferredPaper(id).metadata.type, '书籍')
   assert.equal(readPreferredPaper(id).metadata.year, 2026)
   assert.deepEqual([translation, note].map(file => fs.readFileSync(file, 'utf8')), before)
+}))
+
+test('topic follows the actual source folder even when its paper number has another prefix', () => withSource(({ root, source, descriptor }) => {
+  const directory = path.join(source, '180_AI辅助参数估计', '184_深度学习参数估计')
+  const original = path.join(directory, '182-047-pdf原文.md')
+  write(original, '# Moved long ago\n\nSOURCE_ACTUAL_FOLDER_473.\n')
+  descriptor.sources[0].papers.push({ id: '182-047', metadata: { title: 'Actual folder', author: 'Author', year: 2025, type: '期刊' } })
+  const selection = JSON.stringify(descriptor)
+  write(path.join(root, 'library.json'), selection)
+  assert.equal(readPaperMetadata('182-047').category.key, '180/184')
+  assert.equal(readLibraryDocuments().find(document => document.paper.slug === '182-047').paper.category.key, '180/184')
+  assert.equal(fs.readFileSync(path.join(root, 'library.json'), 'utf8'), selection)
+  assert.match(fs.readFileSync(original, 'utf8'), /SOURCE_ACTUAL_FOLDER_473/)
 }))
 
 test('catalog metadata is sufficient for plain Markdown with neither YAML nor a note', () => withSource(({ root, descriptor, note, original, translation }) => {

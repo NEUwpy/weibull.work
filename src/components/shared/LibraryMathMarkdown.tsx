@@ -12,19 +12,23 @@ interface LibraryMathMarkdownProps {
   className?: string
   highlightTerms?: readonly string[]
   evidence?: readonly { citation: number; href: string }[]
+  inline?: boolean
 }
 
 /** Shared safe Markdown for answers and public search/evidence excerpts. */
-export function LibraryMathMarkdown({ children, className = '', highlightTerms = [], evidence = [] }: LibraryMathMarkdownProps) {
+export function LibraryMathMarkdown({ children, className = '', highlightTerms = [], evidence = [], inline = false }: LibraryMathMarkdownProps) {
   const links = new Set(evidence.map(item => item.href))
-  return <div className={`library-math-markdown min-w-0 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto ${className}`}>
+  const Container = inline ? 'span' : 'div'
+  return <Container className={`library-math-markdown min-w-0 [&_.katex-display]:max-w-full [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden [&_pre]:overflow-x-auto [&_table]:block [&_table]:overflow-x-auto ${className}`}>
     <Markdown skipHtml remarkPlugins={[remarkGfm, remarkMath, [remarkLibraryAnswerCitations, { evidence }]]}
       rehypePlugins={[rehypeKatex, [rehypeLibraryTextHighlights, { terms: highlightTerms }]]}
+      disallowedElements={inline ? ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'pre', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'hr'] : undefined}
+      unwrapDisallowed={inline}
       components={{
         a: ({ href, children }) => href && links.has(href)
           ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
           : <span>{children}</span>,
         img: ({ alt }) => <span>{alt}</span>,
       }}>{normalizeLibraryMath(children)}</Markdown>
-  </div>
+  </Container>
 }

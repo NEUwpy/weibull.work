@@ -3,13 +3,17 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FileText, Book, User, Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, LayoutGrid, FileText, BookOpen, ArrowDownWideNarrow } from 'lucide-react'
 import type { LibrarySearchResponse, LibraryVersion } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
-import { libraryTypeLabel, matchesLibraryType, type LibraryTypeFilter } from '@/lib/library-types'
+import { matchesLibraryType, type LibraryTypeFilter } from '@/lib/library-types'
+import { compareLibraryOrder, isLibrarySort, librarySortOptions, type LibrarySort } from '@/lib/library-sort'
+import { libraryCategoryGroups, matchesLibraryCategory, validLibraryCategoryFilter, type LibraryCategory } from '@/lib/library-categories'
 import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
 import { useLibrarySession } from '@/lib/library-auth-client'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
+import { LibraryCard } from './LibraryCard'
+import { LibraryFilterMenu, type LibraryFilterOption } from './LibraryFilterMenu'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
 import './responsive.css'
@@ -30,6 +34,7 @@ type PaperMetadata = {
   summary: string
   related_method_id?: string
   availableVersions: LibraryVersion[]
+  category?: LibraryCategory
 }
 
 type TypeFilter = LibraryTypeFilter
@@ -46,24 +51,18 @@ function fitSearchInput(input: HTMLTextAreaElement) {
   input.style.overflowY = input.scrollHeight > 168 ? 'auto' : 'hidden'
 }
 
-function Highlight({ text, terms }: { text: string; terms: string[] }) {
-  const words = Array.from(new Set(terms.filter(term => term.length > 1).slice(0, 30))).sort((a, b) => b.length - a.length)
-  if (!words.length) return <>{text}</>
-  const escaped = words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  const pattern = new RegExp(`(${escaped.join('|')})`, 'gi')
-  const known = new Set(words.map(word => word.toLowerCase()))
-  return <>{text.split(pattern).map((part, index) => known.has(part.toLowerCase())
-    ? <mark key={index} className="rounded bg-amber-100 px-0.5 text-inherit">{part}</mark>
-    : <React.Fragment key={index}>{part}</React.Fragment>)}</>
-}
-
 export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const session = useLibrarySession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const query = searchParams.get('q')?.trim() || ''
   const searchScope = searchParams.get('scope') === 'text' ? 'text' : 'auto'
+  const categoryFilter = searchParams.get('category') || 'all'
   const isNumberQuery = searchScope !== 'text' && /^(?:\d{1,3}|\d{3}-\d{0,3})$/.test(query)
+  const browsingCards = !query || isNumberQuery
+  const requestedSort = searchParams.get('sort') || ''
+  const sortMode: LibrarySort = isLibrarySort(requestedSort) && (!browsingCards || requestedSort !== 'relevance')
+    ? requestedSort : browsingCards ? 'year-desc' : 'relevance'
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [draftQuery, setDraftQuery] = useState(query)
   const [offset, setOffset] = useState(0)
@@ -74,6 +73,17 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const [mode, setMode] = useState<'search' | 'answer'>('search')
   const [answerRequest, setAnswerRequest] = useState<{ id: number; question: string } | null>(null)
   const searchInput = useRef<HTMLTextAreaElement>(null)
+  const categoryGroups = useMemo(() => libraryCategoryGroups(papers), [papers])
+  const categoryOptions = useMemo<LibraryFilterOption[]>(() => [
+    { value: 'all', label: '全部主题', count: papers.length },
+    ...categoryGroups.flatMap(group => [
+      { value: group.key, label: group.name, count: group.count, divider: true },
+      ...group.categories.filter(category => category.key !== group.key).map(category => ({
+        value: category.key, label: category.name, count: category.count, child: true,
+      })),
+    ]),
+  ], [categoryGroups, papers.length])
+  const categoryPapers = useMemo(() => papers.filter(paper => matchesLibraryCategory(paper, categoryFilter)), [papers, categoryFilter])
 
   useEffect(() => { if (searchInput.current) fitSearchInput(searchInput.current) }, [draftQuery])
   useEffect(() => {
@@ -94,6 +104,8 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     setMode('search')
   }, [query, searchScope])
 
+  useEffect(() => { setOffset(0); setMode('search') }, [categoryFilter, sortMode])
+
   useEffect(() => {
     setSearchResponse(null)
     setSearchError('')
@@ -101,7 +113,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     const controller = new AbortController()
     let active = true
     setSearching(true)
-    const params = new URLSearchParams({ q: query, offset: String(offset), limit: String(PAGE_SIZE), type: typeFilter, scope: searchScope })
+    const params = new URLSearchParams({ q: query, offset: String(offset), limit: String(PAGE_SIZE), type: typeFilter, scope: searchScope, category: categoryFilter, sort: sortMode })
     fetch(`/api/library/search?${params}`, { signal: controller.signal, cache: 'no-store' })
       .then(async response => {
         const data = await response.json().catch(() => { throw new Error('检索暂时不可用，请稍后重试。') })
@@ -111,23 +123,22 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       .catch(cause => { if (active && !controller.signal.aborted) setSearchError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '检索连接失败，请稍后重试。') })
       .finally(() => { if (active) setSearching(false) })
     return () => { active = false; controller.abort() }
-  }, [query, searchScope, isNumberQuery, offset, typeFilter, retry, mode])
+  }, [query, searchScope, isNumberQuery, offset, typeFilter, categoryFilter, sortMode, retry, mode])
 
   useEffect(() => {
     if (session.status !== 'authenticated' || searching || isNumberQuery || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
     return scheduleLibraryResultPrefetch(searchResponse.results)
   }, [session.status, searchResponse, searching, query, isNumberQuery, offset, typeFilter, retry, mode])
 
-  function runSearch(scope: 'auto' | 'text' = 'auto') {
+  function runSearch() {
     const next = draftQuery.trim()
     setMode('search')
     setOffset(0)
-    if (next === query && scope === searchScope) setRetry(value => value + 1)
+    if (next === query && searchScope === 'auto') setRetry(value => value + 1)
     const url = new URL(window.location.href)
     if (next) url.searchParams.set('q', next)
     else url.searchParams.delete('q')
-    if (next && scope === 'text') url.searchParams.set('scope', 'text')
-    else url.searchParams.delete('scope')
+    url.searchParams.delete('scope')
     router.replace(url.pathname + url.search, { scroll: false })
   }
 
@@ -145,6 +156,24 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   function chooseType(type: TypeFilter) { setTypeFilter(type); setOffset(0) }
 
+  function chooseSort(sort: string) {
+    if (!isLibrarySort(sort)) return
+    setOffset(0)
+    const url = new URL(window.location.href)
+    url.searchParams.set('sort', sort)
+    router.replace(url.pathname + url.search, { scroll: false })
+  }
+
+  function chooseCategory(category: string) {
+    if (!validLibraryCategoryFilter(category)) return
+    setOffset(0)
+    setMode('search')
+    const url = new URL(window.location.href)
+    if (category === 'all') url.searchParams.delete('category')
+    else url.searchParams.set('category', category)
+    router.replace(url.pathname + url.search, { scroll: false })
+  }
+
   function clearSearch() {
     setDraftQuery('')
     setOffset(0)
@@ -156,15 +185,15 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   // Number queries filter the same cards used by the library homepage.
   const filteredPapers = useMemo<PaperMetadata[]>(() => {
-    return papers.filter(paper => {
+    return categoryPapers.filter(paper => {
       if (isNumberQuery && !paper.slug.startsWith(query)) return false
       return matchesLibraryType(paper, typeFilter)
-    })
-  }, [papers, typeFilter, query, isNumberQuery])
+    }).sort((left, right) => compareLibraryOrder(left, right, sortMode))
+  }, [categoryPapers, typeFilter, query, isNumberQuery, sortMode])
 
   return (
     <main className="library-page flex-1 bg-neutral-50 min-h-screen">
-      <div className="library-page-shell page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto py-16 space-y-12">
+      <div className="library-page-shell page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto py-16 space-y-8">
 
         <div className="space-y-3">
           <form onSubmit={submitSearch} className="library-search-form flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
@@ -173,54 +202,38 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
               onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }}
               placeholder="输入编号、关键词、句子或问题…"
               className="min-w-0 flex-1 resize-none bg-transparent py-3 text-sm leading-6 text-slate-700 outline-none" />
-            <div className="library-search-actions grid shrink-0 grid-cols-2 items-start gap-x-2 gap-y-1">
+            <div className="library-search-actions grid shrink-0 grid-cols-2 gap-2">
               <button type="submit" disabled={searching} className="library-search-primary rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">搜索</button>
               <button type="button" onClick={askQuestion} disabled={!draftQuery.trim()} className="library-search-primary rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40">AI 问答</button>
-              <button type="button" onClick={() => runSearch('text')} disabled={!draftQuery.trim()} className="col-start-2 rounded px-1 py-1 text-xs leading-5 text-slate-500 hover:text-slate-700 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline">搜索该文本</button>
             </div>
           </form>
         </div>
 
         {mode === 'answer' && answerRequest && <ChatDialog key={answerRequest.id} request={answerRequest} />}
 
-        {/* Type Filter Header */}
-        {mode === 'search' && <div className="library-filters flex items-center justify-end">
-          <div className="flex gap-2">
-            <button
-              onClick={() => chooseType('all')}
-              className={cn(
-                "px-5 py-2 text-sm font-medium rounded-full transition-all",
-                typeFilter === 'all'
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-                  : "bg-white text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 border border-neutral-200"
-              )}
-            >
-              全部 <span className="opacity-70 ml-1">{papers.length}</span>
-            </button>
-            <button
-              onClick={() => chooseType('book')}
-              className={cn(
-                "px-5 py-2 text-sm font-medium rounded-full transition-all",
-                typeFilter === 'book'
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-                  : "bg-white text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 border border-neutral-200"
-              )}
-            >
-              书籍 <span className="opacity-70 ml-1">{papers.filter(p => matchesLibraryType(p, 'book')).length}</span>
-            </button>
-            <button
-              onClick={() => chooseType('paper')}
-              className={cn(
-                "px-5 py-2 text-sm font-medium rounded-full transition-all",
-                typeFilter === 'paper'
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-                  : "bg-white text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 border border-neutral-200"
-              )}
-            >
-              论文 <span className="opacity-70 ml-1">{papers.filter(p => matchesLibraryType(p, 'paper')).length}</span>
-            </button>
+        {mode === 'search' && <section aria-label="文献筛选" className="library-toolbar">
+          <div className="library-toolbar-topic">
+            <LibraryFilterMenu label="主题" value={categoryFilter} options={categoryOptions} onChange={chooseCategory} />
           </div>
-        </div>}
+          <div role="group" aria-label="文献类型" className="library-type-switch">
+            {([
+              { value: 'all', label: '全部', icon: LayoutGrid },
+              { value: 'paper', label: '论文', icon: FileText },
+              { value: 'book', label: '书籍', icon: BookOpen },
+            ] as const).map(({ value, label, icon: Icon }) => {
+              const count = categoryPapers.filter(paper => matchesLibraryType(paper, value)).length
+              return <button key={value} type="button" aria-label={`${label}（${count}）`} title={`${label}（${count}）`}
+                aria-pressed={typeFilter === value} onClick={() => chooseType(value)}><Icon size={18} strokeWidth={1.6} aria-hidden="true" /></button>
+            })}
+          </div>
+          <div className="library-toolbar-sort">
+            <ArrowDownWideNarrow size={16} aria-hidden="true" className="library-sort-icon" />
+            <LibraryFilterMenu label="排序方式" value={sortMode} align="end" onChange={chooseSort}
+              options={librarySortOptions.filter(option => !browsingCards || option.value !== 'relevance').map(option => ({
+                ...option, description: { 'year-desc': '最新发表优先', 'year-asc': '最早发表优先', 'id-asc': '按文献编号排列', relevance: '与搜索内容最相关' }[option.value],
+              }))} />
+          </div>
+        </section>}
 
         {mode === 'search' && isNumberQuery && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
           <p role="status" className="text-sm leading-6 text-slate-500">“{query}” · 找到 <span className="font-semibold text-slate-800">{filteredPapers.length}</span> 篇文献</p>
@@ -238,7 +251,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           {searchError && <div role="alert" className="rounded-xl border border-rose-100 bg-rose-50 p-5 text-sm text-rose-700">{searchError}<button type="button" onClick={() => setRetry(value => value + 1)} className="ml-3 underline">重试</button></div>}
           {searchResponse?.results.map(hit => <article key={hit.id} className="max-w-5xl space-y-2 rounded-xl bg-white p-5 sm:p-6">
             <p className="text-xs leading-5 text-slate-500">{hit.slug} · {hit.version} · {hit.section}</p>
-            <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="inline-block text-lg font-medium leading-7 text-blue-800 hover:underline"><Highlight text={hit.title} terms={searchResponse.terms} /></Link>
+            <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="library-title inline-block text-lg leading-7 text-blue-800 hover:underline"><LibraryMathMarkdown inline highlightTerms={searchResponse.terms}>{hit.title}</LibraryMathMarkdown></Link>
             <LibraryMathMarkdown highlightTerms={searchResponse.terms} className="text-sm leading-7 text-slate-600 [&_p]:my-0">{hit.excerpt}</LibraryMathMarkdown>
           </article>)}
           {searchResponse && !searchResponse.total && <div className="rounded-xl bg-white px-6 py-12 text-sm leading-7 text-slate-500"><p>未找到相关内容。</p><p>可以缩短检索句，或换用术语的另一种中英文表达。</p></div>}
@@ -249,70 +262,8 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           </nav>}
         </section>}
 
-        {/* Masonry Waterfall Layout */}
-        {mode === 'search' && (!query || isNumberQuery) && <div className="library-cards columns-1 md:columns-2 lg:columns-3 gap-8">
-          {filteredPapers.map(paper => {
-            const hasVersions = paper.availableVersions.length > 0
-            const card = (
-              <article className={cn('rounded-xl border border-slate-200 transition-all duration-300', hasVersions ? 'bg-white hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/50' : 'bg-slate-50')}>
-                <div className="p-7 space-y-5">
-                  {/* Header: ID left, Publication & Year right */}
-                  <div className="flex justify-between items-start gap-3">
-                    <span className={cn('shrink-0 whitespace-nowrap text-sm font-normal italic font-serif', hasVersions ? 'text-rose-400' : 'text-slate-400')}>
-                      {paper.slug}
-                    </span>
-                    <div className="min-w-0 text-right flex items-center gap-1.5">
-                      {paper.type === '书籍' ? (
-                        <Book size={13} className={cn('shrink-0', hasVersions ? 'text-amber-500' : 'text-slate-400')} />
-                      ) : (
-                        <FileText size={13} className={cn('shrink-0', hasVersions ? 'text-blue-500' : 'text-slate-400')} />
-                      )}
-                      <span className="text-xs text-slate-400">
-                        {[libraryTypeLabel(paper.type), paper.short_publication || paper.publication, paper.year > 0 ? paper.year : null].filter(Boolean).join(' · ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Title - Serif Academic Style, Justified */}
-                  <h3 className={cn('text-xl font-semibold leading-relaxed transition-colors font-serif tracking-wide text-justify', hasVersions ? 'text-slate-800 group-hover:text-blue-800' : 'text-slate-500')}>
-                    {paper.title}
-                  </h3>
-
-                  {/* Author with icon */}
-                  <p className="text-sm text-slate-500 flex items-center gap-1.5">
-                    <User size={13} className="text-slate-400 shrink-0" />
-                    {paper.author}
-                  </p>
-                  {paper.doi && <p className="break-all font-mono text-xs text-slate-400">DOI: {paper.doi}</p>}
-
-                  {/* Summary - justified */}
-                  <LibraryMathMarkdown className={cn('library-card-summary line-clamp-4 text-sm leading-relaxed text-justify', hasVersions ? 'text-slate-600' : 'text-slate-500')}>
-                    {paper.summary}
-                  </LibraryMathMarkdown>
-
-                  {/* Footer: Tags and availability */}
-                  {(paper.tags.length > 0 || !hasVersions) && (
-                    <div className="pt-4 border-t border-slate-100 space-y-3">
-                      {!hasVersions && <p className="text-xs font-medium text-slate-500">资料待补齐</p>}
-                      {paper.tags.length > 0 && <div className="flex flex-wrap gap-2">
-                        {paper.tags.slice(0, 3).map(tag => (
-                          <span
-                            key={tag}
-                            className={cn('text-xs px-2 py-0.5 rounded transition-colors', hasVersions ? 'text-blue-600 bg-blue-50 group-hover:bg-blue-100' : 'text-slate-500 bg-slate-100')}
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>}
-                    </div>
-                  )}
-                </div>
-              </article>
-            )
-            return hasVersions
-              ? <Link key={paper.slug} href={`/library/${paper.slug}`} className="group block break-inside-avoid mb-8">{card}</Link>
-              : <div key={paper.slug} aria-disabled="true" className="block break-inside-avoid mb-8">{card}</div>
-          })}
+        {mode === 'search' && (!query || isNumberQuery) && <div className="library-cards">
+          {filteredPapers.map(paper => <LibraryCard key={paper.slug} paper={paper} />)}
 
           {/* Empty State */}
           {filteredPapers.length === 0 && (

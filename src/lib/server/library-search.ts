@@ -5,12 +5,16 @@ import type { LibrarySearchHit, LibrarySearchResponse } from '../library-search-
 import { libraryMathExcerpt } from '../library-math-markdown'
 import { setImmediate, setTimeout } from 'node:timers'
 import { matchesLibraryType, type LibraryTypeFilter } from '../library-types'
+import { matchesLibraryCategory } from '../library-categories'
+import { compareLibraryOrder, type LibrarySort } from '../library-sort'
 
 export interface LibrarySearchOptions {
   limit?: number
   offset?: number
   type?: LibraryTypeFilter | 'journal' | 'journal-conf'
   scope?: 'auto' | 'text'
+  category?: string
+  sort?: LibrarySort
 }
 
 const MAX_PASSAGE_CHARS = 1600
@@ -280,10 +284,11 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
   const { terms, strict } = queryProfile(q)
   if (!q) return { query: q, total: 0, results: [], terms }
   const { passages, papers } = readIndex()
-  const catalogKey = options.type || 'all'
+  const matches = (paper: PaperMetadata) => matchesType(paper, options.type) && matchesLibraryCategory(paper, options.category)
+  const catalogKey = JSON.stringify([options.type || 'all', options.category || 'all'])
   let catalog = indexCache.catalogs.get(catalogKey)
   if (!catalog) {
-    catalog = createLiteratureIndex(papers.filter(paper => matchesType(paper, options.type)))
+    catalog = createLiteratureIndex(papers.filter(matches))
     indexCache.catalogs.set(catalogKey, catalog)
   }
   const catalogMatches = (options.scope === 'text' ? [] : catalog.search(q)) as { record: PaperMetadata; score: number; fields: string[] }[]
@@ -294,7 +299,7 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
     match.fields.includes('author') ||
     [match.record.title, match.record.title_en].some(title => title && titleKey(title) === compactQuery))
   const identitySlugs = new Set(identities.map(match => match.record.slug))
-  const candidates = passages.filter(passage => matchesType(passage.paper, options.type) && (!identifierQuery || identitySlugs.has(passage.hit.slug)))
+  const candidates = passages.filter(passage => matches(passage.paper) && (!identifierQuery || identitySlugs.has(passage.hit.slug)))
   const patterns = terms.map(termPattern)
   const queryWeights = terms.map(term => /[\u3400-\u9fff]/.test(term) && term.length === 1 ? .2 : 1)
   const totalWeight = queryWeights.reduce((sum, weight) => sum + weight, 0)
@@ -342,7 +347,14 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
     if (!first) continue
     hits.set(first.hit.id, { ...first.hit, score: identityScore, excerpt: libraryMathExcerpt(first.hit.text, terms) })
   }
-  const ranked = Array.from(hits.values()).sort((left, right) => right.score - left.score || left.id.localeCompare(right.id))
+  const bySlug = new Map(papers.map(paper => [paper.slug, paper]))
+  const ranked = Array.from(hits.values()).sort((left, right) => {
+    if (options.sort && options.sort !== 'relevance') {
+      const order = compareLibraryOrder(bySlug.get(left.slug)!, bySlug.get(right.slug)!, options.sort)
+      if (order) return order
+    }
+    return right.score - left.score || left.id.localeCompare(right.id)
+  })
   const limit = Number.isFinite(options.limit) ? Math.max(1, Math.min(30, Math.floor(options.limit!))) : 10
   const offset = Number.isFinite(options.offset) ? Math.max(0, Math.floor(options.offset!)) : 0
   return { query: q, total: ranked.length, results: ranked.slice(offset, offset + limit), terms }

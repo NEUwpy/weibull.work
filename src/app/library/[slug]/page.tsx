@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, User, Calendar, List, Book, BookOpen, FileText, Languages, LockKeyhole, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Calendar, List, BookOpen, FileText, Languages, LockKeyhole, Loader2 } from 'lucide-react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import '@/components/library/document.css'
@@ -18,8 +18,9 @@ import { libraryAuthClient, useLibrarySession } from '@/lib/library-auth-client'
 import { LibraryLoginDialog } from '@/components/library/LibraryLoginDialog'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import type { LibraryVersion } from '@/lib/library-search-types'
+import type { LibraryCategory } from '@/lib/library-categories'
 
-type ReadingView = '介绍' | LibraryVersion
+type ReadingView = '详情' | LibraryVersion
 const READING_VERSIONS: LibraryVersion[] = ['原文', '翻译']
 interface PublicPaper {
   slug: string
@@ -33,6 +34,7 @@ interface PublicPaper {
   doi?: string
   summary: string
   tags: string[]
+  category?: LibraryCategory
 }
 
 function renderTextWithMath(text: string): React.ReactNode {
@@ -52,7 +54,7 @@ function renderTextWithMath(text: string): React.ReactNode {
 
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const slug = params.slug
-  const [view, setView] = useState<ReadingView>('介绍')
+  const [view, setView] = useState<ReadingView>('详情')
   const [paper, setPaper] = useState<PublicPaper | null>(null)
   const [versions, setVersions] = useState<LibraryVersion[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +67,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   useEffect(() => {
     const readView = () => {
       const requested = new URLSearchParams(window.location.search).get('version')
-      setView(requested === '原文' || requested === '翻译' ? requested : '介绍')
+      setView(requested === '原文' || requested === '翻译' ? requested : '详情')
     }
     readView()
     window.addEventListener('popstate', readView)
@@ -88,34 +90,35 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
 
   useEffect(() => {
     if (auth.status === 'authenticated') setLoginOpen(false)
-    if (loading || loadedSlug !== slug || view === '介绍') return
-    if (!versions.includes(view)) { chooseView('介绍'); return }
+    if (loading || loadedSlug !== slug || view === '详情') return
+    if (!versions.includes(view)) { chooseView('详情'); return }
     if (auth.status === 'anonymous') setLoginOpen(true)
   }, [view, auth.status, versions, loading, loadedSlug, slug])
 
   function chooseView(next: ReadingView) {
-    if (next !== '介绍' && !versions.includes(next)) return
+    if (next !== '详情' && !versions.includes(next)) return
     setView(next)
-    if (next === '介绍') setLoginOpen(false)
+    if (next === '详情') setLoginOpen(false)
     const url = new URL(window.location.href)
-    if (next === '介绍') url.searchParams.delete('version')
+    if (next === '详情') url.searchParams.delete('version')
     else url.searchParams.set('version', next)
     if (url.hash.startsWith('#passage-')) url.hash = ''
     url.searchParams.delete('highlight')
     window.history.replaceState(window.history.state, '', url)
-    if (next !== '介绍' && auth.status === 'anonymous') setLoginOpen(true)
+    if (next !== '详情' && auth.status === 'anonymous') setLoginOpen(true)
   }
 
   async function logout() {
-    chooseView('介绍'); setLoginOpen(false); setSessionError('')
+    chooseView('详情'); setLoginOpen(false); setSessionError('')
     try { await libraryAuthClient.logout() }
     catch (cause) { setSessionError(cause instanceof Error ? cause.message : '退出未完成，请重试。') }
   }
 
-  if (loading || (!error && loadedSlug !== slug)) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="status" className="p-20 text-center text-sm text-slate-400">正在加载文献介绍…</div></main>
+  if (loading || (!error && loadedSlug !== slug)) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="status" className="p-20 text-center text-sm text-slate-400">正在加载文献详情…</div></main>
   if (error || !paper) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="alert" className="p-12 text-center text-sm text-slate-500"><p>{error || '文献未找到。'}</p><Link href="/library" className="mt-4 inline-block text-blue-600">返回图书馆</Link></div></main>
-  const selectedVersion = view !== '介绍' && versions.includes(view) ? view : null
-  const readingView = selectedVersion || '介绍'
+  const selectedVersion = view !== '详情' && versions.includes(view) ? view : null
+  const readingView = selectedVersion || '详情'
+  const topics = Array.from(new Set([paper.category?.groupName, paper.category?.name, ...paper.tags].filter((tag): tag is string => Boolean(tag))))
 
   return (
     <main className="library-reader flex-1 bg-slate-50 min-h-screen">
@@ -129,36 +132,41 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             </div>
           </div>
           {sessionError && <p role="alert" className="mb-4 text-sm text-rose-600">{sessionError}</p>}
-          <div className="flex flex-wrap gap-2 mb-5">{paper.tags?.map(tag => <span key={tag} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">{tag}</span>)}</div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 leading-tight">{paper.title}</h1>
-          {paper.title_en && <h2 className="mt-3 text-lg md:text-xl font-normal text-slate-400 leading-relaxed">{paper.title_en}</h2>}
+          <h1 className="library-title text-3xl md:text-4xl text-slate-900 leading-tight"><LibraryMathMarkdown inline>{paper.title}</LibraryMathMarkdown></h1>
+          {paper.title_en && <h2 className="library-title mt-3 text-lg md:text-xl text-slate-400 leading-relaxed"><LibraryMathMarkdown inline>{paper.title_en}</LibraryMathMarkdown></h2>}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-6 text-slate-500 text-sm">
-            <span className="inline-flex items-center gap-2"><User size={15} className="text-slate-400" />{paper.author}</span>
-            {paper.publication && <span className="inline-flex items-center gap-2"><Book size={15} className="text-slate-400" />{paper.publication}</span>}
+            {paper.type && <span>{paper.type}</span>}
             {paper.year > 0 && <span className="inline-flex items-center gap-2"><Calendar size={15} className="text-slate-400" />{paper.year}</span>}
             <span className="text-xs text-slate-400">{slug}</span>
           </div>
           <div role="tablist" aria-label="文献内容" className="library-entry-tabs">
-            <button type="button" role="tab" aria-selected={readingView === '介绍'} aria-controls="library-reading-panel" onClick={() => chooseView('介绍')}><BookOpen size={16} />介绍</button>
+            <button type="button" role="tab" aria-selected={readingView === '详情'} aria-controls="library-reading-panel" onClick={() => chooseView('详情')}><BookOpen size={16} />详情</button>
             {READING_VERSIONS.map(version => <button key={version} type="button" role="tab" disabled={!versions.includes(version)} aria-disabled={!versions.includes(version)} aria-selected={readingView === version} aria-controls="library-reading-panel" title={!versions.includes(version) ? `${version === '翻译' ? '译文' : '原文'}资料待补齐` : undefined} onClick={() => chooseView(version)}>{version === '原文' ? <FileText size={16} /> : <Languages size={16} />}{version === '翻译' ? '译文' : '原文'}{versions.includes(version) && auth.status !== 'authenticated' && <LockKeyhole size={12} className="text-slate-400" />}</button>)}
           </div>
         </div>
       </div>
       <div id="library-reading-panel" role="tabpanel">
-        {readingView === '介绍' ? (
+        {readingView === '详情' ? (
           <div className="library-entry-shell py-12">
-            <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm library-entry-introduction">
-              <div>
-                <p className="text-xs tracking-widest text-slate-400 mb-5">文献介绍</p>
-                <LibraryMathMarkdown className="library-entry-summary">{paper.summary || '暂无文献介绍。'}</LibraryMathMarkdown>
-                {!versions.length && <p role="status" className="mt-6 text-sm text-slate-500">资料待补齐，原文与译文暂未收录。</p>}
-                <div className="library-entry-actions">{READING_VERSIONS.map(version => <button type="button" key={version} disabled={!versions.includes(version)} aria-disabled={!versions.includes(version)} onClick={() => chooseView(version)} className={cn('library-entry-read', version === versions[0] && 'library-entry-read-primary')}>{version === '翻译' ? <Languages size={16} /> : <FileText size={16} />}阅读{version === '翻译' ? '译文' : '原文'}{versions.includes(version) ? <ArrowRight size={15} /> : <span className="text-xs">待补齐</span>}</button>)}</div>
-              </div>
-              <dl className="library-entry-aside"><dt>文献编号</dt><dd>{slug}</dd>{paper.type && <><dt>类型</dt><dd>{paper.type}</dd></>}{paper.affiliation && <><dt>机构</dt><dd>{paper.affiliation}</dd></>}{paper.doi && <><dt>DOI</dt><dd>{paper.doi}</dd></>}<dt>可阅读版本</dt><dd>{versions.map(version => version === '翻译' ? '译文' : '原文').join(' / ') || '资料待补齐'}</dd></dl>
+            <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+              <h2 className="text-base font-medium text-slate-800 mb-8">文献详情</h2>
+              <dl className="library-entry-details">
+                <div><dt>文献编号</dt><dd>{slug}</dd></div>
+                <div><dt>类型</dt><dd>{paper.type || '未登记'}</dd></div>
+                <div><dt>发表年份</dt><dd>{paper.year > 0 ? paper.year : '未登记'}</dd></div>
+                <div><dt>作者</dt><dd>{paper.author || '未登记'}</dd></div>
+                <div><dt>出版信息</dt><dd>{paper.publication || '未登记'}</dd></div>
+                {paper.affiliation && <div><dt>机构</dt><dd>{paper.affiliation}</dd></div>}
+                <div><dt>DOI</dt><dd>{paper.doi ? <a href={'https://doi.org/' + paper.doi} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{paper.doi}</a> : '未登记'}</dd></div>
+                <div><dt>主题</dt><dd>{topics.length ? topics.join(' · ') : '未登记'}</dd></div>
+                <div><dt>可阅读版本</dt><dd>{versions.map(version => version === '翻译' ? '译文' : '原文').join(' / ') || '资料待补齐'}</dd></div>
+              </dl>
+              {!versions.length && <p role="status" className="mt-6 text-sm text-slate-500">资料待补齐，原文与译文暂未收录。</p>}
+              <div className="library-entry-actions">{READING_VERSIONS.map(version => <button type="button" key={version} disabled={!versions.includes(version)} aria-disabled={!versions.includes(version)} onClick={() => chooseView(version)} className={cn('library-entry-read', version === versions[0] && 'library-entry-read-primary')}>{version === '翻译' ? <Languages size={16} /> : <FileText size={16} />}阅读{version === '翻译' ? '译文' : '原文'}{versions.includes(version) ? <ArrowRight size={15} /> : <span className="text-xs">待补齐</span>}</button>)}</div>
             </div>
           </div>
         ) : auth.status === 'loading' ? <div className="library-entry-shell py-12"><p role="status" className="flex items-center justify-center gap-2 py-20 text-sm text-slate-400"><Loader2 size={18} className="animate-spin" />正在确认阅读权限…</p></div>
-          : auth.status !== 'authenticated' ? <div className="library-entry-shell py-12"><div className="library-access-wall"><div aria-hidden="true" className="library-access-preview">{Array.from({ length: 16 }, (_, index) => <div key={index} />)}</div><div className="library-access-cover"><div className="library-access-card"><div className="library-login-emblem"><LockKeyhole size={25} strokeWidth={1.6} /></div><h2>登录后，阅读完整{view === '翻译' ? '译文' : '原文'}</h2><p>文献介绍与搜索片段公开可见。<br />登录已开放账号，即可继续阅读全文。</p><button type="button" className="library-entry-read library-entry-read-primary" onClick={() => setLoginOpen(true)}>登录并继续<ArrowRight size={16} /></button></div></div></div></div>
+          : auth.status !== 'authenticated' ? <div className="library-entry-shell py-12"><div className="library-access-wall"><div aria-hidden="true" className="library-access-preview">{Array.from({ length: 16 }, (_, index) => <div key={index} />)}</div><div className="library-access-cover"><div className="library-access-card"><div className="library-login-emblem"><LockKeyhole size={25} strokeWidth={1.6} /></div><h2>登录后，阅读完整{view === '翻译' ? '译文' : '原文'}</h2><p>卡片介绍、文献详情与搜索片段公开可见。<br />登录已开放账号，即可继续阅读全文。</p><button type="button" className="library-entry-read library-entry-read-primary" onClick={() => setLoginOpen(true)}>登录并继续<ArrowRight size={16} /></button></div></div></div></div>
             : selectedVersion && versions.includes(selectedVersion) ? <LibraryDocument key={`${slug}:${selectedVersion}`} slug={slug} version={selectedVersion} />
               : <p className="p-12 text-center text-sm text-slate-400">本篇暂未收录这个版本。</p>}
       </div>

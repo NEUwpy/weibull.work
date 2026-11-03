@@ -198,6 +198,47 @@ test('paper search and API include article types and exclude books and documents
   assert.deepEqual(Array.from(new Set(body.results.map(hit => hit.slug))).sort(), ['182-002', '182-003', '182-004'])
 }))
 
+test('topic filters intersect publication type in full-text and identity lookup with independent caches', () => withLibrary(async ({ root, workspace }) => {
+  const source = path.join(workspace, 'source', '180_AI辅助参数估计')
+  const sources = []
+  for (const [folder, entries] of [
+    ['182_传统参数估计方法', [['182-001', '期刊']]],
+    ['184_深度学习参数估计', [['182-002', '期刊'], ['182-003', '书籍']]],
+  ]) {
+    const directory = path.join(source, folder)
+    for (const [id] of entries) write(path.join(directory, `${id}-pdf原文.md`), '# Topic\n\nCategoryneedle research provides statistical observations for estimating model parameters.\n')
+    sources.push({ root: directory, papers: entries.map(([id, type]) => ({ id, metadata: metadata(id, { type }) })) })
+  }
+  write(path.join(root, 'library.json'), JSON.stringify({ schema_version: 2, mode: 'source', sources }))
+  const slugs = options => Array.from(new Set(searchLibrary('Categoryneedle', options).results.map(hit => hit.slug))).sort()
+  assert.deepEqual(slugs({ category: '180' }), ['182-001', '182-002', '182-003'])
+  assert.deepEqual(slugs({ category: '180/184', type: 'paper' }), ['182-002'])
+  assert.deepEqual(slugs({ category: '180/184', type: 'book' }), ['182-003'])
+  assert.deepEqual(slugs({ category: '180/182' }), ['182-001'])
+  assert.equal(searchLibrary('182-002', { category: '180/182' }).total, 0)
+  assert.ok(searchLibrary('182-002', { category: '180/184' }).total > 0)
+  const route = loadServerModule('src/app/api/library/search/route.ts')
+  const response = await route.GET({ nextUrl: new URL('http://test/api/library/search?q=Categoryneedle&category=180%2F184&type=paper') })
+  assert.equal(response.status, 200)
+  assert.deepEqual(Array.from(new Set((await response.json()).results.map(hit => hit.slug))), ['182-002'])
+}))
+
+test('year and number sorting cover the full result set before pagination and keep undated papers last', () => withLibrary(async ({ root, translation }) => {
+  fs.unlinkSync(translation)
+  for (const [id, year] of [['182-001', 2010], ['182-002', 2025], ['182-003', 2020], ['421-001', 0]]) {
+    write(path.join(root, 'content', `${id}-pdf原文.md`), matter.stringify('# Sorting\n\nSortneedle identifies a relevant paragraph about estimation from lifetime observations.\n', metadata(id, { year })))
+  }
+  const slugs = sort => Array.from(searchLibrary('Sortneedle', { sort }).results, hit => hit.slug)
+  assert.deepEqual(slugs('year-desc'), ['182-002', '182-003', '182-001', '421-001'])
+  assert.deepEqual(slugs('year-asc'), ['182-001', '182-003', '182-002', '421-001'])
+  assert.deepEqual(slugs('id-asc'), ['182-001', '182-002', '182-003', '421-001'])
+  assert.equal(searchLibrary('Sortneedle', { sort: 'year-desc', offset: 1, limit: 1 }).results[0].slug, '182-003')
+  const route = loadServerModule('src/app/api/library/search/route.ts')
+  const response = await route.GET({ nextUrl: new URL('http://test/api/library/search?q=Sortneedle&sort=year-asc&limit=2') })
+  assert.equal(response.status, 200)
+  assert.deepEqual((await response.json()).results.map(hit => hit.slug), ['182-001', '182-003'])
+}))
+
 test('explanatory paragraphs rank ahead of keyword lists and isolated index terms', () => withLibrary(async ({ original, translation }) => {
   write(original, matter.stringify('# Background\n\nKeywords: maximum likelihood, Weibull, estimation.\n\nMaximum likelihood\n\nMaximum likelihood estimates the unknown parameters from the observed sample by maximizing its likelihood function, and its location boundary needs careful examination.\n', metadata('Likelihood background')))
   fs.unlinkSync(translation)
@@ -277,7 +318,7 @@ test('AI neighbour windows stay bounded and do not jump across long intervening 
 test('search HTTP handler rejects invalid selectors and caps, and returns structured hits', () => withLibrary(async () => {
   const route = loadServerModule('src/app/api/library/search/route.ts')
   const request = query => ({ nextUrl: new URL('http://local/api/library/search?' + query) })
-  for (const query of ['q=x&type=private', 'q=x&scope=private', 'q=x&limit=31', 'q=x&limit=NaN', 'q=x&offset=-1', 'q=' + 'x'.repeat(2001)]) {
+  for (const query of ['q=x&type=private', 'q=x&scope=private', 'q=x&sort=date', 'q=x&category=../180', 'q=x&category=180/184/private', 'q=x&limit=31', 'q=x&limit=NaN', 'q=x&offset=-1', 'q=' + 'x'.repeat(2001)]) {
     assert.equal((await route.GET(request(query))).status, 400)
   }
   const response = await route.GET(request('q=likelihood&limit=2'))
