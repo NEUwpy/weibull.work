@@ -3,11 +3,14 @@ import { extractLibraryPassages, libraryPassageId, type LibraryPassage } from '.
 import { createLiteratureIndex, fold, titleKey } from '../literature-search.mjs'
 import type { LibrarySearchHit, LibrarySearchResponse } from '../library-search-types'
 import { libraryMathExcerpt } from '../library-math-markdown'
+import { setImmediate, setTimeout } from 'node:timers'
+import { matchesLibraryType, type LibraryTypeFilter } from '../library-types'
 
 export interface LibrarySearchOptions {
   limit?: number
   offset?: number
-  type?: 'all' | 'book' | 'journal-conf'
+  type?: LibraryTypeFilter | 'journal' | 'journal-conf'
+  scope?: 'auto' | 'text'
 }
 
 const MAX_PASSAGE_CHARS = 1600
@@ -87,6 +90,9 @@ interface SearchIndexCache {
   papers: PaperMetadata[]
   contextBlocks: Map<string, LibraryPassage[]>
   catalogs: Map<string, ReturnType<typeof createLiteratureIndex>>
+  warming?: Promise<void>
+  warmTimer?: ReturnType<typeof setTimeout>
+  refresh?: () => Promise<void>
 }
 
 // The Node startup hook and API bundle share this process-local representation.
@@ -118,8 +124,16 @@ function plain(value: string): string {
 }
 
 function readIndex(): { passages: IndexedPassage[]; papers: PaperMetadata[] } {
-  const documents = readLibraryDocuments()
-  if (documents === indexCache.documents) return indexCache
+  let documents = readLibraryDocuments()
+  while (documents !== indexCache.documents) {
+    const update = updateIndex(documents)
+    while (!update.next().done) { /* Synchronous callers share the same builder. */ }
+    documents = readLibraryDocuments()
+  }
+  return indexCache
+}
+
+function* updateIndex(documents: LibraryDocument[]): Generator<void> {
   const passages: IndexedPassage[] = []
   const papers = new Map<string, PaperMetadata>()
   const contextBlocks = new Map<string, LibraryPassage[]>()
@@ -158,18 +172,57 @@ function readIndex(): { passages: IndexedPassage[]; papers: PaperMetadata[] } {
     }
     passages.push(...ownPassages)
     nextDocuments.set(key, { raw: document.raw, metadata, passages: ownPassages, blocks })
+    yield
   }
+  // A source may change while automatic warming yields between documents.
+  // Publish a complete, current snapshot instead of replacing it with an older build.
+  if (readLibraryDocuments() !== documents) return
   indexCache.documents = documents
   indexCache.byDocument = nextDocuments
   indexCache.passages = passages
   indexCache.papers = Array.from(papers.values())
   indexCache.contextBlocks = contextBlocks
   indexCache.catalogs.clear()
-  return indexCache
 }
 
 /** Called by the Node startup hook, before users submit the first search. */
 export function warmLibrarySearch(): void { readIndex() }
+
+/** Share one incremental build across startup, automatic checks and waiting requests. */
+export function prepareLibrarySearch(): Promise<void> {
+  if (indexCache.warming) return indexCache.warming
+  indexCache.warming = (async () => {
+    let documents = readLibraryDocuments()
+    if (documents === indexCache.documents) return
+    const started = Date.now()
+    do {
+      const update = updateIndex(documents)
+      while (!update.next().done) await new Promise<void>(resolve => setImmediate(resolve))
+      documents = readLibraryDocuments()
+    } while (documents !== indexCache.documents)
+    console.info('[library-search] Index ready', { documents: documents.length,
+      papers: indexCache.papers.length, passages: indexCache.passages.length, elapsedMs: Date.now() - started })
+  })().finally(() => { indexCache.warming = undefined })
+  return indexCache.warming
+}
+
+/** The global timer survives Next module boundaries/HMR and does not keep Node alive. */
+export function startLibrarySearchPrewarm(): Promise<void> {
+  indexCache.refresh = prepareLibrarySearch
+  if (!indexCache.warmTimer) {
+    const schedule = () => {
+      indexCache.warmTimer = setTimeout(() => {
+        void indexCache.refresh!().catch(error => {
+          // Source mounts and partially written selections may recover on the next check.
+          console.warn('Library search warm-up unavailable:', error instanceof Error ? error.name : 'Unknown error')
+        }).finally(schedule)
+      }, 10_000)
+      indexCache.warmTimer.unref()
+    }
+    schedule()
+  }
+  return prepareLibrarySearch()
+}
 
 /** Add a bounded local evidence window without changing the search match or destination. */
 export function enrichLibrarySearchHits(hits: LibrarySearchHit[]): LibrarySearchHit[] {
@@ -213,7 +266,7 @@ export function enrichLibrarySearchHits(hits: LibrarySearchHit[]): LibrarySearch
 }
 
 function matchesType(paper: PaperMetadata, type: LibrarySearchOptions['type']): boolean {
-  return !type || type === 'all' || (type === 'book' ? paper.type === '书籍' : paper.type === '期刊' || paper.type === '会议')
+  return matchesLibraryType(paper, type)
 }
 
 function qualityFactor(passage: IndexedPassage): number {
@@ -233,8 +286,8 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
     catalog = createLiteratureIndex(papers.filter(paper => matchesType(paper, options.type)))
     indexCache.catalogs.set(catalogKey, catalog)
   }
-  const catalogMatches = catalog.search(q) as { record: PaperMetadata; score: number; fields: string[] }[]
-  const identifierQuery = /^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q)
+  const catalogMatches = (options.scope === 'text' ? [] : catalog.search(q)) as { record: PaperMetadata; score: number; fields: string[] }[]
+  const identifierQuery = options.scope !== 'text' && (/^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q))
   const compactQuery = titleKey(q)
   const identities = catalogMatches.filter(match =>
     (identifierQuery && match.fields.some(field => field === 'id' || field === 'doi')) ||

@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug } from './content-files'
+import { extractLibraryNoteSummary } from '../library-note-summary'
 
 export interface SourcePaper {
   id: string
@@ -108,6 +109,27 @@ function readText(file: string): string {
   catch { return new TextDecoder('gbk', { fatal: true }).decode(bytes) }
 }
 
+const noteSummaryCache = new Map<string, { mtime: number; ctime: number; size: number; summary: string }>()
+
+/** Read only the selected note's summary, and invalidate it when the note changes. */
+export function readSourceNoteSummary(paper: SourcePaper): string {
+  if (!paper.note) return ''
+  try {
+    const stat = fs.statSync(paper.note)
+    const cached = noteSummaryCache.get(paper.note)
+    if (cached && cached.mtime === stat.mtimeMs && cached.ctime === stat.ctimeMs && cached.size === stat.size) return cached.summary
+    const note = matter(readText(paper.note))
+    const noteId = note.data.id ?? note.data.论文编号 ?? note.data.编号
+    if (noteId !== undefined && String(noteId) !== paper.id) throw new Error(`笔记编号与文件名不一致：${paper.id}`)
+    const summary = extractLibraryNoteSummary(note.content)
+    noteSummaryCache.set(paper.note, { mtime: stat.mtimeMs, ctime: stat.ctimeMs, size: stat.size, summary })
+    return summary
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code || '')) return ''
+    throw error
+  }
+}
+
 /** Only exact, contained paper resources are readable; notes and neighbouring files are excluded. */
 export function sourceAsset(paper: SourcePaper, segments: string[]): string | null {
   if (!segments.length || segments.some(s => !s || s === '.' || s === '..' || /[/\\:\x00-\x1f\x7f]/.test(s))) return null
@@ -170,9 +192,7 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
     short_publication: data.short_publication ?? n.出版简称 ?? n.期刊简称,
     type: data.type ?? n.文献类型 ?? n.type ?? '文献', year,
     tags: Array.from(new Set<string>(typeof tags === 'string' ? [tags] : tags)),
-    // Only an explicitly public catalog/document abstract may become the website summary.
-    // Reading-note summaries and judgments remain private, regardless of their heading.
-    summary: data.summary ?? '',
+    summary: readSourceNoteSummary(paper) || (data.summary ?? ''),
     related_method_id: data.related_method_id ?? n.关联方法,
   }).filter(([, value]) => value !== undefined))
   for (const [field, value] of Object.entries(metadata)) {

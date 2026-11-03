@@ -57,6 +57,14 @@ export const chartRegistry: ChartRegistry = {
   // LineChart (AIChartLine)
   // ============================================================
   LineChart: [
+    ...['mle', 'wmle', 'mdm', 'lse', 'lre', 'mm', 'mmle'].map(method => ({
+      id: `calculation-${method}`,
+      label: `${method.toUpperCase()} 本次计算与选择判据`,
+      location: 'CalculationProcessViewer',
+        description: '按方法显示似然/方程、F比/相关回归、Weibull矩面积或真实不动点迭代，并对应参数恢复公式。',
+      dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
+        props: { contract: 'calculation/schema_version=1', methodId: method, source: 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only' },
+    })),
     {
       id: 'methods-analysis-rmse',
       label: '现场模拟参数 RMSE 趋势',
@@ -198,28 +206,10 @@ export const chartRegistry: ChartRegistry = {
   // ============================================================
   // ContourChart (shared)
   // ============================================================
-  ContourChart: [
-    {
-      id: 'methods-contour',
-      label: '目标函数等高线',
-      location: 'MDMVisualizer',
-      description: '目标函数在参数空间的等值线 + 优化路径',
-      dataSource: { type: 'api', endpoint: 'POST /calculate_3d_surface' },
-      props: { xLabel: 'β', yLabel: 'γ', title: '目标函数等高线', height: 260 },
-    },
-  ],
+  ContourChart: [],
 
   // ============================================================
   // ObjectiveSurface3D (shared)
   // ============================================================
-  ObjectiveSurface3D: [
-    {
-      id: 'methods-surface3d',
-      label: '3D 目标函数曲面',
-      location: 'MDMVisualizer',
-      description: '目标函数的三维可视化',
-      dataSource: { type: 'api', endpoint: 'POST /calculate_3d_surface' },
-      props: { height: 260 },
-    },
-  ],
+  ObjectiveSurface3D: [],
 }

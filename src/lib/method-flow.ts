@@ -5,6 +5,8 @@ export interface FlowStep {
   id: number; name: string; description: string; basis: string; notes: string
   formula: { expression: string; symbols: { symbol: string; meaning: string }[]; explanation: string }
   inputs: FlowVariable[]; outputs: FlowVariable[]; sources: FlowReference[]
+  primarySource?: number
+  depth: number; number: string; context?: string; kind: 'step' | 'call' | 'loop' | 'condition' | 'return'
   isLoop?: boolean; loopCount?: string
 }
 export interface MethodFlow {

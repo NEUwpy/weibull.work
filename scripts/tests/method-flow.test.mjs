@@ -47,6 +47,27 @@ test('every formula, symbol and variable mapping renders, without accidental esc
   }
 })
 
+test('calculation stages retain the real source sequence and helper implementations', () => {
+  for (const id of methods) {
+    const flow = loadMethodFlow(id)
+    assert.equal(flow.presentation, 'steps')
+    assert.equal(new Set(flow.steps.map(s => s.number)).size, flow.steps.length)
+    flow.steps.forEach((step, i) => {
+      assert.ok(step.sources.length >= 1)
+      assert.equal(step.depth, 0, `${id}: main navigation should stay a simple step list`)
+    })
+  }
+  const mle = loadMethodFlow('mle').steps.flatMap(s => s.sources)
+  const position = symbol => mle.findIndex(s => s.symbol === symbol)
+  assert.ok(position('solve_mle_profile') < position('_distances'))
+  assert.ok(position('_distances') < position('_shape'))
+  assert.ok(position('_shape') < mle.map(s => s.symbol).lastIndexOf('mle_profile'))
+  const mdm = loadMethodFlow('mdm').steps.flatMap(s => s.sources)
+  const gridIndex = mdm.findIndex(s => s.symbol === '_build_geometric_gamma_grid')
+  const stdIndex = mdm.findIndex(s => s.symbol === 'MDM.run.calculate_eta_std')
+  assert.ok(gridIndex < stdIndex, 'explain pseudo-scale evaluation when called, not when defined')
+})
+
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-flow-'))
   t.after(() => fs.rmSync(root, { recursive: true, force: true }))
@@ -109,4 +130,41 @@ test('done process status cannot point at a missing or invalid flow', t => {
   const method = id => ({ id, layer1: { process: { status: 'done' } } })
   assert.doesNotThrow(() => validateCompletedMethodFlows([method('example')], root))
   assert.throws(() => validateCompletedMethodFlows([method('missing')], root), /缺少说明配置/)
+})
+
+test('one calculation stage can contain multiple real source blocks without splitting navigation', t => {
+  const { root, config, write } = fixture(t)
+  config.steps[0].sources.push({ file: 'python/methods/example.py', symbol: 'other', label: 'Helper' })
+  write()
+  const flow = loadMethodFlow('example', { root })
+  assert.equal(flow.steps.length, 1)
+  assert.equal(flow.steps[0].sources.length, 2)
+  assert.equal(flow.sources.length, 1)
+  assert.deepEqual(flow.steps[0].sources.map(s => s.symbol), ['Example.run', 'other'])
+})
+
+test('missing source ranges and malformed optional call metadata are rejected', t => {
+  const { root, config, write } = fixture(t)
+  const step = config.steps[0]
+  const source = step.sources.pop(); write()
+  assert.throws(() => loadMethodFlow('example', { root }), /缺少真实源码引用/)
+  step.sources.push(source)
+  const child = structuredClone(step)
+  child.id = 2; child.depth = 1
+  config.steps.push(child); write()
+  assert.throws(() => loadMethodFlow('example', { root }), /执行关系说明/)
+  child.context = 'During run'; child.depth = 2; write()
+  assert.throws(() => loadMethodFlow('example', { root }), /层级不连续/)
+  child.depth = 1; write()
+  assert.deepEqual(loadMethodFlow('example', { root }).steps.map(s => s.number), ['1', '1.1'])
+})
+
+test('after anchor locates a continuation within its real function scope', t => {
+  const { root, config, write } = fixture(t)
+  config.steps[0].sources[0].after = 'value = 1'
+  config.steps[0].sources[0].from = 'return value'
+  write()
+  const ref = loadMethodFlow('example', { root }).steps[0].sources[0]
+  assert.equal(ref.start, 9)
+  assert.equal(ref.end, 10)
 })

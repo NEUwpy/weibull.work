@@ -72,7 +72,8 @@ function chatRoute({ results = [hit(10)], brokenExpansion = false, failAnswer = 
     '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record: (event, details) => records.push({event, ...details}), flush: async () => {} }) },
     '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
       getDeepSeekSettings: () => ({ model: 'deepseek-flash', label: 'DeepSeek V4.1 Flash' }) },
-    '@/lib/server/library-search': { searchLibrary: (query) => { searches.push(query); return { results } }, enrichLibrarySearchHits: hits => hits },
+    '@/lib/server/library-search': { searchLibrary: (query) => { searches.push(query); return { results } }, enrichLibrarySearchHits: hits => hits,
+      startLibrarySearchPrewarm: async () => {} },
   }, { console: { warn: (...args) => diagnostics.push(args), error: (...args) => diagnostics.push(args) } })
   return { route, calls, searches, diagnostics, records }
 }

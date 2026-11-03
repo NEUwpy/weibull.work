@@ -5,13 +5,13 @@
   "description": "原权重与方程 → 条件求根 → 位置搜索与多根选择。",
   "steps": [
     {
-      "name": "输入与搜索域",
-      "description": "校验样本，按最小寿命归一化；返回时恢复原单位。",
+      "name": "数据与权重准备",
+      "description": "进入求解器，以最小寿命u归一化样本。",
       "basis": "工程限制：内部形状求根上限10，最终候选还须β<9.99。",
       "notes": "Web统一入口至少3点；条件剖面至少2点。",
       "formula": {
         "expression": "u=t_{(1)},\\quad z_i=t_i/u,\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}",
-        "explanation": "校验样本，按最小寿命归一化；返回时恢复原单位。",
+        "explanation": "进入求解器，以最小寿命u归一化样本。",
         "symbols": [
           {
             "symbol": "z_i",
@@ -44,149 +44,111 @@
       ],
       "sources": [
         {
+          "file": "python/methods/wmle.py",
+          "symbol": "_load_j3_table"
+        },
+        {
           "file": "python/base.py",
-          "symbol": "WeibullBase.__init__",
-          "label": "输入校验与排序"
+          "symbol": "WeibullBase.__init__"
         },
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_wmle_profile",
-          "label": "归一化",
-          "until": "grid = _location_grid()"
+          "from": "x = np.sort",
+          "through": "cache = {}"
+        }
+      ],
+      "id": 1,
+      "primarySource": 2
+    },
+    {
+      "name": "条件形状求解",
+      "description": "固定位置，在0<β<10内用Brent求加权形状根；没有内部根时返回None。",
+      "basis": "数值策略：Brent求内部形状根；无0<β<10的根时不生成条件点。",
+      "notes": "",
+      "formula": {
+        "expression": "v_i=\\ln d_i-\\overline{\\ln d},\\quad w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}},\\quad T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i=0",
+        "explanation": "固定位置，在0<β<10内用Brent求加权形状根；没有内部根时返回None。",
+        "symbols": [
+          {
+            "symbol": "\\beta",
+            "meaning": "形状参数"
+          },
+          {
+            "symbol": "d_i",
+            "meaning": "平移距离"
+          },
+          {
+            "symbol": "v_i",
+            "meaning": "中心化对数距离"
+          },
+          {
+            "symbol": "w_i",
+            "meaning": "归一化幂权重"
+          }
+        ]
+      },
+      "inputs": [
+        {
+          "code": "logd",
+          "symbol": "\\ln d_i",
+          "meaning": "平移距离的对数"
+        },
+        {
+          "code": "weight",
+          "symbol": "J_2",
+          "meaning": "形状得分权重"
+        }
+      ],
+      "outputs": [
+        {
+          "code": "beta",
+          "symbol": "\\beta",
+          "meaning": "形状根或允许的下界"
+        },
+        {
+          "code": "score(beta)",
+          "symbol": "s_\\beta",
+          "meaning": "返回点的形状得分"
+        }
+      ],
+      "sources": [
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "_location_grid"
         },
         {
           "file": "python/methods/conditional_profiles.py",
-          "symbol": "_distances",
-          "label": "位置支撑检查"
+          "symbol": "wmle_profile",
+          "until": "beta, _, _ = solution"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_distances"
+        },
+        {
+          "file": "python/methods/wmle.py",
+          "symbol": "get_weight_j1"
+        },
+        {
+          "file": "python/methods/wmle.py",
+          "symbol": "get_weight_j2"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_shape"
         }
       ],
-      "id": 1
+      "id": 2,
+      "primarySource": 5
     },
     {
-      "name": "样本量权重 J₁、J₂",
-      "description": "优先查原权重表，表内缺项线性插值；n>100时J₁用Gamma中位数、J₂取1。",
-      "basis": "方法权重与既有外推规则；P⁻¹为正则化不完全Gamma函数的反函数。",
-      "notes": "",
-      "formula": {
-        "expression": "J(n)=(1-a)J(n_L)+aJ(n_H),\\quad a=\\frac{n-n_L}{n_H-n_L},\\quad J_1(n>100)=P^{-1}(n,0.5)/n,\\quad J_2(n>100)=1",
-        "explanation": "优先查原权重表，表内缺项线性插值；n>100时J₁用Gamma中位数、J₂取1。",
-        "symbols": [
-          {
-            "symbol": "J_1",
-            "meaning": "尺度权重"
-          },
-          {
-            "symbol": "J_2",
-            "meaning": "形状权重"
-          },
-          {
-            "symbol": "a",
-            "meaning": "插值比例"
-          },
-          {
-            "symbol": "P^{-1}",
-            "meaning": "正则化不完全Gamma函数反函数"
-          }
-        ]
-      },
-      "inputs": [
-        {
-          "code": "n",
-          "symbol": "n",
-          "meaning": "样本量"
-        }
-      ],
-      "outputs": [
-        {
-          "code": "get_weight_j1(n)",
-          "symbol": "J_1",
-          "meaning": "尺度权重"
-        },
-        {
-          "code": "get_weight_j2(n)",
-          "symbol": "J_2",
-          "meaning": "形状权重"
-        }
-      ],
-      "sources": [
-        {
-          "file": "python/methods/wmle.py",
-          "symbol": "get_weight_j1",
-          "label": "J₁查表及插值"
-        },
-        {
-          "file": "python/methods/wmle.py",
-          "symbol": "get_weight_j2",
-          "label": "J₂查表及插值"
-        },
-        {
-          "file": "python/methods/wmle.py",
-          "label": "J₁、J₂常量表",
-          "from": "WEIGHT_TABLE_J1 =",
-          "until": "def _load_j3_table"
-        }
-      ],
-      "id": 2
-    },
-    {
-      "name": "形状相关权重 J₃",
-      "description": "读取原表，对样本量和形状插值；仅查询用形状被夹在[0.1,5]。",
-      "basis": "方法权重数据：j3_weights.tsv；下方标明实际表的SHA-256。",
-      "notes": "n>100时，βc>1取βc/(βc−1)，否则取2。查表截断不把估计形状强改成5。",
-      "formula": {
-        "expression": "\\beta_c=\\min(5,\\max(0.1,\\beta)),\\quad J_3=\\operatorname{interp}_{n,\\beta_c}(\\mathrm{table})",
-        "explanation": "读取原表，对样本量和形状插值；仅查询用形状被夹在[0.1,5]。",
-        "symbols": [
-          {
-            "symbol": "J_3",
-            "meaning": "位置权重"
-          },
-          {
-            "symbol": "β_c",
-            "meaning": "仅用于查表的截断形状"
-          }
-        ]
-      },
-      "inputs": [
-        {
-          "code": "n",
-          "symbol": "n",
-          "meaning": "样本量"
-        },
-        {
-          "code": "gamma",
-          "symbol": "β",
-          "meaning": "函数形参gamma实际传入形状"
-        }
-      ],
-      "outputs": [
-        {
-          "code": "get_weight_j3(n, beta)",
-          "symbol": "J_3",
-          "meaning": "位置权重"
-        }
-      ],
-      "sources": [
-        {
-          "file": "python/methods/wmle.py",
-          "symbol": "get_weight_j3",
-          "label": "J₃插值与外推"
-        },
-        {
-          "file": "python/methods/wmle.py",
-          "symbol": "_load_j3_table",
-          "label": "读取原权重表"
-        }
-      ],
-      "id": 3
-    },
-    {
-      "name": "两个加权方程",
+      "name": "恢复尺度与计算方程残差",
       "description": "用中心化对数距离和归一化幂权重计算T₁、T₂，目标是两者同时为零。",
       "basis": "方法核心：原J₂/J₃加权方程；用logsumexp稳定幂和。",
       "notes": "",
       "formula": {
-        "expression": "\\begin{gathered}d_i=t_i-\\gamma\\\\[5pt] v_i=\\ln d_i-\\overline{\\ln d}\\\\[5pt] w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}}\\\\[5pt] T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i\\\\[5pt] T_2=\\overline{d^{-1}}\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3\\end{gathered}",
+        "expression": "\\begin{gathered}\\eta=\\left(\\frac{\\sum_i(t_i-\\gamma)^\\beta}{nJ_1}\\right)^{1/\\beta}\\\\[6pt]\\begin{gathered}d_i=t_i-\\gamma\\\\[5pt] v_i=\\ln d_i-\\overline{\\ln d}\\\\[5pt] w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}}\\\\[5pt] T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i\\\\[5pt] T_2=\\overline{d^{-1}}\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3\\end{gathered}\\end{gathered}",
         "explanation": "用中心化对数距离和归一化幂权重计算T₁、T₂，目标是两者同时为零。",
         "symbols": [
           {
@@ -243,132 +205,23 @@
       "sources": [
         {
           "file": "python/methods/conditional_profiles.py",
-          "symbol": "wmle_residuals",
-          "label": "两个加权残差"
-        }
-      ],
-      "id": 4
-    },
-    {
-      "name": "条件形状与尺度",
-      "description": "固定位置解T₁，再按J₁加权幂均值恢复尺度，得到剩余T₂残差。",
-      "basis": "数值策略：Brent求内部形状根；无0<β<10的根时不生成条件点。",
-      "notes": "",
-      "formula": {
-        "expression": "T_1(\\beta,\\gamma)=0,\\quad\\eta=\\left(\\frac{\\sum_i(t_i-\\gamma)^\\beta}{nJ_1}\\right)^{1/\\beta}",
-        "explanation": "固定位置解T₁，再按J₁加权幂均值恢复尺度，得到剩余T₂残差。",
-        "symbols": [
-          {
-            "symbol": "β",
-            "meaning": "条件形状"
-          },
-          {
-            "symbol": "η",
-            "meaning": "条件尺度"
-          },
-          {
-            "symbol": "T_2",
-            "meaning": "剩余位置残差"
-          }
-        ]
-      },
-      "inputs": [
-        {
-          "code": "gamma",
-          "symbol": "γ",
-          "meaning": "固定位置"
-        },
-        {
-          "code": "weights",
-          "symbol": "J_1,J_2,J_3",
-          "meaning": "权重提供者"
-        }
-      ],
-      "outputs": [
-        {
-          "code": "beta",
-          "symbol": "β",
-          "meaning": "条件形状"
-        },
-        {
-          "code": "eta",
-          "symbol": "η",
-          "meaning": "条件尺度"
-        },
-        {
-          "code": "t2",
-          "symbol": "T_2",
-          "meaning": "剩余位置残差"
-        }
-      ],
-      "sources": [
-        {
-          "file": "python/methods/conditional_profiles.py",
           "symbol": "wmle_profile",
-          "label": "条件形状与尺度"
+          "from": "beta, _, _ = solution"
         },
         {
           "file": "python/methods/conditional_profiles.py",
-          "symbol": "_shape",
-          "label": "形状方程求根"
-        }
-      ],
-      "id": 5
-    },
-    {
-      "name": "扫描位置方程交点",
-      "description": "位置网格加入J₃形状插值节点，括根求T₂交点，并以T₂²局部最小补查切根。",
-      "basis": "数值策略：分割插值节点，兼顾变号根及可能不变号的根。",
-      "notes": "候选重新代入原单位残差校验；网格与局部搜索不构成全域无根证明。",
-      "formula": {
-        "expression": "T_2(\\beta(\\gamma),\\gamma)=0,\\quad\\min_\\gamma T_2(\\beta(\\gamma),\\gamma)^2",
-        "explanation": "位置网格加入J₃形状插值节点，括根求T₂交点，并以T₂²局部最小补查切根。",
-        "symbols": [
-          {
-            "symbol": "\\mathcal C",
-            "meaning": "交点候选"
-          }
-        ]
-      },
-      "inputs": [
-        {
-          "code": "profile",
-          "symbol": "T_2(β(γ),γ)",
-          "meaning": "条件分支"
+          "symbol": "wmle_residuals"
         },
         {
-          "code": "grid",
-          "symbol": "g_j",
-          "meaning": "位置网格"
+          "file": "python/methods/wmle.py",
+          "symbol": "get_weight_j3"
         }
       ],
-      "outputs": [
-        {
-          "code": "candidates",
-          "symbol": "\\mathcal C",
-          "meaning": "交点候选"
-        }
-      ],
-      "sources": [
-        {
-          "file": "python/methods/profile_solvers.py",
-          "symbol": "solve_wmle_profile",
-          "label": "节点分割与根搜索",
-          "from": "grid = _location_grid()",
-          "until": "# The previous estimator"
-        },
-        {
-          "file": "python/methods/profile_solvers.py",
-          "symbol": "_location_grid",
-          "label": "无量纲位置网格"
-        }
-      ],
-      "isLoop": true,
-      "loopCount": "位置网格、插值节点及局部精化",
-      "id": 6
+      "id": 3,
+      "primarySource": 1
     },
     {
-      "name": "零边界近似与残差门槛",
+      "name": "搜索并校验位置候选",
       "description": "缺少条件交点时，在γ=0最小化两个残差平方和；满足门槛才可采纳。",
       "basis": "兼容规则：保留原有零位置残差容忍，并明确标记近似边界根。",
       "notes": "近似解不声称两个残差同时精确为零；无合格候选时返回no_equation_root_found。",
@@ -409,25 +262,29 @@
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_wmle_profile",
-          "label": "零边界后备",
+          "from": "grid = _location_grid()",
+          "until": "# The previous estimator"
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_wmle_profile.add"
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_wmle_profile",
           "from": "if not candidates:",
           "until": "def proximity(p):"
         },
         {
-          "file": "python/methods/profile_solvers.py",
-          "symbol": "solve_wmle_profile.add",
-          "label": "最终候选过滤"
-        },
-        {
           "file": "python/methods/conditional_profiles.py",
-          "symbol": "wmle_objective_profile",
-          "label": "固定位置残差最小化"
+          "symbol": "wmle_objective_profile"
         }
       ],
-      "id": 7
+      "id": 4,
+      "primarySource": 2
     },
     {
-      "name": "多根选择",
+      "name": "多根选择与状态检查",
       "description": "在目标值距最低值≤10⁻¹²的候选中，按既有初值邻近规则选一个。",
       "basis": "工程选择：沿用原启发式β=2、γ=0.9tmin附近的距离规则。",
       "notes": "选择不使用仿真真值。",
@@ -463,20 +320,26 @@
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_wmle_profile",
-          "label": "多根选择与诊断",
           "from": "def proximity(p):"
+        },
+        {
+          "file": "python/methods/wmle.py",
+          "symbol": "WMLE.run",
+          "from": "self.last_solution_info = {",
+          "through": "beta, eta, gamma = (selected[p] for p in ['beta', 'eta', 'gamma'])"
         }
       ],
-      "id": 8
+      "id": 5,
+      "primarySource": 0
     },
     {
-      "name": "返回、追踪与 R²",
-      "description": "返回统一五元结果，候选、最终点与可选残差曲面分别记录。",
+      "name": "计算拟合优度并返回",
+      "description": "计算拟合优度，返回形状、尺度和位置参数。",
       "basis": "项目诊断：概率图R²不参与加权方程求根。",
       "notes": "trace候选和曲面不是优化迭代；失败与近似边界标记保留在last_solution_info。",
       "formula": {
         "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
-        "explanation": "返回统一五元结果，候选、最终点与可选残差曲面分别记录。",
+        "explanation": "计算拟合优度，返回形状、尺度和位置参数。",
         "symbols": [
           {
             "symbol": "(β,η,γ,R²,status)",
@@ -486,39 +349,49 @@
       },
       "inputs": [
         {
-          "code": "selected",
-          "symbol": "(β,η,γ)",
-          "meaning": "选定参数"
+          "code": "beta",
+          "symbol": "\\hat\\beta",
+          "meaning": "形状参数"
+        },
+        {
+          "code": "eta",
+          "symbol": "\\hat\\eta",
+          "meaning": "尺度参数"
+        },
+        {
+          "code": "gamma_val",
+          "symbol": "\\hat\\gamma",
+          "meaning": "位置参数"
         }
       ],
       "outputs": [
         {
           "code": "return",
-          "symbol": "(β,η,γ,R²,status)",
-          "meaning": "统一返回"
+          "symbol": "R^2",
+          "meaning": "概率图决定系数"
         }
       ],
       "sources": [
         {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._calculate_r2"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._median_ranks"
+        },
+        {
           "file": "python/methods/wmle.py",
           "symbol": "WMLE.run",
-          "label": "返回与失败处理"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._calculate_r2",
-          "label": "概率图 R²"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._median_ranks",
-          "label": "绘图位置"
+          "from": "return [beta, eta, gamma, self._calculate_r2"
         }
       ],
-      "id": 9
+      "id": 6,
+      "primarySource": 0
     }
   ],
   "artifacts": [
     "python/methods/j3_weights.tsv"
-  ]
+  ],
+  "presentation": "steps"
 }

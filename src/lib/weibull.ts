@@ -32,6 +32,7 @@ export type WeibullResult = {
   rSquared: number | null // Coefficient of determination
   points: PlotPoint[] // The calculated points for plotting
   converged?: boolean | string // Whether the calculation converged, or "unbounded" for Smith (1985) problem
+  failureReason?: string
 }
 
 /**
@@ -44,6 +45,9 @@ export type DataSource = {
   data: DataPoint[]             // Raw data
   result?: WeibullResult        // Calculation result (filled after calculation)
   traceData?: any               // Trace data for calculation process visualization
+  calculation?: unknown         // Backend-owned quantities and selection from this run
+  calculationError?: string
+  calculationOffset?: number
   sourceType: 'case' | 'group-subcase' | 'custom'
   groupId?: string              // Parent group ID if it's a subcase
   visible?: boolean             // Curve visibility (for legend toggle)

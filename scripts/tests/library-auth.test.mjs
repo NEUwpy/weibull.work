@@ -135,7 +135,7 @@ test('public metadata and search expose introductions and excerpts without raw s
   assert.doesNotMatch(JSON.stringify(body), /COMPLETE_DOCUMENT|TRANSLATION_DOCUMENT|PRIVATE_NOTES|raw/)
 
   const search = loadServerModule('src/app/api/library/search/route.ts', {
-    '@/lib/server/library-search': { searchLibrary: () => ({ query: 'weibull', total: 1, terms: ['weibull'], results: [{
+    '@/lib/server/library-search': { startLibrarySearchPrewarm: async () => {}, searchLibrary: () => ({ query: 'weibull', total: 1, terms: ['weibull'], results: [{
       id: 'one', slug: '182-001', title: 'Selected paper', version: '原文', excerpt: 'Visible Weibull excerpt',
       text: 'COMPLETE_PASSAGE', context: 'NEIGHBOUR_CONTEXT', contextStartLine: 1, contextEndLine: 30,
     }] }) },

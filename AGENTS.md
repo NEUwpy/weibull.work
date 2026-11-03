@@ -1,8 +1,12 @@
-# Agent Compatibility Redirect
+# Agent 项目入口
 
 本项目的唯一权威入口是 `README.md`。
 
-自动读取 `AGENTS.md` 的工具请立即转到 `README.md`，不要把本文件当作独立规则来源。
+读取本文件后，转到 `README.md`，按任务进入对应文档。
+
+## 文档唯一归属
+
+规则文档不互相重叠：一件事只在一个负责文档里有唯一说法，其他文档只引用，不重复维护。新增或修改说明前，先找已有归属；调整归属时同步引用，不留下两份现行说法。
 
 文献维护的执行入口见 [`docs/library/AGENTS.md`](docs/library/AGENTS.md)，格式与示例仍集中在文献库 README。
 

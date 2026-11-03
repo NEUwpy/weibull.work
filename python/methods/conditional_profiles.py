@@ -20,18 +20,32 @@ def _distances(data, gamma):
     return d
 
 
-def _shape(logd, weight=1.0, lower=0.0, upper=None):
+def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
     z = logd - logd.mean()
 
-    def score(beta):
+    def score(beta, source='solver'):
         w = np.exp(beta * (z - z.max()))
         w /= w.sum()
-        return float(weight / beta - w @ z)
+        value = float(weight / beta - w @ z)
+        if evaluations is not None:
+            evaluations.append(dict(beta=float(beta), score=value, source=source))
+        return value
+
+    def recorded_result(beta, residual, boundary):
+        # Supplement the same score function around its returned shape so the
+        # criterion is readable. These calls occur after selection, never enter
+        # root finding, and are identified separately from solver evaluations.
+        if evaluations is not None:
+            start = max(lower, beta * .5, 1e-8)
+            stop = min(upper, beta * 1.5) if upper is not None else beta * 1.5
+            for value in np.unique(np.r_[np.linspace(start, stop, 61), beta]):
+                score(float(value), source='diagnostic')
+        return beta, residual, boundary
 
     if np.ptp(logd) == 0:
         return None  # No finite shape root for an equal-valued sample.
     if lower > 0 and score(lower) <= 0:
-        return float(lower), score(lower), True
+        return recorded_result(float(lower), score(lower), True)
     if upper is None:
         upper = 2.0
         while score(upper) > 0:
@@ -41,10 +55,10 @@ def _shape(logd, weight=1.0, lower=0.0, upper=None):
     elif score(upper) >= 0:
         return None  # WMLE needs an interior T1 zero, never a clamped boundary.
     beta = float(brentq(score, max(lower, 1e-8), upper, xtol=1e-11, rtol=2e-14))
-    return beta, score(beta), False
+    return recorded_result(beta, score(beta), False)
 
 
-def mle_profile(data, gamma, *, shape_lower=1.0):
+def mle_profile(data, gamma, *, shape_lower=1.0, shape_evaluations=None):
     """Maximize the standard likelihood at fixed gamma over beta>=shape_lower.
 
     shape_lower=1 is the R00 diagnostic domain. shape_lower=0 is an explicitly
@@ -55,7 +69,7 @@ def mle_profile(data, gamma, *, shape_lower=1.0):
         raise ValueError("shape_lower must be finite and nonnegative")
     d = _distances(data, gamma)
     t = np.log(d)
-    solution = _shape(t, lower=shape_lower)
+    solution = _shape(t, lower=shape_lower, evaluations=shape_evaluations)
     if solution is None:
         return None
     beta, score, boundary = solution
@@ -94,7 +108,7 @@ def wmle_residuals(data, beta, gamma, weights):
     return t1, t2
 
 
-def wmle_profile(data, gamma, weights):
+def wmle_profile(data, gamma, weights, *, shape_evaluations=None):
     """Evaluate T2 along an interior T1=0 branch with the solver's shape cap.
 
     None means no conditional T1 zero in 0<beta<weights.SHAPE_UPPER. It does
@@ -104,7 +118,7 @@ def wmle_profile(data, gamma, weights):
     n = len(d)
     j1, j2 = weights.get_weight_j1(n), weights.get_weight_j2(n)
     t = np.log(d)
-    solution = _shape(t, weight=j2, upper=weights.SHAPE_UPPER)
+    solution = _shape(t, weight=j2, upper=weights.SHAPE_UPPER, evaluations=shape_evaluations)
     if solution is None:
         return None
     beta, _, _ = solution

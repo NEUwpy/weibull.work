@@ -19,7 +19,7 @@ def _location_grid():
                            np.geomspace(1e-12, .1, 33)])
 
 
-def solve_mle_profile(data):
+def solve_mle_profile(data, *, trace=False):
     """Find finite likelihood maxima over beta>=1 and 0<=gamma<min(x).
 
     The open-support beta=1 limit is reported separately. It is never turned
@@ -29,11 +29,15 @@ def solve_mle_profile(data):
     unit = float(x[0])
     z = x / unit
     cache = {}
+    shape_records = {} if trace else None
 
     def profile(g):
         g = float(g)
         if g not in cache:
-            cache[g] = mle_profile(z, g, shape_lower=1.)
+            values = [] if trace else None
+            cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values)
+            if trace:
+                shape_records[g] = values
         return cache[g]
 
     grid = _location_grid()
@@ -108,20 +112,36 @@ def solve_mle_profile(data):
                 boundary_limit_exceeds_selected=bool(best and limit_ll > best['ll'] + 1e-9))
     if best:
         info.update(log_likelihood=best['ll'], location_at_zero_boundary=best['gamma'] == 0.)
+    if trace:
+        # Cache insertion order is the order of actual conditional evaluations.
+        # These are function evaluations, not outer optimizer iterations.
+        info['selected_shape_evaluations'] = shape_records[min(shape_records, key=lambda g: abs(g - best['gamma'] / unit))] if best else []
+        info['profile_trace'] = [dict(
+            evaluation=i + 1, gamma=float(g * unit),
+            beta=float(p['beta']), eta=float(p['eta'] * unit),
+            log_likelihood=float(p['ll'] - len(x) * np.log(unit)),
+            location_score=float(p['location_score'] / unit),
+            shape_score=float(p['shape_score']),
+            shape_at_lower_boundary=bool(p['shape_at_lower_boundary']),
+        ) for i, (g, p) in enumerate(cache.items()) if p is not None]
     return best, info
 
 
-def solve_wmle_profile(data, weights):
+def solve_wmle_profile(data, weights, *, trace=False):
     """Solve both weighted equations; preserve the table, cap and root tie rule."""
     x = np.sort(np.asarray(data, float))
     unit = float(x[0])
     z = x / unit
     cache = {}
+    shape_records = {} if trace else None
 
     def profile(g):
         g = float(g)
         if g not in cache:
-            cache[g] = wmle_profile(z, g, weights)
+            values = [] if trace else None
+            cache[g] = wmle_profile(z, g, weights, shape_evaluations=values)
+            if trace:
+                shape_records[g] = values
         return cache[g]
 
     grid = _location_grid()
@@ -205,4 +225,14 @@ def solve_wmle_profile(data, weights):
         info.update(objective=best['objective'], j3_clamped=best['j3_clamped'],
                     location_at_zero_boundary=best['gamma'] == 0.,
                     approximate_boundary_root=best['kind'] == 'boundary_residual_tolerance')
+    if trace:
+        info['selected_shape_evaluations'] = shape_records[min(shape_records, key=lambda g: abs(g - best['gamma'] / unit))] if best and best['kind'] != 'boundary_residual_tolerance' else []
+        info['profile_trace'] = [dict(
+            evaluation=i + 1, gamma=float(g * unit),
+            beta=float(p['beta']), eta=float(p['eta'] * unit),
+            t1=float(p['t1']), t2=float(p['t2']),
+            objective=float(p['t1'] ** 2 + p['t2'] ** 2),
+            j1=float(p['j1']), j2=float(p['j2']), j3=float(p['j3']),
+            j3_clamped=bool(p['j3_clamped']),
+        ) for i, (g, p) in enumerate(cache.items()) if p is not None]
     return best, info

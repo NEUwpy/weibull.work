@@ -24,6 +24,8 @@ def _build_torch_mocks():
     nn.Sigmoid = _FakeModule
 
     torch = type(sys)("torch")
+    # SciPy's backend detection checks this public type for numpy inputs too.
+    torch.Tensor = type('Tensor', (), {})
     torch.nn = nn
     torch.load = lambda *args, **kwargs: {}
     torch.FloatTensor = lambda x: x
@@ -107,6 +109,32 @@ def test_successful_method_preserves_identity(helpers, monkeypatch):
     assert response["method"] == "mdm"
     assert response["beta"] == 2.5
     assert response["converged"] is True
+
+
+@pytest.mark.parametrize('method', ['mdm', 'wmle', 'mm'])
+def test_api_reads_canonical_method_and_same_run_plot_selection(helpers, method):
+    sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    result = helpers._run_calculation_method(method, sample, trace=True,
+                                             offset=.1)
+    assert result['method'] == method
+    assert 'implementation' not in result
+    for parameter in ('beta', 'eta', 'gamma'):
+        assert result[parameter] == result['calculation']['selection'][parameter]
+    assert result['calculation']['run']['n'] == len(sample)
+    if method == 'mdm':
+        assert result['plot_points'][0]['medianRank'] == pytest.approx((1-.3)/(7+.4))
+    assert any(source['path'] == f'methods/{method}.py'
+               for source in result['calculation']['run']['sources'])
+
+
+@pytest.mark.parametrize('method', ['mdm', 'wmle', 'mm'])
+def test_api_and_shared_runner_use_the_same_estimate(helpers, method):
+    sample = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
+    from studies.common.runner import run_method
+    expected = run_method(method, sample, **({'offset': .1} if method == 'mdm' else {}))
+    actual = helpers._run_calculation_method(method, sample, offset=.1)
+    for parameter in ('beta', 'eta', 'gamma'):
+        assert actual[parameter] == expected[f'{parameter}_hat']
 
 
 def test_custom_mdm_offset_is_forwarded(helpers, monkeypatch):

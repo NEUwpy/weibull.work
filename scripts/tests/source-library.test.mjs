@@ -90,7 +90,7 @@ function withSource(run) {
   const descriptor = { schema_version: 2, mode: 'source', sources: [{ root: source, papers: [id] }] }
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
   write(path.join(root, 'references.json'), JSON.stringify({ [id]: { 7: id } }))
-  write(note, matter.stringify('## 一句话总结\n\nPRIVATE_SHORT_SUMMARY_994\n\n## 研究判断\n\nPRIVATE_NOTE_993\n', noteData))
+  write(note, matter.stringify('## 一句话总结\n\nPUBLIC_NOTE_SUMMARY_994\n\n## 研究判断\n\nPRIVATE_NOTE_993\n', noteData))
   write(original, '## Methods\n\nSOURCE_ORIGINAL_123\n')
   write(translation, '## 方法\n\nSOURCE_TRANSLATION_456\n')
   write(path.join(images, 'images', '图 1.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
@@ -120,11 +120,12 @@ test('source selection holds configuration only and maps Chinese note metadata w
   assert.equal(paper.type, '期刊')
   assert.equal(paper.year, 2025)
   assert.deepEqual(Array.from(paper.tags), ['Weibull', 'MDM'])
-  assert.equal(paper.summary, '')
+  assert.equal(paper.summary, 'PUBLIC_NOTE_SUMMARY_994')
   assert.equal(paper.related_method_id, 'mdm')
   const preferred = readPreferredPaper(id)
   assert.match(preferred.body, /SOURCE_TRANSLATION_456/)
-  assert.doesNotMatch(preferred.raw, /PRIVATE_NOTE_993|PRIVATE_SHORT_SUMMARY_994|研究判断|期刊或类型|工艺类型/)
+  assert.match(preferred.raw, /PUBLIC_NOTE_SUMMARY_994/)
+  assert.doesNotMatch(preferred.raw, /PRIVATE_NOTE_993|研究判断|期刊或类型|工艺类型/)
   assert.deepEqual([original, translation, note].map(file => fs.readFileSync(file, 'utf8')), before)
   assert.deepEqual(fs.readdirSync(root).sort(), ['library.json', 'references.json'])
 }))
@@ -137,7 +138,7 @@ test('each document English frontmatter overrides the shared note and translatio
   assert.equal(listPapers()[0].title, '译文明确题名')
   assert.equal(readPreferredPaper(id).metadata.author, 'Translated author')
   assert.equal(readPreferredPaper(id).metadata.year, 2024)
-  assert.equal(readPreferredPaper(id).metadata.summary, 'Explicit abstract')
+  assert.equal(readPreferredPaper(id).metadata.summary, 'PUBLIC_NOTE_SUMMARY_994')
   assert.equal(matter(readPaper(id, '原文')).data.title, 'Original explicit title')
   fs.unlinkSync(translation)
   assert.equal(readPreferredPaper(id).metadata.title, 'Original explicit title')
@@ -158,14 +159,18 @@ test('website JSON catalog overrides document YAML and Chinese notes without rew
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
   const [paper] = listPapers()
   for (const [key, value] of Object.entries(metadata)) {
-    assert.equal(JSON.stringify(paper[key]), JSON.stringify(value), key)
-    assert.equal(JSON.stringify(readPreferredPaper(id).metadata[key]), JSON.stringify(value), key)
+    const expected = key === 'summary' ? 'PUBLIC_NOTE_SUMMARY_994' : value
+    assert.equal(JSON.stringify(paper[key]), JSON.stringify(expected), key)
+    assert.equal(JSON.stringify(readPreferredPaper(id).metadata[key]), JSON.stringify(expected), key)
   }
   assert.match(readPreferredPaper(id).body, /SOURCE_TRANSLATION_456/)
   metadata.title = 'Updated catalog title'
   metadata.year = 2026
+  metadata.type = '书籍'
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
   assert.equal(listPapers()[0].title, 'Updated catalog title')
+  assert.equal(listPapers()[0].type, '书籍')
+  assert.equal(readPreferredPaper(id).metadata.type, '书籍')
   assert.equal(readPreferredPaper(id).metadata.year, 2026)
   assert.deepEqual([translation, note].map(file => fs.readFileSync(file, 'utf8')), before)
 }))
@@ -185,14 +190,16 @@ test('catalog metadata is sufficient for plain Markdown with neither YAML nor a 
   assert.equal(fs.readFileSync(translation, 'utf8'), '源库译文，不需要网站专用表头。\n')
 }))
 
-test('complete catalog cards and public introductions never open source Markdown', () => withSource(async ({ root, source, descriptor }) => {
+test('complete catalog cards and introductions only read the cached note summary, never original or translated bodies', () => withSource(async ({ root, source, descriptor }) => {
   const metadata = { title: 'Catalog introduction', year: 2025, author: 'Catalog author', doi: '10.1000/catalog', summary: 'Public abstract' }
   descriptor.sources[0].papers = [{ id, metadata }]
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
   const route = load('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': storage })
   const read = fs.readFileSync
+  let noteReads = 0
   fs.readFileSync = function (file, ...args) {
-    if (typeof file === 'string' && file.startsWith(source) && file.endsWith('.md')) throw new Error('Catalog opened a source Markdown file')
+    if (typeof file === 'string' && file.startsWith(source) && /-pdf(?:原文|翻译)\.md$/.test(file)) throw new Error('Catalog opened a full-text document')
+    if (typeof file === 'string' && file.startsWith(source) && file.endsWith('-笔记.md')) noteReads++
     return read.call(this, file, ...args)
   }
   try {
@@ -200,10 +207,14 @@ test('complete catalog cards and public introductions never open source Markdown
     assert.equal(paper.title, metadata.title)
     assert.equal(paper.doi, metadata.doi)
     assert.deepEqual(Array.from(paper.availableVersions), ['原文', '翻译'])
-    assert.equal(readPaperMetadata(id).summary, metadata.summary)
+    assert.equal(readPaperMetadata(id).summary, 'PUBLIC_NOTE_SUMMARY_994')
     const response = await route.GET({}, { params: { slug: id } })
     assert.equal(response.status, 200)
-    assert.equal((await response.json()).paper.title, metadata.title)
+    const payload = await response.json()
+    assert.equal(payload.paper.title, metadata.title)
+    assert.equal(payload.paper.summary, 'PUBLIC_NOTE_SUMMARY_994')
+    assert.doesNotMatch(JSON.stringify(payload), /PRIVATE_NOTE_993|SOURCE_ORIGINAL_123|SOURCE_TRANSLATION_456/)
+    assert.equal(noteReads, 1)
   } finally { fs.readFileSync = read }
 }))
 
@@ -291,7 +302,7 @@ test('source body, note metadata, selection and references are read again after 
   assert.match(readPreferredPaper(id).body, /CHANGED_AT_SOURCE_789/)
   write(note, matter.stringify('## 一句话总结\n\nUpdated summary.', { ...noteData, 年份: 2026 }))
   assert.equal(listPapers()[0].year, 2026)
-  assert.equal(listPapers()[0].summary, '')
+  assert.equal(listPapers()[0].summary, 'Updated summary.')
   write(path.join(root, 'references.json'), JSON.stringify({ [id]: { 9: id } }))
   assert.equal(readReferences(id)['9'], id)
   fs.unlinkSync(translation)
@@ -328,18 +339,36 @@ test('an incomplete image cannot consume a later valid image across newlines', (
   assert.deepEqual(fs.readFileSync(translation), before)
 }))
 
-test('private note summaries never become public metadata, even before other private sections', () => withSource(({ note, root, descriptor }) => {
+test('the note summary is public while YAML abstracts and all other note sections stay private', () => withSource(({ note, root, descriptor }) => {
   for (const heading of ['## 一句话总结', '## 1. 一句话总结']) {
-    write(note, matter.stringify(`${heading}\n\nPRIVATE_SHORT_SUMMARY_994\n\n## 2. 研究判断\n\nPRIVATE_NOTE_993`, {
+    write(note, matter.stringify(`${heading}\n\nPUBLIC_NOTE_SUMMARY_994\n\n## 2. 研究判断\n\nPRIVATE_NOTE_993`, {
       ...noteData, 摘要: 'PRIVATE_NOTE_ABSTRACT_995',
     }))
-    assert.equal(listPapers()[0].summary, '')
-    assert.doesNotMatch(JSON.stringify(listPapers()), /PRIVATE_SHORT_SUMMARY_994|PRIVATE_NOTE_ABSTRACT_995|PRIVATE_NOTE_993/)
-    assert.doesNotMatch(readPaper(id, '翻译'), /PRIVATE_SHORT_SUMMARY_994|PRIVATE_NOTE_ABSTRACT_995|PRIVATE_NOTE_993/)
+    assert.equal(listPapers()[0].summary, 'PUBLIC_NOTE_SUMMARY_994')
+    assert.doesNotMatch(JSON.stringify(listPapers()), /PRIVATE_NOTE_ABSTRACT_995|PRIVATE_NOTE_993/)
+    assert.doesNotMatch(readPaper(id, '翻译'), /PRIVATE_NOTE_ABSTRACT_995|PRIVATE_NOTE_993/)
   }
   descriptor.sources[0].papers = [{ id, metadata: { summary: 'Public catalog abstract.' } }]
   write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.equal(listPapers()[0].summary, 'PUBLIC_NOTE_SUMMARY_994')
+  write(note, matter.stringify('## 核心内容\n\nPRIVATE_NOTE_993', noteData))
   assert.equal(listPapers()[0].summary, 'Public catalog abstract.')
+}))
+
+test('editing the selected note refreshes cards and introductions without rewriting the catalog snapshot', () => withSource(({ note, root, descriptor }) => {
+  descriptor.sources[0].papers = [{ id, metadata: {
+    title: 'Complete public catalog', year: 2025, summary: 'Stored fallback snapshot',
+  } }]
+  const file = path.join(root, 'library.json')
+  write(file, JSON.stringify(descriptor))
+  const before = fs.readFileSync(file, 'utf8')
+  assert.equal(listPapers()[0].summary, 'PUBLIC_NOTE_SUMMARY_994')
+  write(note, matter.stringify('## 一句话总结\n\nEdited note summary with $x=1$.\n\n## 不足\nPRIVATE_NOTE_993', noteData))
+  assert.equal(listPapers()[0].summary, 'Edited note summary with $x=1$.')
+  assert.equal(readPaperMetadata(id).summary, listPapers()[0].summary)
+  assert.equal(fs.readFileSync(file, 'utf8'), before)
+  fs.unlinkSync(note)
+  assert.equal(readPaperMetadata(id).summary, 'Stored fallback snapshot')
 }))
 
 test('only selected IDs are readable and image extensions do not expose notes or unrelated files', () => withSource(({ directory, images, root }) => {

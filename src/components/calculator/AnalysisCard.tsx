@@ -86,6 +86,8 @@ interface AnalysisCardProps {
   availableLayers: LayerInfo[]
   // 多数据源模式
   dataSources?: DataSource[]
+  activeDataSourceIndex?: number
+  onActiveDataSourceChange?: (index: number) => void
   onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onMdmOffsetChange?: (offset: number) => void | Promise<void>
@@ -95,6 +97,7 @@ interface AnalysisCardProps {
   onDataChange?: (newData: DataPoint[]) => void
   onParamsUpdate?: (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => void
   onCalculate?: () => Promise<void>
+  calculationActionLabel?: string
   onDelete?: () => void
   hideCalculationProcessButton?: boolean
   hideMdmOptimizationDetailsLink?: boolean
@@ -116,6 +119,8 @@ export default function AnalysisCard({
   is3P,
   availableLayers,
   dataSources,
+  activeDataSourceIndex,
+  onActiveDataSourceChange,
   onAdd,
   onMethodClick,
   onMdmOffsetChange,
@@ -125,6 +130,7 @@ export default function AnalysisCard({
   onDataChange,
   onParamsUpdate,
   onCalculate,
+  calculationActionLabel = '参数估计',
   onDelete,
   hideCalculationProcessButton,
   hideMdmOptimizationDetailsLink = false,
@@ -138,7 +144,12 @@ export default function AnalysisCard({
   const [isCalculating, setIsCalculating] = useState(false)
   const [chartMode, setChartMode] = useState<'pdf' | 'cdf'>('pdf')
   const [xAxisRange, setXAxisRange] = useState<{ min: number; max: number; isAuto: boolean }>({ min: 0, max: 0, isAuto: true })
-  const [activeSourceIndex, setActiveSourceIndex] = useState(0)  // 多数据源切换索引
+  const [localSourceIndex, setLocalSourceIndex] = useState(0)
+  const activeSourceIndex = activeDataSourceIndex ?? localSourceIndex
+  const setActiveSourceIndex = (sourceIndex: number) => {
+    setLocalSourceIndex(sourceIndex)
+    onActiveDataSourceChange?.(sourceIndex)
+  }
   const failureValues = useMemo(
     () => (data || []).filter(point => point.status === 'F').map(point => point.value),
     [data],
@@ -149,7 +160,7 @@ export default function AnalysisCard({
   const [simN, setSimN] = useState(20)
 
   // 根据 activeSourceIndex 决定显示哪个 result
-  const displayResult = React.useMemo(() => {
+  const displayResult = React.useMemo<WeibullResult>(() => {
     if (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result) {
       return dataSources[activeSourceIndex].result
     }
@@ -210,7 +221,7 @@ export default function AnalysisCard({
     } else if (data) {
       const text = data.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
       setSampleText(text)
-      setSimN(data.length)
+      if (data.length > 0) setSimN(data.length)
     }
   }, [data, dataSources])
 
@@ -373,11 +384,11 @@ export default function AnalysisCard({
   }
 
   const handleGenerateSample = () => {
-    if (!result || !onDataChange || result.beta === null || result.eta === null) return
+    if (!onDataChange || displayResult.beta === null || displayResult.eta === null) return
     const newSample = generateWeibullSample(simN, {
-      beta: result.beta,
-      eta: result.eta,
-      gamma: result.gamma,
+      beta: displayResult.beta,
+      eta: displayResult.eta,
+      gamma: displayResult.gamma,
     })
     onDataChange(newSample)
   }
@@ -584,13 +595,16 @@ export default function AnalysisCard({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!methodId || !data) return;
+                      const selectedData = dataSources?.[activeSourceIndex]?.data ?? data;
                       const params = new URLSearchParams({
-                        data: data.map(d => d.value).join(','),
+                        data: selectedData.filter(d => d.status === 'F').map(d => d.value).join(','),
                       });
                       if (methodId.toLowerCase() === 'mdm') {
-                        params.set('offset', mdmOffset.toFixed(2));
+                        const selectedSource = dataSources?.[activeSourceIndex];
+                        const usedOffset = selectedSource?.calculationOffset ?? (mdmOffsetMode === 'ai' ? mdmOptimization?.selected_delta ?? mdmOffset : mdmOffset);
+                        params.set('offset', usedOffset.toFixed(2));
                       }
-                      router.push(`/methods/${methodId}?${params.toString()}`);
+                      router.push(`/methods/${methodId}/calculation?${params.toString()}`);
                     }}
                     className="flex-1 h-full bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
                   >
@@ -638,7 +652,7 @@ export default function AnalysisCard({
             <div className="h-12 flex items-center gap-2 px-4">
                <button onClick={handleEstimation} disabled={isCalculating} className="flex-1 h-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm disabled:opacity-50">
                  {isCalculating ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
-                 <span>参数估计</span>
+                 <span>{isCalculating ? '计算中…' : calculationActionLabel}</span>
                </button>
                <button onClick={() => { setSampleText(""); onDataChange?.([]); }} className="flex-1 h-full bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm group">
                  <Trash2 size={14} className="group-hover:rotate-12 transition-transform" />
@@ -664,7 +678,7 @@ export default function AnalysisCard({
                                     <div className="space-y-3">
                                         <ParamInput label="β 形状" value={displayResult.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
                                         <ParamInput label="η 尺度" value={displayResult.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
-                                        <ParamInput label="γ 位置" value={displayResult.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || displayResult.converged === false || displayResult.converged === 'unbounded'} color={(!is3P || displayResult.converged === false || displayResult.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
+                                        <ParamInput label="γ 位置" value={displayResult.converged === false ? null : displayResult.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || displayResult.converged === false || displayResult.converged === 'unbounded'} color={(!is3P || displayResult.converged === false || displayResult.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
                                         {/* 多数据源切换器 - 放在 γ 下面 */}
                                         {dataSources && dataSources.length > 1 && (
                                           <div className="flex items-center justify-center gap-2">
@@ -710,9 +724,9 @@ export default function AnalysisCard({
                                         {displayResult.converged === false && (
                                           <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
                                             <div className="flex items-center justify-between gap-2">
-                                              <div className="flex items-center gap-2 text-xs">
-                                                <span className="font-black text-orange-600">⚠️ 未收敛</span>
-                                                <span className="text-orange-700">Hessian 矩阵非负定</span>
+                                              <div className="min-w-0 text-sm leading-relaxed">
+                                                <span className="font-semibold text-orange-600">未得到可采纳结果</span>
+                                                {displayResult.failureReason && <p className="mt-1 text-orange-700">{displayResult.failureReason}</p>}
                                               </div>
                                               <button
                                                 onClick={handleResetToDefault}
@@ -888,14 +902,14 @@ export default function AnalysisCard({
                    <button
                      onClick={(e) => {
                        e.stopPropagation();
-                       if (!methodId || !result || result.beta === null || result.eta === null) return;
+                       if (!methodId || displayResult.beta === null || displayResult.eta === null) return;
                        // Pass true parameters and estimated parameters
                        const params = new URLSearchParams({
-                         trueBeta: result.beta.toString(),
-                         trueEta: result.eta.toString(),
-                         trueGamma: result.gamma.toString(),
+                         trueBeta: displayResult.beta.toString(),
+                         trueEta: displayResult.eta.toString(),
+                         trueGamma: displayResult.gamma.toString(),
                        });
-                       router.push(`/methods/${methodId}?${params.toString()}`);
+                       router.push(`/methods/${methodId}/analysis?${params.toString()}`);
                      }}
                      className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
                    >

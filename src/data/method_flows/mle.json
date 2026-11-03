@@ -5,13 +5,13 @@
   "description": "条件形状求根 → 有限似然候选搜索 → 边界极限单列。",
   "steps": [
     {
-      "name": "输入与无量纲化",
-      "description": "排序后按最小寿命归一化；返回参数时恢复原单位。",
+      "name": "数据预处理",
+      "description": "进入求解器，以最小寿命u归一化样本。返回候选时恢复原单位。",
       "basis": "公共输入与工程域：β≥1、η>0、0≤γ<t₍₁₎。",
       "notes": "Web统一估计入口要求至少3点；条件剖面辅助函数至少要求2点。当前似然针对完整失效样本。",
       "formula": {
         "expression": "t_{(1)}\\le\\cdots\\le t_{(n)},\\quad u=t_{(1)},\\quad z_i=t_i/u",
-        "explanation": "排序后按最小寿命归一化；返回参数时恢复原单位。",
+        "explanation": "进入求解器，以最小寿命u归一化样本。返回候选时恢复原单位。",
         "symbols": [
           {
             "symbol": "z_i",
@@ -45,25 +45,20 @@
       "sources": [
         {
           "file": "python/base.py",
-          "symbol": "WeibullBase.__init__",
-          "label": "输入校验与排序"
+          "symbol": "WeibullBase.__init__"
         },
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_mle_profile",
-          "label": "归一化",
-          "until": "grid = _location_grid()"
-        },
-        {
-          "file": "python/methods/conditional_profiles.py",
-          "symbol": "_distances",
-          "label": "位置支撑检查"
+          "from": "x = np.sort",
+          "through": "cache = {}"
         }
       ],
-      "id": 1
+      "id": 1,
+      "primarySource": 1
     },
     {
-      "name": "条件形状求根",
+      "name": "条件形状求解",
       "description": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
       "basis": "标准似然的条件得分；数值上用Brent，倍增上界括根、指数权重先减最大值。",
       "notes": "全等样本无有限形状根。下界得分≤0时返回1并标记边界；此时不要求得分为零。",
@@ -72,16 +67,12 @@
         "explanation": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
         "symbols": [
           {
-            "symbol": "β",
-            "meaning": "条件形状"
-          },
-          {
-            "symbol": "β=1",
-            "meaning": "是否采纳下界"
+            "symbol": "\\beta",
+            "meaning": "形状参数"
           },
           {
             "symbol": "d_i",
-            "meaning": "平移后的正距离"
+            "meaning": "平移距离"
           },
           {
             "symbol": "v_i",
@@ -90,10 +81,6 @@
           {
             "symbol": "w_i",
             "meaning": "归一化幂权重"
-          },
-          {
-            "symbol": "s_β",
-            "meaning": "形状得分"
           }
         ]
       },
@@ -101,39 +88,53 @@
         {
           "code": "logd",
           "symbol": "\\ln d_i",
-          "meaning": "对数距离"
+          "meaning": "平移距离的对数"
         },
         {
-          "code": "lower",
+          "code": "weight",
           "symbol": "1",
-          "meaning": "形状下界"
+          "meaning": "形状得分权重"
         }
       ],
       "outputs": [
         {
           "code": "beta",
-          "symbol": "β",
-          "meaning": "条件形状"
+          "symbol": "\\beta",
+          "meaning": "形状根或允许的下界"
         },
         {
-          "code": "boundary",
-          "symbol": "β=1",
-          "meaning": "是否采纳下界"
+          "code": "score(beta)",
+          "symbol": "s_\\beta",
+          "meaning": "返回点的形状得分"
         }
       ],
       "sources": [
         {
-          "file": "python/methods/conditional_profiles.py",
-          "symbol": "_shape",
-          "label": "形状方程求根"
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "_location_grid"
+        },
+        {
+          "file": "python/methods/profile_solvers.py",
+          "symbol": "solve_mle_profile",
+          "from": "def profile(g):",
+          "until": "candidates = []"
         },
         {
           "file": "python/methods/conditional_profiles.py",
           "symbol": "mle_profile",
-          "label": "条件似然与尺度"
+          "until": "beta, score, boundary = solution"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_distances"
+        },
+        {
+          "file": "python/methods/conditional_profiles.py",
+          "symbol": "_shape"
         }
       ],
-      "id": 2
+      "id": 2,
+      "primarySource": 4
     },
     {
       "name": "恢复尺度与似然",
@@ -203,19 +204,20 @@
         {
           "file": "python/methods/conditional_profiles.py",
           "symbol": "mle_profile",
-          "label": "条件似然与尺度"
+          "from": "beta, score, boundary = solution"
         }
       ],
-      "id": 3
+      "id": 3,
+      "primarySource": 0
     },
     {
-      "name": "搜索有限位置候选",
-      "description": "扫描位置得分正转负区间，补查窄谷及平坦似然峰，精化有限局部极大。",
+      "name": "搜索并校验位置候选",
+      "description": "回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。",
       "basis": "数值策略：零位置得分≤0时保留；内部候选要求β>1，并按位置去重。",
       "notes": "有限网格和局部精化不构成全域最优证明。候选记录不是优化迭代轨迹。",
       "formula": {
         "expression": "s_\\gamma(\\gamma_L)>0>s_\\gamma(\\gamma_R),\\quad0\\le\\gamma<t_{(1)}",
-        "explanation": "扫描位置得分正转负区间，补查窄谷及平坦似然峰，精化有限局部极大。",
+        "explanation": "回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。",
         "symbols": [
           {
             "symbol": "\\mathcal C",
@@ -246,27 +248,19 @@
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_mle_profile",
-          "label": "扫描与精化",
           "from": "zero = points[0]",
           "until": "eta_limit ="
         },
         {
           "file": "python/methods/profile_solvers.py",
-          "symbol": "solve_mle_profile.add",
-          "label": "候选过滤与单位恢复"
-        },
-        {
-          "file": "python/methods/profile_solvers.py",
-          "symbol": "_location_grid",
-          "label": "无量纲位置网格"
+          "symbol": "solve_mle_profile.add"
         }
       ],
-      "isLoop": true,
-      "loopCount": "位置网格及局部精化",
-      "id": 4
+      "id": 4,
+      "primarySource": 0
     },
     {
-      "name": "候选比较与支撑极限",
+      "name": "比较候选与边界处理",
       "description": "选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。",
       "basis": "工程约束与诊断：γ=tmin不在开支撑内，不用任意ε伪造可达极大。",
       "notes": "无有限候选时返回no_finite_local_maximum；极限似然更高时也仅记录标记，不替换有限估计。",
@@ -311,20 +305,26 @@
         {
           "file": "python/methods/profile_solvers.py",
           "symbol": "solve_mle_profile",
-          "label": "比较与极限",
           "from": "eta_limit ="
+        },
+        {
+          "file": "python/methods/mle.py",
+          "symbol": "MLE.run",
+          "from": "self.last_solution_info = {",
+          "through": "beta, eta, gamma = (selected[p] for p in ['beta', 'eta', 'gamma'])"
         }
       ],
-      "id": 5
+      "id": 5,
+      "primarySource": 0
     },
     {
-      "name": "返回与概率图 R²",
-      "description": "返回统一五元结果；trace明确区分candidate、final和failed。",
+      "name": "计算拟合优度并返回",
+      "description": "计算拟合优度，返回形状、尺度和位置参数。",
       "basis": "项目接口与诊断：概率图R²不参与似然最大化。",
       "notes": "求解异常返回profile_solver_failed、参数为None。R²用变换后残差；γ越界或总平方和为零时返回0。此页为静态程序说明。",
       "formula": {
         "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
-        "explanation": "返回统一五元结果；trace明确区分candidate、final和failed。",
+        "explanation": "计算拟合优度，返回形状、尺度和位置参数。",
         "symbols": [
           {
             "symbol": "(β,η,γ,R²,status)",
@@ -334,36 +334,46 @@
       },
       "inputs": [
         {
-          "code": "selected",
-          "symbol": "(β,η,γ)",
-          "meaning": "选定参数"
+          "code": "beta",
+          "symbol": "\\hat\\beta",
+          "meaning": "形状参数"
+        },
+        {
+          "code": "eta",
+          "symbol": "\\hat\\eta",
+          "meaning": "尺度参数"
+        },
+        {
+          "code": "gamma_val",
+          "symbol": "\\hat\\gamma",
+          "meaning": "位置参数"
         }
       ],
       "outputs": [
         {
           "code": "return",
-          "symbol": "(β,η,γ,R²,status)",
-          "meaning": "统一返回"
+          "symbol": "R^2",
+          "meaning": "概率图决定系数"
         }
       ],
       "sources": [
         {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._calculate_r2"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._median_ranks"
+        },
+        {
           "file": "python/methods/mle.py",
           "symbol": "MLE.run",
-          "label": "返回与失败处理"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._calculate_r2",
-          "label": "概率图 R²"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._median_ranks",
-          "label": "绘图位置"
+          "from": "return [beta, eta, gamma, self._calculate_r2"
         }
       ],
-      "id": 6
+      "id": 6,
+      "primarySource": 0
     }
-  ]
+  ],
+  "presentation": "steps"
 }

@@ -22,14 +22,18 @@ import numpy as np
 from scipy.special import gamma as gamma_fn
 
 from base import WeibullBase
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
 
 
-def sample_weibull_moment(sorted_x, k):
+def sample_weibull_moment(sorted_x, k, trace_terms=None):
     """论文式(3)：样本 Weibull 矩 m̄_k = Σ (1 - r/n)^k (x_(r+1) - x_(r))，x_(0)=0。"""
     n = len(sorted_x)
     x_prev = np.concatenate(([0.0], sorted_x[:-1]))
     weights = (1.0 - np.arange(n) / n) ** k
-    return float(np.sum(weights * (sorted_x - x_prev)))
+    terms = weights * (sorted_x - x_prev)
+    if trace_terms is not None:
+        trace_terms.extend(float(v) for v in terms)
+    return float(np.sum(terms))
 
 
 def solve_from_weibull_moments(m1, m2, m4):
@@ -62,6 +66,7 @@ class MM(WeibullBase):
         # @symbols: x|x|排序后的失效时间数组, n|n|样本数量
         # @inputs: data|x_i|原始失效时间样本
         # @outputs: x|x|排序后数组, n|n|样本数量
+        self.calculation_trace = None
         x = self.data
         n = self.n
 
@@ -74,9 +79,10 @@ class MM(WeibullBase):
         # @symbols: \bar{m}_k|\bar{m}_k|k 阶样本 Weibull 矩
         # @inputs: x|x|排序后数组, n|n|样本数量
         # @outputs: m1|\bar{m}_1|一阶矩（等于样本均值）, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
-        m1 = sample_weibull_moment(x, 1)
-        m2 = sample_weibull_moment(x, 2)
-        m4 = sample_weibull_moment(x, 4)
+        terms = {k: [] for k in (1, 2, 4)}
+        m1 = sample_weibull_moment(x, 1, terms[1] if trace else None)
+        m2 = sample_weibull_moment(x, 2, terms[2] if trace else None)
+        m4 = sample_weibull_moment(x, 4, terms[4] if trace else None)
 
         if trace:
             self.log_step({"phase": "moments", "m1": m1, "m2": m2, "m4": m4})
@@ -104,6 +110,7 @@ class MM(WeibullBase):
         # @inputs: m1|\bar{m}_1|一阶矩, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
         # @outputs: shape|c^*|形状参数, location|a^*|位置参数, scale|b^*|尺度参数
         shape, location, scale = solved
+        raw_estimate = dict(beta=float(shape), eta=float(scale), gamma=float(location))
         location_adjustment = None
 
         # @step: 5 | 位置参数可采纳性修正 | a*<0 置零；a*>=x_(1) 用论文替代式 a**
@@ -156,6 +163,7 @@ class MM(WeibullBase):
             "location_adjustment": location_adjustment,
             "two_param_shape": two_param_shape,
             "two_param_scale": two_param_scale,
+            "raw_estimate": raw_estimate,
         }
 
         if trace:
@@ -166,5 +174,35 @@ class MM(WeibullBase):
                 "gamma": float(location),
                 "location_adjustment": location_adjustment,
             })
+            description = '先检验 m̄₁−m̄₂ > m̄₂−m̄₄ > 0，再由式(2a–c)显式解参数并执行记录的位置处理。'
+            self.calculation_trace = dict(
+                schema_version=1, method='mm', criterion=dict(description=description),
+                selection=dict(description=description, status='ok', beta=float(shape),
+                               eta=float(scale), gamma=float(location),
+                               raw_estimate=raw_estimate, location_adjustment=location_adjustment),
+                charts=[plot_chart('weibull-moments', '生存函数面积形成样本矩', '失效时间 t', '经验生存函数的幂 Sₙ(t)ᵏ',
+                                   [dict(**plot_series(f'survival-{k}', f'k={k}，m̄={moment:.6g}',
+                                        [plot_point(0, 1)] + [plot_point(value, ((n-i-1)/n)**k)
+                                                              for i, value in enumerate(x)], role='diagnostic'),
+                                         interpolation='stepAfter') for k, moment in ((1,m1),(2,m2),(4,m4))],
+                                   formula=r'\bar m_k=\int_0^\infty S_n(t)^k\,dt=\sum_{r=0}^{n-1}(1-r/n)^k(t_{(r+1)}-t_{(r)})',
+                                   description='三条阶梯曲线下的面积分别是 m̄₁、m̄₂、m̄₄，用来显式求解参数。'),
+                        plot_chart('moment-admissibility', '样本矩能否给出正的形状和尺度',
+                                   'd₂₄ = m̄₂−m̄₄', 'd₁₂ = m̄₁−m̄₂',
+                                   [plot_series('boundary', 'd₁₂=d₂₄ 边界',
+                                                [plot_point(0,0),plot_point(m1-m2,m1-m2)], role='diagnostic')],
+                                   selected=[plot_point(m2-m4,m1-m2,label='本次矩组合')],
+                                   formula=r'd_{12}>d_{24}>0',
+                                   description='本次矩组合应在对角线上方且横坐标大于零，随后代入显式解。')],
+                recovery=[calculation_step('样本矩与形状显式解', r'\hat\beta=\frac{\ln2}{\ln(\bar m_1-\bar m_2)-\ln(\bar m_2-\bar m_4)}',
+                                           [('m̄₁',m1),('m̄₂',m2),('m̄₄',m4),('β̂',shape)]),
+                          calculation_step('位置显式解与当前处理', r'\gamma^*=\frac{\bar m_1\bar m_4-\bar m_2^2}{\bar m_1+\bar m_4-2\bar m_2}',
+                                           [('γ*（原始）',raw_estimate['gamma']),('γ̂（返回）',location)]),
+                          calculation_step('尺度恢复', r'\hat\eta=\frac{\bar m_1-\hat\gamma}{\Gamma(1+1/\hat\beta)}',
+                                           [('η*（原始）',raw_estimate['eta']),('η̂（返回）',scale)])],
+                details=dict(**self.last_solution_info,
+                             moment_terms=terms,
+                             scale_recomputed=location_adjustment is not None,
+                             implementation_note='位置处理后的尺度重算是当前实现的工程补充规则，未经修正参数保留在 raw_estimate。'))
 
         return [float(shape), float(scale), float(location), float(r2), True]

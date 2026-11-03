@@ -9,12 +9,74 @@
 
 import inspect
 import time
+import hashlib
+import json
+import uuid
+import platform
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional, Dict, Any
 
 import numpy as np
+import scipy
 
 from base import MethodResult
 from methods.registry import resolve_method
+
+
+def _calculation_record(instance, method_id, values, run_kwargs, elapsed, result):
+    """Bind backend-owned chart quantities to the exact sample and implementation."""
+    record = getattr(instance, 'calculation_trace', None)
+    if record is None:
+        info = (result.get('extra') or {}).get('solution_info') or result.get('extra') or {}
+        explanations = {
+            'weight_table_unsupported_sample_size': '本次样本量超出当前已核验权重表的3–100覆盖范围；未使用表外替代权重。',
+            'inadmissible_moments': '样本矩不满足 m̄₁−m̄₂ > m̄₂−m̄₄ > 0，原式不能给出可采纳的正形状与尺度。',
+            'fixed_point_not_converged': '形状不动点迭代未满足停止条件；保留失败状态，没有改用其他求解方法。',
+        }
+        reason = explanations.get(info.get('status'), info.get('error', '本次运行未满足估计的接受条件。'))
+        record = dict(schema_version=1, method=method_id, charts=[],
+                      criterion=dict(description=reason),
+                      selection=dict(status=info.get('status', 'failed'),
+                                     description=reason),
+                      details=info)
+    source_root = Path(__file__).resolve().parents[2]
+    source_paths = [Path(inspect.getfile(type(instance))).resolve(), source_root / 'base.py',
+                    source_root / 'methods' / 'calculation_trace.py']
+    if method_id in ('mle', 'wmle'):
+        source_paths.extend(source_root / 'methods' / name for name in
+                            ('profile_solvers.py', 'conditional_profiles.py'))
+    if method_id == 'wmle':
+        source_paths.append(source_root / 'methods' / 'wmle.py')
+        source_paths.append(source_root / 'methods' / 'j3_weights.tsv')
+    sources = [{"path": path.relative_to(source_root).as_posix(),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+               for path in source_paths if path.is_file()]
+    payload = json.dumps(sorted(float(v) for v in values), separators=(',', ':'), allow_nan=False)
+    effective_parameters = {name: parameter.default for name, parameter in inspect.signature(instance.run).parameters.items()
+                            if parameter.default is not inspect.Parameter.empty and name != 'trace'}
+    effective_parameters.update({k: v for k, v in run_kwargs.items() if k != 'trace'})
+    record['run'] = dict(id=str(uuid.uuid4()), completed_at=datetime.now(timezone.utc).isoformat(),
+                         sample_sha256=hashlib.sha256(payload.encode()).hexdigest(),
+                         observations=sorted(float(v) for v in values), n=int(len(values)),
+                         parameters=effective_parameters,
+                         duration_seconds=elapsed, sources=sources,
+                         runtime=dict(python=platform.python_version(), numpy=np.__version__, scipy=scipy.__version__))
+    def serializable(value):
+        if isinstance(value, dict):
+            return {str(k): serializable(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, np.ndarray)):
+            return [serializable(v) for v in value]
+        if isinstance(value, (float, np.floating)):
+            return float(value) if np.isfinite(value) else None
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.bool_):
+            return bool(value)
+        return value
+    # JSON has no NaN/Infinity. Retain such diagnostic entries as null;
+    # chart constructors separately omit non-finite points rather than inventing values.
+    return serializable(record)
 
 
 def _accepted_run_kwargs(instance, kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -148,11 +210,25 @@ def run_method(method_id: str, sample, variant: Optional[str] = None,
                 result["extra"] = {}
             result["extra"]["solution_info"] = solution_info
 
+        if kwargs.get('include_plot_points') and result['beta_hat'] is not None:
+            # Probability-plot diagnostics use this instance's actual rank rule.
+            # LRE uses its own Park plotting positions; others use their actual rank setting.
+            probabilities = getattr(instance, 'plotting_positions', None)
+            if probabilities is None:
+                probabilities = instance._median_ranks()
+            result['plot_points'] = [dict(x=float(np.log(t-result['gamma_hat'])),
+                                          y=float(np.log(-np.log1p(-p))),
+                                          originalValue=float(t), medianRank=float(p))
+                                     for t, p in zip(instance.data, probabilities)
+                                     if t > result['gamma_hat']]
+
         if kwargs.get("trace"):
             trace_data = getattr(instance, "trace_data", None)
             if isinstance(raw, MethodResult) and raw.trace_data is not None:
                 trace_data = raw.trace_data
             result["trace_data"] = trace_data
+            result['calculation'] = _calculation_record(
+                instance, resolved_method_id, values, run_kwargs, elapsed, result)
     except Exception as e:
         result["extra"] = {"error": f"{type(e).__name__}: {e}"}
         if kwargs.get("trace"):

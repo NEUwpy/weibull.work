@@ -84,6 +84,7 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
     }
     return sources.get(relative)
   }
+  const counters = []
   const steps = config.steps.map((step, index) => {
     const context = `${methodId} / ${step.name || index + 1}`
     for (const key of ['name', 'description', 'basis']) if (!text(step[key])) fail(context + '：缺少 ' + key)
@@ -94,10 +95,17 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
       if (!step[key]?.length || step[key].some(v => !text(v.code) || !text(v.symbol) || !text(v.meaning))) fail(context + '：缺少输入输出映射')
     }
     if (!step.sources?.length) fail(context + '：缺少真实源码引用')
+    if (step.primarySource !== undefined && (!Number.isInteger(step.primarySource) || step.primarySource < 0 || step.primarySource >= step.sources.length)) fail(context + '：本步核心代码定位无效')
+    const depth = step.depth ?? 0, kind = step.kind ?? 'step'
+    if (!Number.isInteger(depth) || depth < 0 || depth > 3 || (index === 0 && depth !== 0) || depth > (config.steps[index - 1]?.depth ?? 0) + 1) fail(context + '：调用层级不连续')
+    if (!['step', 'call', 'loop', 'condition', 'return'].includes(kind) || (depth > 0 && !text(step.context))) fail(context + '：缺少执行关系说明')
+    counters.length = depth + 1
+    counters[depth] = (counters[depth] || 0) + 1
     const references = step.sources.map(ref => {
       const source = readSource(ref.file), lines = source.lines
       let { start, end } = ref.symbol ? symbolRange(lines, ref.symbol, ref.file) : { start: 0, end: lines.length }
       if (!ref.symbol && !ref.from) fail(context + '：源码引用缺少符号或起始锚点')
+      if (ref.after) start = anchor(lines, ref.after, start, end, context) + 1
       if (ref.from) start = anchor(lines, ref.from, start, end, context)
       if (ref.until && ref.through) fail(context + '：until 与 through 不可同时使用')
       if (ref.until) end = anchor(lines, ref.until, start + 1, end, context)
@@ -105,15 +113,16 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
       if (!hasExecutable(lines.slice(start, end))) fail(context + '：源码范围只有说明而无可执行语句')
       return { file: ref.file, symbol: ref.symbol, label: ref.label || ref.symbol || path.basename(ref.file), start, end }
     })
-    return { ...step, sources: references }
+    return { ...step, depth, kind, number: counters.join('.'), sources: references }
   })
   const algorithm = path.join(root, 'src/content/algorithms', methodId + '.md')
-  const implementation = fs.existsSync(algorithm) ? matter(fs.readFileSync(algorithm, 'utf8')).data.implementation?.summary || '' : ''
+  const definition = fs.existsSync(algorithm) ? matter(fs.readFileSync(algorithm, 'utf8')).data.implementation : null
+  const implementationSummary = config.implementation || definition?.summary || ''
   const artifacts = (config.artifacts || []).map(relative => {
     const bytes = fs.readFileSync(sourcePath(root, relative, true))
     return { path: relative, sha256: hash(bytes), bytes: bytes.length }
   })
-  return { ...config, implementation, steps, sources: [...sources.values()], artifacts }
+  return { ...config, implementation: implementationSummary, steps, sources: [...sources.values()], artifacts }
 }
 
 export function validateCompletedMethodFlows(methods, root = process.cwd()) {

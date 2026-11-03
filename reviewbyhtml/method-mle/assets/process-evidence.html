@@ -93,7 +93,7 @@
   82     grad = len(d) * (beta * float(w @ (1 / d)) - (beta - 1) * np.mean(1 / d))
   83     return dict(beta=beta, eta=float(np.exp(log_eta)), ll=float(ll),
   84                 location_score=float(grad), shape_score=score,
-  85                 shape_at_lower_boundary=boundary)</code></pre><h2>搜索并校验位置候选</h2><p>回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。</p><p>\[s_\gamma(\gamma_L)>0>s_\gamma(\gamma_R),\quad0\le\gamma<t_{(1)}\]</p><p>python/methods/profile_solvers.py L62–101</p><pre><code>  62     zero = points[0]
+  85                 shape_at_lower_boundary=boundary)</code></pre><h2>搜索并校验位置候选</h2><p>回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。</p><p><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>s</mi><mi>γ</mi></msub><mo stretchy="false">(</mo><msub><mi>γ</mi><mi>L</mi></msub><mo stretchy="false">)</mo><mo>&gt;</mo><mn>0</mn><mo>&gt;</mo><msub><mi>s</mi><mi>γ</mi></msub><mo stretchy="false">(</mo><msub><mi>γ</mi><mi>R</mi></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="1em"/><mn>0</mn><mo>≤</mo><mi>γ</mi><mo>&lt;</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></p><p>python/methods/profile_solvers.py L62–101</p><pre><code>  62     zero = points[0]
   63     if zero is not None and zero[&#x27;location_score&#x27;] &lt;= 0:
   64         add(0., &#x27;zero_location_boundary&#x27;)
   65     for i in range(len(grid) - 1):

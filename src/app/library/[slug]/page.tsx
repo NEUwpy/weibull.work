@@ -16,6 +16,7 @@ import { readLibrarySearchHighlight, rehypeLibrarySearchHighlights, type Library
 import { LibraryAuthenticationError, libraryDocumentClient } from '@/lib/library-document-client'
 import { libraryAuthClient, useLibrarySession } from '@/lib/library-auth-client'
 import { LibraryLoginDialog } from '@/components/library/LibraryLoginDialog'
+import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import type { LibraryVersion } from '@/lib/library-search-types'
 
 type ReadingView = '介绍' | LibraryVersion
@@ -149,7 +150,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             <div className="reader-paper bg-white p-10 rounded-3xl border border-slate-200 shadow-sm library-entry-introduction">
               <div>
                 <p className="text-xs tracking-widest text-slate-400 mb-5">文献介绍</p>
-                <p className="library-entry-summary">{paper.summary || '暂无文献介绍。'}</p>
+                <LibraryMathMarkdown className="library-entry-summary">{paper.summary || '暂无文献介绍。'}</LibraryMathMarkdown>
                 {!versions.length && <p role="status" className="mt-6 text-sm text-slate-500">资料待补齐，原文与译文暂未收录。</p>}
                 <div className="library-entry-actions">{READING_VERSIONS.map(version => <button type="button" key={version} disabled={!versions.includes(version)} aria-disabled={!versions.includes(version)} onClick={() => chooseView(version)} className={cn('library-entry-read', version === versions[0] && 'library-entry-read-primary')}>{version === '翻译' ? <Languages size={16} /> : <FileText size={16} />}阅读{version === '翻译' ? '译文' : '原文'}{versions.includes(version) ? <ArrowRight size={15} /> : <span className="text-xs">待补齐</span>}</button>)}</div>
               </div>

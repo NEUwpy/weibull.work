@@ -9,6 +9,7 @@ Minimum Discrepancy Method
 from base import WeibullBase
 import numpy as np
 from scipy.optimize import minimize_scalar, root_scalar
+from .calculation_trace import plot_point, plot_series, plot_chart
 
 
 def _json_float(value):
@@ -92,6 +93,7 @@ class MDM(WeibullBase):
         """
         if offset is None:
             raise ValueError("offset parameter is required (e.g., offset=0.1)")
+        self.calculation_trace = None
 
         # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
         # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
@@ -129,6 +131,8 @@ class MDM(WeibullBase):
         # @outputs: best_beta|\beta^*|最优β值, min_sigma|\sigma_{min}|最小标准差
         beta_sigma_cache = {}
         profile_gradient_cache = {}
+        beta_evaluations = {} if trace else None
+        root_evaluations = []
 
         def find_best_beta_for_gamma(gamma):
             if gamma >= t[0]:
@@ -136,8 +140,15 @@ class MDM(WeibullBase):
             cache_key = float(gamma)
             if cache_key in beta_sigma_cache:
                 return beta_sigma_cache[cache_key]
+            def beta_objective(beta):
+                sigma = calculate_eta_std(beta, gamma, t)
+                if trace:
+                    beta_evaluations.setdefault(cache_key, []).append(
+                        dict(beta=float(beta), sigma=float(sigma)))
+                return sigma
+
             res = minimize_scalar(
-                lambda b: calculate_eta_std(b, gamma, t),
+                beta_objective,
                 bounds=(0.1, 15.0),
                 method='bounded'
             )
@@ -302,7 +313,12 @@ class MDM(WeibullBase):
                 }
 
                 def root_objective(gamma):
-                    return profile_gradient(gamma) - offset
+                    gradient = profile_gradient(gamma)
+                    if trace:
+                        root_evaluations.append(dict(gamma=float(gamma), gradient=float(gradient),
+                                                     residual=float(gradient - offset),
+                                                     evaluation=len(root_evaluations) + 1))
+                    return gradient - offset
 
                 root = root_scalar(
                     root_objective,
@@ -379,6 +395,67 @@ class MDM(WeibullBase):
         # @inputs: found_gamma|\gamma^*|最优γ, found_beta|\beta^*|最优β, gammas|\gamma|γ数组, sigma_mins|\sigma_{min}|标准差数组, best_betas|\beta^*|最优β数组
         # @outputs: trace_data|trace_{data}|可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）
         if trace:
+            # Capture the actual solver state before the supplementary legacy
+            # surface sampling below. No surrogate values enter these charts.
+            selected_sigma = float(beta_sigma_cache[float(found_gamma)][1])
+            beta_points = [plot_point(p['beta'], p['sigma'], beta=p['beta'],
+                                      gamma=float(found_gamma), evaluation=i + 1)
+                           for i, p in enumerate(beta_evaluations.get(float(found_gamma), []))]
+            gradient_values = list(root_evaluations)
+            if not gradient_values:
+                gradient_values = [dict(gamma=0., gradient=float(probe_gradient_at_zero))]
+                if right_anchor_gamma is not None:
+                    gradient_values.append(dict(gamma=float(right_anchor_gamma),
+                                                gradient=float(right_anchor_gradient)))
+            gradient_points = [plot_point(p['gamma'], p['gradient'], **p) for p in gradient_values]
+            selected_gradient = profile_gradient_cache.get(float(found_gamma))
+            approximate = root_solver == 'right_edge_fit'
+            if solution_strategy == 'truncated_at_zero':
+                selection_description = 'g(0)≥δ，按当前 γ≥0 工程约束选择 γ=0，再求对应 β 与 η。'
+            elif approximate:
+                selection_description = ('右锚点梯度仍低于 δ，当前实现使用端点外推位置；'
+                                         '此位置不是实际求得的 g(γ)=δ 根。')
+            else:
+                selection_description = '用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。'
+            gradient_series = [plot_series('gradient', '实际求根函数求值', gradient_points)]
+            if approximate:
+                gradient_series.append(plot_series(
+                    'endpoint-fit', '端点外推目标（非函数值）',
+                    [plot_point(found_gamma, offset, virtual=True)], role='virtual', kind='scatter'))
+            self.calculation_trace = dict(
+                schema_version=1, method='mdm',
+                criterion=dict(description=selection_description),
+                charts=[
+                    plot_chart(
+                        'shape-discrepancy', '固定最终位置后的形状搜索',
+                        '形状参数 β', '伪尺度标准差 σ₍η₎',
+                        [plot_series('sigma', '本次内层实际求值', beta_points)],
+                        description='固定本次最终 γ，展示内层有界搜索实际计算的标准差；选中点直接使用求解器返回的最小值。',
+                        selected=[plot_point(found_beta, selected_sigma, label='选中形状参数')]),
+                    plot_chart(
+                        'location-criterion', '位置参数的梯度偏移判据',
+                        '位置参数 γ', '剖面标准差梯度 g(γ)', gradient_series,
+                        description=selection_description + ' 曲线按 γ 排列，详细记录保留真实求值次序。',
+                        references=[dict(axis='y', value=float(offset), label='目标偏移量 δ')],
+                        selected=[plot_point(found_gamma, selected_gradient, label='最终位置参数')]
+                        if selected_gradient is not None and not approximate else []),
+                ],
+                selection=dict(description=selection_description, beta=float(found_beta),
+                               eta=float(found_eta), gamma=float(found_gamma),
+                               sigma=selected_sigma, target_offset=float(offset),
+                               gradient=float(selected_gradient) if selected_gradient is not None else None,
+                               approximate=approximate, strategy=solution_strategy, solver=root_solver),
+                details=dict(rank_method=rank_method, shape_search_bounds=[0.1, 15.0],
+                             sigma_ddof=1, root_bracket=root_bracket,
+                             root_solver_iterations=root_solver_iterations,
+                             root_evaluations=root_evaluations,
+                             gradient_scan=[dict(gamma=float(g), gradient=float(v))
+                                            for g, v in zip(gammas, grads) if np.isfinite(v)],
+                             pseudo_scales=[dict(observation=float(ti), rank=float(ri),
+                                                 eta=float(ei)) for ti, ri, ei in zip(t, ranks, etas)],
+                             boundary_rule='gamma >= 0',
+                             supplementary_legacy_curves='旧 trace_data 中的曲面为额外函数采样，不是迭代轨迹'),
+            )
             # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility
             beta_scan = np.linspace(0.5, 5, 100)
             sigma_beta_curve = []

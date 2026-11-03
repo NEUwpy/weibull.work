@@ -5,7 +5,6 @@
   "description": "Park绘图位置 → 相关系数定位 → OLS形状与尺度。",
   "steps": [
     {
-      "id": 1,
       "name": "数据预处理",
       "description": "获取排序后的失效时间数据和样本数量",
       "formula": {
@@ -45,22 +44,22 @@
       "notes": "当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。",
       "sources": [
         {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__"
+        },
+        {
           "file": "python/methods/lre.py",
           "symbol": "LRE.run",
           "label": "本步实现",
           "from": "# @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量",
           "until": "# @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase.__init__",
-          "label": "输入校验与排序"
         }
-      ]
+      ],
+      "id": 1,
+      "primarySource": 1
     },
     {
-      "id": 2,
-      "name": "Park 绘图位置变换",
+      "name": "计算绘图位置",
       "description": "n≤10 用 Blom，n≥11 用 (i−1/2)/n",
       "formula": {
         "expression": "p_i=\\begin{cases}(i-3/8)/(n+1/4),&n\\leq10\\\\(i-1/2)/n,&n\\geq11\\end{cases},\\quad y_i=\\ln(-\\ln(1-p_i))",
@@ -100,12 +99,13 @@
           "from": "# @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n",
           "until": "# @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数"
         }
-      ]
+      ],
+      "id": 2,
+      "primarySource": 0
     },
     {
-      "id": 3,
       "name": "优化位置参数",
-      "description": "按 Park 式(2)在 [0,t_(1)) 内最大化相关系数",
+      "description": "保留网格最佳点并精化被夹住的峰，比较后恢复γ。",
       "formula": {
         "expression": "\\hat{\\gamma} = \\arg\\max_{\\gamma \\in [0,t_{(1)})} \\rho(\\gamma), \\rho = \\mathrm{corr}(\\ln(t-\\gamma), y)",
         "symbols": [
@@ -118,7 +118,7 @@
             "meaning": "Pearson 相关系数"
           }
         ],
-        "explanation": "按 Park 式(2)在 [0,t_(1)) 内最大化相关系数"
+        "explanation": "保留网格最佳点并精化被夹住的峰，比较后恢复γ。"
       },
       "inputs": [
         {
@@ -145,26 +145,35 @@
         {
           "file": "python/methods/lre.py",
           "symbol": "LRE.run",
-          "label": "本步实现",
-          "from": "# @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数",
-          "until": "# @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合"
+          "from": "t_min = float(t[0])",
+          "until": "def negative_correlation(s):"
         },
         {
           "file": "python/methods/lre.py",
-          "symbol": "LRE.run.negative_correlation",
-          "label": "相关系数目标"
+          "symbol": "LRE.run",
+          "from": "search_grid = np.unique",
+          "until": "best_idx = int"
+        },
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run.negative_correlation"
+        },
+        {
+          "file": "python/methods/lre.py",
+          "symbol": "LRE.run",
+          "from": "best_idx = int",
+          "until": "# @step: 4"
         }
       ],
-      "isLoop": true,
-      "loopCount": "无量纲位置网格 + 各峰邻域有界精化，包含 γ=0"
+      "id": 3,
+      "primarySource": 3
     },
     {
-      "id": 4,
       "name": "OLS 线性回归",
       "description": "在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合",
       "formula": {
         "expression": "x_i=\\ln\\frac{t_i-\\gamma}{t_{(1)}},\\quad \\hat\\beta=\\frac{\\sum(x_i-\\bar x)(y_i-\\bar y)}{\\sum(x_i-\\bar x)^2}",
-        "explanation": "代码先计算归一化横坐标和斜率；尺度在下一步通过截距求得。",
+        "explanation": "在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合",
         "symbols": [
           {
             "symbol": "x_i",
@@ -215,15 +224,16 @@
           "from": "# @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合",
           "until": "# @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳"
         }
-      ]
+      ],
+      "id": 4,
+      "primarySource": 0
     },
     {
-      "id": 5,
-      "name": "检查斜率并恢复尺度",
+      "name": "检查系数并恢复尺度",
       "description": "要求β为有限正数，使用归一化回归截距恢复η，并检查尺度可采纳性。",
       "formula": {
         "expression": "\\hat\\beta>0,\\quad a=\\bar y-\\hat\\beta\\bar x,\\quad \\hat\\eta=t_{(1)}e^{-a/\\hat\\beta}>0",
-        "explanation": "对非有限或非正的形状、尺度返回degenerate_sample。",
+        "explanation": "要求β为有限正数，使用归一化回归截距恢复η，并检查尺度可采纳性。",
         "symbols": [
           {
             "symbol": "a",
@@ -264,11 +274,12 @@
           "from": "# @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳",
           "until": "# @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置"
         }
-      ]
+      ],
+      "id": 5,
+      "primarySource": 0
     },
     {
-      "id": 6,
-      "name": "计算概率图 R²",
+      "name": "计算拟合优度并返回",
       "description": "与位置搜索采用同一组 Park 绘图位置",
       "formula": {
         "expression": "R^2 = 1-\\frac{\\sum(y_i-\\hat{y}_i)^2}{\\sum(y_i-\\bar{y})^2}=\\rho^2",
@@ -317,7 +328,10 @@
           "label": "本步实现",
           "from": "# @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置"
         }
-      ]
+      ],
+      "id": 6,
+      "primarySource": 0
     }
-  ]
+  ],
+  "presentation": "steps"
 }

@@ -3,7 +3,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { getDataRoot } from './data-root'
-import { indexSourcePapers, sourceDocument, sourceAsset, type SourceIndex } from './source-library'
+import { indexSourcePapers, sourceDocument, sourceAsset, readSourceNoteSummary, type SourceIndex } from './source-library'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 import type { LibraryVersion } from '../library-search-types'
 
@@ -190,11 +190,11 @@ function metadataFrom(paths: LibraryPaths, slug: string): PaperMetadata | null {
     const availableVersions: LibraryVersion[] = []
     if (source.original) availableVersions.push('原文')
     if (source.translation) availableVersions.push('翻译')
-    // Complete JSON tickets render without opening bodies, notes or DOI hash sources.
-    // Explicit legacy bare-ID / partial tickets keep their original metadata adapter.
+    // Complete tickets avoid full-text reads; only the selected note summary is public.
+    // Legacy partial tickets keep their original metadata adapter.
     const catalog = source.catalog
     const metadata = catalog?.title && catalog.year ? catalog : preferredFrom(paths, slug)?.metadata ?? catalog ?? {}
-    return publicPaperMetadata(slug, metadata, new Map(), availableVersions)
+    return publicPaperMetadata(slug, { ...metadata, summary: readSourceNoteSummary(source) || metadata.summary || '' }, new Map(), availableVersions)
   }
   const preferred = preferredFrom(paths, slug)
   if (!preferred?.metadata.title) return null

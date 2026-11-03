@@ -305,9 +305,7 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
     rows: [
       { tab: '结果分析', chart: '折线图', data: '各参数的有效估计 RMSE 随样本量或偏移量变化', src: 'ai AIChartLine' },
       { tab: '结果分析', chart: '密度图', data: '已完成组合的有效参数估计分布；失败数在表格单列', src: 'shared DensityChart' },
-      { tab: '计算过程', chart: '直方图', data: 'beta/eta/gamma 估计值分布', src: 'Recharts BarChart' },
-      { tab: '计算过程', chart: '折线图', data: 'MSE/Std 随偏移量变化', src: 'Recharts LineChart' },
-      { tab: '计算过程', chart: '散点图', data: '估计值 vs 真实值', src: 'Recharts ScatterChart' },
+      { tab: '计算过程', chart: '折线图与候选散点', data: '本次后端真实函数求值、选择判据及最终选中点；候选与采样不称迭代', src: 'shared CalculationProcessViewer' },
       { tab: '适用范围', chart: '直方图', data: '当前方法、参数组合及n的完整估计差值分布', src: 'ai Histogram / MonteCarloWorkbookViewer' },
       { tab: '可信性验证', chart: '折线图', data: '梯度曲线（MDM）', src: 'mdm GradientGammaChart' },
       { tab: '方法对比', chart: '折线图', data: '多方法精度对比', src: 'Recharts LineChart' },
@@ -347,6 +345,7 @@ export const VISUAL_SEMANTICS: VisualSemanticDef[] = [
 ]
 
 export const CHART_DEV_NORMS: DevNormDef[] = [
+  { id: 'calculation-evidence', content: '计算过程消费同次后端 calculation：实际函数值、方程残差、候选及最终选择；坐标沿用论文或实际计算量，辅助采样说明来源，范围切换只改变视窗。禁止人为补值、替代函数或虚构迭代。' },
   { id: 'spec-first', content: '新增图表或表格展示范式时，先更新 charts-spec.ts，定义用途、数据 shape、视觉语义和推荐组件。' },
   { id: 'registry-first', content: '新增图表真实使用位置时，同步更新 chart-registry.ts，记录 location、dataSource 和 props。' },
   { id: 'reuse', content: '使用图表时优先复用已有组件，用 props 控制差异；相同数据含义禁止创建功能重复的图表。' },

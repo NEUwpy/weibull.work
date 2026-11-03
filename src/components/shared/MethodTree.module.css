@@ -1,0 +1,18 @@
+.tree{container:method-catalog / inline-size}
+.method{min-height:44px;border:0;padding:0;background:transparent;text-decoration:none;cursor:pointer}
+.method[aria-pressed="true"] .methodCard,.method[aria-current="page"] .methodCard{border-color:#d7a452;background:#fff5e5;box-shadow:0 0 0 1px #d7a452}
+.method:focus-visible{outline:2px solid #d39b3e;outline-offset:3px;border-radius:12px}
+.availability{color:#a37428;font-size:14px;font-weight:400;white-space:nowrap}
+.tree[data-description="false"] .row{height:auto;min-height:116px}
+.tree[data-description="false"] .categoryInfo{width:200px;min-width:200px}
+.tree[data-description="false"] .categoryTitleBox{width:100%;padding-left:20px}
+/* Keep the overview's desktop layout; use its existing stacked form inside narrower hosts. */
+@container method-catalog (max-width:1000px){
+  .row{height:auto;flex-direction:column}
+  .categoryInfo{width:100%;min-width:0;border-right:0;border-bottom:1px solid #f1f5f9}
+  .tree[data-description="false"] .categoryInfo{width:100%;min-width:0}
+  .categoryTitleBox{padding-left:20px}
+  .methodsList{height:auto;flex-wrap:wrap;overflow-x:visible}
+  .trailingArrow{display:none}
+}
+@media(max-width:1279px){.tree[data-description="false"] .categoryInfo{width:100%;min-width:0}}

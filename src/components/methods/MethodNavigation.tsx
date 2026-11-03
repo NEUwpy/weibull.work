@@ -2,8 +2,9 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, Check, BookOpen, GitBranch, Microscope, BarChart3, Gauge, FileCheck, Scale, LucideIcon } from 'lucide-react'
-import { INITIAL_METHOD_TREE, MethodNode } from '@/lib/methods'
+import { ChevronDown, BookOpen, GitBranch, Microscope, BarChart3, Gauge, FileCheck, Scale, LucideIcon } from 'lucide-react'
+import { MethodNode } from '@/lib/methods'
+import MethodTree from '@/components/shared/MethodTree'
 import { methodHref, MethodTab } from '@/lib/method-navigation'
 import styles from './MethodNavigation.module.css'
 
@@ -21,27 +22,30 @@ export default function MethodNavigation({ method, activeTab }: { method: Method
     return () => document.removeEventListener('mousedown', outside)
   }, [])
   useEffect(() => setOpen(false), [method.id])
-  const leaves = INITIAL_METHOD_TREE.flatMap(node => node.children ?? [])
-  const workbookOrder = ['mdm', 'mle', 'wmle', 'lse', 'lre', 'mmle']
-  const options = activeTab === 'examples'
-    ? [...workbookOrder, ...(workbookOrder.includes(method.id) ? [] : [method.id])].map(id => leaves.find(m => m.id === id)!).filter(Boolean)
-    : leaves
+  const focusMethod = () => requestAnimationFrame(() => {
+    const panel = switchRef.current
+    const selected = panel?.querySelector<HTMLElement>('[data-method-id][aria-pressed="true"]')
+    const target = selected ?? panel?.querySelector<HTMLElement>('[data-method-id]')
+    target?.focus()
+  })
   return <header className={styles.header}>
     <div className={styles.row}>
-      <div ref={switchRef} className={styles.switcher} onKeyDown={e => {
+      <div ref={switchRef} className={styles.switcher} onBlur={e => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false)
+      }} onKeyDown={e => {
         if (e.key === 'Escape') { setOpen(false); buttonRef.current?.focus() }
-        if (e.key === 'ArrowDown' && !open) { e.preventDefault(); setOpen(true); requestAnimationFrame(() => switchRef.current?.querySelector<HTMLButtonElement>('[role="menuitemradio"][aria-checked="true"]')?.focus()) }
+        if (e.key === 'ArrowDown' && !open) { e.preventDefault(); setOpen(true); focusMethod() }
       }}>
-        <h1><button ref={buttonRef} type="button" className={styles.title} aria-label="切换方法" aria-haspopup="menu" aria-expanded={open} aria-controls="method-switch-menu" onClick={() => setOpen(v => !v)}>
+        <h1><button ref={buttonRef} type="button" className={styles.title} aria-label="切换方法" aria-haspopup="dialog" aria-expanded={open} aria-controls="method-switch-menu" onClick={() => { setOpen(v => !v); if (!open) focusMethod() }}>
           <span>{method.name}</span><span className={styles.abbreviation}>{method.shortName.toUpperCase()}</span><ChevronDown size={18} strokeWidth={1.7} aria-hidden="true" />
         </button></h1>
-        {open && <div id="method-switch-menu" className={styles.menu} role="menu" aria-label="切换方法" onKeyDown={e => {
-          if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
-          e.preventDefault(); const items = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button')), index = items.indexOf(document.activeElement as HTMLButtonElement)
-          items[e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
-        }}>{options.map(m => <button type="button" key={m.id} role="menuitemradio" aria-checked={m.id === method.id} onClick={() => { setOpen(false); router.push(methodHref(m.id, activeTab, query), { scroll: false }) }}>
-          <span className={styles.menuAbbreviation}>{m.shortName.toUpperCase()}</span><span>{m.name}</span>{m.id === method.id && <Check size={16} aria-hidden="true" />}
-        </button>)}</div>}
+        {open && <div id="method-switch-menu" className={styles.menu} role="dialog" aria-label="切换方法">
+          <MethodTree selectedId={method.id} onSelect={id => {
+            setOpen(false)
+            buttonRef.current?.focus()
+            if (id !== method.id) router.push(methodHref(id, activeTab, query), { scroll: false })
+          }} />
+        </div>}
       </div>
     <nav aria-label="方法功能" className={styles.navigation}>
       {tabs.map(({ tab, label, icon: Icon }) => <Link key={label} href={methodHref(method.id, tab, query)} scroll={false} aria-current={activeTab === tab ? 'page' : undefined}

@@ -13,10 +13,11 @@ import math
 import numpy as np
 from scipy.optimize import minimize_scalar
 from base import WeibullBase
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
 
 
 class LRE(WeibullBase):
-    def run(self):
+    def run(self, trace=False):
         """
         LRE 参数估计
         策略：
@@ -29,6 +30,8 @@ class LRE(WeibullBase):
         # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
         # @inputs: data|t_i|原始失效时间样本
         # @outputs: t|t|排序后数组, n|n|样本数量
+        self.calculation_trace = None
+        evaluations = []
         n = self.n
         t = self.data
 
@@ -52,6 +55,7 @@ class LRE(WeibullBase):
         # 此估计器的绘图位置由论文固定，不消费基础类的 Bernard/exact 开关。
         ranks = np.arange(1, n + 1, dtype=float)
         F = (ranks - 3 / 8) / (n + 1 / 4) if n <= 10 else (ranks - 1 / 2) / n
+        self.plotting_positions = F
         y = np.log(-np.log1p(-F))
         y_centered = y - np.mean(y)
         y_ss = float(np.dot(y_centered, y_centered))
@@ -81,7 +85,11 @@ class LRE(WeibullBase):
             x_ss = float(np.dot(centered, centered))
             if x_ss <= 0 or not np.isfinite(x_ss):
                 return np.inf
-            return -float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
+            rho = float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
+            if trace:
+                evaluations.append(dict(x=float(-t_min * np.expm1(s)), y=rho,
+                                        evaluation=len(evaluations) + 1))
+            return -rho
 
         search_grid = np.unique(np.concatenate([
             np.linspace(s_min, 0.0, 201),
@@ -173,5 +181,37 @@ class LRE(WeibullBase):
             "rho_squared": float(r2),
             "location_at_zero_boundary": bool(gamma_hat == 0.0),
         }
+
+        if trace:
+            description = '按 Park Proposed+Plot 的绘图位置，在非负位置域内最大化相关系数，再作概率图 OLS。'
+            rho = -best_objective
+            physical_x = x_vals + math.log(t_min)
+            physical_intercept = intercept - beta_hat * math.log(t_min)
+            self.calculation_trace = dict(
+                schema_version=1, method='lre', criterion=dict(description=description),
+                selection=dict(description=description, status='ok', beta=float(beta_hat),
+                               eta=float(eta_hat), gamma=float(gamma_hat), rho=float(rho)),
+                charts=[plot_chart(
+                    'correlation-location', '位置参数的相关系数判据', '位置参数 γ', '相关系数 ρ',
+                    [plot_series('rho', '实际网格与精化求值', evaluations)],
+                    selected=[plot_point(gamma_hat, rho, label='相关系数最大候选')],
+                    formula=r'\hat\gamma=\arg\max_\gamma\rho\!\left(\ln(t_i-\gamma),\ln[-\ln(1-p_i)]\right)',
+                    description='选择使概率图最接近直线的位置，即相关系数最大处。'),
+                    plot_chart('park-probability-regression', '最终位置下的概率图回归',
+                               '对数寿命 ln(tᵢ−γ̂)', 'Weibull 分数 ln[−ln(1−Fᵢ)]',
+                               [plot_series('observations', 'Park 绘图位置',
+                                            [plot_point(a, b) for a, b in zip(physical_x, y)], kind='scatter'),
+                                plot_series('fit', '本次 OLS 直线',
+                                            [plot_point(a, beta_hat * a + physical_intercept) for a in physical_x])],
+                               formula=r'Y_i=a+b\ln(t_i-\hat\gamma),\quad\hat\beta=b,\quad\hat\eta=e^{-a/b}',
+                               description='固定左图选中的位置后作 OLS；斜率 b=β̂，截距 a=−β̂ ln η̂。')],
+                recovery=[calculation_step('相关系数最大处确定位置', r'\hat\gamma=\arg\max_\gamma\rho(\gamma)',
+                                           [('γ̂', gamma_hat), ('ρ', rho)]),
+                          calculation_step('概率图斜率确定形状', r'\hat\beta=b', [('b', beta_hat), ('β̂', beta_hat)]),
+                          calculation_step('概率图截距确定尺度', r'\hat\eta=e^{-a/b}',
+                                           [('a', physical_intercept), ('η̂', eta_hat)])],
+                details=dict(**self.last_solution_info, slope=float(beta_hat),
+                             intercept=float(physical_intercept), evaluations=evaluations))
+            self.trace_data = self.calculation_trace
 
         return [float(beta_hat), float(eta_hat), float(gamma_hat), float(r2), True]

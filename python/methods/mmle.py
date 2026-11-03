@@ -9,6 +9,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 from base import WeibullBase
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
 
 INITIAL_SHAPE = 1.0
 SHAPE_ABSOLUTE_STEP_TOLERANCE = 1e-8
@@ -30,6 +31,7 @@ class MMLE(WeibullBase):
         R² is the archived zero placeholder; the original minimum has zero
         shifted distance, so the full-sample log-linear R² is not evaluated.
         """
+        self.calculation_trace = None
         if not np.isfinite(initial_shape) or initial_shape <= 0:
             raise ValueError('initial_shape must be finite and positive')
         if (not np.isfinite(shape_absolute_step_tolerance)
@@ -87,4 +89,31 @@ class MMLE(WeibullBase):
         if trace:
             self.log_step(dict(phase='final', beta=beta, eta=eta, gamma=gamma,
                                **self.last_solution_info))
+            iterations = [p for p in self.trace_data if p['phase'] == 'shape_iteration']
+            description = '令 γ̂ 为原样本最小值并删除该观测；保留样本按不动点规则迭代，步长达到容差后接受。'
+            self.calculation_trace = dict(
+                schema_version=1, method='mmle', criterion=dict(description=description),
+                selection=dict(description=description, status='ok', beta=float(beta),
+                               eta=float(eta), gamma=float(gamma), iterations=iteration),
+                charts=[plot_chart('shape-fixed-point', '保留样本的形状不动点迭代', '实际迭代次数', '形状参数 β',
+                                   [plot_series('shape', '实际迭代结果',
+                                                [plot_point(p['iteration'], p['shape_after']) for p in iterations])],
+                                   formula=r'\beta_{k+1}=\frac{q+\beta_k\sum\ln y_i}{q\sum w_i(\beta_k)\ln y_i},\quad w_i=\frac{y_i^{\beta_k}}{\sum y_j^{\beta_k}}',
+                                   description='原样本最小值确定 γ̂；删去该一个观测后，yᵢ=tᵢ−γ̂，q=n−1。',
+                                   selected=[plot_point(iteration, beta, label='最终形状参数')]),
+                        plot_chart('shape-step', '停止判据', '实际迭代次数', '相邻形状参数绝对差 |Δβ|',
+                                   [plot_series('step', '实际绝对步长',
+                                                [plot_point(p['iteration'], p['shape_step']) for p in iterations])],
+                                   references=[dict(axis='y', value=float(shape_absolute_step_tolerance), label='停止容差')],
+                                   formula=r'|\beta_{k+1}-\beta_k|\leq\varepsilon',
+                                   selected=[plot_point(iteration, difference, label='达到停止条件')])],
+                recovery=[calculation_step('样本最小值确定位置', r'\hat\gamma=t_{(1)},\quad y_i=t_{(i)}-\hat\gamma\;(i\geq2)',
+                                           [('γ̂',gamma),('保留样本数 q',q)]),
+                          calculation_step('不动点迭代确定形状', r'|\beta_{k+1}-\beta_k|\leq\varepsilon',
+                                           [('β̂',beta),('|Δβ|',difference),('ε',shape_absolute_step_tolerance)]),
+                          calculation_step('保留样本恢复尺度', r'\hat\eta=\left(\frac1q\sum y_i^{\hat\beta}\right)^{1/\hat\beta}',
+                                           [('η̂',eta)])],
+                details=dict(**self.last_solution_info, deleted_value=gamma,
+                             retained_observations=(y+gamma).tolist(), shifted_observations=y.tolist(),
+                             r_squared_note='原流程0占位，不解释为拟合优度为零。'))
         return [beta, eta, gamma, 0., True]

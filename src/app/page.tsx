@@ -426,7 +426,7 @@ function CalculatorContent() {
     }
 
     try {
-      const calculations = []
+      const calculations: { result: WeibullResult; optimization?: MdmProcessOptimizationResult; selectedOffset: number }[] = []
       for (const source of sources) {
         if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
         const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
@@ -457,6 +457,7 @@ function CalculatorContent() {
           dataSources: c.dataSources.map((source, index) => ({
             ...source,
             result: results[index],
+            calculationOffset: calculations[index].selectedOffset,
           })),
           fitMode: 'fit',
           last3PGamma: results[0].gamma,
@@ -634,6 +635,7 @@ function CalculatorContent() {
         isOpen={isMethodSelectorOpen} 
         onClose={() => setIsMethodSelectorOpen(false)}
         onSelect={handleMethodSelect}
+        currentMethodId={activeCard?.methodId}
       />
       
       <DataEditor

@@ -5,7 +5,6 @@
   "description": "Cran Weibull矩 → 显式三参数解 → 位置可采纳性修正。",
   "steps": [
     {
-      "id": 1,
       "name": "数据预处理",
       "description": "获取排序后的失效时间数据和样本数量",
       "formula": {
@@ -45,21 +44,21 @@
       "notes": "当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。",
       "sources": [
         {
+          "file": "python/base.py",
+          "symbol": "WeibullBase.__init__"
+        },
+        {
           "file": "python/methods/mm.py",
           "symbol": "MM.run",
           "label": "本步实现",
           "from": "# @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量",
           "until": "# @step: 2 | 计算样本 Weibull 矩 | 用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase.__init__",
-          "label": "输入校验与排序"
         }
-      ]
+      ],
+      "id": 1,
+      "primarySource": 1
     },
     {
-      "id": 2,
       "name": "计算样本 Weibull 矩",
       "description": "用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）",
       "formula": {
@@ -106,82 +105,25 @@
       "sources": [
         {
           "file": "python/methods/mm.py",
-          "symbol": "sample_weibull_moment",
-          "label": "Weibull矩求和"
-        },
-        {
-          "file": "python/methods/mm.py",
           "symbol": "MM.run",
           "label": "本步实现",
           "from": "# @step: 2 | 计算样本 Weibull 矩 | 用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）",
           "until": "# @step: 3 | 采纳性检查 | 论文：当 m̄2 >= (m̄1+m̄4)/2 时 c*, b* 非正，矩估计不可用"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "name": "采纳性检查",
-      "description": "论文：当 m̄2 >= (m̄1+m̄4)/2 时 c*, b* 非正，矩估计不可用",
-      "formula": {
-        "expression": "\\bar{m}_1 - \\bar{m}_2 > \\bar{m}_2 - \\bar{m}_4 > 0",
-        "symbols": [
-          {
-            "symbol": "\\bar{m}_k",
-            "meaning": "样本 Weibull 矩"
-          }
-        ],
-        "explanation": "论文：当 m̄2 >= (m̄1+m̄4)/2 时 c*, b* 非正，矩估计不可用"
-      },
-      "inputs": [
-        {
-          "code": "m1",
-          "symbol": "\\bar{m}_1",
-          "meaning": "一阶矩"
-        },
-        {
-          "code": "m2",
-          "symbol": "\\bar{m}_2",
-          "meaning": "二阶矩"
-        },
-        {
-          "code": "m4",
-          "symbol": "\\bar{m}_4",
-          "meaning": "四阶矩"
-        }
-      ],
-      "outputs": [
-        {
-          "code": "solved",
-          "symbol": "(\\beta,\\gamma,\\eta)",
-          "meaning": "可采纳显式解或None"
-        }
-      ],
-      "basis": "矩组合的可采纳条件：要求d₁₂>d₂₄>0，否则返回inadmissible_moments。",
-      "notes": "",
-      "sources": [
-        {
-          "file": "python/methods/mm.py",
-          "symbol": "solve_from_weibull_moments",
-          "label": "矩方程与可采纳条件",
-          "from": "d12 = m1 - m2",
-          "through": "return None"
         },
         {
           "file": "python/methods/mm.py",
-          "symbol": "MM.run",
-          "label": "本步实现",
-          "from": "# @step: 3 | 采纳性检查 | 论文：当 m̄2 >= (m̄1+m̄4)/2 时 c*, b* 非正，矩估计不可用",
-          "until": "# @step: 4 | 显式解参数 | 论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度"
+          "symbol": "sample_weibull_moment"
         }
-      ]
+      ],
+      "id": 2,
+      "primarySource": 1
     },
     {
-      "id": 4,
-      "name": "显式解参数",
+      "name": "检查矩组合并解参数",
       "description": "论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度",
       "formula": {
-        "expression": "\\begin{gathered}\\beta^*=\\frac{\\ln2}{\\ln(m_1-m_2)-\\ln(m_2-m_4)}\\\\[5pt] \\gamma^*=\\frac{m_1m_4-m_2^2}{m_1+m_4-2m_2}\\\\[5pt] \\eta^*=\\frac{m_1-\\gamma^*}{\\Gamma(1+1/\\beta^*)}\\end{gathered}",
-        "explanation": "辅助函数返回顺序为(shape,location,scale)；run最终返回顺序为(shape,scale,location,R²,status)。",
+        "expression": "\\begin{gathered}m_1-m_2>m_2-m_4>0\\\\[6pt]\\begin{gathered}\\beta^*=\\frac{\\ln2}{\\ln(m_1-m_2)-\\ln(m_2-m_4)}\\\\[5pt] \\gamma^*=\\frac{m_1m_4-m_2^2}{m_1+m_4-2m_2}\\\\[5pt] \\eta^*=\\frac{m_1-\\gamma^*}{\\Gamma(1+1/\\beta^*)}\\end{gathered}\\end{gathered}",
+        "explanation": "论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度",
         "symbols": [
           {
             "symbol": "\\beta^*,\\gamma^*,\\eta^*",
@@ -229,7 +171,12 @@
         {
           "file": "python/methods/mm.py",
           "symbol": "solve_from_weibull_moments",
-          "label": "显式解公式",
+          "from": "d12 = m1 - m2",
+          "through": "return None"
+        },
+        {
+          "file": "python/methods/mm.py",
+          "symbol": "solve_from_weibull_moments",
           "from": "shape = math.log(2.0)",
           "through": "return shape, location, scale"
         },
@@ -240,15 +187,16 @@
           "from": "# @step: 4 | 显式解参数 | 论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度",
           "until": "# @step: 5 | 位置参数可采纳性修正 | a*<0 置零；a*>=x_(1) 用论文替代式 a**"
         }
-      ]
+      ],
+      "id": 3,
+      "primarySource": 1
     },
     {
-      "id": 5,
-      "name": "位置参数可采纳性修正",
+      "name": "修正位置与尺度",
       "description": "a*<0 置零；a*>=x_(1) 用论文替代式 a**",
       "formula": {
         "expression": "\\begin{gathered}\\gamma^*<0\\Rightarrow\\hat\\gamma=0;\\\\[5pt]\\gamma^*\\ge t_{(1)}\\Rightarrow\\hat\\gamma=\\max\\left(0,t_{(1)}-\\frac{\\eta^*\\Gamma(1+1/\\beta^*)}{n^{1/\\beta^*}}\\right)\\\\[5pt]\\hat\\eta=\\frac{m_1-\\hat\\gamma}{\\Gamma(1+1/\\beta^*)}\\end{gathered}",
-        "explanation": "每次位置修正后重算尺度；修正仍不满足支撑或尺度为非正时失败。",
+        "explanation": "a*<0 置零；a*>=x_(1) 用论文替代式 a**",
         "symbols": [
           {
             "symbol": "\\hat\\gamma",
@@ -299,11 +247,12 @@
           "from": "# @step: 5 | 位置参数可采纳性修正 | a*<0 置零；a*>=x_(1) 用论文替代式 a**",
           "until": "# @step: 6 | 2P 对照估计 | 论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断"
         }
-      ]
+      ],
+      "id": 4,
+      "primarySource": 0
     },
     {
-      "id": 6,
-      "name": "2P 对照估计",
+      "name": "计算两参数对照",
       "description": "论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断",
       "formula": {
         "expression": "c^{**} = \\frac{\\ln 2}{\\ln \\bar{m}_1 - \\ln \\bar{m}_2}, \\quad b^{**} = \\bar{m}_1 / \\Gamma(1+1/c^{**})",
@@ -353,15 +302,16 @@
           "from": "# @step: 6 | 2P 对照估计 | 论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断",
           "until": "# @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度"
         }
-      ]
+      ],
+      "id": 5,
+      "primarySource": 0
     },
     {
-      "id": 7,
-      "name": "计算拟合优度 R²",
+      "name": "计算拟合优度并返回",
       "description": "评估模型与数据的拟合程度",
       "formula": {
         "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad \\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
-        "explanation": "R²在双对数概率图空间计算，pᵢ来自当前 rank_method；不是原始CDF空间的残差。",
+        "explanation": "评估模型与数据的拟合程度",
         "symbols": [
           {
             "symbol": "R^2",
@@ -383,48 +333,49 @@
       },
       "inputs": [
         {
-          "code": "shape",
+          "code": "beta",
           "symbol": "\\hat\\beta",
           "meaning": "形状参数"
         },
         {
-          "code": "scale",
+          "code": "eta",
           "symbol": "\\hat\\eta",
           "meaning": "尺度参数"
         },
         {
-          "code": "location",
+          "code": "gamma_val",
           "symbol": "\\hat\\gamma",
           "meaning": "位置参数"
         }
       ],
       "outputs": [
         {
-          "code": "r2",
+          "code": "return",
           "symbol": "R^2",
-          "meaning": "拟合优度"
+          "meaning": "概率图决定系数"
         }
       ],
       "basis": "项目诊断：共用基础类的概率图 R²，不参与核心参数求解。",
       "notes": "γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。",
       "sources": [
         {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._calculate_r2"
+        },
+        {
+          "file": "python/base.py",
+          "symbol": "WeibullBase._median_ranks"
+        },
+        {
           "file": "python/methods/mm.py",
           "symbol": "MM.run",
-          "label": "本步实现",
-          "from": "# @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._calculate_r2",
-          "label": "概率图 R²"
-        },
-        {
-          "file": "python/base.py",
-          "symbol": "WeibullBase._median_ranks",
-          "label": "绘图位置"
+          "from": "self.last_solution_info = {",
+          "after": "r2 = self._calculate_r2("
         }
-      ]
+      ],
+      "id": 6,
+      "primarySource": 0
     }
-  ]
+  ],
+  "presentation": "steps"
 }

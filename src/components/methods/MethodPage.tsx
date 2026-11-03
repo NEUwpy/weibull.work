@@ -16,16 +16,14 @@ import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
-import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
+import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
 import { getMethodCapability } from '@/lib/method-status'
 import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption } from '@/lib/calculator-state'
 import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 
 // Dynamic imports for heavy visualizers
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const WMLEVisualizer = dynamic(() => import('@/components/methods/wmle/visualizers/WMLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MonteCarloWorkbookViewer = dynamic(() => import('@/components/methods/shared/studies/MonteCarloWorkbookViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MethodCompareViewer = dynamic(() => import('@/components/methods/shared/compare/MethodCompareViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -73,7 +71,7 @@ export default function MethodDetailPage({ params }: MethodDetailPageProps) {
 
   if (!method) return <CategoryOverview category={category} />
 
-  return <MethodDetail category={category} method={method} />
+  return <MethodDetail key={method.id} category={category} method={method} />
 }
 
 function CategoryOverview({ category }: { category: MethodNode }) {
@@ -134,6 +132,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const [is3P, setIs3P] = useState(false)
   const [dataSources, setDataSources] = useState<DataSource[] | undefined>(undefined)
   const [traceData, setTraceData] = useState<any>(null)
+  const [calculation, setCalculation] = useState<unknown>(null)
+  const [calculationError, setCalculationError] = useState<string | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [activeSourceIndex, setActiveSourceIndex] = useState(0)
@@ -145,6 +145,22 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const handledDataParamRef = useRef<string | null>(null)
   const offsetRecalculationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const offsetRecalculationRequestRef = useRef(0)
+  const invalidateCalculation = () => {
+    offsetRecalculationRequestRef.current += 1
+    if (offsetRecalculationTimerRef.current) clearTimeout(offsetRecalculationTimerRef.current)
+    setTraceData(null)
+    setCalculation(null)
+    setCalculationError(null)
+    setIsCalculating(false)
+    setDataSources(previous => previous?.map(source => ({ ...source, result: undefined, traceData: undefined, calculation: undefined })))
+  }
+  const recordFailure = (error: unknown) => {
+    setResult({ beta: null, eta: null, gamma: 0, rSquared: null, points: [], converged: false,
+      failureReason: error instanceof Error ? error.message : String(error) })
+    setTraceData(error instanceof CalculationError ? error.traceData ?? null : null)
+    setCalculation(error instanceof CalculationError ? error.calculation ?? null : null)
+    setCalculationError(error instanceof Error ? error.message : String(error))
+  }
 
   useEffect(() => () => {
     if (offsetRecalculationTimerRef.current) {
@@ -210,21 +226,25 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setIs3P(true)
     setMdmOffset(requestedOffset)
     setIsCalculating(true)
+    setCalculation(null)
+    setCalculationError(null)
+    const requestId = ++offsetRecalculationRequestRef.current
 
     calculateWeibull({
       methodId: method.id,
       data: points,
       trace: true,
       offset: method.id.toLowerCase() === 'mdm' ? requestedOffset : undefined,
-    }).then(({ result: calculatedResult, traceData: calculatedTrace }) => {
+    }).then(({ result: calculatedResult, traceData: calculatedTrace, calculation: calculatedRecord }) => {
+      if (requestId !== offsetRecalculationRequestRef.current) return
       setResult(calculatedResult)
       setTraceData(calculatedTrace ?? null)
+      setCalculation(calculatedRecord ?? null)
       setFitMode('fit')
     }).catch((error) => {
-      console.error('Failed to calculate URL data', error)
-      alert(`后端计算错误: ${error instanceof Error ? error.message : String(error)}`)
+      if (requestId === offsetRecalculationRequestRef.current) recordFailure(error)
     }).finally(() => {
-      setIsCalculating(false)
+      if (requestId === offsetRecalculationRequestRef.current) setIsCalculating(false)
     })
   }, [method.id, searchParams])
 
@@ -233,11 +253,9 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }
 
   const handleDataSave = (newData: DataPoint[]) => {
-    const currentGamma = result?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma, method.id)
-    const res = calculateWeibullParameters(points, currentGamma)
+    invalidateCalculation()
     setData(newData)
-    setResult(res)
+    setResult(undefined)
     setFitMode('fit')
     setDataSources(undefined)
     setIsDataEditorOpen(false)
@@ -245,11 +263,9 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
   const handleDataSaveMulti = (sources: DataSource[]) => {
     if (sources.length === 0) return
+    invalidateCalculation()
 
     const firstSource = sources[0]
-    const firstGamma = 0
-    const points = calculateMedianRanks(firstSource.data, firstGamma, method.id)
-    const res = calculateWeibullParameters(points, firstGamma)
 
     const dataSourcesWithResults: DataSource[] = sources.map((source, index) => ({
       ...source,
@@ -258,7 +274,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }))
 
     setData(firstSource.data)
-    setResult(res)
+    setResult(undefined)
     setFitMode('fit')
     setDataSources(dataSourcesWithResults)
     setActiveSourceIndex(0)
@@ -270,13 +286,19 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (!sourcesToCalculate || sourcesToCalculate.length === 0) return
 
     setIsCalculating(true)
+    setCalculation(null)
+    setCalculationError(null)
+    const requestId = ++offsetRecalculationRequestRef.current
     let updatedSources = [...sourcesToCalculate]
+    setResult(undefined)
+    setTraceData(null)
 
     try {
       for (let i = 0; i < updatedSources.length; i++) {
+        if (requestId !== offsetRecalculationRequestRef.current) return
         const source = updatedSources[i]
         try {
-          const { result, traceData } = await calculateWeibull({
+          const { result, traceData, calculation } = await calculateWeibull({
             methodId: method.id,
             data: source.data,
             trace: true,
@@ -287,13 +309,22 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             ...updatedSources[i],
             result,
             traceData,
+            calculation,
+            calculationError: undefined,
           }
         } catch (err) {
-          console.error(`Failed to calculate source ${i}:`, err)
+          updatedSources[i] = { ...source, result: { beta: null, eta: null, gamma: 0, rSquared: null, points: [], converged: false,
+              failureReason: err instanceof Error ? err.message : String(err) },
+            calculation: err instanceof CalculationError ? err.calculation : undefined,
+            traceData: err instanceof CalculationError ? err.traceData : undefined,
+            calculationError: err instanceof Error ? err.message : String(err) }
         }
       }
 
+      if (requestId !== offsetRecalculationRequestRef.current) return
       setDataSources(updatedSources)
+      setActiveSourceIndex(0)
+      setCalculation(updatedSources[0]?.calculation ?? null)
 
       if (updatedSources.length > 0 && updatedSources[0].traceData) {
         setTraceData(updatedSources[0].traceData)
@@ -308,24 +339,32 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       console.error(err)
       alert(`后端计算错误: ${err.message}`)
     } finally {
-      setIsCalculating(false)
+      if (requestId === offsetRecalculationRequestRef.current) setIsCalculating(false)
     }
   }
 
   const handleDataChange = (newData: DataPoint[]) => {
-    const currentGamma = result?.gamma || 0
-    const points = calculateMedianRanks(newData, currentGamma, method.id)
+    invalidateCalculation()
     setData(newData)
-    setResult(prev => prev ? { ...prev, points } : undefined)
+    setDataSources(undefined)
+    setActiveSourceIndex(0)
+    setResult(undefined)
     setFitMode('fit')
   }
 
   const handleParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
-    const baseResult = result || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
+    const selectedSource = dataSources?.[activeSourceIndex]
+    const selectedData = selectedSource?.data ?? data
+    const selectedResult = selectedSource?.result ?? result
+    invalidateCalculation()
+    setData(selectedData)
+    setDataSources(undefined)
+    setActiveSourceIndex(0)
+    const baseResult = selectedResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
     const newResult = { ...baseResult, ...updates }
-    let newPoints = result?.points || []
-    if (updates.gamma !== undefined && !updates.points && data) {
-      newPoints = calculateMedianRanks(data, updates.gamma, method.id)
+    let newPoints = selectedResult?.points || []
+    if (updates.gamma !== undefined && !updates.points) {
+      newPoints = calculateMedianRanks(selectedData, updates.gamma, method.id)
     } else if (updates.points !== undefined) {
       newPoints = updates.points
     }
@@ -336,6 +375,12 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const handleMdmOffsetChange = (offset: number) => {
     if (offset === mdmOffset) return
     setMdmOffset(offset)
+    setIs3P(true)
+    setCalculation(null)
+    setTraceData(null)
+    setCalculationError(null)
+    setDataSources(previous => previous?.map(source => ({ ...source, calculation: undefined, traceData: undefined, result: undefined })))
+    setResult(undefined)
     setFitMode('manual')
     setIsCalculating(true)
 
@@ -363,6 +408,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               ...source,
               result: calculation.result,
               traceData: calculation.traceData,
+              calculation: calculation.calculation,
             }
           }))
 
@@ -370,6 +416,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           setDataSources(updatedSources)
           if (updatedSources[0]?.result) setResult(updatedSources[0].result)
           if (updatedSources[0]?.traceData) setTraceData(updatedSources[0].traceData)
+          setCalculation(updatedSources[0]?.calculation ?? null)
+          setActiveSourceIndex(0)
         } else if (data.length > 0) {
           const calculation = await calculateWeibull({
             methodId: method.id,
@@ -381,6 +429,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           if (requestId !== offsetRecalculationRequestRef.current) return
           setResult(calculation.result)
           setTraceData(calculation.traceData ?? null)
+          setCalculation(calculation.calculation ?? null)
         }
 
         if (requestId === offsetRecalculationRequestRef.current) {
@@ -388,8 +437,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         }
       } catch (error) {
         if (requestId === offsetRecalculationRequestRef.current) {
-          console.error('Failed to recalculate MDM offset', error)
-          alert(`MDM 偏移量重新计算失败: ${error instanceof Error ? error.message : String(error)}`)
+          recordFailure(error)
         }
       } finally {
         if (requestId === offsetRecalculationRequestRef.current) {
@@ -400,6 +448,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }
 
   const handleCalculate = async () => {
+    setIs3P(true)
     offsetRecalculationRequestRef.current += 1
     if (offsetRecalculationTimerRef.current) {
       clearTimeout(offsetRecalculationTimerRef.current)
@@ -414,40 +463,52 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (!data || data.length === 0) return
 
     setIsCalculating(true)
+    setCalculation(null)
+    setTraceData(null)
+    setCalculationError(null)
+    const requestId = ++offsetRecalculationRequestRef.current
     try {
-      const { result: newResult, traceData } = await calculateWeibull({
+      const { result: newResult, traceData, calculation } = await calculateWeibull({
         methodId: method.id,
         data,
         trace: true,
         offset: method.id.toLowerCase() === 'mdm' ? mdmOffset : undefined,
       })
 
+      if (requestId !== offsetRecalculationRequestRef.current) return
       setResult(newResult)
+      setCalculation(calculation ?? null)
       setFitMode('fit')
 
       if (traceData) {
         setTraceData(traceData)
       }
     } catch (err: any) {
-      console.error(err)
-      alert(`后端计算错误: ${err.message}\n请确保 Python main.py 已在 8001 端口运行。`)
+      if (requestId === offsetRecalculationRequestRef.current) recordFailure(err)
     } finally {
-      setIsCalculating(false)
+      if (requestId === offsetRecalculationRequestRef.current) setIsCalculating(false)
     }
   }
 
   const handleToggle3P = () => {
+    const selectedSource = dataSources?.[activeSourceIndex]
+    const selectedData = selectedSource?.data ?? data
+    const selectedResult = selectedSource?.result ?? result
+    invalidateCalculation()
+    setData(selectedData)
+    setDataSources(undefined)
+    setActiveSourceIndex(0)
     const nextIs3P = !is3P
     let updates: Partial<WeibullResult> = {}
-    let newPoints = result?.points || []
+    let newPoints = selectedResult?.points || []
 
     if (!nextIs3P) {
       updates = { gamma: 0 }
-      if (data) {
-        newPoints = calculateMedianRanks(data, 0, method.id)
+      if (selectedData) {
+        newPoints = calculateMedianRanks(selectedData, 0, method.id)
       }
     }
-    setResult(prev => prev ? { ...prev, ...updates, points: newPoints } : undefined)
+    setResult(selectedResult ? { ...selectedResult, ...updates, points: newPoints } : undefined)
     setIs3P(nextIs3P)
   }
 
@@ -500,11 +561,12 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {capability && capability.layer2.calculation.status === 'done' ? (
+            {capability && ['done', 'in_progress'].includes(capability.layer2.calculation.status) ? (
               <div className="space-y-8">
             <AnalysisCard
               id="lab"
               index={0}
+              calculationActionLabel="计算并展示过程"
               data={data}
               result={result}
               methodId={method.id}
@@ -513,6 +575,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               fitMode={fitMode}
               is3P={is3P}
               dataSources={dataSources}
+              activeDataSourceIndex={activeSourceIndex}
+              onActiveDataSourceChange={setActiveSourceIndex}
               availableLayers={[]}
               onAdd={() => {}}
               onDelete={() => {}}
@@ -527,65 +591,14 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
             />
 
-            {traceData && (
-              <div className="bg-slate-50 rounded-3xl p-8 max-[767px]:p-4 border border-slate-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <Microscope className="text-indigo-500" size={20} />
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">计算过程</h3>
-                </div>
-
-                {(() => {
-                  const displayResult = (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result)
-                    ? dataSources[activeSourceIndex].result
-                    : result
-
-                  return displayResult && displayResult.converged !== false && (
-                    <div className="mb-8">
-                      <div className="grid grid-cols-4 gap-4 mb-3 max-[767px]:grid-cols-2">
-                        <StatBox label="估计 β" value={displayResult.beta !== null ? displayResult.beta.toFixed(4) : '--'} />
-                        <StatBox label="估计 η" value={displayResult.eta !== null ? displayResult.eta.toFixed(2) : '--'} />
-                        <StatBox label="估计 γ" value={displayResult.gamma.toFixed(2)} />
-                        <StatBox label="R²" value={displayResult.rSquared !== null ? displayResult.rSquared.toFixed(4) : '--'} />
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {method.id.toLowerCase() === 'mle' && (
-                  <MLEVisualizer traceData={traceData} dataSources={dataSources} />
-                )}
-                {method.id.toLowerCase() === 'wmle' && (
-                  <WMLEVisualizer
-                    traceData={traceData}
-                    dataSources={dataSources}
-                    data={data.filter(d => d.status === 'F').map(d => d.value)}
-                    onSurfaceLoad={(surfaceData) => {
-                      setTraceData((prev: any) => {
-                        if (!prev) return [surfaceData]
-                        const filtered = prev.filter((d: any) => d.phase !== 'surface')
-                        return [...filtered, surfaceData]
-                      })
-                    }}
-                  />
-                )}
-                {method.id.toLowerCase() === 'mdm' && (
-                  <MDMVisualizer
-                    traceData={{...traceData, data: data.filter(d => d.status === 'F').map(d => d.value)}}
-                    methodId={method.id}
-                    dataSources={dataSources}
-                    mdmOffset={mdmOffset}
-                    onMdmOffsetChange={handleMdmOffsetChange}
-                    offsetStale={Math.abs((traceData.target_offset ?? MDM_DEFAULT_OFFSET) - mdmOffset) > 1e-9}
-                    isOffsetUpdating={isCalculating && Math.abs((traceData.target_offset ?? MDM_DEFAULT_OFFSET) - mdmOffset) > 1e-9}
-                  />
-                )}
-
-                {!['mle', 'wmle', 'mdm'].includes(method.id.toLowerCase()) && (
-                  <div className="text-center py-12 text-slate-400">
-                    此算法暂未适配可视化组件。
-                  </div>
-                )}
-              </div>
+            {!(dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation) &&
+              (dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError) &&
+              <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError}</p>}
+            {(calculation || dataSources?.some(source => source.calculation)) && !isCalculating && (
+              <CalculationProcessViewer
+                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
+                methodId={method.id}
+              />
             )}
 
              {isCalculating && (

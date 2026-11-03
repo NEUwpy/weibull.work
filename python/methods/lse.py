@@ -23,6 +23,7 @@ from scipy import integrate, special
 from scipy.optimize import minimize_scalar
 
 from base import WeibullBase
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
 
 # E[W_(i:n)] 缓存：White (1969) 对数威布尔顺序统计量一阶矩
 _OS_MEANS_CACHE = {}
@@ -86,6 +87,8 @@ class LSE(WeibullBase):
         # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
         # @inputs: data|t_i|原始失效时间样本
         # @outputs: t|t|排序后数组, n|n|样本数量
+        self.calculation_trace = None
+        evaluations = []
         t = self.data
         n = self.n
 
@@ -129,9 +132,10 @@ class LSE(WeibullBase):
             residuals = y - (intercept + slope * X)
             s_y2 = sy2_total / (n - 1)
             s_res2 = float(np.sum(residuals ** 2)) / (n - 2)
-            if s_res2 <= 0:
-                return slope, intercept, float("inf")
-            return slope, intercept, s_y2 / s_res2
+            f_ratio = float('inf') if s_res2 <= 0 else s_y2 / s_res2
+            if trace:
+                evaluations.append(dict(x=float(mu), y=f_ratio, evaluation=len(evaluations) + 1))
+            return slope, intercept, f_ratio
 
         def profile_f(mu):
             fit = white_fit(mu)
@@ -225,5 +229,33 @@ class LSE(WeibullBase):
                 "f_mu_curve": curve,
                 **self.last_solution_info,
             }
+            description = '在非负位置域内比较 F 比，保留网格及邻域精化中 F 最大的候选。'
+            self.calculation_trace = dict(
+                schema_version=1, method='lse', criterion=dict(description=description),
+                selection=dict(description=description, status='ok', beta=float(shape),
+                               eta=float(scale), gamma=float(best_mu),
+                               f_ratio=float(f_final) if math.isfinite(f_final) else None),
+                charts=[plot_chart(
+                    'f-location', '位置参数的 F 比判据', '位置参数 γ', 'F 比',
+                    [plot_series('f', '实际网格与精化求值',
+                                 [plot_point(p['x'], p['y'], evaluation=p['evaluation']) for p in evaluations])],
+                    formula=r'\hat\gamma=\arg\max_\gamma F(\gamma),\quad F=S_Y^2/S_{\mathrm{res}}^2',
+                    description='比较各位置下的 White 回归 F 比，最高点确定 γ̂。',
+                    selected=[plot_point(best_mu, f_final, label='最终选择')]),
+                    plot_chart('white-regression', '最终位置下的 White 回归',
+                               '顺序统计量期望 E[W₍ᵢ:ₙ₎]', '对数寿命 ln(tᵢ−γ̂)',
+                               [plot_series('observations', '实际回归点',
+                                            [plot_point(a, b) for a, b in zip(X, np.log(t - best_mu))],
+                                            kind='scatter'),
+                                plot_series('fit', '本次拟合直线',
+                                            [plot_point(a, intercept + slope * a) for a in X])],
+                               formula=r'\ln(t_i-\hat\gamma)=a+bE[W_{(i:n)}],\quad\hat\beta=1/b,\quad\hat\eta=e^a',
+                               description='固定左图选中的位置后回归；斜率 b=1/β̂，截距 a=ln η̂。')],
+                recovery=[calculation_step('F 比最大处确定位置', r'\hat\gamma=\arg\max_\gamma F(\gamma)',
+                                           [('γ̂', best_mu), ('F', f_final)]),
+                          calculation_step('回归斜率确定形状', r'\hat\beta=1/b', [('b', slope), ('β̂', shape)]),
+                          calculation_step('回归截距确定尺度', r'\hat\eta=e^a', [('a', intercept), ('η̂', scale)])],
+                details=dict(**self.last_solution_info, slope=slope, intercept=intercept,
+                             order_statistic_means=X.tolist(), evaluations=evaluations))
 
         return [float(shape), float(scale), float(best_mu), float(r2), True]

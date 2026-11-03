@@ -5,7 +5,7 @@
   "description": "Kundu–Raqab单样本构造：删除一个最小值 → 固定点形状迭代 → 尺度恢复。",
   "steps": [
     {
-      "name": "输入与迭代控制",
+      "name": "数据预处理与控制量",
       "description": "检查正有限样本、初始形状、绝对步差容差和正整数迭代上限。",
       "basis": "Kundu–Raqab (2009)单样本版本与既有数值控制。",
       "notes": "论文整理门槛尚未完成，此页补充程序说明，不开放计算器。不是旧Cohen–Whitten版本，也没有Firth修正。",
@@ -49,8 +49,7 @@
       "sources": [
         {
           "file": "python/base.py",
-          "symbol": "WeibullBase.__init__",
-          "label": "输入校验与排序"
+          "symbol": "WeibullBase.__init__"
         },
         {
           "file": "python/methods/mmle.py",
@@ -59,10 +58,11 @@
           "until": "gamma = float(self.data[0])"
         }
       ],
-      "id": 1
+      "id": 1,
+      "primarySource": 1
     },
     {
-      "name": "固定位置与删除最小值",
+      "name": "固定位置并删除最小值",
       "description": "以原始最小值作为γ，只删除这个观测，再对剩余平移距离求解。",
       "basis": "原构造：保留样本定义支撑，不用已删除的最小值检查。",
       "notes": "重复最小值使剩余距离出现0；随后按原固定点规则失败，不扰动、不重启。",
@@ -112,10 +112,11 @@
           "until": "# Invalid steps fail"
         }
       ],
-      "id": 2
+      "id": 2,
+      "primarySource": 0
     },
     {
-      "name": "固定点形状迭代",
+      "name": "迭代求解形状",
       "description": "用归一化幂权重更新形状；仅在绝对步差达到容差时判为收敛。",
       "basis": "原固定点构造；指数先减最大值用于数值稳定。",
       "notes": "下一步非有限或非正立即停止；达到上限仍不收敛则失败。没有形状/位置截断、重启或后备求解器。",
@@ -178,12 +179,11 @@
           "until": "self.last_solution_info = dict("
         }
       ],
-      "isLoop": true,
-      "loopCount": "最多 max_iterations 次",
-      "id": 3
+      "id": 3,
+      "primarySource": 0
     },
     {
-      "name": "收敛与尺度恢复",
+      "name": "检查收敛并恢复尺度",
       "description": "只对已收敛形状，以保留样本的幂均值恢复尺度；原文θ=η^β。",
       "basis": "参数映射：原文α对应全站β，θ对应η^β。",
       "notes": "未收敛返回None参数及False，不把最后一个迭代值作为成功估计。",
@@ -238,16 +238,17 @@
           "until": "if trace:"
         }
       ],
-      "id": 4
+      "id": 4,
+      "primarySource": 0
     },
     {
-      "name": "返回与诊断边界",
-      "description": "返回三参数、零占位R²及收敛状态；trace含实际形状迭代和最终点。",
+      "name": "返回估计结果",
+      "description": "返回形状、尺度、位置参数及收敛状态。",
       "basis": "接口兼容：保持KROriginal返回结构。",
       "notes": "R²=0是存档占位，未计算全样本概率图拟合优度；与其他方法R²不直接比较。",
       "formula": {
         "expression": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,0,\\mathrm{converged})",
-        "explanation": "返回三参数、零占位R²及收敛状态；trace含实际形状迭代和最终点。",
+        "explanation": "返回形状、尺度、位置参数及收敛状态。",
         "symbols": [
           {
             "symbol": "(β,η,γ,0,\\mathrm{True})",
@@ -273,12 +274,14 @@
         {
           "file": "python/methods/mmle.py",
           "symbol": "MMLE.run",
-          "label": "追踪与返回",
-          "from": "eta = float(np.exp",
+          "after": "eta = float(np.exp",
+          "from": "        if trace:",
           "through": "return [beta, eta, gamma, 0., True]"
         }
       ],
-      "id": 5
+      "id": 5,
+      "primarySource": 0
     }
-  ]
+  ],
+  "presentation": "steps"
 }

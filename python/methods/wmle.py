@@ -286,17 +286,20 @@ class WMLE(WeibullBase):
     """Original weighted equations and weights, with profile root search."""
 
     def run(self, trace=False, generate_surface=False):
+        self.calculation_trace = None
         # @step: 1 | 校准权重 | 使用原有J1、J2、J3查表与插值规则
         # @step: 2 | 联立方程求根 | 条件形状求根后扫描位置方程的交点
         # @formula: T1(beta,gamma)=0, T2(beta,gamma)=0
         # @step: 3 | 多根选择 | 沿用原启发式初值的距离规则，与真值无关
         try:
-            selected, info = solve_wmle_profile(self.data, sys.modules[__name__])
+            selected, info = solve_wmle_profile(self.data, sys.modules[__name__], trace=trace)
         except (ValueError, FloatingPointError, RuntimeError) as error:
             self.last_solution_info = dict(status='profile_solver_failed', error=str(error))
             return [None, None, None, 0., 'profile_solver_failed']
-        self.last_solution_info = info
+        self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations')}
         if trace:
+            from .calculation_trace import profile_calculation
+            self.calculation_trace = profile_calculation('wmle', info, selected)
             for candidate in info.get('candidates', []):
                 self.log_step(dict(phase='candidate', beta=candidate['beta'],
                                    eta=candidate['eta'], gamma=candidate['gamma'],

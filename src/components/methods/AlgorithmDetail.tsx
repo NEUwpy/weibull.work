@@ -235,12 +235,6 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
                 <span className="text-sm text-slate-700">大样本</span>
               </div>
             </div>
-            {frontmatter?.implementation?.summary && (
-              <section aria-label="当前实现与论文的关系" className="mt-5 border-t border-slate-100 pt-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">当前实现与论文的关系</h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{frontmatter.implementation.summary}</p>
-              </section>
-            )}
           </div>
         )}
 
@@ -249,7 +243,7 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="text-amber-500" size={18} />
-              <h3 className="font-bold text-slate-900">相关文献及其作用</h3>
+              <h3 className="font-bold text-slate-900">相关文献</h3>
             </div>
             <div className="space-y-3">
               {frontmatter.references.map((ref: any, index: number) => (
@@ -262,9 +256,6 @@ export function AlgorithmDetail({ slug }: AlgorithmDetailProps) {
                   <div className="text-xs text-emerald-600 mt-1">
                     {ref.author} ({ref.year})
                   </div>
-                  <p className="text-xs font-normal text-slate-600 leading-relaxed mt-2">
-                    {ref.relation || '相关资料；与当前实现的对应关系尚未核验。'}
-                  </p>
                 </Link>
               ))}
             </div>

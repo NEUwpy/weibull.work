@@ -5,21 +5,24 @@ Open-support limits are diagnostics, not artificial finite estimates.
 """
 from base import WeibullBase
 from .profile_solvers import solve_mle_profile
+from .calculation_trace import profile_calculation
 
 
 class MLE(WeibullBase):
     def run(self, trace=False):
+        self.calculation_trace = None
         # @step: 1 | 条件似然求解 | 固定位置后求形状并恢复尺度
         # @formula: eta=(mean((x-gamma)**beta))**(1/beta)
         # @step: 2 | 位置搜索 | 扫描并精化有限局部极大与零位置边界
         # @step: 3 | 候选比较 | 按原似然选择有限候选，另记支持边界极限
         try:
-            selected, info = solve_mle_profile(self.data)
+            selected, info = solve_mle_profile(self.data, trace=trace)
         except (ValueError, FloatingPointError, RuntimeError) as error:
             self.last_solution_info = dict(status='profile_solver_failed', error=str(error))
             return [None, None, None, 0., 'profile_solver_failed']
-        self.last_solution_info = info
+        self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations')}
         if trace:
+            self.calculation_trace = profile_calculation('mle', info, selected)
             for candidate in info.get('candidates', []):
                 self.log_step(dict(phase='candidate', beta=candidate['beta'],
                                    eta=candidate['eta'], gamma=candidate['gamma'],

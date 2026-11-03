@@ -4,7 +4,7 @@ import path from 'node:path'
 import config from './config.json'
 import { getDeepSeekClient, getDeepSeekSettings, hasDeepSeekKey } from '@/lib/server/deepseek-client'
 import { createLibraryChatLog } from '@/lib/server/library-chat-log'
-import { searchLibrary, enrichLibrarySearchHits } from '@/lib/server/library-search'
+import { searchLibrary, enrichLibrarySearchHits, startLibrarySearchPrewarm } from '@/lib/server/library-search'
 import { buildSearchQueries, evidenceContext, selectLibraryEvidence, orderEvidenceCandidates, poolLibraryCandidates } from '@/lib/library-rag'
 
 export const dynamic = 'force-dynamic'
@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
         const queries = buildSearchQueries(question, variants, config.retrieval.maxQueries)
         stage = 'searching'
         send({ stage: 'searching', message: '正在查找相关正文并筛选参考段落…' })
+        await startLibrarySearchPrewarm()
+        if (controller.signal.aborted) return
         const rankings = queries.map(query => searchLibrary(query, { limit: config.retrieval.candidatesPerQuery }).results)
         const candidateLimits = { maxPassages: config.retrieval.maxRerankCandidates, maxPerPaper: 5, maxContextChars: config.retrieval.maxRerankChars }
         const pooled = poolLibraryCandidates(rankings, candidateLimits)

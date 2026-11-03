@@ -67,6 +67,17 @@ test('number, DOI and author identity queries preserve catalog lookup and return
   assert.match(title.results[0].text, /Maximum likelihood|极大似然/)
 }))
 
+test('explicit text search matches body content across papers without catalog identity fallback', () => withLibrary(async ({ root }) => {
+  assert.ok(searchLibrary('182-001').total)
+  assert.equal(searchLibrary('182-001', { scope: 'text' }).total, 0)
+  assert.equal(searchLibrary('Else Author', { scope: 'text' }).total, 0)
+  write(path.join(root, 'content', '182-002-pdf原文.md'), matter.stringify('# Cross reference\n\nThe label 182-001 appears here as actual body text in a different paper.\n', metadata('Maintenance scheduling')))
+  const result = searchLibrary('182-001', { scope: 'text' })
+  assert.ok(result.total)
+  assert.ok(result.results.every(hit => hit.slug === '182-002' && hit.text.includes('182-001')))
+  assert.ok(searchLibrary('182-001').results.every(hit => hit.slug === '182-001'))
+}))
+
 test('source selection and private notes stay outside search; changing selection invalidates the index', () => withLibrary(async ({ root, workspace }) => {
   const source = path.join(workspace, 'source')
   write(path.join(source, '182-001-pdf原文.md'), '# Selected\n\nSELECTED_MARKER available in public body.\n')
@@ -170,6 +181,23 @@ test('search paging, long passages and public type filters are bounded', () => w
   assert.equal(searchLibrary('  ').total, 0)
 }))
 
+test('paper search and API include article types and exclude books and documents', () => withLibrary(async ({ root }) => {
+  for (const [id, type] of [['182-002', '期刊'], ['182-003', '会议'], ['182-004', '预印本'], ['182-005', '软件文档'], ['182-006', '书籍']]) {
+    write(path.join(root, 'content', `${id}-pdf原文.md`), matter.stringify('# Classification\n\nKindfilterneedle research uses sample lifetime observations to estimate statistical parameters.\n', metadata(type, { type })))
+  }
+  const papers = searchLibrary('Kindfilterneedle', { type: 'paper' })
+  assert.deepEqual(Array.from(new Set(papers.results.map(hit => hit.slug))).sort(), ['182-002', '182-003', '182-004'])
+  assert.ok(searchLibrary('Kindfilterneedle', { type: 'journal-conf' }).results.some(hit => hit.slug === '182-003'))
+  const route = loadServerModule('src/app/api/library/search/route.ts', {
+    'next/server': { NextResponse: { json: (data, init = {}) => new Response(JSON.stringify(data), init) } },
+  })
+  const result = await route.GET({ nextUrl: new URL('http://test/api/library/search?q=Kindfilterneedle&type=paper') })
+  assert.equal(result.status, 200)
+  const body = await result.json()
+  assert.ok(body.total > 0)
+  assert.deepEqual(Array.from(new Set(body.results.map(hit => hit.slug))).sort(), ['182-002', '182-003', '182-004'])
+}))
+
 test('explanatory paragraphs rank ahead of keyword lists and isolated index terms', () => withLibrary(async ({ original, translation }) => {
   write(original, matter.stringify('# Background\n\nKeywords: maximum likelihood, Weibull, estimation.\n\nMaximum likelihood\n\nMaximum likelihood estimates the unknown parameters from the observed sample by maximizing its likelihood function, and its location boundary needs careful examination.\n', metadata('Likelihood background')))
   fs.unlinkSync(translation)
@@ -249,7 +277,7 @@ test('AI neighbour windows stay bounded and do not jump across long intervening 
 test('search HTTP handler rejects invalid selectors and caps, and returns structured hits', () => withLibrary(async () => {
   const route = loadServerModule('src/app/api/library/search/route.ts')
   const request = query => ({ nextUrl: new URL('http://local/api/library/search?' + query) })
-  for (const query of ['q=x&type=private', 'q=x&limit=31', 'q=x&limit=NaN', 'q=x&offset=-1', 'q=' + 'x'.repeat(2001)]) {
+  for (const query of ['q=x&type=private', 'q=x&scope=private', 'q=x&limit=31', 'q=x&limit=NaN', 'q=x&offset=-1', 'q=' + 'x'.repeat(2001)]) {
     assert.equal((await route.GET(request(query))).status, 400)
   }
   const response = await route.GET(request('q=likelihood&limit=2'))
@@ -259,4 +287,7 @@ test('search HTTP handler rejects invalid selectors and caps, and returns struct
   assert.ok(data.total)
   assert.ok(data.results.length <= 2)
   assert.ok(data.terms.includes('likelihood'))
+  const textResponse = await route.GET(request('q=182-001&scope=text'))
+  assert.equal(textResponse.status, 200)
+  assert.equal((await textResponse.json()).total, 0)
 }))

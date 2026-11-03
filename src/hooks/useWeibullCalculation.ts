@@ -19,7 +19,15 @@ export interface CalculateOptions {
 export interface CalculateResponse {
   result: WeibullResult
   traceData?: any
+  calculation?: unknown
   methodId: string
+}
+
+export class CalculationError extends Error {
+  constructor(message: string, public calculation?: unknown, public traceData?: unknown) {
+    super(message)
+    this.name = 'CalculationError'
+  }
 }
 
 /**
@@ -56,7 +64,11 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
 
   if (!response.ok) {
     const errData = await response.json()
-    throw new Error(errData.detail || '计算失败')
+    const detail = errData.detail
+    throw new CalculationError(
+      typeof detail === 'string' ? detail : detail?.message || '计算失败',
+      detail?.calculation, detail?.trace_data,
+    )
   }
 
   const res = await response.json()
@@ -70,7 +82,9 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
   }
 
   const gamma = res.gamma || 0
-  const points = calculateMedianRanks(data, gamma, requestedMethod)
+  const points = Array.isArray(res.plot_points)
+    ? res.plot_points
+    : calculateMedianRanks(data, gamma, requestedMethod)
 
   return {
     result: {
@@ -82,6 +96,7 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
       converged: res.converged,
     },
     traceData: res.trace_data,
+    calculation: res.calculation,
     methodId: backendMethod,
   }
 }

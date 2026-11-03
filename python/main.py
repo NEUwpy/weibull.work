@@ -126,6 +126,8 @@ class CalculationResponse(BaseModel):
     method: str
     converged: Union[bool, str] = True
     trace_data: Optional[Any] = None
+    calculation: Optional[dict] = None
+    plot_points: Optional[List[dict]] = None
 
 
 def _calculation_kwargs(method_id: str, trace: bool = False, offset: Optional[float] = None) -> dict:
@@ -157,20 +159,31 @@ def _calculation_response(result: dict, method_id: str) -> dict:
         "method": method_id,
         "converged": converged if isinstance(converged, str) else bool(converged),
         "trace_data": result.get("trace_data"),
+        "calculation": result.get("calculation"),
+        "plot_points": result.get("plot_points"),
     }
 
 
 def _run_calculation_method(method_id: str, data, trace=False, offset=None):
     """执行单次估计；失败时返回明确 HTTP 422，不回退到其他方法。"""
-    result = run_method(method_id, data, **_calculation_kwargs(method_id, trace=trace, offset=offset))
+    kwargs = _calculation_kwargs(method_id, trace=trace, offset=offset)
+    kwargs['include_plot_points'] = True
+    result = run_method(method_id, data, **kwargs)
+    if result.get('calculation') is not None:
+        result['calculation']['method'] = method_id
+    response = _calculation_response(result, method_id)
     if result["beta_hat"] is not None:
-        return _calculation_response(result, method_id)
+        return response
 
     error_info = result.get("extra") or {}
-    raise HTTPException(
-        status_code=422,
-        detail=f"Method '{method_id}' failed: {error_info}",
-    )
+    # Preserve the existing message contract for ordinary calculator calls.
+    # Process requests also receive the actual failure record, never fake parameters.
+    detail = f"Method '{method_id}' failed: {error_info}"
+    if trace:
+        selection = (result.get('calculation') or {}).get('selection') or {}
+        detail = dict(message=selection.get('description') or detail, method=method_id,
+                      calculation=result.get('calculation'), trace_data=result.get('trace_data'))
+    raise HTTPException(status_code=422, detail=detail)
 
 
 _CSV_FLOAT_COLUMNS = {
