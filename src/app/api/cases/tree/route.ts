@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getCasesTree } from '@/lib/cases_md'
 
+export const dynamic = 'force-dynamic'
+
 // 获取案例树形结构（用于多选选择器）
 // 返回: CaseTreeNode[] - 组+子案例，独立案例
 export async function GET() {

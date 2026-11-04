@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getAllCasesAndGroups } from '@/lib/cases_md'
 
+export const dynamic = 'force-dynamic'
+
 // 获取所有案例和案例组（用于列表页）
 export async function GET() {
   try {

@@ -1,38 +1,10 @@
-/**
- * 案例数据读取模块
- *
- * ============================================================================
- * 案例数据统一格式规范
- * ============================================================================
- *
- * 【名称】格式：[id] 标题 [文献ID]
- *   - 示例：[c1] MDM方法验证样本 [182-030]
- *   - 文献ID通过 related_paper_slug 指定，自动显示
- *
- * 【类型】只有两种：
- *   - 抽样样本：Monte Carlo 等模拟生成的数据，有已知真实参数
- *   - 真实样本：实际工程/实验中的失效数据，无已知参数
- *
- * 【数据规模】自动计算：X点×Y组
- *   - 单案例：根据 data_raw 行数自动计算
- *   - 案例组：根据 sample_count 字段
- *
- * 【描述】统一模板（content 正文部分）：
- *   - 抽样样本：来源：文献ID/描述，β=x，η=x，γ=x，用于XX验证
- *   - 真实样本：来源：XX设备/XX实验，描述
- *
- * 【Tags】必选标签（3-4个）：
- *   - 方法：MDM / MLE / WMLE / 通用
- *   - 参数类型：三参数Weibull / 两参数Weibull
- *   - 样本量：大样本 / 小样本
- *   - 数据完整度（真实样本必选）：完全样本 / 截断样本
- *
- * ============================================================================
- */
+/** Compatibility reader for existing Markdown samples and external case datasets. */
 
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
+import { readCaseDatasetById, readCalculableCaseDatasets, datasetCaseItem } from './server/case-datasets'
+import type { CaseDataset } from './case-datasets'
 
 const CASES_DIR = path.join(process.cwd(), 'src/content/cases')
 const GROUPS_DIR = path.join(CASES_DIR, 'groups')
@@ -48,6 +20,8 @@ export type CaseItem = {
   description: string  // 从 content 提取的简短描述
   // Optional metadata
   related_paper_slug?: string
+  can_calculate?: boolean
+  dataset?: CaseDataset
   parameters?: {
     beta?: number
     eta?: number
@@ -108,12 +82,8 @@ function extractDescription(content: string): string {
   return descLines.join(' ').trim()
 }
 
-export function getAllCases(): CaseItem[] {
-  if (!fs.existsSync(CASES_DIR)) {
-    return []
-  }
-
-  const files = fs.readdirSync(CASES_DIR)
+export function getMarkdownCases(): CaseItem[] {
+  const files = fs.existsSync(CASES_DIR) ? fs.readdirSync(CASES_DIR) : []
 
   const cases = files
     .filter(file => file.endsWith('.md') && !file.startsWith('_')) // Ignore _template.md
@@ -143,9 +113,17 @@ export function getAllCases(): CaseItem[] {
   return cases
 }
 
+export function getAllCases(): CaseItem[] {
+  const cases = getMarkdownCases()
+  const ids = new Set(cases.map(item => item.id))
+  return [...cases, ...readCalculableCaseDatasets().filter(record => !ids.has(record.id)).map(datasetCaseItem)]
+}
+
 export function getCaseById(id: string): CaseItem | null {
-  const allCases = getAllCases()
-  return allCases.find(c => c.id === id) || null
+  const legacy = getMarkdownCases().find(item => item.id === id)
+  if (legacy) return legacy
+  const dataset = readCaseDatasetById(id)
+  return dataset ? datasetCaseItem(dataset) : null
 }
 
 // ============ 案例组相关函数 ============
@@ -388,6 +366,7 @@ export function getCasesTree(): CaseTreeNode[] {
   // 2. 获取所有独立案例（不在组内的）
   const allCases = getAllCases()
   for (const c of allCases) {
+    if (c.can_calculate === false) continue
     nodes.push({
       type: 'case',
       id: c.id,

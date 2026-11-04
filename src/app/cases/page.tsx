@@ -1,383 +1,161 @@
-/**
- * 案例数据库页面
- *
- * ============================================================================
- * 案例数据统一格式规范
- * ============================================================================
- *
- * 【名称】格式：[id] 标题 [文献ID]
- *   - 示例：[c1] MDM方法验证样本 [182-030]
- *   - 示例：[g1] MDM方法验证样本组 [182-046]
- *   - 文献ID可选，无关联文献则省略
- *
- * 【类型】只有两种：
- *   - 抽样样本：Monte Carlo 等模拟生成的数据，有已知真实参数
- *   - 真实样本：实际工程/实验中的失效数据，无已知参数
- *
- * 【数据规模】格式：X点×Y组
- *   - 示例：15点×1组（单案例，15个数据点）
- *   - 示例：7点×30组（案例组，30个子案例，每个7点）
- *
- * 【描述】统一模板（描述数据本质来源）：
- *   - 抽样样本：W(β=2, η=1000, γ=1000)分布随机抽样，用于XX验证
- *   - 真实样本：XX设备/XX实验失效数据
- *
- * 【Tags】必选标签（3-4个）：
- *   - 方法：MDM / MLE / WMLE / 通用
- *   - 参数类型：三参数Weibull / 两参数Weibull
- *   - 样本量：大样本 / 小样本
- *   - 数据完整度（真实样本必选）：完全样本 / 截断样本
- *
- * ============================================================================
- */
-
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import {
-  Database,
-  Search,
-  BookOpen,
-  Calculator,
-  FolderOpen,
-  FileText,
-  Dna,
-  FlaskConical
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import Markdown from 'react-markdown'
+import { Search, Copy, Download, Calculator, ChevronDown, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
+import { processLibraryContent, getLibraryMarkdownOptions } from '@/lib/library-markdown'
+import { datasetText, natureLabels, observationLabels, type CatalogDataset, type CatalogSummary, type CaseCatalog } from '@/lib/case-datasets'
+import '@/components/library/document.css'
+import '@/components/library/table.css'
+import 'katex/dist/katex.min.css'
 
-type CaseOrGroup = {
-  id: string
-  title: string
-  type: string  // 抽样样本 | 真实样本
-  tags: string[]
-  data_raw?: string
-  created_at: string
-  description?: string
-  related_paper_slug?: string
-  related_paper?: string
-  sample_count?: number
-  true_params?: { beta?: number; eta?: number; gamma?: number }
-  parameters?: { beta?: number; eta?: number; gamma?: number }
-  isGroup: boolean
+const buttonStyle = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40'
+
+function TableData({ record }: { record: CatalogDataset }) {
+  const data = record.data
+  const processed = useMemo(() => processLibraryContent(!Array.isArray(data) && data.kind === 'table' ? data.html || '' : ''), [data])
+  if (Array.isArray(data) || data.kind !== 'table') return null
+  if (data.html) return <div className="library-document min-w-0">
+    <Markdown {...getLibraryMarkdownOptions(processed, undefined, false)}>{processed.body}</Markdown>
+  </div>
+  return <div className="overflow-x-auto rounded-lg border border-slate-200"><table className="min-w-full border-collapse text-sm">
+    <tbody>{data.rows.map((row, index) => <tr key={index}>{row.map((cell, column) => <td key={column} className="border border-slate-200 px-3 py-2 align-top">
+      <LibraryMathMarkdown>{String(cell ?? '')}</LibraryMathMarkdown>
+    </td>)}</tr>)}</tbody>
+  </table></div>
+}
+
+function DatasetRow({ summary }: { summary: CatalogSummary }) {
+  const [open, setOpen] = useState(false)
+  const [record, setRecord] = useState<CatalogDataset | null>(null)
+  const [error, setError] = useState('')
+  const [reload, setReload] = useState(0)
+  useEffect(() => {
+    if (!open || record) return
+    const controller = new AbortController()
+    setError('')
+    fetch('/api/cases/catalog?id=' + encodeURIComponent(summary.id), { signal: controller.signal, cache: 'no-store' })
+      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || '数据暂时无法读取。'); return data.item })
+      .then(item => { if (!controller.signal.aborted) setRecord(item) })
+      .catch(cause => { if (!controller.signal.aborted) setError(cause.message || '连接失败，请重试。') })
+    return () => controller.abort()
+  }, [open, record, summary.id, reload])
+  return <details className="group rounded-xl border border-slate-200 bg-white" onToggle={event => setOpen(event.currentTarget.open)}>
+    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
+      <ChevronDown size={18} className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+      <span className="line-clamp-2 min-w-0 flex-1 basis-[220px] font-semibold text-slate-800"><LibraryMathMarkdown inline>{summary.name}</LibraryMathMarkdown></span>
+      <span className="text-sm text-emerald-700">{natureLabels[summary.nature.kind]}</span>
+      <span className="text-sm text-slate-500">{summary.scale}</span>
+      <span className="text-sm text-slate-500">{summary.sources.map(source => source.paper_id).join(' · ') || '平台样本'}</span>
+    </summary>
+    {open && (record ? <DatasetDetails record={record} /> : <div className="border-t border-slate-100 p-5 text-sm text-slate-500">
+      {error ? <div role="alert" className="flex flex-wrap items-center gap-3"><span>{error}</span><button className={buttonStyle} onClick={() => setReload(value => value + 1)}>重试</button></div> : '正在读取这份数据…'}
+    </div>)}
+  </details>
+}
+
+function DatasetDetails({ record }: { record: CatalogDataset }) {
+  const [message, setMessage] = useState('')
+  async function copy() {
+    try { await navigator.clipboard.writeText(datasetText(record)); setMessage('已复制') }
+    catch { setMessage('复制未完成，可下载 JSON') }
+  }
+  function download() {
+    const content = { id: record.id, name: record.name, data: record.data, nature: record.nature,
+      sources: record.sources.map(({ paper_id, location, relation, original_reference, original_paper_id }) => ({ paper_id, location, relation, original_reference, original_paper_id })) }
+    const href = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2) + '\n'], { type: 'application/json;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = href
+    link.download = record.id + '.json'
+    link.click()
+    URL.revokeObjectURL(href)
+  }
+  const data = record.data
+  return <div className="min-w-0 space-y-5 border-t border-slate-100 px-4 py-5 sm:px-5">
+      <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+        <span>{observationLabels[record.nature.observation]}</span>
+        {record.nature.quantity && <span>· {record.nature.quantity}</span>}
+        <span>· 单位{record.nature.unit ? ' ' + record.nature.unit : '未注明'}</span>
+        <span className="ml-auto break-all text-slate-400">{record.id}</span>
+      </div>
+      {record.nature.note && <LibraryMathMarkdown className="text-sm text-slate-600">{record.nature.note}</LibraryMathMarkdown>}
+      {Array.isArray(data) ? <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-4 font-mono text-base leading-8 text-slate-700">{data.join('，')}</pre>
+        : data.kind === 'table' ? <TableData record={record} />
+          : data.kind === 'figure' ? <figure className="min-w-0 space-y-2">
+            {record.figure_url ? <a href={record.figure_url} target="_blank" rel="noreferrer" className="block"><img loading="lazy" src={record.figure_url} alt={data.caption || record.name} className="mx-auto max-h-[720px] max-w-full object-contain" /></a> : <p className="text-slate-500">原图请从下方文献出处查看。</p>}
+            {data.caption && <figcaption><LibraryMathMarkdown className="text-sm text-slate-600">{data.caption}</LibraryMathMarkdown></figcaption>}
+          </figure> : <div className="space-y-2 text-slate-600"><LibraryMathMarkdown>{data.description}</LibraryMathMarkdown>
+            {data.url && /^https?:\/\//i.test(data.url) && <a className="break-all text-emerald-700 underline" href={data.url} target="_blank" rel="noreferrer">{data.url}</a>}
+          </div>}
+      <div className="space-y-3 border-t border-slate-100 pt-4">
+        {record.sources.map((source, index) => <div key={source.paper_id + '-' + index} className="space-y-1 text-sm text-slate-600">
+          <p><Link href={'/library/' + encodeURIComponent(source.paper_id) + '?version=' + encodeURIComponent('原文')} className="inline-flex items-start gap-1 text-emerald-700 hover:underline"><BookOpen size={15} className="mt-0.5 shrink-0" />
+            <span>[{source.paper_id}] {source.title || '查看文献'}{source.year ? '（' + source.year + '）' : ''}</span>
+          </Link></p>
+          <p>{source.location}{source.relation === 'secondary' ? ' · 经该文转引' : ''}{source.available === false ? ' · 文献待补' : ''}</p>
+          {source.original_reference && <LibraryMathMarkdown className="text-sm text-slate-500">{'原始文献线索　' + source.original_reference}</LibraryMathMarkdown>}
+          {source.original_paper_id && <Link className="text-emerald-700 hover:underline" href={'/library/' + encodeURIComponent(source.original_paper_id)}>原始文献 [{source.original_paper_id}]</Link>}
+        </div>)}
+        {!record.sources.length && <p className="text-sm text-slate-500">平台保留样本，来源信息见原案例。</p>}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className={buttonStyle} onClick={copy}><Copy size={16} />{Array.isArray(data) || data.kind === 'table' ? '复制数据' : '复制说明'}</button>
+        <button className={buttonStyle} onClick={download}><Download size={16} />下载 JSON</button>
+        {record.can_calculate && <Link className={buttonStyle} href={record.legacy_href?.includes('/groups/') ? '/?data=' + encodeURIComponent((data as number[]).join(',')) : '/?caseId=' + encodeURIComponent(record.id)}><Calculator size={16} />去计算</Link>}
+        {record.legacy_href && <Link className={buttonStyle} href={record.legacy_href}>原案例</Link>}
+        <span role="status" className="text-sm text-emerald-700">{message}</span>
+      </div>
+    </div>
 }
 
 export default function CasesPage() {
-  const router = useRouter()
-  const [allItems, setAllItems] = useState<CaseOrGroup[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('全部')
-  const [viewMode, setViewMode] = useState<'all' | 'groups' | 'cases'>('all')
-
-  // Load data
+  const [query, setQuery] = useState('')
+  const [kind, setKind] = useState('all')
+  const [offset, setOffset] = useState(0)
+  const [catalog, setCatalog] = useState<CaseCatalog | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [reload, setReload] = useState(0)
   useEffect(() => {
-    fetch('/api/cases/all')
-      .then(res => res.json())
-      .then(data => {
-        setAllItems(data)
-        setIsLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setIsLoading(false)
-      })
-  }, [])
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      setLoading(true); setError('')
+      const params = new URLSearchParams({ q: query, kind, offset: String(offset), limit: '40' })
+      fetch('/api/cases/catalog?' + params, { signal: controller.signal, cache: 'no-store' })
+        .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || '案例暂时无法加载。'); return data })
+        .then(data => { if (!controller.signal.aborted) setCatalog(data) })
+        .catch(cause => { if (!controller.signal.aborted) setError(cause.message || '连接失败，请重试。') })
+        .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    }, 200)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [query, kind, offset, reload])
 
-  // 类型过滤选项
-  const typeOptions = ['全部', '抽样样本', '真实样本']
-
-  // Filter Logic
-  const filteredItems = useMemo(() => {
-    return allItems.filter(item => {
-      if (viewMode === 'groups' && !item.isGroup) return false
-      if (viewMode === 'cases' && item.isGroup) return false
-
-      const matchesSearch = item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (item.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            item.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesType = typeFilter === '全部' || item.type === typeFilter
-
-      return matchesSearch && matchesType
-    })
-  }, [allItems, searchTerm, typeFilter, viewMode])
-
-  // 统计
-  const stats = useMemo(() => {
-    const groups = allItems.filter(i => i.isGroup)
-    const cases = allItems.filter(i => !i.isGroup)
-    return { groups: groups.length, cases: cases.length }
-  }, [allItems])
-
-  // 计算数据规模
-  const getDataScale = (item: CaseOrGroup): { points: number; groups: number } => {
-    if (item.isGroup) {
-      const count = item.sample_count || 0
-      const points = 7  // 案例组通常每组点数相同
-      return { points, groups: count }
-    } else {
-      const points = item.data_raw?.split('\n').filter(Boolean).length ?? 0
-      return { points, groups: 1 }
-    }
-  }
-
-  // 获取文献ID
-  const getPaperId = (item: CaseOrGroup): string | null => {
-    return item.related_paper_slug || item.related_paper || null
-  }
-
-  // 获取方法标签
-  const getMethodTag = (tags: string[]): string | null => {
-    const methods = ['MDM', 'MLE', 'WMLE', '通用']
-    return tags.find(t => methods.includes(t)) || null
-  }
-
-  // 获取参数类型标签
-  const getParamTypeTag = (tags: string[]): string | null => {
-    return tags.find(t => t.includes('参数Weibull')) || null
-  }
-
-  // 获取样本量标签
-  const getSampleSizeTag = (tags: string[]): string | null => {
-    return tags.find(t => t === '大样本' || t === '小样本') || null
-  }
-
-  // 获取数据完整度标签
-  const getCompletenessTag = (tags: string[]): string | null => {
-    return tags.find(t => t === '完全样本' || t === '截断样本') || null
-  }
-
-  const handleAnalyze = (item: CaseOrGroup) => {
-    if (item.isGroup) {
-      router.push(`/cases/groups/${item.id}`)
-    } else if (item.data_raw) {
-      router.push(`/?caseData=${encodeURIComponent(item.data_raw)}`)
-    }
-  }
-
-  // 获取详情页链接
-  const getDetailUrl = (item: CaseOrGroup): string => {
-    if (item.isGroup) {
-      return `/cases/groups/${item.id}`
-    }
-    return `/cases/${item.id}`
-  }
-
-  return (
-    <main className="flex-1 bg-slate-50 min-h-screen">
-      <div className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12 space-y-8">
-
-        {/* 标题和统计 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">案例数据库</h1>
-            <p className="text-sm text-slate-400 mt-1">
-              共 {stats.groups} 个案例组，{stats.cases} 个单案例
-            </p>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-4">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-[767px]:basis-full max-[767px]:min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              type="text"
-              placeholder="搜索案例名称、描述或标签..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-            <button
-              onClick={() => setViewMode('all')}
-              className={cn(
-                "px-3 py-1.5 text-xs font-bold rounded-lg transition-all",
-                viewMode === 'all' ? "bg-white text-slate-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              全部
-            </button>
-            <button
-              onClick={() => setViewMode('groups')}
-              className={cn(
-                "px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1",
-                viewMode === 'groups' ? "bg-white text-slate-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <FolderOpen size={12} />
-              案例组
-            </button>
-            <button
-              onClick={() => setViewMode('cases')}
-              className={cn(
-                "px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1",
-                viewMode === 'cases' ? "bg-white text-slate-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <FileText size={12} />
-              单案例
-            </button>
-          </div>
-
-          {/* Type Filter */}
-          <div className="flex items-center gap-2">
-            <select
-              className="bg-slate-50 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              {typeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Data Grid / Table */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden max-[1279px]:overflow-x-auto">
-          <table className="w-full text-left border-collapse max-[1279px]:min-w-[780px]">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-black text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-4">名称</th>
-                <th className="px-6 py-4">类型</th>
-                <th className="px-6 py-4">数据规模</th>
-                <th className="px-6 py-4 w-1/3">描述</th>
-                <th className="px-6 py-4">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredItems.map((item) => {
-                const paperId = getPaperId(item)
-                const scale = getDataScale(item)
-                const methodTag = getMethodTag(item.tags)
-                const paramTypeTag = getParamTypeTag(item.tags)
-                const sampleSizeTag = getSampleSizeTag(item.tags)
-                const completenessTag = getCompletenessTag(item.tags)
-                const detailUrl = getDetailUrl(item)
-
-                return (
-                  <tr
-                    key={`${item.isGroup ? 'group' : 'case'}-${item.id}`}
-                    onClick={() => router.push(detailUrl)}
-                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                  >
-                    {/* 名称列 */}
-                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center gap-2.5">
-                        {item.isGroup ? (
-                          <FolderOpen size={16} className="text-emerald-500 flex-shrink-0" />
-                        ) : (
-                          <FileText size={16} className="text-blue-500 flex-shrink-0" />
-                        )}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* ID 徽章 */}
-                          <span className="inline-flex items-center px-2 py-1 bg-violet-100 border border-violet-200 rounded text-xs font-bold text-violet-600">
-                            [{item.id}]
-                          </span>
-                          {/* 标题 */}
-                          <Link href={detailUrl} className="font-bold text-slate-800 text-sm">
-                            {item.title}
-                          </Link>
-                          {/* 文献ID - 如果存在 */}
-                          {paperId && (
-                            <Link
-                              href={`/library/${paperId}`}
-                              onClick={e => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 border border-amber-200 rounded text-xs font-medium text-amber-600 hover:bg-amber-100 transition-colors"
-                            >
-                              <BookOpen size={12} />
-                              [{paperId}]
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 类型列 */}
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-bold border",
-                        item.type === '抽样样本'
-                          ? "bg-purple-50 text-purple-600 border-purple-200"
-                          : "bg-amber-50 text-amber-600 border-amber-200"
-                      )}>
-                        {item.type === '抽样样本' ? (
-                          <Dna size={12} className="text-purple-400" />
-                        ) : (
-                          <FlaskConical size={12} className="text-amber-400" />
-                        )}
-                        {item.type}
-                      </span>
-                    </td>
-
-                    {/* 数据规模列 */}
-                    <td className="px-6 py-4">
-                      <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-sky-50 border border-sky-200 rounded text-xs font-bold text-sky-600">
-                        {scale.points}点×{scale.groups}组
-                      </div>
-                    </td>
-
-                    {/* 描述列 */}
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <p className="text-sm text-slate-500 leading-relaxed">
-                          {item.description || '暂无描述'}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {methodTag && (
-                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
-                              #{methodTag}
-                            </span>
-                          )}
-                          {paramTypeTag && (
-                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
-                              #{paramTypeTag}
-                            </span>
-                          )}
-                          {sampleSizeTag && (
-                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
-                              #{sampleSizeTag}
-                            </span>
-                          )}
-                          {completenessTag && (
-                            <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
-                              #{completenessTag}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* 操作列 */}
-                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleAnalyze(item)}
-                        className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 text-sm font-bold rounded-xl transition-all active:scale-95 shadow-sm"
-                      >
-                        <Calculator size={16} />
-                        去计算
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-
-          {filteredItems.length === 0 && (
-            <div className="p-12 text-center text-slate-400">
-              <Database size={48} className="mx-auto mb-4 opacity-20" />
-              <p>未找到匹配的案例。</p>
-            </div>
-          )}
-        </div>
-
+  return <main className="min-h-screen flex-1 bg-slate-50">
+    <div className="page-shell mx-auto w-full max-w-[1500px] space-y-6 px-5 py-8 sm:px-10">
+      <div><h1 className="text-2xl font-bold text-slate-800">案例数据库</h1>
+        <p className="mt-2 text-sm text-slate-500">{catalog ? '共 ' + catalog.total + ' 份数据 · 当前书单 ' + catalog.coverage.total + ' 篇资料，已扫描 ' + catalog.coverage.scanned + ' 篇，已核查 ' + catalog.coverage.reviewed + ' 篇' : '数据、性质与来源'}</p>
       </div>
-    </main>
-  )
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1"><Search size={18} className="absolute left-3 top-3 text-slate-400" /><input aria-label="搜索案例数据" value={query}
+          onChange={event => { setQuery(event.target.value); setOffset(0) }} placeholder="搜索数据名称、文献编号或来源"
+          className="min-h-[44px] w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-base outline-none focus:border-emerald-500" /></div>
+        <select aria-label="数据性质" value={kind} onChange={event => { setKind(event.target.value); setOffset(0) }} className="min-h-[44px] rounded-lg border border-slate-200 bg-white px-3 text-base text-slate-700">
+          <option value="all">全部性质</option>{Object.entries(natureLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
+      {error && <div role="alert" className="flex items-center gap-3 text-red-700"><p>{error}</p><button className={buttonStyle} onClick={() => setReload(value => value + 1)}>重试</button></div>}
+      {catalog?.issues.length ? <details className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><summary className="cursor-pointer">有 {catalog.issues.length} 项数据读取问题</summary><ul className="mt-2 space-y-1">{catalog.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details> : null}
+      <div aria-busy={loading} className="space-y-3">
+        {loading ? <p className="py-8 text-center text-slate-500">正在读取数据…</p> : catalog?.items.map(record => <DatasetRow key={record.id} summary={record} />)}
+        {!loading && !error && !catalog?.items.length && <p className="py-8 text-center text-slate-500">没有匹配的数据。</p>}
+      </div>
+      {catalog && catalog.matched > 0 && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+        <p>{offset + 1}–{Math.min(offset + catalog.items.length, catalog.matched)} / {catalog.matched}</p>
+        <div className="flex gap-2"><button className={buttonStyle} disabled={loading || offset === 0} onClick={() => setOffset(Math.max(0, offset - catalog.limit))}><ChevronLeft size={16} />上一页</button>
+          <button className={buttonStyle} disabled={loading || offset + catalog.limit >= catalog.matched} onClick={() => setOffset(offset + catalog.limit)}>下一页<ChevronRight size={16} /></button></div>
+      </div>}
+    </div>
+  </main>
 }

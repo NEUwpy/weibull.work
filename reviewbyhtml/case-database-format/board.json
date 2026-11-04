@@ -2,13 +2,13 @@
   "id": "case-database-format",
   "title": "案例数据库 · 格式与建设方式",
   "document": true,
-  "revision": 2,
+  "revision": 3,
   "require_confirmation": true,
-  "archive_plan": "将审定的“数据为主体、来源连接文献”的格式与建设方式写入 D:/weibull/docs/建设规范/04-案例数据库.md，保存本页与审批记录并提交相关 Git 变更。正式程序接入及数据录入按审定规范后续实施。",
+  "archive_plan": "保存本轮本机案例目录、核查证据与尚待补齐的事项，更新建设记录并提交相关成果。本轮按当前阶段存档，剩余全库逐项核查继续按既定目标推进。",
   "units": [
     {
       "id": "preview",
-      "title": "1. 数据怎样展示",
+      "title": "1. 本机初步成果",
       "mode": "content",
       "options": [
         {
@@ -18,17 +18,37 @@
             {
               "id": "summary",
               "kind": "text",
-              "html": "<p><mark>一份数据，一条记录，附上文献出处。</mark>网页以数据为主体，文献编号连接题录与原文，仍可追溯和引用。</p>"
+              "html": "<p>已接通以<mark>数据、性质、来源</mark>为主体的案例目录。当前正式书单251项均已扫描，外部目录有4,753条材料，另保留32份既有样本。</p><p>其中包括3,366份表格、29个数值段候选、1,245条图像资料、96条外部资料定位和17份已逐项核对PDF的完整样本。目录支持检索、展开、复制、下载和来源引用。</p>"
             },
             {
               "id": "catalog-preview",
-              "kind": "visual",
-              "html": "<div style=\"border:1px solid #d7e2dc;border-radius:10px;padding:18px;background:#f7faf8\"><p style=\"margin:0 0 12px\"><strong>环氧树脂击穿电压 · Case 2</strong> <span style=\"color:#537061;font-size:14px\">20 点</span></p><p style=\"margin:0 0 12px;line-height:1.9\">27.15，29.13，28.28，27.74，28.87，26.42，24.46，30.88，29.11，27.31，27.54，27.98，28.49，26.25，28.50，25.61，29.50，28.04，27.94，26.66</p><p style=\"margin:0;color:#537061;font-size:14px\">来源　[182-105] Hirose（1996） · Table 1, Case 2</p></div>"
+              "kind": "gallery",
+              "aspect_ratio": 1.6,
+              "images": [
+                {
+                  "id": "desktop",
+                  "label": "桌面实际页面",
+                  "src": "assets/cases-desktop.png",
+                  "alt": "案例结果表的桌面呈现"
+                },
+                {
+                  "id": "half",
+                  "label": "800像素视口实际页面",
+                  "src": "assets/cases-half.png",
+                  "alt": "结果表的半屏呈现"
+                },
+                {
+                  "id": "mobile",
+                  "label": "390像素视口实际页面",
+                  "src": "assets/cases-mobile.png",
+                  "alt": "结果表的窄屏呈现"
+                }
+              ]
             },
             {
               "id": "preview-evidence",
               "kind": "text",
-              "html": "<p style=\"font-size:14px;color:#607266\">拟议展示样例。数据沿用现有测试及原文稿，入库时核对 PDF，补原文单位。</p>"
+              "html": "<p><a href=\"http://127.0.0.1:3000/cases\" target=\"_blank\" rel=\"noreferrer\">在本机打开案例数据库</a>。上图来自实际运行页面。本轮数据与程序在本机验证，NAS和公网案例页尚未部署。</p>"
             }
           ]
         }
@@ -36,7 +56,7 @@
     },
     {
       "id": "format",
-      "title": "2. 数据怎样保存",
+      "title": "2. 数据、性质、来源",
       "mode": "content",
       "options": [
         {
@@ -46,12 +66,12 @@
             {
               "id": "ownership",
               "kind": "text",
-              "html": "<p>每份数据一个 JSON 文件，统一放入案例目录，由网站汇总。核心字段只有编号、名称、数据和来源。</p>"
+              "html": "<p>每份数据一个记录。完整样本、结果表和数据图使用同一目录，来源连接当前库中实际提供材料的文献。转引显示“经该文转引”，并保留原始文献线索；同一数据可关联多篇文献。</p><p>Hirose的20点样本已从案例页带入计算器，MLE计算得到β = 4.529、η = 6.239、γ = 22.092。结果表保留原单元格和数学排版，宽表在自身容器内横向滚动。</p>"
             },
             {
               "id": "json-preview",
               "kind": "text",
-              "html": "<pre><code>{\n  &quot;id&quot;: &quot;c001&quot;,\n  &quot;name&quot;: &quot;环氧树脂击穿电压 · Case 2&quot;,\n  &quot;data&quot;: [27.15, 29.13, 28.28, 27.74, 28.87, 26.42, 24.46, 30.88, 29.11, 27.31,\n           27.54, 27.98, 28.49, 26.25, 28.50, 25.61, 29.50, 28.04, 27.94, 26.66],\n  &quot;sources&quot;: [\n    {&quot;paper_id&quot;: &quot;182-105&quot;, &quot;location&quot;: &quot;Table 1, Case 2&quot;}\n  ]\n}</code></pre><p>单位和删失标记按实际数据补充。<code>sources</code> 可列多篇文献，题名、作者和年份按文献编号读取。</p>"
+              "html": "<details><summary>查看一份真实数据记录</summary><pre><code>{\n  &quot;id&quot;: &quot;sample-hirose-1996-case-2&quot;,\n  &quot;name&quot;: &quot;环氧树脂击穿电压 · Case 2&quot;,\n  &quot;data&quot;: [\n    27.15,\n    29.13,\n    28.28,\n    27.74,\n    28.87,\n    26.42,\n    24.46,\n    30.88,\n    29.11,\n    27.31,\n    27.54,\n    27.98,\n    28.49,\n    26.25,\n    28.5,\n    25.61,\n    29.5,\n    28.04,\n    27.94,\n    26.66\n  ],\n  &quot;nature&quot;: {\n    &quot;kind&quot;: &quot;observed&quot;,\n    &quot;observation&quot;: &quot;complete&quot;,\n    &quot;quantity&quot;: &quot;击穿电压&quot;,\n    &quot;unit&quot;: null,\n    &quot;note&quot;: &quot;Takaoka Electric Laboratory 每组20个试件升压至击穿，原文未标明电压单位。&quot;\n  },\n  &quot;sources&quot;: [\n    {\n      &quot;paper_id&quot;: &quot;182-105&quot;,\n      &quot;location&quot;: &quot;Table 1, Case 2; §2; PDF第2–3页（印刷页44–45）&quot;,\n      &quot;relation&quot;: &quot;secondary&quot;,\n      &quot;original_reference&quot;: &quot;[11] H. Hirose (1991), Percentile Point Estimation in the three Parameter Weibull Distribution by the Extended Maximum Likelihood Estimate, Computational Statistics and Data Analysis 11, 309–331.&quot;\n    }\n  ]\n}</code></pre></details>"
             }
           ]
         }
@@ -59,7 +79,7 @@
     },
     {
       "id": "build",
-      "title": "3. 怎样建设",
+      "title": "3. 仍需继续补齐",
       "mode": "content",
       "options": [
         {
@@ -69,7 +89,7 @@
             {
               "id": "build-phases",
               "kind": "text",
-              "html": "<ol><li>从当前上架论文逐篇提取原始数据，核对数值与出处后入库。</li><li>已有相同数据时补充来源连接；新增数据时加一份案例文件。</li><li>以后上架论文沿用同样方式，网页提供复制数据、调用计算和查看引用来源。</li></ol>"
+              "html": "<ul><li>3,592个图片引用尚待辨识数据图、示意图和公式，已逐篇记录出处。</li><li>29个数值段保留原文整段，分段、删失和近似值需继续核对后整理。</li><li>17份完整样本已核对PDF，182-104的两组样本及三个结果表已完成整篇数据材料核查，其余资料逐项校对仍在推进。</li></ul><p>全量源稿一致检查未发现读取、表格原文或图片资源问题。21项程序回归、9项导入回归和生产构建通过。已修正抽查发现的相邻图题和二引错配。</p>"
             }
           ]
         }
