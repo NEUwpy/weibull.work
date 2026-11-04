@@ -17,6 +17,8 @@ METHODS=['mle','wmle','mdm','lse','lre','mm','mmle']
 def main():
     events=queue.Queue()
     children=[]
+    commands={}
+    retries={}
     def read_child(method,process):
         output,_=process.communicate()
         events.put((method,process.returncode,output))
@@ -25,13 +27,25 @@ def main():
             folder=ROOT/('method-'+method)
             board=json.loads((folder/'board.json').read_text(encoding='utf8'))
             if board.get('review_complete'):continue
-            process=subprocess.Popen([sys.executable,str(SKILL),'wait','--root',str(folder),'--revision',str(board['revision'])],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf8')
+            commands[method]=[sys.executable,str(SKILL),'wait','--root',str(folder),'--revision',str(board['revision'])]
+            process=subprocess.Popen(commands[method],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf8')
             children.append(process)
             threading.Thread(target=read_child,args=(method,process),daemon=True).start()
         if not children:
             print(json.dumps({'status':'complete'}),flush=True)
             return
-        method,code,output=events.get()
+        while True:
+            method,code,output=events.get()
+            # A transient Windows reader can outlast the skill's atomic-rename
+            # retry window. Resume only that failed wait, leaving other tasks
+            # and all saved feedback intact.
+            if code and '[WinError 5]' in output and 'listener.json' in output and retries.get(method,0)<3:
+                retries[method]=retries.get(method,0)+1
+                process=subprocess.Popen(commands[method],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf8')
+                children.append(process)
+                threading.Thread(target=read_child,args=(method,process),daemon=True).start()
+                continue
+            break
         print(json.dumps({'method':method,'exit_code':code,'output':output},ensure_ascii=False),flush=True)
         while not events.empty():
             method,code,output=events.get_nowait()
