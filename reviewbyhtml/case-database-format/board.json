@@ -1,0 +1,130 @@
+{
+  "id": "case-database-format",
+  "title": "案例数据库 · 格式与建设方式",
+  "document": true,
+  "revision": 1,
+  "require_confirmation": true,
+  "archive_plan": "将审定的案例字段、展示方式与建设流程写入 D:/weibull/docs/建设规范/04-案例数据库.md，保留建设目的，将原‘准则待讨论’更新为审定内容。保存本页及审批记录，提交相关 Git 变更。本次存档定稿建设规范，程序接入、数据迁移和批量录入另行实施。",
+  "units": [
+    {
+      "id": "preview",
+      "title": "1. 案例在网站上怎样看",
+      "mode": "content",
+      "options": [
+        {
+          "id": "preview-current",
+          "label": "统一案例列表原型",
+          "blocks": [
+            {
+              "id": "summary",
+              "kind": "text",
+              "html": "<p>把案例库做成<mark>可追溯、可取用的数据目录</mark>。每个可独立取用的样本占一行，点开即看出处、数据和论文结果。同一篇论文的多个案例可以按文献编号查找。</p>"
+            },
+            {
+              "id": "catalog-preview",
+              "kind": "visual",
+              "html": "<div style=\"border:1px solid #d7e2dc;border-radius:12px;background:#f7faf8;padding:16px\"><p style=\"margin:0 0 10px;color:#416254;font-size:13px;font-weight:600\">案例列表原型 · 点击展开或收起</p>\n<details open style=\"background:white;border:1px solid #dce6df;border-radius:8px;padding:10px 12px;margin:8px 0\"><summary style=\"cursor:pointer\"><strong>环氧树脂击穿电压 · Case 2</strong><span style=\"display:inline-block;margin-left:8px;font-size:13px;color:#286149\">182-105 · 实测 · 20 点 · 可计算示例</span></summary><div style=\"margin-top:9px;padding-top:8px;border-top:1px solid #e4ece6;font-size:14px\"><p><strong>样本出处</strong>　Hirose（1996），Table 1，Case 2 列。原文稿表头未注明单位，录入时按 PDF 核实。</p><p><strong>原始观测</strong>　27.15，29.13，28.28，27.74，28.87，26.42，24.46，30.88，29.11，27.31，27.54，27.98，28.49，26.25，28.50，25.61，29.50，28.04，27.94，26.66</p><p><strong>论文参考结果</strong>　Table 2 · 三参数 MLE · β = 4.529，η = 6.239，γ = 22.092</p><span style=\"display:inline-block;border-radius:6px;padding:3px 10px;color:#225a42;background:#e8f2ec;font-weight:600\">送入计算器</span> <span style=\"font-size:12px;color:#52635a\">拟议入口</span></div></details>\n<details  style=\"background:white;border:1px solid #dce6df;border-radius:8px;padding:10px 12px;margin:8px 0\"><summary style=\"cursor:pointer\"><strong>Soman &amp; Misra · Example 2</strong><span style=\"display:inline-block;margin-left:8px;font-size:13px;color:#286149\">182-104 · 论文生成样本 · 30 点 · 可计算示例</span></summary><div style=\"margin-top:9px;padding-top:8px;border-top:1px solid #e4ece6;font-size:14px\"><p><strong>样本出处</strong>　Example 2 原始数表。</p><p><strong>生成真值</strong>　μ = 100，c = 0.8，b = 10。</p><p><strong>论文参考结果</strong>　Table 2 · LSE · μ̂ = 99.9，ĉ = 0.8361，b̂ = 8.8521。</p></div></details></div>"
+            },
+            {
+              "id": "preview-evidence",
+              "kind": "text",
+              "html": "<p>示例取自本机文献原文稿和现有测试数据，正式入库时逐项对照 PDF。列表拟支持按论文编号、案例名、样本性质和可用性筛选。展开后可回原文或调用样本。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "format",
+      "title": "2. 每篇论文怎样存",
+      "mode": "content",
+      "options": [
+        {
+          "id": "format-current",
+          "label": "论文旁挂 JSON，数据量大时配 CSV",
+          "blocks": [
+            {
+              "id": "ownership",
+              "kind": "text",
+              "html": "<p><mark>每篇论文维护一份 <code>文献编号-案例.json</code></mark>，与原文同目录。一篇论文有几个案例，就在同一个文件里记几条。题名、作者、年份和 DOI 按编号复用图书馆题录。少量数值直接写 JSON。长表或多列逐条观测放同目录的 CSV，由 JSON 引用。</p>"
+            },
+            {
+              "id": "fields",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>字段</th><th>写什么</th></tr></thead><tbody><tr><td>论文检查结果</td><td>已整理、确认无案例、待补齐。待补齐时可先保留已核准的条目，附缺项及原因。</td></tr><tr><td>身份与出处</td><td>稳定案例 ID、原文案例名、表号／页码／章节。展示名和一句背景按需补充。</td></tr><tr><td>样本信息</td><td>实测或模拟，样本完整性，观测量及单位。单位确实未说明时记未知。样本数能从逐条数据计算时自动得出。</td></tr><tr><td>数据载体</td><td>JSON 数组、CSV、外部数据链接或仅有图表／汇总。删失样本保留事件标记和必要的上下界。</td></tr><tr><td>参考结果（如有）</td><td>论文方法、参数或指标及出处。模拟真值单列，论文估计值按原符号记录。</td></tr></tbody></table>"
+            },
+            {
+              "id": "json-preview",
+              "kind": "text",
+              "html": "<details><summary style=\"cursor:pointer\">展开看 <code>182-105-案例.json</code> 的写法</summary><p>这里用 Case 2 演示。该篇其余条目仍待整理，所以状态写 <code>pending</code>。</p><pre><code>{\n  \"paper_id\": \"182-105\",\n  \"review\": \"pending\",\n  \"review_note\": \"其余组和原文单位待核对\",\n  \"cases\": [\n    {\n      \"id\": \"182-105-case-2\",\n      \"name\": \"Case 2\",\n      \"title\": \"环氧树脂击穿电压\",\n      \"source\": \"Table 1, Case 2\",\n      \"sample\": {\n        \"kind\": \"observed\", \"scheme\": \"complete\",\n        \"quantity\": \"voltage\", \"unit\": null\n      },\n      \"data\": {\n        \"kind\": \"inline\",\n        \"values\": [27.15, 29.13, 28.28, 27.74, 28.87, 26.42, 24.46, 30.88, 29.11, 27.31,\n                   27.54, 27.98, 28.49, 26.25, 28.50, 25.61, 29.50, 28.04, 27.94, 26.66]\n      },\n      \"reference_results\": [\n        {\n          \"source\": \"Table 2, Case 2\",\n          \"method\": \"3P Weibull MLE\",\n          \"parameters\": {\"beta\": 4.529, \"eta\": 6.239, \"gamma\": 22.092}\n        }\n      ]\n    }\n  ]\n}</code></pre></details>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eligibility",
+      "title": "3. 哪些案例可以直接计算",
+      "mode": "content",
+      "options": [
+        {
+          "id": "eligibility-current",
+          "label": "收录与计算分别判断",
+          "blocks": [
+            {
+              "id": "policy",
+              "kind": "text",
+              "html": "<p><mark>能定位到原文的案例都可收录</mark>。计算按钮由数据核验、访问权限和所选方法的输入能力决定。同篇论文仍有待补案例时，已核准且满足条件的样本也可调用。</p>"
+            },
+            {
+              "id": "availability",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>论文给出的材料</th><th>页面处理</th></tr></thead><tbody><tr><td>完整、逐条可核验的样本</td><td>展示或下载。格式校验通过，且计算入口支持相应观测类型时，可送入计算器。</td></tr><tr><td>有删失、截断或分组的数据</td><td>保留原观测规则。计算入口能完整表达该规则时才启用。</td></tr><tr><td>外部数据、仅图表或汇总结果</td><td>记录出处、链接与已有结果，标注仅查阅。取得可使用的原始数据并完成核验后，再更新可用性。</td></tr><tr><td>论文明确列出的模拟样本</td><td>按普通案例处理，标记模拟及已知真值。大批量蒙特卡洛实验保留实验索引和来源链接。</td></tr></tbody></table>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "build",
+      "title": "4. 存量怎么补，以后怎么接",
+      "mode": "content",
+      "options": [
+        {
+          "id": "build-current",
+          "label": "先跑通样板，再按书单清点",
+          "blocks": [
+            {
+              "id": "build-phases",
+              "kind": "text",
+              "html": "<ol><li><strong>用两篇论文跑通。</strong> 先做 Hirose 和 Soman &amp; Misra，对照 PDF 核对样本、出处、单位和参考结果。用同一份数据验证列表展示、原文跳转、计算器调用和测试取数。遇到仅图表等情况，验证可收录、仅查阅的行为。</li><li><strong>对正式书单逐篇清点。</strong> 本机正式书单现有 245 篇论文。逐篇检查正文、附录及已指向的补充资料，登记已整理、确认无案例或待补齐。缺 PDF、缺数据或有歧义的项带原因保留，进度按已检查篇数和待补项核对。既有独立样本与 MDM 样本组按平台样本接入，兼容旧链接和计算调用。</li><li><strong>后续随上架补一份记录。</strong> 新论文可在准备上架时顺手完成案例检查。案例未整理完时，自动从正式书单列入待检查；后续添加或修订伴随文件即可。</li></ol>"
+            },
+            {
+              "id": "aggregation",
+              "kind": "text",
+              "html": "<p><strong>自动汇总</strong>　从正式书单取论文编号，读取对应伴随文件，校验后生成列表和进度。本机直读，部署使用同一来源生成的数据快照。源文件是唯一手工维护入口。单篇校验失败时定位到文件和案例，其他有效条目仍可读取。</p><p><strong>首批验收</strong>　能从案例回到原表，导入的数值与核验记录逐项一致，论文估计与平台计算分别展示。只有已核验、具备相应使用权限且兼容计算入口的数据进入可调用集合。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "approval",
+      "title": "5. 本轮审批",
+      "mode": "content",
+      "options": [
+        {
+          "id": "approval-current",
+          "label": "整体方案确认",
+          "blocks": [
+            {
+              "id": "approval-text",
+              "kind": "text",
+              "html": "<p>请审批统一展开行、每篇一份 JSON，以及先做两篇样板、再逐篇覆盖正式书单的建设方式。可直接批注具体条款。认可整套方案时，点击<strong>存档</strong>，在确认文字中写明“同意按此方案定稿”，再点<strong>确认存档</strong>。有修改意见时使用<strong>提交</strong>。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
