@@ -1,0 +1,485 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>加权极大似然估计 WMLE · 呈现原型</title><style>body{margin:0;padding:24px;background:#eaf0ec}main{max-width:1500px;margin:auto}@media(max-width:680px){body{padding:8px}}</style><main><style>
+.proposal{--green:#27624d;--ink:#18382c;--muted:#62756c;color:var(--ink);font:16px/1.65 'Microsoft YaHei',system-ui,sans-serif;background:#f4f7f5;border:1px solid #dbe4df;border-radius:16px;overflow:hidden;min-width:0;container-type:inline-size}
+.proposal *{box-sizing:border-box;min-width:0}.proposal h2,.proposal h3,.proposal h4,.proposal p{margin:0}.proposal h2{font-size:25px}.proposal h3{font-size:19px}.proposal h4{font-size:17px}.proposal a{color:var(--green)}
+.proposal .head{padding:22px 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .eyebrow{color:var(--muted);font-size:14px;margin-bottom:8px}.proposal .subtitle{margin-top:8px;color:var(--muted)}
+.proposal .tabs{display:flex;gap:22px;flex-wrap:wrap;padding:0 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .tab{border:0;border-bottom:3px solid transparent;background:none;padding:13px 0;font:inherit;color:var(--muted);cursor:pointer}.proposal .tab.active{border-color:var(--green);color:var(--green);font-weight:700}
+.proposal .body{padding:22px}.proposal .lead{border-left:3px solid #78a38d;background:#eaf1ec;padding:12px 16px;margin-bottom:18px}.proposal .muted{color:var(--muted);font-size:14px}.proposal .cols{display:grid;grid-template-columns:190px minmax(0,1fr) minmax(220px,.78fr);gap:16px;align-items:start}.proposal .card{background:white;border:1px solid #dbe4df;border-radius:12px;padding:18px}.proposal .steps{display:grid;gap:7px}.proposal .step{padding:11px 10px;border:0;border-radius:8px;background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}.proposal .step.active{background:#dfece3;color:#174d36;font-weight:700}.proposal .step span{font-size:14px;color:var(--muted);display:block}
+.proposal pre{font:14px/1.65 Consolas,monospace;background:#f5f7f6;padding:14px;overflow:auto;max-height:360px;white-space:pre;margin:12px -4px 0}.proposal .formula{overflow:auto;padding:12px 0;font-size:17px}.proposal .mapping{padding:8px 0;border-top:1px solid #e6ece8;font-size:14px}.proposal code{font:14px Consolas,monospace;overflow-wrap:anywhere}.proposal details{margin-top:14px}.proposal summary{cursor:pointer;font-size:14px;color:var(--green)}
+.proposal .results{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 20px}.proposal .result{background:white;border:1px solid #dbe4df;border-radius:10px;padding:10px 18px;flex:1}.proposal .result strong{display:block;font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}.proposal .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.proposal .chart{background:white;border:1px solid #dbe4df;border-radius:12px;padding:16px}.proposal .chart svg,.proposal .chart img{display:block;width:100%;height:auto}.proposal .chart.wide{grid-column:1/-1}.proposal .chart p{margin:8px 0}.proposal .chart-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}.proposal .kicker{font-size:14px;color:#47745f}.proposal .recovery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.proposal .recovery .card{padding:14px}.proposal .recovery .formula{font-size:15px}.proposal .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.proposal .pill{font:inherit;padding:7px 12px;border:1px solid #bacfc1;background:white;border-radius:8px;cursor:pointer;color:var(--green)}.proposal .pill.active{background:var(--green);color:white}.proposal .stagebar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}.proposal table{border-collapse:collapse;width:100%;font-size:14px}.proposal td,.proposal th{padding:9px;text-align:left;border-bottom:1px solid #e1e9e4}.proposal .warning{color:#8c591b;background:#fff6e7;padding:10px 14px;border-radius:8px;margin-bottom:14px}.proposal [hidden]{display:none!important}.proposal .sample{margin-bottom:16px}.proposal .sample p{overflow-wrap:anywhere}.proposal .final{margin-top:16px;padding:12px 16px;background:#e8f0eb;border-radius:8px}
+@media(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}.proposal .explain .mapping{display:inline-block;vertical-align:top;margin-right:20px;max-width:100%}}
+@media(max-width:680px){.proposal .head{padding:18px}.proposal .tabs{padding:0 18px;gap:16px}.proposal .body{padding:14px}.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .result{padding:8px 12px}.proposal .result strong{font-size:21px}.proposal .chart{padding:12px}.proposal .chart.wide{grid-column:auto}.proposal h2{font-size:22px}}
+@container(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}}
+@container(max-width:680px){.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .chart.wide{grid-column:auto}}
+</style><div class="proposal"><div class="head" style="border-bottom:0;background:#fff7e8"><p class="kicker">呈现原型 · 2026-11-04 · 固定样本预览</p><p><a href="../">返回本方法审阅与批注</a>　·　<a href="methods.html">切换方法</a></p></div><div class="head"><div class="eyebrow">参数估计方法 / WMLE</div><h2>加权极大似然估计 WMLE</h2><p class="subtitle">用权重修正的两个方程共同确定形状与位置；比较可接受的根，再按加权尺度公式恢复η。</p></div><div class="tabs"><button class="tab " data-tab="program">程序流程</button><button class="tab active" data-tab="calculation">计算过程</button></div><div data-view="program" hidden><div class="body"><p class="lead">每个候选位置先解形状方程，再检查位置方程；两个残差共同约束同一组参数。</p><div class="cols"><nav class="card steps" aria-label="计算步骤"><button class="step " data-step="0">1　数据与权重准备</button><button class="step active" data-step="1">2　条件形状求解</button><button class="step " data-step="2">3　恢复尺度与计算方程残差</button><button class="step " data-step="3">4　搜索并校验位置候选</button><button class="step " data-step="4">5　多根选择与状态检查</button><button class="step " data-step="5">6　计算拟合优度并返回</button></nav><section class="card code-panel" data-panel="0" hidden><h3>数据与权重准备</h3><p>进入求解器，以最小寿命u归一化样本。</p><p class="muted">python/methods/wmle.py · L102–129</p><pre><code> 102  def _load_j3_table():
+ 103      &quot;&quot;&quot;Load J3 weights from TSV file.&quot;&quot;&quot;
+ 104      global _J3_TABLE, _J3_GAMMA_VALUES
+ 105      if _J3_TABLE is not None:
+ 106          return _J3_TABLE, _J3_GAMMA_VALUES
+ 107
+ 108      j3_table = {}
+ 109      gamma_values = set()
+ 110
+ 111      # Get the directory of this file
+ 112      current_dir = os.path.dirname(os.path.abspath(__file__))
+ 113      j3_file = os.path.join(current_dir, &#x27;j3_weights.tsv&#x27;)
+ 114
+ 115      with open(j3_file, &#x27;r&#x27;) as f:
+ 116          for line in f:
+ 117              parts = line.strip().split()
+ 118              if len(parts) &gt;= 3:
+ 119                  n = int(parts[0])
+ 120                  gamma = float(parts[1])
+ 121                  value = float(parts[2])
+ 122                  if n not in j3_table:
+ 123                      j3_table[n] = {}
+ 124                  j3_table[n][gamma] = value
+ 125                  gamma_values.add(gamma)
+ 126
+ 127      _J3_TABLE = j3_table
+ 128      _J3_GAMMA_VALUES = sorted(gamma_values)
+ 129      return _J3_TABLE, _J3_GAMMA_VALUES</code></pre><p class="muted">python/base.py · L22–34</p><pre><code>  22      def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23          &quot;&quot;&quot;
+  24          Input: data (list or np.array) of failure times.
+  25          Status is assumed to be Failure (F) for this mathematical implementation.
+  26          rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27          &quot;&quot;&quot;
+  28          values = np.asarray(data, dtype=float).reshape(-1)
+  29          if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30              raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31          self.data = np.sort(values)
+  32          self.n = len(self.data)
+  33          self.trace_data = [] # Store process data for visualization
+  34          self.rank_method = rank_method</code></pre><p class="muted">python/methods/profile_solvers.py · L132–135</p><pre><code> 132      x = np.sort(np.asarray(data, float))
+ 133      unit = float(x[0])
+ 134      z = x / unit
+ 135      cache = {}</code></pre></section><aside class="card explain" data-panel="0" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo separator="true">,</mo><mspace width="1em"/><msub><mi>z</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mi>i</mi></msub><mi mathvariant="normal">/</mi><mi>u</mi><mo separator="true">,</mo><mspace width="1em"/><mn>0</mn><mo>&lt;</mo><mi>β</mi><mo>&lt;</mo><mn>9.99</mn><mo separator="true">,</mo><mspace width="1em"/><mn>0</mn><mo>≤</mo><mi>γ</mi><mo>&lt;</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>data</code> · 正有限样本</div><h4>输出</h4><div class="mapping"><code>z</code> · 无量纲样本</div><div class="mapping"><code>unit</code> · 原单位尺度</div><details><summary>依据与边界</summary><p>工程限制：内部形状求根上限10，最终候选还须β&lt;9.99。</p><p>Web统一入口至少3点；条件剖面至少2点。</p></details></aside><section class="card code-panel" data-panel="1"><h3>条件形状求解</h3><p>固定位置，在0&lt;β&lt;10内用Brent求加权形状根；没有内部根时返回None。</p><p class="muted">python/methods/profile_solvers.py · L14–19</p><pre><code>  14  def _location_grid():
+  15      # Dimensionless locations: ordinary range, near zero, and near support.
+  16      end = np.log(1. - np.nextafter(1., 0.))
+  17      return np.unique(np.r_[np.linspace(0., .99, 97),
+  18                             -np.expm1(np.linspace(0., end, 97)),
+  19                             np.geomspace(1e-12, .1, 33)])</code></pre><p class="muted">python/methods/conditional_profiles.py · L111–123</p><pre><code> 111  def wmle_profile(data, gamma, weights, *, shape_evaluations=None):
+ 112      &quot;&quot;&quot;Evaluate T2 along an interior T1=0 branch with the solver&#x27;s shape cap.
+ 113
+ 114      None means no conditional T1 zero in 0&lt;beta&lt;weights.SHAPE_UPPER. It does
+ 115      not establish absence of a joint solution at another location.
+ 116      &quot;&quot;&quot;
+ 117      d = _distances(data, gamma)
+ 118      n = len(d)
+ 119      j1, j2 = weights.get_weight_j1(n), weights.get_weight_j2(n)
+ 120      t = np.log(d)
+ 121      solution = _shape(t, weight=j2, upper=weights.SHAPE_UPPER, evaluations=shape_evaluations)
+ 122      if solution is None:
+ 123          return None</code></pre><p class="muted">python/methods/conditional_profiles.py · L13–20</p><pre><code>  13  def _distances(data, gamma):
+  14      x = np.asarray(data, dtype=float)
+  15      d = x - gamma
+  16      if x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x)):
+  17          raise ValueError(&quot;Expected a finite one-dimensional sample of at least two points&quot;)
+  18      if not np.isfinite(gamma) or gamma &lt; 0 or np.any(d &lt;= 0):
+  19          raise ValueError(&quot;Conditional location must satisfy 0 &lt;= gamma &lt; min(data)&quot;)
+  20      return d</code></pre><p class="muted">python/methods/wmle.py · L135–161</p><pre><code> 135  def get_weight_j1(n: int) -&gt; float:
+ 136      &quot;&quot;&quot;
+ 137      Get J1 weight (median of W1) for sample size n.
+ 138
+ 139      J1 is used to compute the scale parameter beta.
+ 140      Paper definition: W1 = (1/n) * sum(log(1/(1-F(x_i)))), the summands are
+ 141      iid Exp(1), so W1 ~ Gamma(n, 1/n) and its exact median is
+ 142      gammaincinv(n, 0.5) / n (Cousineau 2009, Table 2 lists the same values).
+ 143      For n &gt; 100 (outside the lookup table) we use this exact median.
+ 144      &quot;&quot;&quot;
+ 145      if n in WEIGHT_TABLE_J1:
+ 146          return WEIGHT_TABLE_J1[n]
+ 147      if n &lt; 1:
+ 148          return 0.5
+ 149      if n &gt; 100:
+ 150          # Exact median of W1 ~ Gamma(n, 1/n)
+ 151          return float(gammaincinv(n, 0.5)) / n
+ 152      # Linear interpolation
+ 153      known_ns = sorted(WEIGHT_TABLE_J1.keys())
+ 154      for i in range(len(known_ns) - 1):
+ 155          n_low, n_high = known_ns[i], known_ns[i + 1]
+ 156          if n_low &lt; n &lt; n_high:
+ 157              w_low = WEIGHT_TABLE_J1[n_low]
+ 158              w_high = WEIGHT_TABLE_J1[n_high]
+ 159              t = (n - n_low) / (n_high - n_low)
+ 160              return w_low + t * (w_high - w_low)
+ 161      return WEIGHT_TABLE_J1[known_ns[-1]]</code></pre><p class="muted">python/methods/wmle.py · L164–195</p><pre><code> 164  def get_weight_j2(n: int) -&gt; float:
+ 165      &quot;&quot;&quot;
+ 166      Get J2 weight (median of W2) for sample size n.
+ 167
+ 168      J2 is used in the shape equation.
+ 169      For n &gt; 100, asymptotic value is 1.0.
+ 170      &quot;&quot;&quot;
+ 171      if n in WEIGHT_TABLE_J2:
+ 172          return WEIGHT_TABLE_J2[n]
+ 173      if n &lt; 1:
+ 174          return 0.0
+ 175      if n &lt; 2:
+ 176          return 0.0
+ 177      if n &gt; 100:
+ 178          return 1.0
+ 179
+ 180      # Linear interpolation for n not in table
+ 181      known_ns = sorted(WEIGHT_TABLE_J2.keys())
+ 182      if n &lt; known_ns[0]:
+ 183          return 0.0
+ 184      if n &gt; known_ns[-1]:
+ 185          return 1.0
+ 186
+ 187      for i in range(len(known_ns) - 1):
+ 188          n_low, n_high = known_ns[i], known_ns[i + 1]
+ 189          if n_low &lt; n &lt; n_high:
+ 190              w_low = WEIGHT_TABLE_J2[n_low]
+ 191              w_high = WEIGHT_TABLE_J2[n_high]
+ 192              t = (n - n_low) / (n_high - n_low)
+ 193              return w_low + t * (w_high - w_low)
+ 194
+ 195      return WEIGHT_TABLE_J2[known_ns[-1]]</code></pre><p class="muted">python/methods/conditional_profiles.py · L23–58</p><pre><code>  23  def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
+  24      z = logd - logd.mean()
+  25
+  26      def score(beta, source=&#x27;solver&#x27;):
+  27          w = np.exp(beta * (z - z.max()))
+  28          w /= w.sum()
+  29          value = float(weight / beta - w @ z)
+  30          if evaluations is not None:
+  31              evaluations.append(dict(beta=float(beta), score=value, source=source))
+  32          return value
+  33
+  34      def recorded_result(beta, residual, boundary):
+  35          # Supplement the same score function around its returned shape so the
+  36          # criterion is readable. These calls occur after selection, never enter
+  37          # root finding, and are identified separately from solver evaluations.
+  38          if evaluations is not None:
+  39              start = max(lower, beta * .5, 1e-8)
+  40              stop = min(upper, beta * 1.5) if upper is not None else beta * 1.5
+  41              for value in np.unique(np.r_[np.linspace(start, stop, 61), beta]):
+  42                  score(float(value), source=&#x27;diagnostic&#x27;)
+  43          return beta, residual, boundary
+  44
+  45      if np.ptp(logd) == 0:
+  46          return None  # No finite shape root for an equal-valued sample.
+  47      if lower &gt; 0 and score(lower) &lt;= 0:
+  48          return recorded_result(float(lower), score(lower), True)
+  49      if upper is None:
+  50          upper = 2.0
+  51          while score(upper) &gt; 0:
+  52              upper *= 2
+  53              if not np.isfinite(upper):
+  54                  return None
+  55      elif score(upper) &gt;= 0:
+  56          return None  # WMLE needs an interior T1 zero, never a clamped boundary.
+  57      beta = float(brentq(score, max(lower, 1e-8), upper, xtol=1e-11, rtol=2e-14))
+  58      return recorded_result(beta, score(beta), False)</code></pre></section><aside class="card explain" data-panel="1"><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>v</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><msub><mi>d</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mrow><mi>ln</mi><mo>⁡</mo><mi>d</mi></mrow><mo stretchy="true">‾</mo></mover><mo separator="true">,</mo><mspace width="1em"/><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>i</mi></msub></mrow></msup><mrow><munder><mo>∑</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>j</mi></msub></mrow></msup></mrow></mfrac><mo separator="true">,</mo><mspace width="1em"/><msub><mi>T</mi><mn>1</mn></msub><mo>=</mo><mfrac><msub><mi>J</mi><mn>2</mn></msub><mi>β</mi></mfrac><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msub><mi>v</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>logd</code> · 平移距离的对数</div><div class="mapping"><code>weight</code> · 形状得分权重</div><h4>输出</h4><div class="mapping"><code>beta</code> · 形状根或允许的下界</div><div class="mapping"><code>score(beta)</code> · 返回点的形状得分</div><details><summary>依据与边界</summary><p>数值策略：Brent求内部形状根；无0&lt;β&lt;10的根时不生成条件点。</p><p></p></details></aside><section class="card code-panel" data-panel="2" hidden><h3>恢复尺度与计算方程残差</h3><p>用中心化对数距离和归一化幂权重计算T₁、T₂，目标是两者同时为零。</p><p class="muted">python/methods/conditional_profiles.py · L124–130</p><pre><code> 124      beta, _, _ = solution
+ 125      log_eta = t.mean() + (logsumexp(beta * (t - t.mean())) - np.log(n * j1)) / beta
+ 126      t1, t2 = wmle_residuals(data, beta, gamma, weights)
+ 127      j3 = float(weights.get_weight_j3(n, beta))
+ 128      return dict(beta=beta, eta=float(np.exp(log_eta)), t1=t1, t2=t2,
+ 129                  inverse_distance_product=t2 + j3, j1=float(j1), j2=float(j2), j3=j3,
+ 130                  j3_clamped=bool(beta &lt; .1 or beta &gt; 5))</code></pre><p class="muted">python/methods/conditional_profiles.py · L88–108</p><pre><code>  88  def wmle_residuals(data, beta, gamma, weights):
+  89      &quot;&quot;&quot;Evaluate T1,T2 with the caller&#x27;s J2/J3; beta/gamma may broadcast as grids.&quot;&quot;&quot;
+  90      x = np.asarray(data, dtype=float)
+  91      b, g = np.broadcast_arrays(np.asarray(beta, float), np.asarray(gamma, float))
+  92      d = x - g[..., None]
+  93      if (x.ndim != 1 or len(x) &lt; 2 or not np.all(np.isfinite(x))
+  94              or np.any(~np.isfinite(b)) or np.any(b &lt;= 0)
+  95              or np.any(~np.isfinite(g)) or np.any(g &lt; 0) or np.any(d &lt;= 0)):
+  96          raise ValueError(&quot;Invalid WMLE residual sample or parameter&quot;)
+  97      t = np.log(d)
+  98      z = t - t.mean(axis=-1, keepdims=True)
+  99      powers = b[..., None] * z
+ 100      w = np.exp(powers - logsumexp(powers, axis=-1, keepdims=True))
+ 101      t1 = weights.get_weight_j2(len(x)) / b - np.sum(w * z, axis=-1)
+ 102      log_ratio = (t.mean(axis=-1) + logsumexp(powers, axis=-1)
+ 103                   - logsumexp((b[..., None] - 1) * z, axis=-1))
+ 104      j3 = np.asarray([weights.get_weight_j3(len(x), float(v)) for v in b.flat]).reshape(b.shape)
+ 105      t2 = np.mean(1 / d, axis=-1) * np.exp(log_ratio) - j3
+ 106      if b.ndim == 0:
+ 107          return float(t1), float(t2)
+ 108      return t1, t2</code></pre><p class="muted">python/methods/wmle.py · L198–282</p><pre><code> 198  def get_weight_j3(n: int, gamma: float) -&gt; float:
+ 199      &quot;&quot;&quot;
+ 200      Get J3 weight (median of W3) for sample size n and shape parameter gamma.
+ 201
+ 202      J3 is used in the location equation.
+ 203      Unlike J1 and J2, J3 depends on both n and gamma.
+ 204
+ 205      For gamma &gt; 1, the asymptotic value is gamma / (gamma - 1).
+ 206
+ 207      Implementation follows R code approach:
+ 208      - Linear interpolation in gamma direction (0.1 resolution)
+ 209      - For n not in table, interpolate between nearest n values
+ 210      &quot;&quot;&quot;
+ 211      global _J3_TABLE, _J3_GAMMA_VALUES
+ 212
+ 213      # Clamp gamma to [0.1, 5.0] (same as R code)
+ 214      gamma_clamped = max(0.1, min(5.0, gamma))
+ 215
+ 216      # Calculate asymptotic value for very large n
+ 217      if gamma_clamped &gt; 1:
+ 218          asymp_val = gamma_clamped / (gamma_clamped - 1)
+ 219      else:
+ 220          asymp_val = float(&#x27;inf&#x27;)
+ 221
+ 222      # Helper function for gamma interpolation
+ 223      def interpolate_gamma(n_val):
+ 224          &quot;&quot;&quot;Linear interpolation in gamma direction&quot;&quot;&quot;
+ 225          if n_val not in _J3_TABLE:
+ 226              return asymp_val if gamma_clamped &gt; 1 else 2.0
+ 227
+ 228          gammas = sorted(_J3_TABLE[n_val].keys())
+ 229
+ 230          if gamma_clamped &lt;= gammas[0]:
+ 231              return _J3_TABLE[n_val][gammas[0]]
+ 232          if gamma_clamped &gt;= gammas[-1]:
+ 233              return _J3_TABLE[n_val][gammas[-1]]
+ 234
+ 235          # Linear interpolation
+ 236          for i in range(len(gammas) - 1):
+ 237              g_low, g_high = gammas[i], gammas[i + 1]
+ 238              if g_low &lt;= gamma_clamped &lt;= g_high:
+ 239                  j3_low = _J3_TABLE[n_val][g_low]
+ 240                  j3_high = _J3_TABLE[n_val][g_high]
+ 241                  t = (gamma_clamped - g_low) / (g_high - g_low)
+ 242                  return j3_low + t * (j3_high - j3_low)
+ 243
+ 244          return _J3_TABLE[n_val][gammas[-1]]
+ 245
+ 246      # Get available n values
+ 247      available_ns = sorted(_J3_TABLE.keys())
+ 248
+ 249      # n is in table
+ 250      if n in _J3_TABLE:
+ 251          return interpolate_gamma(n)
+ 252
+ 253      # n &lt; minimum in table
+ 254      if n &lt; available_ns[0]:
+ 255          return interpolate_gamma(available_ns[0])
+ 256
+ 257      # n &gt; maximum in table (100)
+ 258      if n &gt; available_ns[-1]:
+ 259          # Use asymptotic value for very large n
+ 260          if gamma_clamped &gt; 1:
+ 261              return asymp_val
+ 262          else:
+ 263              return 2.0
+ 264
+ 265      # Interpolate between two nearest n values (bilinear interpolation)
+ 266      n_low, n_high = None, None
+ 267      for i in range(len(available_ns) - 1):
+ 268          if available_ns[i] &lt; n &lt; available_ns[i + 1]:
+ 269              n_low, n_high = available_ns[i], available_ns[i + 1]
+ 270              break
+ 271
+ 272      if n_low is None:
+ 273          # Fallback to closest value
+ 274          return interpolate_gamma(available_ns[-1])
+ 275
+ 276      # Get J3 values at both n values
+ 277      j3_low = interpolate_gamma(n_low)
+ 278      j3_high = interpolate_gamma(n_high)
+ 279
+ 280      # Linear interpolation in n direction
+ 281      t = (n - n_low) / (n_high - n_low)
+ 282      return j3_low + t * (j3_high - j3_low)</code></pre></section><aside class="card explain" data-panel="2" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>η</mi><mo>=</mo><msup><mrow><mo fence="true">(</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><msup><mo stretchy="false">)</mo><mi>β</mi></msup></mrow><mrow><mi>n</mi><msub><mi>J</mi><mn>1</mn></msub></mrow></mfrac><mo fence="true">)</mo></mrow><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mi>β</mi></mrow></msup></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>d</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>v</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><msub><mi>d</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mrow><mi>ln</mi><mo>⁡</mo><mi>d</mi></mrow><mo stretchy="true">‾</mo></mover></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>i</mi></msub></mrow></msup><mrow><munder><mo>∑</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><mi>β</mi><msub><mi>v</mi><mi>j</mi></msub></mrow></msup></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>T</mi><mn>1</mn></msub><mo>=</mo><mfrac><msub><mi>J</mi><mn>2</mn></msub><mi>β</mi></mfrac><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msub><mi>v</mi><mi>i</mi></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>T</mi><mn>2</mn></msub><mo>=</mo><mover accent="true"><msup><mi>d</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><mo stretchy="true">‾</mo></mover><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>d</mi><mi>i</mi><mi>β</mi></msubsup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>d</mi><mi>i</mi><mrow><mi>β</mi><mo>−</mo><mn>1</mn></mrow></msubsup></mrow></mfrac><mo>−</mo><msub><mi>J</mi><mn>3</mn></msub></mrow></mstyle></mtd></mtr></mtable></mstyle></mtd></mtr></mtable></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>data</code> · 样本</div><div class="mapping"><code>beta</code> · 形状候选</div><div class="mapping"><code>gamma</code> · 位置候选</div><h4>输出</h4><div class="mapping"><code>t1</code> · 形状残差</div><div class="mapping"><code>t2</code> · 位置残差</div><details><summary>依据与边界</summary><p>方法核心：原J₂/J₃加权方程；用logsumexp稳定幂和。</p><p></p></details></aside><section class="card code-panel" data-panel="3" hidden><h3>搜索并校验位置候选</h3><p>缺少条件交点时，在γ=0最小化两个残差平方和；满足门槛才可采纳。</p><p class="muted">python/methods/profile_solvers.py · L147–200</p><pre><code> 147      grid = _location_grid()
+ 148      # Explicitly split at J3 interpolation knots, where slopes can change.
+ 149      knots = []
+ 150      for left, right in zip(grid[:-1], grid[1:]):
+ 151          a, b = profile(left), profile(right)
+ 152          if a is None or b is None:
+ 153              continue
+ 154          for shape in np.arange(.1, min(5., weights.SHAPE_UPPER) + 1e-9, .1):
+ 155              if (a[&#x27;beta&#x27;] - shape) * (b[&#x27;beta&#x27;] - shape) &lt; 0:
+ 156                  knots.append(brentq(lambda g: profile(g)[&#x27;beta&#x27;] - shape, left, right,
+ 157                                      xtol=5e-15, rtol=1e-13))
+ 158      grid = np.unique(np.r_[grid, knots])
+ 159      candidates = []
+ 160
+ 161      def add(g, point=None, kind=&#x27;equation_root&#x27;):
+ 162          p = profile(g) if point is None else point
+ 163          if p is None or p[&#x27;beta&#x27;] &gt;= weights.SHAPE_UPPER - .01:
+ 164              return
+ 165          gamma = float(g * unit)
+ 166          if not 0 &lt;= gamma &lt; unit:
+ 167              return
+ 168          # Validate the returned coordinates after floating-point rounding.
+ 169          a, b = wmle_residuals(x, p[&#x27;beta&#x27;], gamma, weights)
+ 170          objective = float(a * a + b * b)
+ 171          if objective &gt; 1e-8 or not np.isfinite(p[&#x27;eta&#x27;]):
+ 172              return
+ 173          if any(abs(g - c[&#x27;gamma&#x27;] / unit) &lt;= 1e-9 for c in candidates):
+ 174              return
+ 175          candidates.append(dict(beta=float(p[&#x27;beta&#x27;]), eta=float(p[&#x27;eta&#x27;] * unit),
+ 176                                 gamma=gamma, objective=objective,
+ 177                                 t1=float(a), t2=float(b), j3_clamped=bool(p[&#x27;j3_clamped&#x27;]), kind=kind))
+ 178
+ 179      points = [profile(g) for g in grid]
+ 180      for g, p in zip(grid, points):
+ 181          if p is not None and abs(p[&#x27;t2&#x27;]) &lt;= 1e-10:
+ 182              add(float(g))
+ 183      for i in range(len(grid) - 1):
+ 184          a, b = points[i:i + 2]
+ 185          if a is not None and b is not None and a[&#x27;t2&#x27;] * b[&#x27;t2&#x27;] &lt; 0:
+ 186              root = brentq(lambda g: profile(g)[&#x27;t2&#x27;], grid[i], grid[i + 1],
+ 187                            xtol=5e-15, rtol=1e-13)
+ 188              add(float(root))
+ 189      # Tangent roots and narrow root pairs need not change sign on the grid.
+ 190      for i in range(1, len(grid) - 1):
+ 191          a, b, c = points[i - 1:i + 2]
+ 192          if (a is None or b is None or c is None
+ 193                  or not (abs(b[&#x27;t2&#x27;]) &lt; abs(a[&#x27;t2&#x27;]) and abs(b[&#x27;t2&#x27;]) &lt; abs(c[&#x27;t2&#x27;]))):
+ 194              continue
+ 195          optimum = minimize_scalar(lambda g: profile(g)[&#x27;t2&#x27;] ** 2,
+ 196                                    bounds=(grid[i - 1], grid[i + 1]), method=&#x27;bounded&#x27;,
+ 197                                    options={&#x27;xatol&#x27;: 1e-13})
+ 198          if optimum.success:
+ 199              add(float(optimum.x))
+ 200</code></pre><p class="muted">python/methods/profile_solvers.py · L161–177</p><pre><code> 161      def add(g, point=None, kind=&#x27;equation_root&#x27;):
+ 162          p = profile(g) if point is None else point
+ 163          if p is None or p[&#x27;beta&#x27;] &gt;= weights.SHAPE_UPPER - .01:
+ 164              return
+ 165          gamma = float(g * unit)
+ 166          if not 0 &lt;= gamma &lt; unit:
+ 167              return
+ 168          # Validate the returned coordinates after floating-point rounding.
+ 169          a, b = wmle_residuals(x, p[&#x27;beta&#x27;], gamma, weights)
+ 170          objective = float(a * a + b * b)
+ 171          if objective &gt; 1e-8 or not np.isfinite(p[&#x27;eta&#x27;]):
+ 172              return
+ 173          if any(abs(g - c[&#x27;gamma&#x27;] / unit) &lt;= 1e-9 for c in candidates):
+ 174              return
+ 175          candidates.append(dict(beta=float(p[&#x27;beta&#x27;]), eta=float(p[&#x27;eta&#x27;] * unit),
+ 176                                 gamma=gamma, objective=objective,
+ 177                                 t1=float(a), t2=float(b), j3_clamped=bool(p[&#x27;j3_clamped&#x27;]), kind=kind))</code></pre><p class="muted">python/methods/profile_solvers.py · L204–208</p><pre><code> 204      if not candidates:
+ 205          boundary = wmle_objective_profile(z, 0., weights)
+ 206          if boundary[&#x27;objective&#x27;] &lt;= 1e-8:
+ 207              add(0., boundary, kind=&#x27;boundary_residual_tolerance&#x27;)
+ 208</code></pre><p class="muted">python/methods/conditional_profiles.py · L133–182</p><pre><code> 133  def wmle_objective_profile(data, gamma, weights, *, beta_grid=None, candidate_beta=None):
+ 134      &quot;&quot;&quot;Numerically minimize T1**2+T2**2 over shape at a fixed location.
+ 135
+ 136      Search a shape grid including the J3 table knots, refine every bracketed
+ 137      local minimum, and compare all candidates. A T1 zero is an extra feasible
+ 138      candidate, not a constraint. This diagnostic does not run or replace the
+ 139      archived joint estimator. An endpoint result is a numerical boundary limit.
+ 140      &quot;&quot;&quot;
+ 141      d = _distances(data, gamma)
+ 142      upper = float(weights.SHAPE_UPPER)
+ 143      if beta_grid is None:
+ 144          beta_grid = np.unique(np.r_[
+ 145              np.geomspace(1e-4, min(.1, upper * .5), 35),
+ 146              np.linspace(.1, min(5., upper * (1 - 1e-10)), 197),
+ 147              np.arange(.1, min(5., upper) + 1e-9, .1),
+ 148              np.linspace(min(5., upper * .5), upper * (1 - 1e-10), 101),
+ 149          ])
+ 150      grid = np.asarray(beta_grid, float)
+ 151      grid = np.unique(grid[(grid &gt; 0) &amp; (grid &lt; upper)])
+ 152      if grid.ndim != 1 or len(grid) &lt; 3 or np.any(~np.isfinite(grid)):
+ 153          raise ValueError(&quot;Expected at least three finite shape grid points inside the search range&quot;)
+ 154
+ 155      t1, t2 = wmle_residuals(data, grid, gamma, weights)
+ 156      values = t1 * t1 + t2 * t2
+ 157      candidates = [(float(grid[int(np.argmin(values))]), float(np.min(values)))]
+ 158
+ 159      def objective(beta):
+ 160          a, b = wmle_residuals(data, float(beta), gamma, weights)
+ 161          return float(a * a + b * b)
+ 162
+ 163      minima = np.flatnonzero((values[1:-1] &lt;= values[:-2]) &amp; (values[1:-1] &lt;= values[2:])) + 1
+ 164      for i in minima:
+ 165          result = minimize_scalar(objective, bounds=(grid[i - 1], grid[i + 1]),
+ 166                                   method=&#x27;bounded&#x27;, options={&#x27;xatol&#x27;: 1e-11})
+ 167          if result.success and np.isfinite(result.fun):
+ 168              candidates.append((float(result.x), float(result.fun)))
+ 169      root = _shape(np.log(d), weight=weights.get_weight_j2(len(d)), upper=upper)
+ 170      if root is not None:
+ 171          candidates.append((root[0], objective(root[0])))
+ 172      if candidate_beta is not None and 0 &lt; candidate_beta &lt; upper:
+ 173          candidates.append((float(candidate_beta), objective(candidate_beta)))
+ 174      beta, value = min(candidates, key=lambda pair: pair[1])
+ 175      a, b = wmle_residuals(data, beta, gamma, weights)
+ 176      t = np.log(d)
+ 177      log_eta = t.mean() + (logsumexp(beta * (t - t.mean()))
+ 178                           - np.log(len(d) * weights.get_weight_j1(len(d)))) / beta
+ 179      return dict(beta=beta, eta=float(np.exp(log_eta)), objective=value, t1=a, t2=b,
+ 180                  shape_at_upper_boundary=bool(beta &gt;= upper - 1e-7),
+ 181                  j3_clamped=bool(beta &lt; .1 or beta &gt; 5),
+ 182                  bracketed_local_minima=int(len(minima)))</code></pre></section><aside class="card explain" data-panel="3" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>Q</mi><mo>=</mo><msubsup><mi>T</mi><mn>1</mn><mn>2</mn></msubsup><mo>+</mo><msubsup><mi>T</mi><mn>2</mn><mn>2</mn></msubsup><mo>≤</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>8</mn></mrow></msup><mo separator="true">,</mo><mspace width="1em"/><mn>0</mn><mo>&lt;</mo><mi>β</mi><mo>&lt;</mo><mn>9.99</mn><mo separator="true">,</mo><mspace width="1em"/><mn>0</mn><mo>≤</mo><mi>γ</mi><mo>&lt;</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>candidates</code> · 已有候选</div><div class="mapping"><code>boundary</code> · 零位置残差最小点</div><h4>输出</h4><div class="mapping"><code>kind</code> · 近似边界类型</div><details><summary>依据与边界</summary><p>兼容规则：保留原有零位置残差容忍，并明确标记近似边界根。</p><p>近似解不声称两个残差同时精确为零；无合格候选时返回no_equation_root_found。</p></details></aside><section class="card code-panel" data-panel="4" hidden><h3>多根选择与状态检查</h3><p>在目标值距最低值≤10⁻¹²的候选中，按既有初值邻近规则选一个。</p><p class="muted">python/methods/profile_solvers.py · L209–238</p><pre><code> 209      def proximity(p):
+ 210          return (np.log(p[&#x27;beta&#x27;] / 2.) ** 2
+ 211                  + ((p[&#x27;gamma&#x27;] - .9 * unit) / max(unit, 1.)) ** 2)
+ 212
+ 213      minimum = min((p[&#x27;objective&#x27;] for p in candidates), default=np.inf)
+ 214      near_best = [p for p in candidates if p[&#x27;objective&#x27;] &lt;= minimum + 1e-12]
+ 215      best = min(near_best, key=proximity) if near_best else None
+ 216      residuals = [p[&#x27;t1&#x27;] ** 2 + p[&#x27;t2&#x27;] ** 2 for p in cache.values() if p is not None]
+ 217      info = dict(status=&#x27;ok&#x27; if best else &#x27;no_equation_root_found&#x27;,
+ 218                  solver_version=SOLVER_VERSION, strategy=&#x27;profile_weighted_equation_roots&#x27;,
+ 219                  constraint=&#x27;0&lt;beta&lt;9.99, eta&gt;0, 0&lt;=gamma&lt;min(x)&#x27;,
+ 220                  shape_upper=float(weights.SHAPE_UPPER), profile_grid_points=len(grid),
+ 221                  profile_evaluations=len(cache), candidate_count=len(candidates), candidates=candidates,
+ 222                  best_profile_objective=float(min(residuals)) if residuals else None,
+ 223                  selection=&#x27;root nearest original beta=2, gamma=.9*min(x) heuristic&#x27;)
+ 224      if best:
+ 225          info.update(objective=best[&#x27;objective&#x27;], j3_clamped=best[&#x27;j3_clamped&#x27;],
+ 226                      location_at_zero_boundary=best[&#x27;gamma&#x27;] == 0.,
+ 227                      approximate_boundary_root=best[&#x27;kind&#x27;] == &#x27;boundary_residual_tolerance&#x27;)
+ 228      if trace:
+ 229          info[&#x27;selected_shape_evaluations&#x27;] = shape_records[min(shape_records, key=lambda g: abs(g - best[&#x27;gamma&#x27;] / unit))] if best and best[&#x27;kind&#x27;] != &#x27;boundary_residual_tolerance&#x27; else []
+ 230          info[&#x27;profile_trace&#x27;] = [dict(
+ 231              evaluation=i + 1, gamma=float(g * unit),
+ 232              beta=float(p[&#x27;beta&#x27;]), eta=float(p[&#x27;eta&#x27;] * unit),
+ 233              t1=float(p[&#x27;t1&#x27;]), t2=float(p[&#x27;t2&#x27;]),
+ 234              objective=float(p[&#x27;t1&#x27;] ** 2 + p[&#x27;t2&#x27;] ** 2),
+ 235              j1=float(p[&#x27;j1&#x27;]), j2=float(p[&#x27;j2&#x27;]), j3=float(p[&#x27;j3&#x27;]),
+ 236              j3_clamped=bool(p[&#x27;j3_clamped&#x27;]),
+ 237          ) for i, (g, p) in enumerate(cache.items()) if p is not None]
+ 238      return best, info</code></pre><p class="muted">python/methods/wmle.py · L299–311</p><pre><code> 299          self.last_solution_info = {k: v for k, v in info.items() if k not in (&#x27;profile_trace&#x27;, &#x27;selected_shape_evaluations&#x27;)}
+ 300          if trace:
+ 301              from .calculation_trace import profile_calculation
+ 302              self.calculation_trace = profile_calculation(&#x27;wmle&#x27;, info, selected)
+ 303              for candidate in info.get(&#x27;candidates&#x27;, []):
+ 304                  self.log_step(dict(phase=&#x27;candidate&#x27;, beta=candidate[&#x27;beta&#x27;],
+ 305                                     eta=candidate[&#x27;eta&#x27;], gamma=candidate[&#x27;gamma&#x27;],
+ 306                                     objective=candidate[&#x27;objective&#x27;]))
+ 307          if selected is None:
+ 308              if trace:
+ 309                  self.log_step(dict(phase=&#x27;failed&#x27;, reason=info[&#x27;status&#x27;]))
+ 310              return [None, None, None, 0., info[&#x27;status&#x27;]]
+ 311          beta, eta, gamma = (selected[p] for p in [&#x27;beta&#x27;, &#x27;eta&#x27;, &#x27;gamma&#x27;])</code></pre></section><aside class="card explain" data-panel="4" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi mathvariant="script">C</mi><mo>∗</mo></msub><mo>=</mo><mo stretchy="false">{</mo><mi>c</mi><mo>:</mo><mi>Q</mi><mo stretchy="false">(</mo><mi>c</mi><mo stretchy="false">)</mo><mo>≤</mo><msub><mi>Q</mi><mrow><mi>m</mi><mi>i</mi><mi>n</mi></mrow></msub><mo>+</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>12</mn></mrow></msup><mo stretchy="false">}</mo></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mover accent="true"><mi>c</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>min</mi><mo>⁡</mo></mrow><mrow><mi>c</mi><mo>∈</mo><msub><mi mathvariant="script">C</mi><mo>∗</mo></msub></mrow></munder><mrow><mo fence="true">[</mo><msup><mrow><mi>ln</mi><mo>⁡</mo></mrow><mn>2</mn></msup><mo stretchy="false">(</mo><mi>β</mi><mi mathvariant="normal">/</mi><mn>2</mn><mo stretchy="false">)</mo><mo>+</mo><msup><mrow><mo fence="true">(</mo><mfrac><mrow><mi>γ</mi><mo>−</mo><mn>0.9</mn><mi>u</mi></mrow><mrow><mi>max</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>u</mi><mo separator="true">,</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></mfrac><mo fence="true">)</mo></mrow><mn>2</mn></msup><mo fence="true">]</mo></mrow></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>candidates</code> · 通过校验的候选</div><h4>输出</h4><div class="mapping"><code>best</code> · 选定候选或None</div><details><summary>依据与边界</summary><p>工程选择：沿用原启发式β=2、γ=0.9tmin附近的距离规则。</p><p>选择不使用仿真真值。</p></details></aside><section class="card code-panel" data-panel="5" hidden><h3>计算拟合优度并返回</h3><p>计算拟合优度，返回形状、尺度和位置参数。</p><p class="muted">python/base.py · L79–96</p><pre><code>  79      def _calculate_r2(self, beta, eta, gamma_val):
+  80          &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81          if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83          # Experimental
+  84          x = np.log(self.data - gamma_val)
+  85          y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87          # Theoretical / Predicted
+  88          # y = beta * x - beta * ln(eta)
+  89          y_pred = beta * x - beta * np.log(eta)
+  90
+  91          # R^2 calculation
+  92          ss_res = np.sum((y_exp - y_pred)**2)
+  93          ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95          if ss_tot == 0: return 0.0
+  96          return 1 - (ss_res / ss_tot)</code></pre><p class="muted">python/base.py · L58–68</p><pre><code>  58      def _median_ranks(self):
+  59          &quot;&quot;&quot;
+  60          Helper: Calculate Median Ranks using configured method.
+  61          - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62          - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63          &quot;&quot;&quot;
+  64          i = np.arange(1, self.n + 1)
+  65          if self.rank_method == &#x27;exact&#x27;:
+  66              return betaincinv(i, self.n - i + 1, 0.5)
+  67          else:  # bernard
+  68              return (i - 0.3) / (self.n + 0.4)</code></pre><p class="muted">python/methods/wmle.py · L326–326</p><pre><code> 326          return [beta, eta, gamma, self._calculate_r2(beta, eta, gamma), True]</code></pre></section><aside class="card explain" data-panel="5" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>beta</code> · 形状参数</div><div class="mapping"><code>eta</code> · 尺度参数</div><div class="mapping"><code>gamma_val</code> · 位置参数</div><h4>输出</h4><div class="mapping"><code>return</code> · 概率图决定系数</div><details><summary>依据与边界</summary><p>项目诊断：概率图R²不参与加权方程求根。</p><p>trace候选和曲面不是优化迭代；失败与近似边界标记保留在last_solution_info。</p></details></aside></div></div></div><div data-view="calculation"><div class="body"><details class="sample"><summary>Cousineau §4 十点算例 · n=10 · 查看本次样本</summary><p>310, 342, 353, 365, 383, 393, 403, 412, 451, 456</p></details><p class="lead">每个候选位置先解形状方程，再检查位置方程；两个残差共同约束同一组参数。</p><div class="results"><div class="result"><span>形状 β̂</span><strong>2.327651</strong></div><div class="result"><span>尺度 η̂</span><strong>117.5476</strong></div><div class="result"><span>位置 γ̂</span><strong>282.3386</strong></div></div><div class="row"><button class="pill active" data-layout="all">总览</button><button class="pill" data-layout="staged">分步阅读</button></div><div class="stagebar" hidden><button class="pill" data-stage="0">1 位置方程怎样确定位置</button><button class="pill" data-stage="1">2 形状方程怎样与位置配合</button><button class="pill" data-stage="2">3 有多个根时采用哪个</button></div><div class="grid"><section class="chart" data-chart="0"><div class="chart-label"><h3>1　位置方程怎样确定位置</h3></div><img src="record-weighted-location-equation.svg" alt="位置方程怎样确定位置"><p>先满足条件形状方程，再查看位置方程 T₂ 的零点。</p></section><section class="chart" data-chart="1"><div class="chart-label"><h3>2　形状方程怎样与位置配合</h3></div><img src="record-conditional-shape-equation.svg" alt="形状方程怎样与位置配合"><p>固定 γ̂ = 282.3386，查看形状方程；曲线包含同一方程的辅助采样。</p></section><section class="chart" data-chart="2"><div class="chart-label"><h3>3　有多个根时采用哪个</h3></div><table><thead><tr><th>候选</th><th>β</th><th>γ</th><th>T₁</th><th>T₂</th><th>结果</th></tr></thead><tbody><tr><td>1</td><td>2.327651</td><td>282.3386</td><td>-1.999512e-13</td><td>4.440892e-16</td><td>采用</td></tr></tbody></table><p>同一候选的两个方程残差及返回参数列在一起。</p></section></div><div class="recovery"><div class="card" data-recovery="0"><h4>联立加权方程，确定位置</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>T</mi><mn>1</mn></msub><mo stretchy="false">(</mo><mi>β</mi><mo separator="true">,</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>=</mo><mn>0</mn><mo separator="true">,</mo><mspace width="2em"/><msub><mi>T</mi><mn>2</mn></msub><mo stretchy="false">(</mo><mi>β</mi><mo separator="true">,</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>=</mo><mn>0</mn></mrow></semantics></math></span></div><p>γ̂ = 282.3386 · T₁ = -1.999512e-13 · T₂ = 4.440892e-16</p></div><div class="card" data-recovery="1"><h4>在该位置确定形状</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>S</mi><mi>β</mi></msub><mo>=</mo><mfrac><msub><mi>J</mi><mn>2</mn></msub><mi>β</mi></mfrac><mo>+</mo><mover accent="true"><mrow><mi>ln</mi><mo>⁡</mo><mi>d</mi></mrow><mo stretchy="true">‾</mo></mover><mo>−</mo><mfrac><mrow><mo>∑</mo><msubsup><mi>d</mi><mi>i</mi><mi>β</mi></msubsup><mi>ln</mi><mo>⁡</mo><msub><mi>d</mi><mi>i</mi></msub></mrow><mrow><mo>∑</mo><msubsup><mi>d</mi><mi>i</mi><mi>β</mi></msubsup></mrow></mfrac><mo>=</mo><mn>0</mn><mo separator="true">,</mo><mspace width="1em"/><msub><mi>d</mi><mi>i</mi></msub><mo>=</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover></mrow></semantics></math></span></div><p>β̂ = 2.327651</p></div><div class="card" data-recovery="2"><h4>幂均值恢复尺度</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msup><mrow><mo fence="true">[</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover><msup><mo stretchy="false">)</mo><mover accent="true"><mi>β</mi><mo>^</mo></mover></msup></mrow><mrow><mi>n</mi><msub><mi>J</mi><mn>1</mn></msub></mrow></mfrac><mo fence="true">]</mo></mrow><mrow><mn>1</mn><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></mrow></msup></mrow></semantics></math></span></div><p>η̂ = 117.5476</p></div></div></div></div></div></main><script>
+const root=document.querySelector('.proposal');
+function tab(which){document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!==which);root.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===which));history.replaceState(null,'','#'+which)}
+root.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+root.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-step]').forEach(x=>x.classList.toggle('active',x===b));root.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.step)});
+let stage=0;
+function setStage(i){stage=i;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=Number(x.dataset.chart)!==i);root.querySelectorAll('[data-stage]').forEach(x=>x.classList.toggle('active',Number(x.dataset.stage)===i))}
+root.querySelectorAll('[data-layout]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-layout]').forEach(x=>x.classList.toggle('active',x===b));const focus=b.dataset.layout==='staged';root.querySelector('.stagebar').hidden=!focus;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=false);if(focus)setStage(stage)});
+root.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>setStage(Number(b.dataset.stage)));
+root.querySelectorAll('[data-mdm]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-mdm]').forEach(x=>x.classList.toggle('active',x===b));document.querySelector('#linked-shape').src='linked-'+b.dataset.mdm+'-shape.svg';document.querySelector('#linked-location').src='linked-'+b.dataset.mdm+'-location.svg';document.querySelector('#mdm-reading').textContent='当前查看 γ = '+b.textContent+'；两图同步切换，最终返回参数保持上方同次估计值。';root.querySelector('[data-chart="0"] p').textContent='固定当前查看位置 γ = '+b.textContent+'，标记该位置下伪尺度标准差的条件最小值。';root.querySelector('[data-chart="1"] p').textContent='标记当前查看位置；梯度曲线与偏移线共同解释最终位置的判据。';});
+tab(location.hash==='#program'?'program':'calculation');
+const query=new URLSearchParams(location.search);
+if(query.has('step'))root.querySelector('[data-step="'+Number(query.get('step'))+'"]').click();
+if(query.get('layout')==='staged')root.querySelector('[data-layout="staged"]').click();
+</script></html>

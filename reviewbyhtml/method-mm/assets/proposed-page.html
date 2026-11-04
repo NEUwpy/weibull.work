@@ -1,0 +1,195 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>矩估计 MM · 呈现原型</title><style>body{margin:0;padding:24px;background:#eaf0ec}main{max-width:1500px;margin:auto}@media(max-width:680px){body{padding:8px}}</style><main><style>
+.proposal{--green:#27624d;--ink:#18382c;--muted:#62756c;color:var(--ink);font:16px/1.65 'Microsoft YaHei',system-ui,sans-serif;background:#f4f7f5;border:1px solid #dbe4df;border-radius:16px;overflow:hidden;min-width:0;container-type:inline-size}
+.proposal *{box-sizing:border-box;min-width:0}.proposal h2,.proposal h3,.proposal h4,.proposal p{margin:0}.proposal h2{font-size:25px}.proposal h3{font-size:19px}.proposal h4{font-size:17px}.proposal a{color:var(--green)}
+.proposal .head{padding:22px 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .eyebrow{color:var(--muted);font-size:14px;margin-bottom:8px}.proposal .subtitle{margin-top:8px;color:var(--muted)}
+.proposal .tabs{display:flex;gap:22px;flex-wrap:wrap;padding:0 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .tab{border:0;border-bottom:3px solid transparent;background:none;padding:13px 0;font:inherit;color:var(--muted);cursor:pointer}.proposal .tab.active{border-color:var(--green);color:var(--green);font-weight:700}
+.proposal .body{padding:22px}.proposal .lead{border-left:3px solid #78a38d;background:#eaf1ec;padding:12px 16px;margin-bottom:18px}.proposal .muted{color:var(--muted);font-size:14px}.proposal .cols{display:grid;grid-template-columns:190px minmax(0,1fr) minmax(220px,.78fr);gap:16px;align-items:start}.proposal .card{background:white;border:1px solid #dbe4df;border-radius:12px;padding:18px}.proposal .steps{display:grid;gap:7px}.proposal .step{padding:11px 10px;border:0;border-radius:8px;background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}.proposal .step.active{background:#dfece3;color:#174d36;font-weight:700}.proposal .step span{font-size:14px;color:var(--muted);display:block}
+.proposal pre{font:14px/1.65 Consolas,monospace;background:#f5f7f6;padding:14px;overflow:auto;max-height:360px;white-space:pre;margin:12px -4px 0}.proposal .formula{overflow:auto;padding:12px 0;font-size:17px}.proposal .mapping{padding:8px 0;border-top:1px solid #e6ece8;font-size:14px}.proposal code{font:14px Consolas,monospace;overflow-wrap:anywhere}.proposal details{margin-top:14px}.proposal summary{cursor:pointer;font-size:14px;color:var(--green)}
+.proposal .results{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 20px}.proposal .result{background:white;border:1px solid #dbe4df;border-radius:10px;padding:10px 18px;flex:1}.proposal .result strong{display:block;font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}.proposal .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.proposal .chart{background:white;border:1px solid #dbe4df;border-radius:12px;padding:16px}.proposal .chart svg,.proposal .chart img{display:block;width:100%;height:auto}.proposal .chart.wide{grid-column:1/-1}.proposal .chart p{margin:8px 0}.proposal .chart-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}.proposal .kicker{font-size:14px;color:#47745f}.proposal .recovery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.proposal .recovery .card{padding:14px}.proposal .recovery .formula{font-size:15px}.proposal .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.proposal .pill{font:inherit;padding:7px 12px;border:1px solid #bacfc1;background:white;border-radius:8px;cursor:pointer;color:var(--green)}.proposal .pill.active{background:var(--green);color:white}.proposal .stagebar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}.proposal table{border-collapse:collapse;width:100%;font-size:14px}.proposal td,.proposal th{padding:9px;text-align:left;border-bottom:1px solid #e1e9e4}.proposal .warning{color:#8c591b;background:#fff6e7;padding:10px 14px;border-radius:8px;margin-bottom:14px}.proposal [hidden]{display:none!important}.proposal .sample{margin-bottom:16px}.proposal .sample p{overflow-wrap:anywhere}.proposal .final{margin-top:16px;padding:12px 16px;background:#e8f0eb;border-radius:8px}
+@media(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}.proposal .explain .mapping{display:inline-block;vertical-align:top;margin-right:20px;max-width:100%}}
+@media(max-width:680px){.proposal .head{padding:18px}.proposal .tabs{padding:0 18px;gap:16px}.proposal .body{padding:14px}.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .result{padding:8px 12px}.proposal .result strong{font-size:21px}.proposal .chart{padding:12px}.proposal .chart.wide{grid-column:auto}.proposal h2{font-size:22px}}
+@container(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}}
+@container(max-width:680px){.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .chart.wide{grid-column:auto}}
+</style><div class="proposal"><div class="head" style="border-bottom:0;background:#fff7e8"><p class="kicker">呈现原型 · 2026-11-04 · 固定样本预览</p><p><a href="../">返回本方法审阅与批注</a>　·　<a href="methods.html">切换方法</a></p></div><div class="head"><div class="eyebrow">参数估计方法 / MM</div><h2>矩估计 MM</h2><p class="subtitle">由经验生存函数的面积形成三个Weibull矩；检查这些矩能否给出可采纳解，再用显式公式求参数，并说明位置处理前后的变化。</p></div><div class="tabs"><button class="tab " data-tab="program">程序流程</button><button class="tab active" data-tab="calculation">计算过程</button></div><div data-view="program" hidden><div class="body"><p class="lead">经验生存函数 → 三个 Weibull 矩 → 可采纳性检查 → 显式求参与位置处理。</p><div class="cols"><nav class="card steps" aria-label="计算步骤"><button class="step " data-step="0">1　数据预处理</button><button class="step active" data-step="1">2　计算样本 Weibull 矩</button><button class="step " data-step="2">3　检查矩组合并解参数</button><button class="step " data-step="3">4　修正位置与尺度</button><button class="step " data-step="4">5　计算两参数对照</button><button class="step " data-step="5">6　计算拟合优度并返回</button></nav><section class="card code-panel" data-panel="0" hidden><h3>数据预处理</h3><p>获取排序后的失效时间数据和样本数量</p><p class="muted">python/base.py · L22–34</p><pre><code>  22      def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23          &quot;&quot;&quot;
+  24          Input: data (list or np.array) of failure times.
+  25          Status is assumed to be Failure (F) for this mathematical implementation.
+  26          rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27          &quot;&quot;&quot;
+  28          values = np.asarray(data, dtype=float).reshape(-1)
+  29          if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30              raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31          self.data = np.sort(values)
+  32          self.n = len(self.data)
+  33          self.trace_data = [] # Store process data for visualization
+  34          self.rank_method = rank_method</code></pre><p class="muted">python/methods/mm.py · L64–76</p><pre><code>  64          # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  65          # @formula: x_{(1)} \leq x_{(2)} \leq \cdots \leq x_{(n)}
+  66          # @symbols: x|x|排序后的失效时间数组, n|n|样本数量
+  67          # @inputs: data|x_i|原始失效时间样本
+  68          # @outputs: x|x|排序后数组, n|n|样本数量
+  69          self.calculation_trace = None
+  70          x = self.data
+  71          n = self.n
+  72
+  73          if n &lt; 3:
+  74              self.last_solution_info = {&quot;status&quot;: &quot;insufficient_sample&quot;, &quot;n&quot;: int(n)}
+  75              return [0, 0, 0, 0, &quot;insufficient_sample&quot;]
+  76</code></pre></section><aside class="card explain" data-panel="0" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>data</code> · 原始失效时间样本</div><h4>输出</h4><div class="mapping"><code>x</code> · 排序后数组</div><div class="mapping"><code>n</code> · 样本数量</div><details><summary>依据与边界</summary><p>公共输入规则：有限、严格为正的失效时间，统一排序。</p><p>当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。</p></details></aside><section class="card code-panel" data-panel="1"><h3>计算样本 Weibull 矩</h3><p>用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）</p><p class="muted">python/methods/mm.py · L77–89</p><pre><code>  77          # @step: 2 | 计算样本 Weibull 矩 | 用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）
+  78          # @formula: \bar{m}_k = \sum_{r=0}^{n-1}\left(1-\frac{r}{n}\right)^k (x_{(r+1)} - x_{(r)}), \quad x_{(0)}=0
+  79          # @symbols: \bar{m}_k|\bar{m}_k|k 阶样本 Weibull 矩
+  80          # @inputs: x|x|排序后数组, n|n|样本数量
+  81          # @outputs: m1|\bar{m}_1|一阶矩（等于样本均值）, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
+  82          terms = {k: [] for k in (1, 2, 4)}
+  83          m1 = sample_weibull_moment(x, 1, terms[1] if trace else None)
+  84          m2 = sample_weibull_moment(x, 2, terms[2] if trace else None)
+  85          m4 = sample_weibull_moment(x, 4, terms[4] if trace else None)
+  86
+  87          if trace:
+  88              self.log_step({&quot;phase&quot;: &quot;moments&quot;, &quot;m1&quot;: m1, &quot;m2&quot;: m2, &quot;m4&quot;: m4})
+  89</code></pre><p class="muted">python/methods/mm.py · L28–36</p><pre><code>  28  def sample_weibull_moment(sorted_x, k, trace_terms=None):
+  29      &quot;&quot;&quot;论文式(3)：样本 Weibull 矩 m̄_k = Σ (1 - r/n)^k (x_(r+1) - x_(r))，x_(0)=0。&quot;&quot;&quot;
+  30      n = len(sorted_x)
+  31      x_prev = np.concatenate(([0.0], sorted_x[:-1]))
+  32      weights = (1.0 - np.arange(n) / n) ** k
+  33      terms = weights * (sorted_x - x_prev)
+  34      if trace_terms is not None:
+  35          trace_terms.extend(float(v) for v in terms)
+  36      return float(np.sum(terms))</code></pre></section><aside class="card explain" data-panel="1"><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mi>k</mi></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>r</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></munderover><msup><mrow><mo fence="true">(</mo><mn>1</mn><mo>−</mo><mfrac><mi>r</mi><mi>n</mi></mfrac><mo fence="true">)</mo></mrow><mi>k</mi></msup><mo stretchy="false">(</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>r</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>−</mo><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mi>r</mi><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mi>x</mi><mrow><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></msub><mo>=</mo><mn>0</mn></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>x</code> · 排序后数组</div><div class="mapping"><code>n</code> · 样本数量</div><h4>输出</h4><div class="mapping"><code>m1</code> · 一阶矩（等于样本均值）</div><div class="mapping"><code>m2</code> · 二阶矩</div><div class="mapping"><code>m4</code> · 四阶矩</div><details><summary>依据与边界</summary><p>Cran (1988) Weibull矩构造；m₂、m₄不是样本普通二阶和四阶幂矩。</p><p>m₁等于均值；m₂、m₄由阶梯生存函数加权间距得到。</p></details></aside><section class="card code-panel" data-panel="2" hidden><h3>检查矩组合并解参数</h3><p>论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度</p><p class="muted">python/methods/mm.py · L44–47</p><pre><code>  44      d12 = m1 - m2
+  45      d24 = m2 - m4
+  46      if d24 &lt;= 0 or d12 &lt;= d24:
+  47          return None</code></pre><p class="muted">python/methods/mm.py · L48–51</p><pre><code>  48      shape = math.log(2.0) / (math.log(d12) - math.log(d24))
+  49      location = (m1 * m4 - m2 * m2) / (m1 + m4 - 2.0 * m2)
+  50      scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+  51      return shape, location, scale</code></pre><p class="muted">python/methods/mm.py · L107–115</p><pre><code> 107          # @step: 4 | 显式解参数 | 论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度
+ 108          # @formula: c^* = \frac{\ln 2}{\ln(\bar{m}_1-\bar{m}_2) - \ln(\bar{m}_2-\bar{m}_4)}, \quad a^* = \frac{\bar{m}_1\bar{m}_4 - \bar{m}_2^2}{\bar{m}_1 + \bar{m}_4 - 2\bar{m}_2}, \quad b^* = \frac{\bar{m}_1 - a^*}{\Gamma(1+1/c^*)}
+ 109          # @symbols: c^*|c^*|形状参数估计, a^*|a^*|位置参数估计, b^*|b^*|尺度参数估计
+ 110          # @inputs: m1|\bar{m}_1|一阶矩, m2|\bar{m}_2|二阶矩, m4|\bar{m}_4|四阶矩
+ 111          # @outputs: shape|c^*|形状参数, location|a^*|位置参数, scale|b^*|尺度参数
+ 112          shape, location, scale = solved
+ 113          raw_estimate = dict(beta=float(shape), eta=float(scale), gamma=float(location))
+ 114          location_adjustment = None
+ 115</code></pre></section><aside class="card explain" data-panel="2" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msub><mi>m</mi><mn>2</mn></msub><mo>&gt;</mo><msub><mi>m</mi><mn>2</mn></msub><mo>−</mo><msub><mi>m</mi><mn>4</mn></msub><mo>&gt;</mo><mn>0</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>β</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><mi>ln</mi><mo>⁡</mo><mn>2</mn></mrow><mrow><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msub><mi>m</mi><mn>2</mn></msub><mo stretchy="false">)</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>−</mo><msub><mi>m</mi><mn>4</mn></msub><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>γ</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mn>1</mn></msub><msub><mi>m</mi><mn>4</mn></msub><mo>−</mo><msubsup><mi>m</mi><mn>2</mn><mn>2</mn></msubsup></mrow><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>+</mo><msub><mi>m</mi><mn>4</mn></msub><mo>−</mo><mn>2</mn><msub><mi>m</mi><mn>2</mn></msub></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>η</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><msup><mi>γ</mi><mo>∗</mo></msup></mrow><mrow><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr></mtable></mstyle></mtd></mtr></mtable></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>m1</code> · 一阶矩</div><div class="mapping"><code>m2</code> · 二阶矩</div><div class="mapping"><code>m4</code> · 四阶矩</div><h4>输出</h4><div class="mapping"><code>shape</code> · 形状</div><div class="mapping"><code>location</code> · 位置</div><div class="mapping"><code>scale</code> · 尺度</div><details><summary>依据与边界</summary><p>Cran显式解：原文c、a、b分别对应全站β、γ、η。</p><p></p></details></aside><section class="card code-panel" data-panel="3" hidden><h3>修正位置与尺度</h3><p>a*&lt;0 置零；a*&gt;=x_(1) 用论文替代式 a**</p><p class="muted">python/methods/mm.py · L116–139</p><pre><code> 116          # @step: 5 | 位置参数可采纳性修正 | a*&lt;0 置零；a*&gt;=x_(1) 用论文替代式 a**
+ 117          # @formula: a^{**} = x_{(1)} - b^* \Gamma(1+1/c^*) / n^{1/c^*}
+ 118          # @symbols: a^{**}|a^{**}|替代位置估计, x_{(1)}|x_{(1)}|最小失效时间
+ 119          # @inputs: location|a^*|位置参数, shape|c^*|形状参数, scale|b^*|尺度参数
+ 120          # @outputs: location|\hat{a}|修正后的位置参数, scale|\hat{b}|修正后的尺度参数
+ 121          x_min = float(x[0])
+ 122          if location &lt; 0.0:
+ 123              location = 0.0
+ 124              scale = m1 / gamma_fn(1.0 + 1.0 / shape)
+ 125              location_adjustment = &quot;clamped_to_zero&quot;
+ 126          elif location &gt;= x_min:
+ 127              alt = x_min - scale * gamma_fn(1.0 + 1.0 / shape) / (n ** (1.0 / shape))
+ 128              location = max(0.0, float(alt))
+ 129              scale = (m1 - location) / gamma_fn(1.0 + 1.0 / shape)
+ 130              location_adjustment = &quot;alternative_a_star_star&quot;
+ 131              if location &gt;= x_min or scale &lt;= 0:
+ 132                  self.last_solution_info = {
+ 133                      &quot;status&quot;: &quot;inadmissible_location&quot;,
+ 134                      &quot;a_star_star&quot;: float(alt),
+ 135                  }
+ 136                  if trace:
+ 137                      self.log_step({&quot;phase&quot;: &quot;failed&quot;, &quot;reason&quot;: &quot;inadmissible_location&quot;})
+ 138                  return [0, 0, 0, 0, &quot;inadmissible_location&quot;]
+ 139</code></pre></section><aside class="card explain" data-panel="3" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>γ</mi><mo>∗</mo></msup><mo>&lt;</mo><mn>0</mn><mo>⇒</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mn>0</mn><mo separator="true">;</mo></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msup><mi>γ</mi><mo>∗</mo></msup><mo>≥</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>⇒</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>max</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mn>0</mn><mo separator="true">,</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>−</mo><mfrac><mrow><msup><mi>η</mi><mo>∗</mo></msup><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy="false">)</mo></mrow><msup><mi>n</mi><mrow><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>β</mi><mo>∗</mo></msup></mrow></msup></mfrac><mo fence="true">)</mo></mrow></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><mfrac><mrow><msub><mi>m</mi><mn>1</mn></msub><mo>−</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover></mrow><mrow><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>β</mi><mo>∗</mo></msup><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>location</code> · 位置参数</div><div class="mapping"><code>shape</code> · 形状参数</div><div class="mapping"><code>scale</code> · 尺度参数</div><h4>输出</h4><div class="mapping"><code>location</code> · 修正后的位置参数</div><div class="mapping"><code>scale</code> · 修正后的尺度参数</div><details><summary>依据与边界</summary><p>可采纳性处理：负位置置零；位置越过最小样本时采用论文替代位置并重算尺度。</p><p></p></details></aside><section class="card code-panel" data-panel="4" hidden><h3>计算两参数对照</h3><p>论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断</p><p class="muted">python/methods/mm.py · L140–150</p><pre><code> 140          # @step: 6 | 2P 对照估计 | 论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断
+ 141          # @formula: c^{**} = \frac{\ln 2}{\ln \bar{m}_1 - \ln \bar{m}_2}, \quad b^{**} = \bar{m}_1 / \Gamma(1+1/c^{**})
+ 142          # @symbols: c^{**}|c^{**}|2P 形状估计, b^{**}|b^{**}|2P 尺度估计
+ 143          # @inputs: m1|\bar{m}_1|一阶矩, m2|\bar{m}_2|二阶矩
+ 144          # @outputs: two_param_shape|c^{**}|2P 形状, two_param_scale|b^{**}|2P 尺度
+ 145          two_param_shape = None
+ 146          two_param_scale = None
+ 147          if m1 &gt; 0 and m2 &gt; 0 and m1 &gt; m2:
+ 148              two_param_shape = math.log(2.0) / (math.log(m1) - math.log(m2))
+ 149              two_param_scale = m1 / gamma_fn(1.0 + 1.0 / two_param_shape)
+ 150</code></pre></section><aside class="card explain" data-panel="4" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>c</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo>=</mo><mfrac><mrow><mi>ln</mi><mo>⁡</mo><mn>2</mn></mrow><mrow><mi>ln</mi><mo>⁡</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mo>−</mo><mi>ln</mi><mo>⁡</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn></msub></mrow></mfrac><mo separator="true">,</mo><mspace width="1em"/><msup><mi>b</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo>=</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mi mathvariant="normal">/</mi><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><msup><mi>c</mi><mrow><mo>∗</mo><mo>∗</mo></mrow></msup><mo stretchy="false">)</mo></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>m1</code> · 一阶矩</div><div class="mapping"><code>m2</code> · 二阶矩</div><h4>输出</h4><div class="mapping"><code>two_param_shape</code> · 2P 形状</div><div class="mapping"><code>two_param_scale</code> · 2P 尺度</div><details><summary>依据与边界</summary><p>诊断对照：计算零位置的两参数矩估计，记录在last_solution_info。</p><p>两参数结果不替换本次三参数返回值，也不参与当前代码的最终选择。</p></details></aside><section class="card code-panel" data-panel="5" hidden><h3>计算拟合优度并返回</h3><p>评估模型与数据的拟合程度</p><p class="muted">python/base.py · L79–96</p><pre><code>  79      def _calculate_r2(self, beta, eta, gamma_val):
+  80          &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81          if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83          # Experimental
+  84          x = np.log(self.data - gamma_val)
+  85          y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87          # Theoretical / Predicted
+  88          # y = beta * x - beta * ln(eta)
+  89          y_pred = beta * x - beta * np.log(eta)
+  90
+  91          # R^2 calculation
+  92          ss_res = np.sum((y_exp - y_pred)**2)
+  93          ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95          if ss_tot == 0: return 0.0
+  96          return 1 - (ss_res / ss_tot)</code></pre><p class="muted">python/base.py · L58–68</p><pre><code>  58      def _median_ranks(self):
+  59          &quot;&quot;&quot;
+  60          Helper: Calculate Median Ranks using configured method.
+  61          - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62          - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63          &quot;&quot;&quot;
+  64          i = np.arange(1, self.n + 1)
+  65          if self.rank_method == &#x27;exact&#x27;:
+  66              return betaincinv(i, self.n - i + 1, 0.5)
+  67          else:  # bernard
+  68              return (i - 0.3) / (self.n + 0.4)</code></pre><p class="muted">python/methods/mm.py · L158–208</p><pre><code> 158          self.last_solution_info = {
+ 159              &quot;status&quot;: &quot;ok&quot;,
+ 160              &quot;m1&quot;: m1,
+ 161              &quot;m2&quot;: m2,
+ 162              &quot;m4&quot;: m4,
+ 163              &quot;location_adjustment&quot;: location_adjustment,
+ 164              &quot;two_param_shape&quot;: two_param_shape,
+ 165              &quot;two_param_scale&quot;: two_param_scale,
+ 166              &quot;raw_estimate&quot;: raw_estimate,
+ 167          }
+ 168
+ 169          if trace:
+ 170              self.log_step({
+ 171                  &quot;phase&quot;: &quot;final&quot;,
+ 172                  &quot;beta&quot;: float(shape),
+ 173                  &quot;eta&quot;: float(scale),
+ 174                  &quot;gamma&quot;: float(location),
+ 175                  &quot;location_adjustment&quot;: location_adjustment,
+ 176              })
+ 177              description = &#x27;先检验 m̄₁−m̄₂ &gt; m̄₂−m̄₄ &gt; 0，再由式(2a–c)显式解参数并执行记录的位置处理。&#x27;
+ 178              self.calculation_trace = dict(
+ 179                  schema_version=1, method=&#x27;mm&#x27;, criterion=dict(description=description),
+ 180                  selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(shape),
+ 181                                 eta=float(scale), gamma=float(location),
+ 182                                 raw_estimate=raw_estimate, location_adjustment=location_adjustment),
+ 183                  charts=[plot_chart(&#x27;weibull-moments&#x27;, &#x27;生存函数面积形成样本矩&#x27;, &#x27;失效时间 t&#x27;, &#x27;经验生存函数的幂 Sₙ(t)ᵏ&#x27;,
+ 184                                     [dict(**plot_series(f&#x27;survival-{k}&#x27;, f&#x27;k={k}，m̄={moment:.6g}&#x27;,
+ 185                                          [plot_point(0, 1)] + [plot_point(value, ((n-i-1)/n)**k)
+ 186                                                                for i, value in enumerate(x)], role=&#x27;diagnostic&#x27;),
+ 187                                           interpolation=&#x27;stepAfter&#x27;) for k, moment in ((1,m1),(2,m2),(4,m4))],
+ 188                                     formula=r&#x27;\bar m_k=\int_0^\infty S_n(t)^k\,dt=\sum_{r=0}^{n-1}(1-r/n)^k(t_{(r+1)}-t_{(r)})&#x27;,
+ 189                                     description=&#x27;三条阶梯曲线下的面积分别是 m̄₁、m̄₂、m̄₄，用来显式求解参数。&#x27;),
+ 190                          plot_chart(&#x27;moment-admissibility&#x27;, &#x27;样本矩能否给出正的形状和尺度&#x27;,
+ 191                                     &#x27;d₂₄ = m̄₂−m̄₄&#x27;, &#x27;d₁₂ = m̄₁−m̄₂&#x27;,
+ 192                                     [plot_series(&#x27;boundary&#x27;, &#x27;d₁₂=d₂₄ 边界&#x27;,
+ 193                                                  [plot_point(0,0),plot_point(m1-m2,m1-m2)], role=&#x27;diagnostic&#x27;)],
+ 194                                     selected=[plot_point(m2-m4,m1-m2,label=&#x27;本次矩组合&#x27;)],
+ 195                                     formula=r&#x27;d_{12}&gt;d_{24}&gt;0&#x27;,
+ 196                                     description=&#x27;本次矩组合应在对角线上方且横坐标大于零，随后代入显式解。&#x27;)],
+ 197                  recovery=[calculation_step(&#x27;样本矩与形状显式解&#x27;, r&#x27;\hat\beta=\frac{\ln2}{\ln(\bar m_1-\bar m_2)-\ln(\bar m_2-\bar m_4)}&#x27;,
+ 198                                             [(&#x27;m̄₁&#x27;,m1),(&#x27;m̄₂&#x27;,m2),(&#x27;m̄₄&#x27;,m4),(&#x27;β̂&#x27;,shape)]),
+ 199                            calculation_step(&#x27;位置显式解与当前处理&#x27;, r&#x27;\gamma^*=\frac{\bar m_1\bar m_4-\bar m_2^2}{\bar m_1+\bar m_4-2\bar m_2}&#x27;,
+ 200                                             [(&#x27;γ*（原始）&#x27;,raw_estimate[&#x27;gamma&#x27;]),(&#x27;γ̂（返回）&#x27;,location)]),
+ 201                            calculation_step(&#x27;尺度恢复&#x27;, r&#x27;\hat\eta=\frac{\bar m_1-\hat\gamma}{\Gamma(1+1/\hat\beta)}&#x27;,
+ 202                                             [(&#x27;η*（原始）&#x27;,raw_estimate[&#x27;eta&#x27;]),(&#x27;η̂（返回）&#x27;,scale)])],
+ 203                  details=dict(**self.last_solution_info,
+ 204                               moment_terms=terms,
+ 205                               scale_recomputed=location_adjustment is not None,
+ 206                               implementation_note=&#x27;位置处理后的尺度重算是当前实现的工程补充规则，未经修正参数保留在 raw_estimate。&#x27;))
+ 207
+ 208          return [float(shape), float(scale), float(location), float(r2), True]</code></pre></section><aside class="card explain" data-panel="5" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>beta</code> · 形状参数</div><div class="mapping"><code>eta</code> · 尺度参数</div><div class="mapping"><code>gamma_val</code> · 位置参数</div><h4>输出</h4><div class="mapping"><code>return</code> · 概率图决定系数</div><details><summary>依据与边界</summary><p>项目诊断：共用基础类的概率图 R²，不参与核心参数求解。</p><p>γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。</p></details></aside></div></div></div><div data-view="calculation"><div class="body"><details class="sample"><summary>现有边界测试中的固定样本 · n=100 · 查看本次样本</summary><p>92.45798, 110.9751, 24.07361, 14.76375, 84.1851, 137.6691, 92.0721, 96.90808, 177.8328, 256.125, 191.2851, 13.58852, 160.6351, 36.92539, 113.4118, 102.1376, 187.4798, 69.49874, 65.41761, 132.1564, 29.23648, 46.78734, 111.4987, 98.00842, 141.821, 74.31719, 76.94854, 146.0916, 141.3474, 66.87348, 55.90876, 120.6026, 83.37058, 102.4492, 112.4071, 121.0032, 181.1189, 49.20316, 131.0704, 116.0301, 147.7698, 87.39457, 78.46055, 100.394, 61.42658, 96.36101, 42.56717, 138.3334, 160.9715, 84.3036, 187.8407, 42.81808, 62.87181, 64.52052, 97.38175, 106.7339, 83.20812, 45.29221, 151.3503, 80.53112, 43.70014, 97.82007, 64.45178, 74.49202, 60.18674, 81.77509, 109.8852, 41.11674, 118.7442, 179.7087, 102.9916, 202.2896, 81.19671, 123.3952, 152.0853, 101.9778, 96.25919, 87.50628, 36.95871, 221.0115, 139.2409, 82.24487, 142.4776, 110.7428, 20.97696, 127.0608, 128.898, 81.07364, 21.54992, 175.3059, 154.4744, 205.0521, 31.39964, 180, 172.6127, 188.4768, 157.9398, 68.82121, 163.0331, 81.85724</p></details><p class="lead">经验生存函数 → 三个 Weibull 矩 → 可采纳性检查 → 显式求参与位置处理。</p><div class="results"><div class="result"><span>形状 β̂</span><strong>2.307115</strong></div><div class="result"><span>尺度 η̂</span><strong>119.6123</strong></div><div class="result"><span>位置 γ̂</span><strong>0</strong></div></div><div class="grid"><section class="chart" data-chart="0"><div class="chart-label"><h3>1　样本怎样形成矩</h3></div><img src="record-weibull-moments.svg" alt="样本怎样形成矩"><p>经验生存函数 S、S²、S⁴ 的阶梯面积对应三个 Weibull 矩。</p></section><section class="chart" data-chart="1"><div class="chart-label"><h3>2　这些矩能否求参</h3></div><img src="record-moment-admissibility.svg" alt="这些矩能否求参"><p>两组矩差的正值及次序决定显式求参是否可采纳。</p></section></div><div class="recovery"><div class="card" data-recovery="0"><h4>样本矩与形状显式解</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mfrac><mrow><mi>ln</mi><mo>⁡</mo><mn>2</mn></mrow><mrow><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mo>−</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn></msub><mo stretchy="false">)</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn></msub><mo>−</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>4</mn></msub><mo stretchy="false">)</mo></mrow></mfrac></mrow></semantics></math></span></div><p>m̄₁ = 105.9701 · m̄₂ = 77.13461 · m̄₄ = 55.78209 · β̂ = 2.307115</p></div><div class="card" data-recovery="1"><h4>位置显式解与当前处理</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>γ</mi><mo>∗</mo></msup><mo>=</mo><mfrac><mrow><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>4</mn></msub><mo>−</mo><msubsup><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn><mn>2</mn></msubsup></mrow><mrow><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mo>+</mo><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>4</mn></msub><mo>−</mo><mn>2</mn><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>2</mn></msub></mrow></mfrac></mrow></semantics></math></span></div><p>γ*（原始） = -5.146498 · γ̂（返回） = 0</p></div><div class="card" data-recovery="2"><h4>尺度恢复</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><mfrac><mrow><msub><mover accent="true"><mi>m</mi><mo>ˉ</mo></mover><mn>1</mn></msub><mo>−</mo><mover accent="true"><mi>γ</mi><mo>^</mo></mover></mrow><mrow><mi mathvariant="normal">Γ</mi><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo stretchy="false">)</mo></mrow></mfrac></mrow></semantics></math></span></div><p>η*（原始） = 125.4214 · η̂（返回） = 119.6123</p></div></div></div></div></div></main><script>
+const root=document.querySelector('.proposal');
+function tab(which){document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!==which);root.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===which));history.replaceState(null,'','#'+which)}
+root.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+root.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-step]').forEach(x=>x.classList.toggle('active',x===b));root.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.step)});
+let stage=0;
+function setStage(i){stage=i;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=Number(x.dataset.chart)!==i);root.querySelectorAll('[data-stage]').forEach(x=>x.classList.toggle('active',Number(x.dataset.stage)===i))}
+root.querySelectorAll('[data-layout]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-layout]').forEach(x=>x.classList.toggle('active',x===b));const focus=b.dataset.layout==='staged';root.querySelector('.stagebar').hidden=!focus;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=false);if(focus)setStage(stage)});
+root.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>setStage(Number(b.dataset.stage)));
+root.querySelectorAll('[data-mdm]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-mdm]').forEach(x=>x.classList.toggle('active',x===b));document.querySelector('#linked-shape').src='linked-'+b.dataset.mdm+'-shape.svg';document.querySelector('#linked-location').src='linked-'+b.dataset.mdm+'-location.svg';document.querySelector('#mdm-reading').textContent='当前查看 γ = '+b.textContent+'；两图同步切换，最终返回参数保持上方同次估计值。';root.querySelector('[data-chart="0"] p').textContent='固定当前查看位置 γ = '+b.textContent+'，标记该位置下伪尺度标准差的条件最小值。';root.querySelector('[data-chart="1"] p').textContent='标记当前查看位置；梯度曲线与偏移线共同解释最终位置的判据。';});
+tab(location.hash==='#program'?'program':'calculation');
+const query=new URLSearchParams(location.search);
+if(query.has('step'))root.querySelector('[data-step="'+Number(query.get('step'))+'"]').click();
+if(query.get('layout')==='staged')root.querySelector('[data-layout="staged"]').click();
+</script></html>

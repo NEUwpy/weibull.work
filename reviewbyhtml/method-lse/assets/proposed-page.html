@@ -1,0 +1,242 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>最小二乘估计 LSE · 呈现原型</title><style>body{margin:0;padding:24px;background:#eaf0ec}main{max-width:1500px;margin:auto}@media(max-width:680px){body{padding:8px}}</style><main><style>
+.proposal{--green:#27624d;--ink:#18382c;--muted:#62756c;color:var(--ink);font:16px/1.65 'Microsoft YaHei',system-ui,sans-serif;background:#f4f7f5;border:1px solid #dbe4df;border-radius:16px;overflow:hidden;min-width:0;container-type:inline-size}
+.proposal *{box-sizing:border-box;min-width:0}.proposal h2,.proposal h3,.proposal h4,.proposal p{margin:0}.proposal h2{font-size:25px}.proposal h3{font-size:19px}.proposal h4{font-size:17px}.proposal a{color:var(--green)}
+.proposal .head{padding:22px 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .eyebrow{color:var(--muted);font-size:14px;margin-bottom:8px}.proposal .subtitle{margin-top:8px;color:var(--muted)}
+.proposal .tabs{display:flex;gap:22px;flex-wrap:wrap;padding:0 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .tab{border:0;border-bottom:3px solid transparent;background:none;padding:13px 0;font:inherit;color:var(--muted);cursor:pointer}.proposal .tab.active{border-color:var(--green);color:var(--green);font-weight:700}
+.proposal .body{padding:22px}.proposal .lead{border-left:3px solid #78a38d;background:#eaf1ec;padding:12px 16px;margin-bottom:18px}.proposal .muted{color:var(--muted);font-size:14px}.proposal .cols{display:grid;grid-template-columns:190px minmax(0,1fr) minmax(220px,.78fr);gap:16px;align-items:start}.proposal .card{background:white;border:1px solid #dbe4df;border-radius:12px;padding:18px}.proposal .steps{display:grid;gap:7px}.proposal .step{padding:11px 10px;border:0;border-radius:8px;background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}.proposal .step.active{background:#dfece3;color:#174d36;font-weight:700}.proposal .step span{font-size:14px;color:var(--muted);display:block}
+.proposal pre{font:14px/1.65 Consolas,monospace;background:#f5f7f6;padding:14px;overflow:auto;max-height:360px;white-space:pre;margin:12px -4px 0}.proposal .formula{overflow:auto;padding:12px 0;font-size:17px}.proposal .mapping{padding:8px 0;border-top:1px solid #e6ece8;font-size:14px}.proposal code{font:14px Consolas,monospace;overflow-wrap:anywhere}.proposal details{margin-top:14px}.proposal summary{cursor:pointer;font-size:14px;color:var(--green)}
+.proposal .results{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 20px}.proposal .result{background:white;border:1px solid #dbe4df;border-radius:10px;padding:10px 18px;flex:1}.proposal .result strong{display:block;font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}.proposal .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.proposal .chart{background:white;border:1px solid #dbe4df;border-radius:12px;padding:16px}.proposal .chart svg,.proposal .chart img{display:block;width:100%;height:auto}.proposal .chart.wide{grid-column:1/-1}.proposal .chart p{margin:8px 0}.proposal .chart-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}.proposal .kicker{font-size:14px;color:#47745f}.proposal .recovery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.proposal .recovery .card{padding:14px}.proposal .recovery .formula{font-size:15px}.proposal .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.proposal .pill{font:inherit;padding:7px 12px;border:1px solid #bacfc1;background:white;border-radius:8px;cursor:pointer;color:var(--green)}.proposal .pill.active{background:var(--green);color:white}.proposal .stagebar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}.proposal table{border-collapse:collapse;width:100%;font-size:14px}.proposal td,.proposal th{padding:9px;text-align:left;border-bottom:1px solid #e1e9e4}.proposal .warning{color:#8c591b;background:#fff6e7;padding:10px 14px;border-radius:8px;margin-bottom:14px}.proposal [hidden]{display:none!important}.proposal .sample{margin-bottom:16px}.proposal .sample p{overflow-wrap:anywhere}.proposal .final{margin-top:16px;padding:12px 16px;background:#e8f0eb;border-radius:8px}
+@media(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}.proposal .explain .mapping{display:inline-block;vertical-align:top;margin-right:20px;max-width:100%}}
+@media(max-width:680px){.proposal .head{padding:18px}.proposal .tabs{padding:0 18px;gap:16px}.proposal .body{padding:14px}.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .result{padding:8px 12px}.proposal .result strong{font-size:21px}.proposal .chart{padding:12px}.proposal .chart.wide{grid-column:auto}.proposal h2{font-size:22px}}
+@container(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}}
+@container(max-width:680px){.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .chart.wide{grid-column:auto}}
+</style><div class="proposal"><div class="head" style="border-bottom:0;background:#fff7e8"><p class="kicker">呈现原型 · 2026-11-04 · 固定样本预览</p><p><a href="../">返回本方法审阅与批注</a>　·　<a href="methods.html">切换方法</a></p></div><div class="head"><div class="eyebrow">参数估计方法 / LSE</div><h2>最小二乘估计 LSE</h2><p class="subtitle">尝试不同位置γ，对数寿命与White顺序统计量期望作回归；选择F比最大的候选，再由回归斜率和截距恢复形状与尺度。</p></div><div class="tabs"><button class="tab " data-tab="program">程序流程</button><button class="tab active" data-tab="calculation">计算过程</button></div><div data-view="program" hidden><div class="body"><p class="lead">每个候选位置都完成一次 White 回归并得到 F 比；在选中位置恢复参数。</p><div class="cols"><nav class="card steps" aria-label="计算步骤"><button class="step " data-step="0">1　数据预处理</button><button class="step active" data-step="1">2　计算顺序统计量期望</button><button class="step " data-step="2">3　位置搜索与 White 回归</button><button class="step " data-step="3">4　局部精化</button><button class="step " data-step="4">5　反解参数</button><button class="step " data-step="5">6　计算拟合优度并返回</button></nav><section class="card code-panel" data-panel="0" hidden><h3>数据预处理</h3><p>获取排序后的失效时间数据和样本数量</p><p class="muted">python/base.py · L22–34</p><pre><code>  22      def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23          &quot;&quot;&quot;
+  24          Input: data (list or np.array) of failure times.
+  25          Status is assumed to be Failure (F) for this mathematical implementation.
+  26          rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27          &quot;&quot;&quot;
+  28          values = np.asarray(data, dtype=float).reshape(-1)
+  29          if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30              raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31          self.data = np.sort(values)
+  32          self.n = len(self.data)
+  33          self.trace_data = [] # Store process data for visualization
+  34          self.rank_method = rank_method</code></pre><p class="muted">python/methods/lse.py · L85–98</p><pre><code>  85          # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  86          # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
+  87          # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
+  88          # @inputs: data|t_i|原始失效时间样本
+  89          # @outputs: t|t|排序后数组, n|n|样本数量
+  90          self.calculation_trace = None
+  91          evaluations = []
+  92          t = self.data
+  93          n = self.n
+  94
+  95          if n &lt; 3:
+  96              self.last_solution_info = {&quot;status&quot;: &quot;insufficient_sample&quot;, &quot;n&quot;: int(n)}
+  97              return [0, 0, 0, 0, &quot;insufficient_sample&quot;]
+  98</code></pre></section><aside class="card explain" data-panel="0" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>data</code> · 原始失效时间样本</div><h4>输出</h4><div class="mapping"><code>t</code> · 排序后数组</div><div class="mapping"><code>n</code> · 样本数量</div><details><summary>依据与边界</summary><p>公共输入规则：有限、严格为正的失效时间，统一排序。</p><p>当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。</p></details></aside><section class="card code-panel" data-panel="1"><h3>计算顺序统计量期望</h3><p>计算 reduced Log-Weibull 分布的 i 阶顺序统计量一阶矩（White 1969）</p><p class="muted">python/methods/lse.py · L99–107</p><pre><code>  99          # @step: 2 | 计算顺序统计量期望 | 计算 reduced Log-Weibull 分布的 i 阶顺序统计量一阶矩（White 1969）
+ 100          # @formula: X_i = E[W_{(i:n)}], \quad h(w) = e^{w - e^w}
+ 101          # @symbols: X_i|X_i|对数威布尔顺序统计量期望, h(w)|h(w)|reduced Log-Weibull 密度
+ 102          # @inputs: n|n|样本数量
+ 103          # @outputs: X|X_i|顺序统计量期望数组
+ 104          X = log_weibull_order_stat_means(n)
+ 105          x_bar = X.mean()
+ 106          sxx = float(np.sum((X - x_bar) ** 2))
+ 107</code></pre><p class="muted">python/methods/lse.py · L51–57</p><pre><code>  51  def log_weibull_order_stat_means(n):
+  52      &quot;&quot;&quot;长度为 n 的 E[W_(i:n)] 向量（模块级缓存）。&quot;&quot;&quot;
+  53      if n not in _OS_MEANS_CACHE:
+  54          _OS_MEANS_CACHE[n] = np.array(
+  55              [_log_weibull_order_stat_mean(i, n) for i in range(1, n + 1)]
+  56          )
+  57      return _OS_MEANS_CACHE[n]</code></pre><p class="muted">python/methods/lse.py · L32–48</p><pre><code>  32  def _log_weibull_order_stat_mean(i, n):
+  33      &quot;&quot;&quot;E[W_(i:n)]，W 服从 reduced Log-Weibull 密度 h(w)=exp(w-e^w)（论文式(5)）。
+  34
+  35      对数密度积分（w 域），避免二项式交替求和在 n&gt;=30 时的灾难性抵消。
+  36      &quot;&quot;&quot;
+  37      log_c = special.gammaln(n + 1) - special.gammaln(i) - special.gammaln(n - i + 1)
+  38
+  39      def integrand(w):
+  40          ew = np.exp(w)
+  41          log_h = w - ew
+  42          log_cdf = np.log(-np.expm1(-ew)) if ew &lt; 700 else 0.0
+  43          log_pdf = log_c + (i - 1) * log_cdf + (n - i) * (-ew) + log_h
+  44          return w * np.exp(log_pdf)
+  45
+  46      guess = math.log(-math.log(1.0 - i / (n + 1.0)))
+  47      value, _ = integrate.quad(integrand, -60.0, 10.0, limit=400, points=[guess])
+  48      return value</code></pre></section><aside class="card explain" data-panel="1"><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>X</mi><mi>i</mi></msub><mo>=</mo><msubsup><mo>∫</mo><mrow><mo>−</mo><mi mathvariant="normal">∞</mi></mrow><mi mathvariant="normal">∞</mi></msubsup><mi>w</mi><mtext> </mtext><mfrac><mrow><mi>n</mi><mo stretchy="false">!</mo></mrow><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mo stretchy="false">!</mo><mo stretchy="false">(</mo><mi>n</mi><mo>−</mo><mi>i</mi><mo stretchy="false">)</mo><mo stretchy="false">!</mo></mrow></mfrac><mi>H</mi><mo stretchy="false">(</mo><mi>w</mi><msup><mo stretchy="false">)</mo><mrow><mi>i</mi><mo>−</mo><mn>1</mn></mrow></msup><mo stretchy="false">[</mo><mn>1</mn><mo>−</mo><mi>H</mi><mo stretchy="false">(</mo><mi>w</mi><mo stretchy="false">)</mo><msup><mo stretchy="false">]</mo><mrow><mi>n</mi><mo>−</mo><mi>i</mi></mrow></msup><mi>h</mi><mo stretchy="false">(</mo><mi>w</mi><mo stretchy="false">)</mo><mtext> </mtext><mi>d</mi><mi>w</mi><mo separator="true">,</mo><mspace width="1em"/><mi>H</mi><mo stretchy="false">(</mo><mi>w</mi><mo stretchy="false">)</mo><mo>=</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mo>−</mo><msup><mi>e</mi><mi>w</mi></msup></mrow></msup><mo separator="true">,</mo><mspace width="1em"/><mi>h</mi><mo stretchy="false">(</mo><mi>w</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mi>e</mi><mrow><mi>w</mi><mo>−</mo><msup><mi>e</mi><mi>w</mi></msup></mrow></msup></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>i</code> · 顺序索引</div><div class="mapping"><code>n</code> · 样本量</div><h4>输出</h4><div class="mapping"><code>value</code> · 该顺序统计量期望</div><details><summary>依据与边界</summary><p>方法构造：White reduced Log-Weibull顺序统计量期望，不以中位秩近似替代。</p><p></p></details></aside><section class="card code-panel" data-panel="2" hidden><h3>位置搜索与 White 回归</h3><p>对给定 γ，拟合 log(t-γ) = α + βX 并计算 Fisher F 比</p><p class="muted">python/methods/lse.py · L60–68</p><pre><code>  60  def _build_geometric_mu_grid(t_min, mu_steps):
+  61      &quot;&quot;&quot;从 t_min 向 0 展开的几何加密 μ 网格（近 t_min 处最密）。&quot;&quot;&quot;
+  62      steps = max(8, int(mu_steps))
+  63      min_gap = max(abs(float(t_min)) * 1e-9, 1e-12)
+  64      gaps = np.geomspace(min_gap, float(t_min), steps)
+  65      mus = float(t_min) - gaps
+  66      mus[0] = float(t_min) - min_gap
+  67      mus[-1] = 0.0
+  68      return np.clip(mus, 0.0, None)</code></pre><p class="muted">python/methods/lse.py · L153–164</p><pre><code> 153          f_values = np.array([profile_f(m) for m in mus])
+ 154
+ 155          if not np.any(np.isfinite(f_values) &amp; (f_values &gt; -np.inf)):
+ 156              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 157              if trace:
+ 158                  self.log_step({&quot;phase&quot;: &quot;failed&quot;, &quot;reason&quot;: &quot;degenerate_sample&quot;})
+ 159              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 160
+ 161          best_idx = int(np.argmax(f_values))
+ 162          best_mu = float(mus[best_idx])
+ 163          best_f = float(f_values[best_idx])
+ 164</code></pre><p class="muted">python/methods/lse.py · L140–144</p><pre><code> 140          def profile_f(mu):
+ 141              fit = white_fit(mu)
+ 142              if fit is None:
+ 143                  return -float(&quot;inf&quot;)
+ 144              return fit[2]</code></pre><p class="muted">python/methods/lse.py · L115–138</p><pre><code> 115          def white_fit(mu):
+ 116              &quot;&quot;&quot;返回 (slope, intercept, F)；无效时返回 None。&quot;&quot;&quot;
+ 117              shifted = t - mu
+ 118              if np.any(shifted &lt;= 0):
+ 119                  return None
+ 120              y = np.log(shifted)
+ 121              y_bar = y.mean()
+ 122              # 退化保护：y 的相对极差低于浮点噪声级别时视为无信息样本
+ 123              if float(y[-1] - y[0]) &lt;= max(abs(float(y_bar)), 1.0) * 1e-12:
+ 124                  return None
+ 125              sy2_total = float(np.sum((y - y_bar) ** 2))
+ 126              if sxx &lt;= 0 or sy2_total &lt;= 0:
+ 127                  return None
+ 128              slope = float(np.sum((X - x_bar) * (y - y_bar))) / sxx
+ 129              if slope &lt;= 0:
+ 130                  return None
+ 131              intercept = y_bar - slope * x_bar
+ 132              residuals = y - (intercept + slope * X)
+ 133              s_y2 = sy2_total / (n - 1)
+ 134              s_res2 = float(np.sum(residuals ** 2)) / (n - 2)
+ 135              f_ratio = float(&#x27;inf&#x27;) if s_res2 &lt;= 0 else s_y2 / s_res2
+ 136              if trace:
+ 137                  evaluations.append(dict(x=float(mu), y=f_ratio, evaluation=len(evaluations) + 1))
+ 138              return slope, intercept, f_ratio</code></pre></section><aside class="card explain" data-panel="2" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mtable rowspacing="0.25em" columnalign="center" columnspacing="0em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><msub><mi>Y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>=</mo><mi>a</mi><mo>+</mo><mi>b</mi><msub><mi>X</mi><mi>i</mi></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>b</mi><mo>=</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>X</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>Y</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>X</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>X</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="true"><mrow><mi>F</mi><mo>=</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>Y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>Y</mi><mi>i</mi></msub><mo>−</mo><mi>a</mi><mo>−</mo><mi>b</mi><msub><mi>X</mi><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>n</mi><mo>−</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></mfrac></mrow></mstyle></mtd></mtr></mtable></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>X</code> · 顺序统计量期望</div><div class="mapping"><code>t</code> · 排序寿命</div><div class="mapping"><code>mu</code> · 位置候选</div><h4>输出</h4><div class="mapping"><code>slope</code> · 回归斜率</div><div class="mapping"><code>intercept</code> · 回归截距</div><div class="mapping"><code>s_y2 / s_res2</code> · 方差比</div><details><summary>依据与边界</summary><p>White回归构造：斜率是1/β；F比的总方差用n−1、残差方差用n−2。</p><p>无正平移距离、近全等对数样本、非正斜率等返回None；零残差返回无穷F，外层仍有有效性检查。</p></details></aside><section class="card code-panel" data-panel="3" hidden><h3>局部精化</h3><p>在最佳网格点邻域精化；再次调用相同White回归，改善目标时才更新。</p><p class="muted">python/methods/lse.py · L165–195</p><pre><code> 165          # @step: 5 | 局部精化 | 在最优网格点邻域内用有界标量优化精化 μ
+ 166          # @formula: \hat{\mu} = \arg\max_{\mu \in [\mu_{j+1}, \mu_{j-1}]} F(\mu)
+ 167          # @symbols: \hat{\mu}|\hat{\mu}|位置参数估计值
+ 168          # @inputs: mus|\mu_j|网格数组, best_idx|j^*|最优网格索引
+ 169          # @outputs: best_mu|\hat{\mu}|精化后的位置参数
+ 170          refined = False
+ 171          if math.isfinite(best_f):
+ 172              lo = float(mus[min(best_idx + 1, len(mus) - 1)])
+ 173              hi = float(mus[max(best_idx - 1, 0)])
+ 174              lo, hi = min(lo, hi), max(lo, hi)
+ 175              if hi &gt; lo:
+ 176                  res = minimize_scalar(
+ 177                      lambda m: -profile_f(m),
+ 178                      bounds=(lo, hi),
+ 179                      method=&quot;bounded&quot;,
+ 180                      options={&quot;xatol&quot;: max(t_min * 1e-10, 1e-12)},
+ 181                  )
+ 182                  if math.isfinite(res.fun) and -float(res.fun) &gt;= best_f:
+ 183                      best_mu = float(res.x)
+ 184                      best_f = -float(res.fun)
+ 185                      refined = True
+ 186
+ 187          fit = white_fit(best_mu)
+ 188          if fit is None:
+ 189              self.last_solution_info = {&quot;status&quot;: &quot;invalid_fit&quot;, &quot;mu&quot;: best_mu}
+ 190              if trace:
+ 191                  self.log_step({&quot;phase&quot;: &quot;failed&quot;, &quot;reason&quot;: &quot;invalid_fit&quot;, &quot;mu&quot;: best_mu})
+ 192              return [0, 0, 0, 0, &quot;invalid_fit&quot;]
+ 193
+ 194          slope, intercept, f_final = fit
+ 195</code></pre></section><aside class="card explain" data-panel="3" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mrow><mi>γ</mi><mo>∈</mo><mo stretchy="false">[</mo><msub><mi>γ</mi><mrow><mi>j</mi><mo>+</mo><mn>1</mn></mrow></msub><mo separator="true">,</mo><msub><mi>γ</mi><mrow><mi>j</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false">]</mo></mrow></munder><mi>F</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>mus</code> · 网格数组</div><div class="mapping"><code>best_idx</code> · 最优网格索引</div><h4>输出</h4><div class="mapping"><code>best_mu</code> · 精化后的位置参数</div><details><summary>依据与边界</summary><p>数值策略：仅在最佳网格邻域精化；若不改善原目标，保留原网格结果。</p><p>最终white_fit失败时返回invalid_fit。几何网格与局部精化不构成全局最优证明。</p></details></aside><section class="card code-panel" data-panel="4" hidden><h3>反解参数</h3><p>由回归系数反解形状与尺度参数（论文式(6)）</p><p class="muted">python/methods/lse.py · L196–203</p><pre><code> 196          # @step: 6 | 反解参数 | 由回归系数反解形状与尺度参数（论文式(6)）
+ 197          # @formula: \hat{c} = 1/\hat{\beta}, \quad \hat{b} = e^{\hat{\alpha}}
+ 198          # @symbols: \hat{c}|\hat{c}|形状参数估计值, \hat{b}|\hat{b}|尺度参数估计值
+ 199          # @inputs: slope|\hat{\beta}|回归斜率, intercept|\hat{\alpha}|回归截距
+ 200          # @outputs: shape|\hat{c}|形状参数, scale|\hat{b}|尺度参数
+ 201          shape = 1.0 / slope
+ 202          scale = math.exp(intercept)
+ 203</code></pre></section><aside class="card explain" data-panel="4" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mn>1</mn><mi mathvariant="normal">/</mi><mi>b</mi><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msup><mi>e</mi><mi>a</mi></msup><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mtext mathvariant="monospace">best_mu</mtext></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>slope</code> · 回归斜率</div><div class="mapping"><code>intercept</code> · 回归截距</div><div class="mapping"><code>best_mu</code> · 最终位置</div><h4>输出</h4><div class="mapping"><code>shape</code> · 形状</div><div class="mapping"><code>scale</code> · 尺度</div><details><summary>依据与边界</summary><p>参数映射：本文统一用β、η、γ；原论文c、b、μ分别对应β、η、γ。</p><p></p></details></aside><section class="card code-panel" data-panel="5" hidden><h3>计算拟合优度并返回</h3><p>评估模型与数据的拟合程度</p><p class="muted">python/base.py · L79–96</p><pre><code>  79      def _calculate_r2(self, beta, eta, gamma_val):
+  80          &quot;&quot;&quot;Helper to calculate R-squared for any method&quot;&quot;&quot;
+  81          if gamma_val &gt;= self.data[0]: return 0.0
+  82
+  83          # Experimental
+  84          x = np.log(self.data - gamma_val)
+  85          y_exp = np.log(-np.log(1 - self._median_ranks()))
+  86
+  87          # Theoretical / Predicted
+  88          # y = beta * x - beta * ln(eta)
+  89          y_pred = beta * x - beta * np.log(eta)
+  90
+  91          # R^2 calculation
+  92          ss_res = np.sum((y_exp - y_pred)**2)
+  93          ss_tot = np.sum((y_exp - np.mean(y_exp))**2)
+  94
+  95          if ss_tot == 0: return 0.0
+  96          return 1 - (ss_res / ss_tot)</code></pre><p class="muted">python/base.py · L58–68</p><pre><code>  58      def _median_ranks(self):
+  59          &quot;&quot;&quot;
+  60          Helper: Calculate Median Ranks using configured method.
+  61          - &#x27;bernard&#x27;: Bernard&#x27;s approximation (i - 0.3) / (n + 0.4)
+  62          - &#x27;exact&#x27;: Exact median rank using inverse incomplete beta function
+  63          &quot;&quot;&quot;
+  64          i = np.arange(1, self.n + 1)
+  65          if self.rank_method == &#x27;exact&#x27;:
+  66              return betaincinv(i, self.n - i + 1, 0.5)
+  67          else:  # bernard
+  68              return (i - 0.3) / (self.n + 0.4)</code></pre><p class="muted">python/methods/lse.py · L211–261</p><pre><code> 211          self.last_solution_info = {
+ 212              &quot;status&quot;: &quot;ok&quot;,
+ 213              &quot;strategy&quot;: &quot;profile_f_max&quot;,
+ 214              &quot;constraint&quot;: &quot;gamma &gt;= 0&quot;,
+ 215              &quot;f_max&quot;: f_final if math.isfinite(f_final) else None,
+ 216              &quot;mu_grid_points&quot;: int(len(mus)),
+ 217              &quot;refined&quot;: bool(refined),
+ 218              &quot;location_at_zero_boundary&quot;: bool(best_mu == 0.0),
+ 219              &quot;optimal_mu&quot;: best_mu,
+ 220              &quot;optimal_shape&quot;: float(shape),
+ 221          }
+ 222
+ 223          if trace:
+ 224              curve = [
+ 225                  {&quot;mu&quot;: float(m), &quot;f_ratio&quot;: (float(f) if math.isfinite(f) else None)}
+ 226                  for m, f in zip(mus, f_values)
+ 227              ]
+ 228              self.trace_data = {
+ 229                  &quot;f_mu_curve&quot;: curve,
+ 230                  **self.last_solution_info,
+ 231              }
+ 232              description = &#x27;在非负位置域内比较 F 比，保留网格及邻域精化中 F 最大的候选。&#x27;
+ 233              self.calculation_trace = dict(
+ 234                  schema_version=1, method=&#x27;lse&#x27;, criterion=dict(description=description),
+ 235                  selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(shape),
+ 236                                 eta=float(scale), gamma=float(best_mu),
+ 237                                 f_ratio=float(f_final) if math.isfinite(f_final) else None),
+ 238                  charts=[plot_chart(
+ 239                      &#x27;f-location&#x27;, &#x27;位置参数的 F 比判据&#x27;, &#x27;位置参数 γ&#x27;, &#x27;F 比&#x27;,
+ 240                      [plot_series(&#x27;f&#x27;, &#x27;实际网格与精化求值&#x27;,
+ 241                                   [plot_point(p[&#x27;x&#x27;], p[&#x27;y&#x27;], evaluation=p[&#x27;evaluation&#x27;]) for p in evaluations])],
+ 242                      formula=r&#x27;\hat\gamma=\arg\max_\gamma F(\gamma),\quad F=S_Y^2/S_{\mathrm{res}}^2&#x27;,
+ 243                      description=&#x27;比较各位置下的 White 回归 F 比，最高点确定 γ̂。&#x27;,
+ 244                      selected=[plot_point(best_mu, f_final, label=&#x27;最终选择&#x27;)]),
+ 245                      plot_chart(&#x27;white-regression&#x27;, &#x27;最终位置下的 White 回归&#x27;,
+ 246                                 &#x27;顺序统计量期望 E[W₍ᵢ:ₙ₎]&#x27;, &#x27;对数寿命 ln(tᵢ−γ̂)&#x27;,
+ 247                                 [plot_series(&#x27;observations&#x27;, &#x27;实际回归点&#x27;,
+ 248                                              [plot_point(a, b) for a, b in zip(X, np.log(t - best_mu))],
+ 249                                              kind=&#x27;scatter&#x27;),
+ 250                                  plot_series(&#x27;fit&#x27;, &#x27;本次拟合直线&#x27;,
+ 251                                              [plot_point(a, intercept + slope * a) for a in X])],
+ 252                                 formula=r&#x27;\ln(t_i-\hat\gamma)=a+bE[W_{(i:n)}],\quad\hat\beta=1/b,\quad\hat\eta=e^a&#x27;,
+ 253                                 description=&#x27;固定左图选中的位置后回归；斜率 b=1/β̂，截距 a=ln η̂。&#x27;)],
+ 254                  recovery=[calculation_step(&#x27;F 比最大处确定位置&#x27;, r&#x27;\hat\gamma=\arg\max_\gamma F(\gamma)&#x27;,
+ 255                                             [(&#x27;γ̂&#x27;, best_mu), (&#x27;F&#x27;, f_final)]),
+ 256                            calculation_step(&#x27;回归斜率确定形状&#x27;, r&#x27;\hat\beta=1/b&#x27;, [(&#x27;b&#x27;, slope), (&#x27;β̂&#x27;, shape)]),
+ 257                            calculation_step(&#x27;回归截距确定尺度&#x27;, r&#x27;\hat\eta=e^a&#x27;, [(&#x27;a&#x27;, intercept), (&#x27;η̂&#x27;, scale)])],
+ 258                  details=dict(**self.last_solution_info, slope=slope, intercept=intercept,
+ 259                               order_statistic_means=X.tolist(), evaluations=evaluations))
+ 260
+ 261          return [float(shape), float(scale), float(best_mu), float(r2), True]</code></pre></section><aside class="card explain" data-panel="5" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">[</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo><mo separator="true">,</mo><mspace width="1em"/><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo>−</mo><mi>β</mi><mi>ln</mi><mo>⁡</mo><mi>η</mi><mo separator="true">,</mo><mspace width="1em"/><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><munder><mo>∑</mo><mi>i</mi></munder><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>beta</code> · 形状参数</div><div class="mapping"><code>eta</code> · 尺度参数</div><div class="mapping"><code>gamma_val</code> · 位置参数</div><h4>输出</h4><div class="mapping"><code>return</code> · 概率图决定系数</div><details><summary>依据与边界</summary><p>项目诊断：共用基础类的概率图 R²，不参与核心参数求解。</p><p>γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。</p></details></aside></div></div></div><div data-view="calculation"><div class="body"><details class="sample"><summary>Soman–Misra Example 1 · n=30 · 查看本次样本</summary><p>552.0525, 548.6083, 506.3785, 565.5352, 511.762, 515.2365, 516.1401, 514.7593, 520.64, 513.8919, 543.7966, 556.5106, 517.9078, 562.4553, 531.9044, 539.6028, 518.5398, 565.7348, 541.8414, 554.3255, 506.071, 547.0142, 571.4103, 523.5997, 541.812, 519.8716, 556.1709, 548.5325, 544.308, 538.5575</p></details><p class="lead">每个候选位置都完成一次 White 回归并得到 F 比；在选中位置恢复参数。</p><div class="results"><div class="result"><span>形状 β̂</span><strong>1.624419</strong></div><div class="result"><span>尺度 η̂</span><strong>39.16338</strong></div><div class="result"><span>位置 γ̂</span><strong>501.9767</strong></div></div><div class="grid"><section class="chart" data-chart="0"><div class="chart-label"><h3>1　F比如何确定位置</h3></div><img src="record-f-location.svg" alt="F比如何确定位置"><p>F 比最大的候选位置用于下方 White 回归。</p></section><section class="chart" data-chart="1"><div class="chart-label"><h3>2　回归怎样给出形状与尺度</h3></div><img src="record-white-regression.svg" alt="回归怎样给出形状与尺度"><p>X 为顺序统计量期望，Y 为 ln(t−γ̂)；斜率的倒数是 β̂，截距取指数得到 η̂。</p></section></div><div class="recovery"><div class="card" data-recovery="0"><h4>F 比最大处确定位置</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mi>γ</mi></munder><mi>F</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></div><p>γ̂ = 501.9767 · F = 22.92554</p></div><div class="card" data-recovery="1"><h4>回归斜率确定形状</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mn>1</mn><mi mathvariant="normal">/</mi><mi>b</mi></mrow></semantics></math></span></div><p>b = 0.6156047 · β̂ = 1.624419</p></div><div class="card" data-recovery="2"><h4>回归截距确定尺度</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msup><mi>e</mi><mi>a</mi></msup></mrow></semantics></math></span></div><p>a = 3.667742 · η̂ = 39.16338</p></div></div></div></div></div></main><script>
+const root=document.querySelector('.proposal');
+function tab(which){document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!==which);root.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===which));history.replaceState(null,'','#'+which)}
+root.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+root.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-step]').forEach(x=>x.classList.toggle('active',x===b));root.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.step)});
+let stage=0;
+function setStage(i){stage=i;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=Number(x.dataset.chart)!==i);root.querySelectorAll('[data-stage]').forEach(x=>x.classList.toggle('active',Number(x.dataset.stage)===i))}
+root.querySelectorAll('[data-layout]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-layout]').forEach(x=>x.classList.toggle('active',x===b));const focus=b.dataset.layout==='staged';root.querySelector('.stagebar').hidden=!focus;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=false);if(focus)setStage(stage)});
+root.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>setStage(Number(b.dataset.stage)));
+root.querySelectorAll('[data-mdm]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-mdm]').forEach(x=>x.classList.toggle('active',x===b));document.querySelector('#linked-shape').src='linked-'+b.dataset.mdm+'-shape.svg';document.querySelector('#linked-location').src='linked-'+b.dataset.mdm+'-location.svg';document.querySelector('#mdm-reading').textContent='当前查看 γ = '+b.textContent+'；两图同步切换，最终返回参数保持上方同次估计值。';root.querySelector('[data-chart="0"] p').textContent='固定当前查看位置 γ = '+b.textContent+'，标记该位置下伪尺度标准差的条件最小值。';root.querySelector('[data-chart="1"] p').textContent='标记当前查看位置；梯度曲线与偏移线共同解释最终位置的判据。';});
+tab(location.hash==='#program'?'program':'calculation');
+const query=new URLSearchParams(location.search);
+if(query.has('step'))root.querySelector('[data-step="'+Number(query.get('step'))+'"]').click();
+if(query.get('layout')==='staged')root.querySelector('[data-layout="staged"]').click();
+</script></html>

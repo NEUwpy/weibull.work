@@ -1,0 +1,212 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>线性回归估计 LRE · 呈现原型</title><style>body{margin:0;padding:24px;background:#eaf0ec}main{max-width:1500px;margin:auto}@media(max-width:680px){body{padding:8px}}</style><main><style>
+.proposal{--green:#27624d;--ink:#18382c;--muted:#62756c;color:var(--ink);font:16px/1.65 'Microsoft YaHei',system-ui,sans-serif;background:#f4f7f5;border:1px solid #dbe4df;border-radius:16px;overflow:hidden;min-width:0;container-type:inline-size}
+.proposal *{box-sizing:border-box;min-width:0}.proposal h2,.proposal h3,.proposal h4,.proposal p{margin:0}.proposal h2{font-size:25px}.proposal h3{font-size:19px}.proposal h4{font-size:17px}.proposal a{color:var(--green)}
+.proposal .head{padding:22px 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .eyebrow{color:var(--muted);font-size:14px;margin-bottom:8px}.proposal .subtitle{margin-top:8px;color:var(--muted)}
+.proposal .tabs{display:flex;gap:22px;flex-wrap:wrap;padding:0 26px;background:white;border-bottom:1px solid #dbe4df}.proposal .tab{border:0;border-bottom:3px solid transparent;background:none;padding:13px 0;font:inherit;color:var(--muted);cursor:pointer}.proposal .tab.active{border-color:var(--green);color:var(--green);font-weight:700}
+.proposal .body{padding:22px}.proposal .lead{border-left:3px solid #78a38d;background:#eaf1ec;padding:12px 16px;margin-bottom:18px}.proposal .muted{color:var(--muted);font-size:14px}.proposal .cols{display:grid;grid-template-columns:190px minmax(0,1fr) minmax(220px,.78fr);gap:16px;align-items:start}.proposal .card{background:white;border:1px solid #dbe4df;border-radius:12px;padding:18px}.proposal .steps{display:grid;gap:7px}.proposal .step{padding:11px 10px;border:0;border-radius:8px;background:none;color:var(--ink);text-align:left;font:inherit;cursor:pointer}.proposal .step.active{background:#dfece3;color:#174d36;font-weight:700}.proposal .step span{font-size:14px;color:var(--muted);display:block}
+.proposal pre{font:14px/1.65 Consolas,monospace;background:#f5f7f6;padding:14px;overflow:auto;max-height:360px;white-space:pre;margin:12px -4px 0}.proposal .formula{overflow:auto;padding:12px 0;font-size:17px}.proposal .mapping{padding:8px 0;border-top:1px solid #e6ece8;font-size:14px}.proposal code{font:14px Consolas,monospace;overflow-wrap:anywhere}.proposal details{margin-top:14px}.proposal summary{cursor:pointer;font-size:14px;color:var(--green)}
+.proposal .results{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0 20px}.proposal .result{background:white;border:1px solid #dbe4df;border-radius:10px;padding:10px 18px;flex:1}.proposal .result strong{display:block;font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}.proposal .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.proposal .chart{background:white;border:1px solid #dbe4df;border-radius:12px;padding:16px}.proposal .chart svg,.proposal .chart img{display:block;width:100%;height:auto}.proposal .chart.wide{grid-column:1/-1}.proposal .chart p{margin:8px 0}.proposal .chart-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}.proposal .kicker{font-size:14px;color:#47745f}.proposal .recovery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.proposal .recovery .card{padding:14px}.proposal .recovery .formula{font-size:15px}.proposal .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.proposal .pill{font:inherit;padding:7px 12px;border:1px solid #bacfc1;background:white;border-radius:8px;cursor:pointer;color:var(--green)}.proposal .pill.active{background:var(--green);color:white}.proposal .stagebar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}.proposal table{border-collapse:collapse;width:100%;font-size:14px}.proposal td,.proposal th{padding:9px;text-align:left;border-bottom:1px solid #e1e9e4}.proposal .warning{color:#8c591b;background:#fff6e7;padding:10px 14px;border-radius:8px;margin-bottom:14px}.proposal [hidden]{display:none!important}.proposal .sample{margin-bottom:16px}.proposal .sample p{overflow-wrap:anywhere}.proposal .final{margin-top:16px;padding:12px 16px;background:#e8f0eb;border-radius:8px}
+@media(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}.proposal .explain .mapping{display:inline-block;vertical-align:top;margin-right:20px;max-width:100%}}
+@media(max-width:680px){.proposal .head{padding:18px}.proposal .tabs{padding:0 18px;gap:16px}.proposal .body{padding:14px}.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .result{padding:8px 12px}.proposal .result strong{font-size:21px}.proposal .chart{padding:12px}.proposal .chart.wide{grid-column:auto}.proposal h2{font-size:22px}}
+@container(max-width:1050px){.proposal .cols{grid-template-columns:160px minmax(0,1fr)}.proposal .explain{grid-column:1/-1}.proposal .recovery{grid-template-columns:1fr}}
+@container(max-width:680px){.proposal .cols,.proposal .grid{grid-template-columns:1fr}.proposal .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.proposal .explain{grid-column:auto}.proposal .chart.wide{grid-column:auto}}
+</style><div class="proposal"><div class="head" style="border-bottom:0;background:#fff7e8"><p class="kicker">呈现原型 · 2026-11-04 · 固定样本预览</p><p><a href="../">返回本方法审阅与批注</a>　·　<a href="methods.html">切换方法</a></p></div><div class="head"><div class="eyebrow">参数估计方法 / LRE</div><h2>线性回归估计 LRE</h2><p class="subtitle">按Park绘图概率形成概率图，选择相关系数最大的γ；在这个位置的概率图上回归，斜率得到β、截距恢复η。</p></div><div class="tabs"><button class="tab " data-tab="program">程序流程</button><button class="tab active" data-tab="calculation">计算过程</button></div><div data-view="program" hidden><div class="body"><p class="lead">每个候选位置都重新计算概率图的相关系数；选中位置后作最终回归。</p><div class="cols"><nav class="card steps" aria-label="计算步骤"><button class="step " data-step="0">1　数据预处理</button><button class="step active" data-step="1">2　计算绘图位置</button><button class="step " data-step="2">3　优化位置参数</button><button class="step " data-step="3">4　OLS 线性回归</button><button class="step " data-step="4">5　检查系数并恢复尺度</button><button class="step " data-step="5">6　计算拟合优度并返回</button></nav><section class="card code-panel" data-panel="0" hidden><h3>数据预处理</h3><p>获取排序后的失效时间数据和样本数量</p><p class="muted">python/base.py · L22–34</p><pre><code>  22      def __init__(self, data, rank_method=&#x27;bernard&#x27;):
+  23          &quot;&quot;&quot;
+  24          Input: data (list or np.array) of failure times.
+  25          Status is assumed to be Failure (F) for this mathematical implementation.
+  26          rank_method: &#x27;bernard&#x27; or &#x27;exact&#x27; - method for calculating median ranks
+  27          &quot;&quot;&quot;
+  28          values = np.asarray(data, dtype=float).reshape(-1)
+  29          if not np.isfinite(values).all() or np.any(values &lt;= 0):
+  30              raise ValueError(&quot;invalid sample: observations must all be finite and greater than zero&quot;)
+  31          self.data = np.sort(values)
+  32          self.n = len(self.data)
+  33          self.trace_data = [] # Store process data for visualization
+  34          self.rank_method = rank_method</code></pre><p class="muted">python/methods/lre.py · L28–49</p><pre><code>  28          # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
+  29          # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
+  30          # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
+  31          # @inputs: data|t_i|原始失效时间样本
+  32          # @outputs: t|t|排序后数组, n|n|样本数量
+  33          self.calculation_trace = None
+  34          evaluations = []
+  35          n = self.n
+  36          t = self.data
+  37
+  38          if n &lt; 3:
+  39              self.last_solution_info = {&quot;status&quot;: &quot;insufficient_sample&quot;, &quot;n&quot;: int(n)}
+  40              return [0, 0, 0, 0, &quot;insufficient_sample&quot;]
+  41
+  42          # 进入优化前检查原始样本退化性：全等值或近全等值样本无信息。
+  43          # 使用尺度相关容差，不依赖优化后的对数变换精度。
+  44          t_range = float(np.ptp(t))
+  45          t_scale = float(np.max(t))
+  46          if t_range &lt;= t_scale * 1e-12:
+  47              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+  48              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+  49</code></pre></section><aside class="card explain" data-panel="0" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msub><mo>≤</mo><mo>⋯</mo><mo>≤</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msub></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>data</code> · 原始失效时间样本</div><h4>输出</h4><div class="mapping"><code>t</code> · 排序后数组</div><div class="mapping"><code>n</code> · 样本数量</div><details><summary>依据与边界</summary><p>公共输入规则：有限、严格为正的失效时间，统一排序。</p><p>当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。</p></details></aside><section class="card code-panel" data-panel="1"><h3>计算绘图位置</h3><p>n≤10 用 Blom，n≥11 用 (i−1/2)/n</p><p class="muted">python/methods/lre.py · L50–67</p><pre><code>  50          # @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n
+  51          # @formula: p_i=\begin{cases}(i-3/8)/(n+1/4),&amp;n\leq10\\(i-1/2)/n,&amp;n\geq11\end{cases},\quad y_i=\ln(-\ln(1-p_i))
+  52          # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率, y_i|y_i|变换后的因变量
+  53          # @inputs: n|n|样本数量
+  54          # @outputs: y|y_i|双对数变换的因变量数组
+  55          # 此估计器的绘图位置由论文固定，不消费基础类的 Bernard/exact 开关。
+  56          ranks = np.arange(1, n + 1, dtype=float)
+  57          F = (ranks - 3 / 8) / (n + 1 / 4) if n &lt;= 10 else (ranks - 1 / 2) / n
+  58          self.plotting_positions = F
+  59          y = np.log(-np.log1p(-F))
+  60          y_centered = y - np.mean(y)
+  61          y_ss = float(np.dot(y_centered, y_centered))
+  62
+  63          y_var = float(np.var(y))
+  64          if y_var &lt;= 0:
+  65              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+  66              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+  67</code></pre></section><aside class="card explain" data-panel="1"><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mrow><mo fence="true">{</mo><mtable rowspacing="0.36em" columnalign="left left" columnspacing="1em"><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>−</mo><mn>3</mn><mi mathvariant="normal">/</mi><mn>8</mn><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mi mathvariant="normal">/</mi><mn>4</mn><mo stretchy="false">)</mo><mo separator="true">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mi>n</mi><mo>≤</mo><mn>10</mn></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mo stretchy="false">(</mo><mi>i</mi><mo>−</mo><mn>1</mn><mi mathvariant="normal">/</mi><mn>2</mn><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><mi>n</mi><mo separator="true">,</mo></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><mi>n</mi><mo>≥</mo><mn>11</mn></mrow></mstyle></mtd></mtr></mtable></mrow><mo separator="true">,</mo><mspace width="1em"/><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mo>−</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>p</mi><mi>i</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>n</code> · 样本数量</div><h4>输出</h4><div class="mapping"><code>y</code> · 双对数变换的因变量数组</div><details><summary>依据与边界</summary><p>Park (2017) Proposed+Plot构造：小样本用Blom，大样本用(i−1/2)/n。</p><p>固定使用本方法的分段绘图位置；不消费基础类Bernard/exact开关。</p></details></aside><section class="card code-panel" data-panel="2" hidden><h3>优化位置参数</h3><p>保留网格最佳点并精化被夹住的峰，比较后恢复γ。</p><p class="muted">python/methods/lre.py · L75–81</p><pre><code>  75          t_min = float(t[0])
+  76          upper = float(np.nextafter(t_min, 0.0))
+  77          # s=log((t_min-γ)/t_min)。用对数间隔覆盖开区间的近端点；
+  78          # x 减去常数 log(t_min) 不改变相关系数或 OLS 斜率。
+  79          s_min = math.log((t_min - upper) / t_min)
+  80          relative_excess = (t - t_min) / t_min
+  81</code></pre><p class="muted">python/methods/lre.py · L94–104</p><pre><code>  94          search_grid = np.unique(np.concatenate([
+  95              np.linspace(s_min, 0.0, 201),
+  96              np.log1p(-np.linspace(0.0, 0.99, 201)),
+  97          ]))
+  98          objective_grid = np.array([negative_correlation(s) for s in search_grid])
+  99
+ 100          finite = np.isfinite(objective_grid)
+ 101          if not np.any(finite):
+ 102              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 103              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 104</code></pre><p class="muted">python/methods/lre.py · L82–92</p><pre><code>  82          def negative_correlation(s):
+  83              x = np.log(relative_excess + np.exp(s))
+  84              centered = x - np.mean(x)
+  85              x_ss = float(np.dot(centered, centered))
+  86              if x_ss &lt;= 0 or not np.isfinite(x_ss):
+  87                  return np.inf
+  88              rho = float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
+  89              if trace:
+  90                  evaluations.append(dict(x=float(-t_min * np.expm1(s)), y=rho,
+  91                                          evaluation=len(evaluations) + 1))
+  92              return -rho</code></pre><p class="muted">python/methods/lre.py · L105–130</p><pre><code> 105          best_idx = int(np.argmin(np.where(finite, objective_grid, np.inf)))
+ 106          best_s = float(search_grid[best_idx])
+ 107          best_objective = float(objective_grid[best_idx])
+ 108          refined = False
+ 109          # 精化所有被网格夹住的峰，保留端点候选，不假定单峰。
+ 110          peaks = [i for i in range(1, len(search_grid) - 1)
+ 111                   if objective_grid[i] &lt;= objective_grid[i - 1]
+ 112                   and objective_grid[i] &lt;= objective_grid[i + 1]]
+ 113          for i in peaks:
+ 114              result = minimize_scalar(
+ 115                  negative_correlation,
+ 116                  bounds=(float(search_grid[i - 1]), float(search_grid[i + 1])),
+ 117                  method=&quot;bounded&quot;,
+ 118                  options={&quot;xatol&quot;: 1e-12},
+ 119              )
+ 120              if result.success and np.isfinite(result.fun) and float(result.fun) &lt;= best_objective:
+ 121                  best_s = float(result.x)
+ 122                  best_objective = float(result.fun)
+ 123                  refined = True
+ 124
+ 125          gamma_hat = min(upper, float(-t_min * np.expm1(best_s)))
+ 126
+ 127          if not np.isfinite(gamma_hat) or gamma_hat &gt;= t[0] or gamma_hat &lt; 0:
+ 128              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 129              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 130</code></pre></section><aside class="card explain" data-panel="2" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mrow><mi>γ</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>0</mn><mo separator="true">,</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><mo stretchy="false">)</mo></mrow></munder><mi>ρ</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>ρ</mi><mo>=</mo><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false">(</mo><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>t</mi><mo>−</mo><mi>γ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>t</code> · 失效时间数组</div><div class="mapping"><code>y</code> · 变换因变量</div><h4>输出</h4><div class="mapping"><code>gamma_hat</code> · 最优位置参数</div><details><summary>依据与边界</summary><p>方法准则：最大化Pearson相关；数值上扫描无量纲位置并精化每个被网格夹住的峰。</p><p>包含γ=0；上界取nextafter(tmin,0)。不假定目标单峰，无有效候选时失败。</p></details></aside><section class="card code-panel" data-panel="3" hidden><h3>OLS 线性回归</h3><p>在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合</p><p class="muted">python/methods/lre.py · L131–149</p><pre><code> 131          # @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合
+ 132          # @formula: \hat{\beta} = \frac{\sum(x_i-\bar{x})(y_i-\bar{y})}{\sum(x_i-\bar{x})^2},
+ 133          #   \hat{\eta} = e^{-\hat{\alpha}/\hat{\beta}},\ \hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}
+ 134          # @symbols: \hat{\beta}|\hat{\beta}|形状参数（回归斜率）, \hat{\eta}|\hat{\eta}|尺度参数（截距反解）
+ 135          # @inputs: gamma_hat|\hat{\gamma}|最优γ, t|t|失效时间数组, y|y_i|变换因变量
+ 136          # @outputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数
+ 137          x_vals = np.log((t - gamma_hat) / t_min)
+ 138          x_mean = float(np.mean(x_vals))
+ 139          y_mean = float(np.mean(y))
+ 140
+ 141          numerator = float(np.sum((x_vals - x_mean) * (y - y_mean)))
+ 142          denominator = float(np.sum((x_vals - x_mean) ** 2))
+ 143
+ 144          if not np.isfinite(denominator) or denominator &lt;= 0:
+ 145              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 146              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 147
+ 148          beta_hat = numerator / denominator
+ 149</code></pre></section><aside class="card explain" data-panel="3" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub><mo>=</mo><mi>ln</mi><mo>⁡</mo><mfrac><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>−</mo><mi>γ</mi></mrow><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub></mfrac><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><mo stretchy="false">)</mo></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>gamma_hat</code> · 最优γ</div><div class="mapping"><code>t</code> · 失效时间数组</div><div class="mapping"><code>y</code> · 变换因变量</div><h4>输出</h4><div class="mapping"><code>x_vals</code> · 归一化横坐标</div><div class="mapping"><code>beta_hat</code> · 形状参数</div><details><summary>依据与边界</summary><p>OLS构造：先求正斜率β，再用归一化横坐标的截距恢复η。</p><p></p></details></aside><section class="card code-panel" data-panel="4" hidden><h3>检查系数并恢复尺度</h3><p>要求β为有限正数，使用归一化回归截距恢复η，并检查尺度可采纳性。</p><p class="muted">python/methods/lre.py · L150–164</p><pre><code> 150          # @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳
+ 151          # @symbols: \hat{\beta}|\hat{\beta}|形状参数估计值
+ 152          # @inputs: beta_hat|\hat{\beta}|形状参数
+ 153          # @outputs: status|status|采纳性判定
+ 154          if not (np.isfinite(beta_hat) and beta_hat &gt; 0):
+ 155              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 156              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 157
+ 158          intercept = y_mean - beta_hat * x_mean
+ 159          eta_hat = t_min * math.exp(-intercept / beta_hat)
+ 160
+ 161          if not np.isfinite(eta_hat) or eta_hat &lt;= 0:
+ 162              self.last_solution_info = {&quot;status&quot;: &quot;degenerate_sample&quot;}
+ 163              return [0, 0, 0, 0, &quot;degenerate_sample&quot;]
+ 164</code></pre></section><aside class="card explain" data-panel="4" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>&gt;</mo><mn>0</mn><mo separator="true">,</mo><mspace width="1em"/><mi>a</mi><mo>=</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><mo>−</mo><mover accent="true"><mi>β</mi><mo>^</mo></mover><mover accent="true"><mi>x</mi><mo>ˉ</mo></mover><mo separator="true">,</mo><mspace width="1em"/><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msub><mi>t</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msub><msup><mi>e</mi><mrow><mo>−</mo><mi>a</mi><mi mathvariant="normal">/</mi><mover accent="true"><mi>β</mi><mo>^</mo></mover></mrow></msup><mo>&gt;</mo><mn>0</mn></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>beta_hat</code> · 形状参数</div><h4>输出</h4><div class="mapping"><code>intercept</code> · 回归截距</div><div class="mapping"><code>eta_hat</code> · 尺度参数或失败状态</div><details><summary>依据与边界</summary><p>参数映射与失败规则：归一化所用tmin必须乘回尺度。</p><p></p></details></aside><section class="card code-panel" data-panel="5" hidden><h3>计算拟合优度并返回</h3><p>与位置搜索采用同一组 Park 绘图位置</p><p class="muted">python/methods/lre.py · L165–217</p><pre><code> 165          # @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置
+ 166          # @formula: R^2 = 1-\frac{\sum(y_i-\hat{y}_i)^2}{\sum(y_i-\bar{y})^2}=\rho^2
+ 167          # @symbols: R^2|R^2|概率图决定系数, y_i|y_i|变换后的绘图分数
+ 168          # @inputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数, gamma_hat|\hat{\gamma}|位置参数
+ 169          # @outputs: r2|R^2|拟合优度
+ 170          residual = y - (beta_hat * x_vals + intercept)
+ 171          r2 = 1.0 - float(np.dot(residual, residual)) / y_ss
+ 172
+ 173          self.last_solution_info = {
+ 174              &quot;status&quot;: &quot;ok&quot;,
+ 175              &quot;implementation&quot;: &quot;park2017_proposed_plot&quot;,
+ 176              &quot;plotting_positions&quot;: &quot;blom&quot; if n &lt;= 10 else &quot;(i-0.5)/n&quot;,
+ 177              &quot;strategy&quot;: &quot;correlation_maximization&quot;,
+ 178              &quot;constraint&quot;: &quot;0 &lt;= gamma &lt; t[0]&quot;,
+ 179              &quot;gamma_grid_points&quot;: int(len(search_grid)),
+ 180              &quot;refined&quot;: bool(refined),
+ 181              &quot;rho_squared&quot;: float(r2),
+ 182              &quot;location_at_zero_boundary&quot;: bool(gamma_hat == 0.0),
+ 183          }
+ 184
+ 185          if trace:
+ 186              description = &#x27;按 Park Proposed+Plot 的绘图位置，在非负位置域内最大化相关系数，再作概率图 OLS。&#x27;
+ 187              rho = -best_objective
+ 188              physical_x = x_vals + math.log(t_min)
+ 189              physical_intercept = intercept - beta_hat * math.log(t_min)
+ 190              self.calculation_trace = dict(
+ 191                  schema_version=1, method=&#x27;lre&#x27;, criterion=dict(description=description),
+ 192                  selection=dict(description=description, status=&#x27;ok&#x27;, beta=float(beta_hat),
+ 193                                 eta=float(eta_hat), gamma=float(gamma_hat), rho=float(rho)),
+ 194                  charts=[plot_chart(
+ 195                      &#x27;correlation-location&#x27;, &#x27;位置参数的相关系数判据&#x27;, &#x27;位置参数 γ&#x27;, &#x27;相关系数 ρ&#x27;,
+ 196                      [plot_series(&#x27;rho&#x27;, &#x27;实际网格与精化求值&#x27;, evaluations)],
+ 197                      selected=[plot_point(gamma_hat, rho, label=&#x27;相关系数最大候选&#x27;)],
+ 198                      formula=r&#x27;\hat\gamma=\arg\max_\gamma\rho\!\left(\ln(t_i-\gamma),\ln[-\ln(1-p_i)]\right)&#x27;,
+ 199                      description=&#x27;选择使概率图最接近直线的位置，即相关系数最大处。&#x27;),
+ 200                      plot_chart(&#x27;park-probability-regression&#x27;, &#x27;最终位置下的概率图回归&#x27;,
+ 201                                 &#x27;对数寿命 ln(tᵢ−γ̂)&#x27;, &#x27;Weibull 分数 ln[−ln(1−Fᵢ)]&#x27;,
+ 202                                 [plot_series(&#x27;observations&#x27;, &#x27;Park 绘图位置&#x27;,
+ 203                                              [plot_point(a, b) for a, b in zip(physical_x, y)], kind=&#x27;scatter&#x27;),
+ 204                                  plot_series(&#x27;fit&#x27;, &#x27;本次 OLS 直线&#x27;,
+ 205                                              [plot_point(a, beta_hat * a + physical_intercept) for a in physical_x])],
+ 206                                 formula=r&#x27;Y_i=a+b\ln(t_i-\hat\gamma),\quad\hat\beta=b,\quad\hat\eta=e^{-a/b}&#x27;,
+ 207                                 description=&#x27;固定左图选中的位置后作 OLS；斜率 b=β̂，截距 a=−β̂ ln η̂。&#x27;)],
+ 208                  recovery=[calculation_step(&#x27;相关系数最大处确定位置&#x27;, r&#x27;\hat\gamma=\arg\max_\gamma\rho(\gamma)&#x27;,
+ 209                                             [(&#x27;γ̂&#x27;, gamma_hat), (&#x27;ρ&#x27;, rho)]),
+ 210                            calculation_step(&#x27;概率图斜率确定形状&#x27;, r&#x27;\hat\beta=b&#x27;, [(&#x27;b&#x27;, beta_hat), (&#x27;β̂&#x27;, beta_hat)]),
+ 211                            calculation_step(&#x27;概率图截距确定尺度&#x27;, r&#x27;\hat\eta=e^{-a/b}&#x27;,
+ 212                                             [(&#x27;a&#x27;, physical_intercept), (&#x27;η̂&#x27;, eta_hat)])],
+ 213                  details=dict(**self.last_solution_info, slope=float(beta_hat),
+ 214                               intercept=float(physical_intercept), evaluations=evaluations))
+ 215              self.trace_data = self.calculation_trace
+ 216
+ 217          return [float(beta_hat), float(eta_hat), float(gamma_hat), float(r2), True]</code></pre></section><aside class="card explain" data-panel="5" hidden><h3>公式与变量</h3><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msup><mi>R</mi><mn>2</mn></msup><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow><mrow><mo>∑</mo><mo stretchy="false">(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><mover accent="true"><mi>y</mi><mo>ˉ</mo></mover><msup><mo stretchy="false">)</mo><mn>2</mn></msup></mrow></mfrac><mo>=</mo><msup><mi>ρ</mi><mn>2</mn></msup></mrow></semantics></math></span></div><h4>输入</h4><div class="mapping"><code>beta_hat</code> · 形状参数</div><div class="mapping"><code>eta_hat</code> · 尺度参数</div><div class="mapping"><code>gamma_hat</code> · 位置参数</div><h4>输出</h4><div class="mapping"><code>r2</code> · 拟合优度</div><details><summary>依据与边界</summary><p>项目诊断：使用同一组Park绘图位置计算概率图R²，OLS含截距时等于ρ²。</p><p>本方法直接计算R²；不调用基础类的绘图位置。trace包含候选结果与最终结果。</p></details></aside></div></div></div><div data-view="calculation"><div class="body"><details class="sample"><summary>Park 24点 Proposed+Plot · n=24 · 查看本次样本</summary><p>30.94, 18.51, 16.62, 51.56, 22.85, 22.38, 19.08, 49.56, 17.12, 10.67, 25.43, 10.24, 27.47, 14.7, 14.1, 29.93, 27.98, 36.02, 19.4, 14.97, 22.57, 12.26, 18.14, 18.84</p></details><p class="lead">每个候选位置都重新计算概率图的相关系数；选中位置后作最终回归。</p><div class="results"><div class="result"><span>形状 β̂</span><strong>1.363761</strong></div><div class="result"><span>尺度 η̂</span><strong>15.11603</strong></div><div class="result"><span>位置 γ̂</span><strong>9.197683</strong></div></div><div class="grid"><section class="chart" data-chart="0"><div class="chart-label"><h3>1　位置是怎样选出来的</h3></div><img src="record-correlation-location.svg" alt="位置是怎样选出来的"><p>选择相关系数最大的候选位置 γ̂；相关系数本身不构成模型检验。</p></section><section class="chart" data-chart="1"><div class="chart-label"><h3>2　这条直线怎样给出参数</h3></div><img src="record-park-probability-regression.svg" alt="这条直线怎样给出参数"><p>X = ln(t−γ̂)，Y = ln[−ln(1−p)]；斜率是 β̂，截距用于恢复 η̂。</p></section></div><div class="recovery"><div class="card" data-recovery="0"><h4>相关系数最大处确定位置</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>γ</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><munder><mrow><mi>max</mi><mo>⁡</mo></mrow><mi>γ</mi></munder><mi>ρ</mi><mo stretchy="false">(</mo><mi>γ</mi><mo stretchy="false">)</mo></mrow></semantics></math></span></div><p>γ̂ = 9.197683 · ρ = 0.9902309</p></div><div class="card" data-recovery="1"><h4>概率图斜率确定形状</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>β</mi><mo>^</mo></mover><mo>=</mo><mi>b</mi></mrow></semantics></math></span></div><p>b = 1.363761 · β̂ = 1.363761</p></div><div class="card" data-recovery="2"><h4>概率图截距确定尺度</h4><div class="formula"><span class="katex"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mover accent="true"><mi>η</mi><mo>^</mo></mover><mo>=</mo><msup><mi>e</mi><mrow><mo>−</mo><mi>a</mi><mi mathvariant="normal">/</mi><mi>b</mi></mrow></msup></mrow></semantics></math></span></div><p>a = -3.703641 · η̂ = 15.11603</p></div></div></div></div></div></main><script>
+const root=document.querySelector('.proposal');
+function tab(which){document.querySelectorAll('[data-view]').forEach(v=>v.hidden=v.dataset.view!==which);root.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===which));history.replaceState(null,'','#'+which)}
+root.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+root.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-step]').forEach(x=>x.classList.toggle('active',x===b));root.querySelectorAll('[data-panel]').forEach(x=>x.hidden=x.dataset.panel!==b.dataset.step)});
+let stage=0;
+function setStage(i){stage=i;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=Number(x.dataset.chart)!==i);root.querySelectorAll('[data-stage]').forEach(x=>x.classList.toggle('active',Number(x.dataset.stage)===i))}
+root.querySelectorAll('[data-layout]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-layout]').forEach(x=>x.classList.toggle('active',x===b));const focus=b.dataset.layout==='staged';root.querySelector('.stagebar').hidden=!focus;root.querySelectorAll('[data-chart]').forEach(x=>x.hidden=false);if(focus)setStage(stage)});
+root.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>setStage(Number(b.dataset.stage)));
+root.querySelectorAll('[data-mdm]').forEach(b=>b.onclick=()=>{root.querySelectorAll('[data-mdm]').forEach(x=>x.classList.toggle('active',x===b));document.querySelector('#linked-shape').src='linked-'+b.dataset.mdm+'-shape.svg';document.querySelector('#linked-location').src='linked-'+b.dataset.mdm+'-location.svg';document.querySelector('#mdm-reading').textContent='当前查看 γ = '+b.textContent+'；两图同步切换，最终返回参数保持上方同次估计值。';root.querySelector('[data-chart="0"] p').textContent='固定当前查看位置 γ = '+b.textContent+'，标记该位置下伪尺度标准差的条件最小值。';root.querySelector('[data-chart="1"] p').textContent='标记当前查看位置；梯度曲线与偏移线共同解释最终位置的判据。';});
+tab(location.hash==='#program'?'program':'calculation');
+const query=new URLSearchParams(location.search);
+if(query.has('step'))root.querySelector('[data-step="'+Number(query.get('step'))+'"]').click();
+if(query.get('layout')==='staged')root.querySelector('[data-layout="staged"]').click();
+</script></html>

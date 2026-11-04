@@ -1,0 +1,219 @@
+{
+  "id": "weibull-method-mdm-20261102",
+  "title": "最小差异法 MDM · 流程与图的呈现评审",
+  "document": true,
+  "revision": 3,
+  "require_confirmation": true,
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/mdm.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 整体呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 整体呈现",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p><strong>建议主线：</strong>固定位置γ时，让各观测反算出的伪尺度尽量一致；再按最小差异曲线的梯度与偏移δ确定位置，伪尺度均值给出η。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
+      "mode": "content",
+      "options": [
+        {
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
+          "blocks": [
+            {
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议恢复原两图的表达与必要联动，保留已经确认的算法口径；不把MDM硬套进其他方法的通用图式。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
+          "blocks": [
+            {
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>已有审定要求保留原MDM双图及联动；当前计算页仍调用通用过程图，尚不能算原双图已恢复。此次评审继续以原两幅图的用途和联动为基准。</p><p><strong>建议呈现：</strong>保留原有三栏，并以条件形状寻优、位置偏移判据、尺度恢复作为主线。梯度差分和搜索保护留在对应步骤内说明。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 计算中位秩 → 设置位置搜索网格 → 搜索各位置的最优形状 → 计算廓线梯度 → 离散交点诊断 → 偏移方程与边界处理 → 计算尺度参数 → 计算拟合优度 → 记录诊断并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>沿用你认可的“形状参数寻优＋位置参数判据”两幅图及联动。选择位置时，形状图对应这个位置；最终点连到β、γ及伪尺度均值η。零位置处理、普通交点、右端外推用结果状态解释。</p><p>下图沿用一组固定输入：理想样本，bernard秩，δ=0，n=7；结果 β̂=1.988927，η̂=998.3286，γ̂=1001.844。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-shape-discrepancy",
+      "title": "4.1 这个位置下，形状为什么取这里",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-shape-discrepancy-content",
+          "label": "4.1 这个位置下，形状为什么取这里",
+          "blocks": [
+            {
+              "id": "chart-shape-discrepancy-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这个位置下，形状为什么取这里。</p><p><strong>建议：</strong>沿用原形状寻优图：横轴β、纵轴伪尺度标准差，标出条件最小点。</p><p><strong>核查意见：</strong>当前记录只显示最终位置的少量求值，不能据此声称位置联动已经恢复。</p>"
+            },
+            {
+              "id": "record-shape-discrepancy",
+              "kind": "image",
+              "src": "assets/record-shape-discrepancy.svg",
+              "alt": "同一次运行记录重绘：固定最终位置后的形状搜索"
+            },
+            {
+              "id": "record-shape-discrepancy-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-location-criterion",
+      "title": "4.2 位置与偏移有什么关系",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-location-criterion-content",
+          "label": "4.2 位置与偏移有什么关系",
+          "blocks": [
+            {
+              "id": "chart-location-criterion-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置与偏移有什么关系。</p><p><strong>建议：</strong>沿用原位置判据图：横轴γ，显示实际梯度与δ的交点或边界处理。</p><p><strong>核查意见：</strong>右端外推不画成已验证交点；保留已确认的返回口径，同时让图忠实说明结果来源。</p>"
+            },
+            {
+              "id": "record-location-criterion",
+              "kind": "image",
+              "src": "assets/record-location-criterion.svg",
+              "alt": "同一次运行记录重绘：位置参数的梯度偏移判据"
+            },
+            {
+              "id": "record-location-criterion-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prior-decisions",
+      "title": "6 已确认的口径",
+      "mode": "content",
+      "options": [
+        {
+          "id": "prior-decisions-content",
+          "label": "6 已确认的口径",
+          "blocks": [
+            {
+              "id": "prior-decisions-body",
+              "kind": "text",
+              "html": "<p>保留Bernard默认近似秩、连续数值求解、现有右端返回及成功口径。恢复原双图及必要联动；外推如实标明。此前选择及记录继续保留，不重新要求决定。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "核查依据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "核查依据",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "last_applied_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238",
+  "last_rendered_submission_id": "3298a02e-4305-4231-9b9b-f3a4092b3238"
+}

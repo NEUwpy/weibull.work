@@ -1,0 +1,259 @@
+{
+  "id": "weibull-method-mle-20261102",
+  "title": "极大似然估计 MLE · 流程与图的呈现评审",
+  "document": true,
+  "revision": 3,
+  "require_confirmation": true,
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/mle.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 整体呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 整体呈现",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p><strong>建议主线：</strong>不断尝试位置γ；每到一个位置，都求对应的形状β和尺度η。再比较合格候选的似然，确定最终三参数。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
+      "mode": "content",
+      "options": [
+        {
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
+          "blocks": [
+            {
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议沿用当前三类图，调整主次和联动，让“定位置—说明形状—恢复尺度”成为一条可读主线；无需为了形式统一改写估计规则。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
+          "blocks": [
+            {
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>当前源码、公式已有对应；但左侧六步偏线性，循环关系主要藏在文字里。建议保留六步和三栏，在步骤概览补明“换一个位置，就重复条件形状和尺度求解”。</p><p><strong>建议呈现：</strong>保留现有“步骤—源码—公式”三栏。步骤按估计任务组织，并在主线中显出位置搜索与条件求解的循环。归一化、稳定求和及旁录留在对应步骤内部，不再变成需要用户选择的流程。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "gallery",
+              "aspect_ratio": 1.3,
+              "images": [
+                {
+                  "id": "conditional",
+                  "label": "当前网站：条件形状求解",
+                  "src": "assets/current-process.png",
+                  "alt": "当前网站程序流程第二步"
+                },
+                {
+                  "id": "location",
+                  "label": "当前网站：位置搜索",
+                  "src": "assets/current-process-search.png",
+                  "alt": "当前网站程序流程第四步"
+                }
+              ]
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 条件形状求解 → 恢复尺度与似然 → 搜索并校验位置候选 → 比较候选与边界处理 → 计算拟合优度并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>先用“剖面对数似然＋位置得分”回答位置为什么取这里，两图共用位置γ的阅读位置；随后展开选中位置的形状方程，最后由尺度公式连到结果。桌面前两图并排，手机依次上下排。</p><p>下图沿用一组固定输入：Hirose Table 1 / case 2，n=20；结果 β̂=4.529056，η̂=6.238942，γ̂=22.09243。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-profile-likelihood",
+      "title": "4.1 位置为什么选这里",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-profile-likelihood-content",
+          "label": "4.1 位置为什么选这里",
+          "blocks": [
+            {
+              "id": "chart-profile-likelihood-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置为什么选这里。</p><p><strong>建议：</strong>保留。主图展示位置变化时的剖面似然，标出所有被接受的有限候选和最终点。</p><p><strong>核查意见：</strong>它是函数形态图，线上的点按γ排列，不是算法沿这条线迭代。</p>"
+            },
+            {
+              "id": "current-profile-likelihood",
+              "kind": "image",
+              "src": "assets/current-chart-1.png",
+              "alt": "当前网站：位置参数与剖面对数似然"
+            },
+            {
+              "id": "record-profile-likelihood",
+              "kind": "image",
+              "src": "assets/record-profile-likelihood.svg",
+              "alt": "同一次运行记录重绘：位置参数与剖面对数似然"
+            },
+            {
+              "id": "record-profile-likelihood-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-location-score",
+      "title": "4.2 这个峰是否满足判据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-location-score-content",
+          "label": "4.2 这个峰是否满足判据",
+          "blocks": [
+            {
+              "id": "chart-location-score-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这个峰是否满足判据。</p><p><strong>建议：</strong>保留并与似然主图配对。默认看清最终点左右的正负变化，全范围作为补充。</p><p><strong>核查意见：</strong>当前右端的陡降仍会压扁零点附近；建议让默认视窗服务于判据解释。</p>"
+            },
+            {
+              "id": "current-location-score",
+              "kind": "image",
+              "src": "assets/current-chart-2.png",
+              "alt": "当前网站：位置得分与极大值判据"
+            },
+            {
+              "id": "record-location-score",
+              "kind": "image",
+              "src": "assets/record-location-score.svg",
+              "alt": "同一次运行记录重绘：位置得分与极大值判据"
+            },
+            {
+              "id": "record-location-score-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-conditional-shape-equation",
+      "title": "4.3 在选中位置，形状怎样确定",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-conditional-shape-equation-content",
+          "label": "4.3 在选中位置，形状怎样确定",
+          "blocks": [
+            {
+              "id": "chart-conditional-shape-equation-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>在选中位置，形状怎样确定。</p><p><strong>建议：</strong>放在位置判据之后，标题直接写明固定的γ值。保留零点与β=1边界的区别。</p><p><strong>核查意见：</strong>曲线含同一方程的辅助采样，用来解释方程，不称为迭代轨迹。</p>"
+            },
+            {
+              "id": "current-conditional-shape-equation",
+              "kind": "image",
+              "src": "assets/current-chart-3.png",
+              "alt": "当前网站：固定选中位置，求形状参数"
+            },
+            {
+              "id": "record-conditional-shape-equation",
+              "kind": "image",
+              "src": "assets/record-conditional-shape-equation.svg",
+              "alt": "同一次运行记录重绘：固定选中位置，求形状参数"
+            },
+            {
+              "id": "record-conditional-shape-equation-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>比较似然，确定位置</strong>：γ̂=22.09243, ℓ=-35.37474</p><p><strong>在该位置确定形状</strong>：β̂=4.529056</p><p><strong>幂均值恢复尺度</strong>：η̂=6.238942</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "核查依据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "核查依据",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

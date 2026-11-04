@@ -1,0 +1,199 @@
+{
+  "id": "weibull-method-lre-20261102",
+  "title": "线性回归估计 LRE · 流程与图的呈现评审",
+  "document": true,
+  "revision": 2,
+  "require_confirmation": true,
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/lre.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 整体呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 整体呈现",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p><strong>建议主线：</strong>按Park绘图概率形成概率图，选择相关系数最大的γ；在这个位置的概率图上回归，斜率得到β、截距恢复η。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
+      "mode": "content",
+      "options": [
+        {
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
+          "blocks": [
+            {
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议保留两图，突出“先定位，再回归”，并把概率图量与参数恢复写在一起。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
+          "blocks": [
+            {
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>现图的相关系数判据与概率图回归相互对应，基本结构可保留。需要让读者看出不是在已知位置上普通拟合，也不能把高相关当成模型已经通过统计检验。</p><p><strong>建议呈现：</strong>保留三栏；把绘图概率、相关系数定位和概率图回归串成一条主线，不将边界搜索和退化保护拆成多条平行方法。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 计算绘图位置 → 优化位置参数 → OLS 线性回归 → 检查系数并恢复尺度 → 计算拟合优度并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>相关系数ρ(γ)为位置主图；选中点对应下方的概率图散点和直线。直线斜率β、截距与尺度η的关系直接附在图上。</p><p>下图沿用一组固定输入：Park 24点 Proposed+Plot，n=24；结果 β̂=1.363761，η̂=15.11603，γ̂=9.197683。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-correlation-location",
+      "title": "4.1 位置是怎样选出来的",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-correlation-location-content",
+          "label": "4.1 位置是怎样选出来的",
+          "blocks": [
+            {
+              "id": "chart-correlation-location-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置是怎样选出来的。</p><p><strong>建议：</strong>保留ρ随γ的变化及选中峰；让峰附近差异可见。</p><p><strong>核查意见：</strong>ρ高表示这里线性相关更强，不等于三参数Weibull模型检验已通过。</p>"
+            },
+            {
+              "id": "record-correlation-location",
+              "kind": "image",
+              "src": "assets/record-correlation-location.svg",
+              "alt": "同一次运行记录重绘：位置参数的相关系数判据"
+            },
+            {
+              "id": "record-correlation-location-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-park-probability-regression",
+      "title": "4.2 这条直线怎样给出参数",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-park-probability-regression-content",
+          "label": "4.2 这条直线怎样给出参数",
+          "blocks": [
+            {
+              "id": "chart-park-probability-regression-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这条直线怎样给出参数。</p><p><strong>建议：</strong>保留概率图散点和拟合线，明确X=ln(t−γ)、Y=ln[−ln(1−p)]。</p><p><strong>核查意见：</strong>这里斜率就是β；与LSE中a=1/β的规则要在表达上区分。</p>"
+            },
+            {
+              "id": "record-park-probability-regression",
+              "kind": "image",
+              "src": "assets/record-park-probability-regression.svg",
+              "alt": "同一次运行记录重绘：最终位置下的概率图回归"
+            },
+            {
+              "id": "record-park-probability-regression-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>相关系数最大处确定位置</strong>：γ̂=9.197683, ρ=0.9902309</p><p><strong>概率图斜率确定形状</strong>：b=1.363761, β̂=1.363761</p><p><strong>概率图截距确定尺度</strong>：a=-3.703641, η̂=15.11603</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "核查依据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "核查依据",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

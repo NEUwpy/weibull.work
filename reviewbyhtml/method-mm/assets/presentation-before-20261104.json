@@ -1,0 +1,199 @@
+{
+  "id": "weibull-method-mm-20261102",
+  "title": "矩估计 MM · 流程与图的呈现评审",
+  "document": true,
+  "revision": 2,
+  "require_confirmation": true,
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/mm.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 整体呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 整体呈现",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p><strong>建议主线：</strong>由经验生存函数的面积形成三个Weibull矩；检查这些矩能否给出可采纳解，再用显式公式求参数，并说明位置处理前后的变化。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
+      "mode": "content",
+      "options": [
+        {
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
+          "blocks": [
+            {
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议从“矩如何由样本得到”出发，形成面积到参数的可读链条；不要求MM长得像MLE。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
+          "blocks": [
+            {
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>现有生存函数图和矩差图已能说明输入量；但若没有把面积、矩和最终参数连起来，读者仍不知道图与估计有什么关系。位置修正前后也需要直接可见。</p><p><strong>建议呈现：</strong>采用“样本—矩—可采纳性—显式求参”的三栏流程。MM没有形状寻优轨迹，不为统一外观而加入搜索动画。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据预处理 → 计算样本 Weibull 矩 → 检查矩组合并解参数 → 修正位置与尺度 → 计算两参数对照 → 计算拟合优度并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>以经验生存阶梯及其幂次面积为主图，接三个矩的数值和可采纳性关系，再用公式流向β、η、γ。最终结果旁列出位置处理前后值；不把它伪装成迭代优化。</p><p>下图沿用一组固定输入：现有边界测试中的固定样本，n=100；结果 β̂=2.307115，η̂=119.6123，γ̂=0。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-weibull-moments",
+      "title": "4.1 样本怎样形成矩",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-weibull-moments-content",
+          "label": "4.1 样本怎样形成矩",
+          "blocks": [
+            {
+              "id": "chart-weibull-moments-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>样本怎样形成矩。</p><p><strong>建议：</strong>保留阶梯函数，显示S、S²、S⁴及面积对应的三个矩。</p><p><strong>核查意见：</strong>台阶与面积是关键，不画平滑拟合线来替代经验生存函数。</p>"
+            },
+            {
+              "id": "record-weibull-moments",
+              "kind": "image",
+              "src": "assets/record-weibull-moments.svg",
+              "alt": "同一次运行记录重绘：生存函数面积形成样本矩"
+            },
+            {
+              "id": "record-weibull-moments-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-moment-admissibility",
+      "title": "4.2 这些矩能否求参",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-moment-admissibility-content",
+          "label": "4.2 这些矩能否求参",
+          "blocks": [
+            {
+              "id": "chart-moment-admissibility-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>这些矩能否求参。</p><p><strong>建议：</strong>以简短关系图或数值比较展示两组矩差均为正且有序。</p><p><strong>核查意见：</strong>两点散点图的信息较少；建议与矩数值及求参公式放在一起。</p>"
+            },
+            {
+              "id": "record-moment-admissibility",
+              "kind": "image",
+              "src": "assets/record-moment-admissibility.svg",
+              "alt": "同一次运行记录重绘：样本矩能否给出正的形状和尺度"
+            },
+            {
+              "id": "record-moment-admissibility-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>样本矩与形状显式解</strong>：m̄₁=105.9701, m̄₂=77.13461, m̄₄=55.78209, β̂=2.307115</p><p><strong>位置显式解与当前处理</strong>：γ*（原始）=-5.146498, γ̂（返回）=0</p><p><strong>尺度恢复</strong>：η*（原始）=125.4214, η̂（返回）=119.6123</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "核查依据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "核查依据",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

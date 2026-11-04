@@ -1,0 +1,222 @@
+{
+  "id": "weibull-method-wmle-20261102",
+  "title": "加权极大似然估计 WMLE · 流程与图的呈现评审",
+  "document": true,
+  "revision": 2,
+  "require_confirmation": true,
+  "archive_plan": "按最终确认的宏观呈现意见，更新本方法网站的程序流程说明、计算过程编排和过程图组件；底层一致性与浏览器验收由Agent完成。保留同一方法实现，不改变算法规则或方法开放状态；如需改变估计结果或成功口径，先另行讨论。将审定及落实结果写入 D:/weibull/docs/method-reviews/wmle.md，保留现有有效决定及原始意见，Git本地保存；不部署、不自动推送。",
+  "units": [
+    {
+      "id": "identity",
+      "title": "1 整体呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "identity-content",
+          "label": "1 整体呈现",
+          "blocks": [
+            {
+              "id": "identity-body",
+              "kind": "text",
+              "html": "<p><strong>建议主线：</strong>用权重修正的两个方程共同确定形状与位置；比较可接受的根，再按加权尺度公式恢复η。</p><p><strong>本次把关内容：</strong>程序怎样分阶段、计算怎样讲清楚、图怎样配合。以下为核查后的呈现建议；实现细节由我处理，不需要逐项选择。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "presentation-summary",
+      "title": "2 建议采用的阅读主线",
+      "mode": "content",
+      "options": [
+        {
+          "id": "presentation-summary-content",
+          "label": "2 建议采用的阅读主线",
+          "blocks": [
+            {
+              "id": "reading-flow",
+              "kind": "image",
+              "src": "assets/proposed-reading-flow.svg",
+              "alt": "建议的阅读主线，尚未应用到网站"
+            },
+            {
+              "id": "summary-assessment",
+              "kind": "text",
+              "html": "<p><strong>我的判断：</strong>建议采用“两个方程＋候选表＋尺度恢复”的专属表达，保持与MLE清楚区分。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "program-presentation",
+      "title": "3 程序流程怎样呈现",
+      "mode": "content",
+      "options": [
+        {
+          "id": "program-presentation-content",
+          "label": "3 程序流程怎样呈现",
+          "blocks": [
+            {
+              "id": "program-assessment",
+              "kind": "text",
+              "html": "<p><strong>当前判断：</strong>当前已经记录条件方程、候选根和尺度恢复，但容易被通用“优化曲线”的外观带偏。说明应明确WMLE这里是在解加权方程，不是照搬MLE的似然峰选择。</p><p><strong>建议呈现：</strong>保留步骤—源码—公式三栏；主线突出两个加权方程如何共同确定结果。权重表的查找与数值处理放在相应步骤内部。</p>"
+            },
+            {
+              "id": "program-current",
+              "kind": "image",
+              "src": "assets/current-process.png",
+              "alt": "当前网站程序流程截图"
+            },
+            {
+              "id": "program-order",
+              "kind": "text",
+              "html": "<p>当前网站步骤：数据与权重准备 → 条件形状求解 → 恢复尺度与计算方程残差 → 搜索并校验位置候选 → 多根选择与状态检查 → 计算拟合优度并返回。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculation-presentation",
+      "title": "4 计算过程与图的主次",
+      "mode": "content",
+      "options": [
+        {
+          "id": "calculation-presentation-content",
+          "label": "4 计算过程与图的主次",
+          "blocks": [
+            {
+              "id": "calculation-layout",
+              "kind": "text",
+              "html": "<p><strong>建议顺序：</strong>主图以位置方程T₂的过零说明γ；紧接着显示同一位置下T₁的过零说明β，接受候选用表紧邻两图。最后给出J₁加权尺度恢复。边界近似直接随结果说明。</p><p>下图沿用一组固定输入：Cousineau §4 十点算例，n=10；结果 β̂=2.327651，η̂=117.5476，γ̂=282.3386。</p>"
+            },
+            {
+              "id": "calculation-current",
+              "kind": "image",
+              "src": "assets/current-calculation.png",
+              "alt": "当前网站计算过程截图；点击可放大"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-weighted-location-equation",
+      "title": "4.1 位置方程怎样确定位置",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-weighted-location-equation-content",
+          "label": "4.1 位置方程怎样确定位置",
+          "blocks": [
+            {
+              "id": "chart-weighted-location-equation-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>位置方程怎样确定位置。</p><p><strong>建议：</strong>作为主图，显示条件T₁=0后的T₂曲线、零线与所选位置。</p><p><strong>核查意见：</strong>主图要看清根；候选选择另列小表，不用一个孤立点撑一整幅图。</p>"
+            },
+            {
+              "id": "record-weighted-location-equation",
+              "kind": "image",
+              "src": "assets/record-weighted-location-equation.svg",
+              "alt": "同一次运行记录重绘：加权位置方程的求根判据"
+            },
+            {
+              "id": "record-weighted-location-equation-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-conditional-shape-equation",
+      "title": "4.2 形状方程怎样与位置配合",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-conditional-shape-equation-content",
+          "label": "4.2 形状方程怎样与位置配合",
+          "blocks": [
+            {
+              "id": "chart-conditional-shape-equation-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>形状方程怎样与位置配合。</p><p><strong>建议：</strong>放在位置图旁或其后，固定同一γ，标明T₁=0对应的β。</p><p><strong>核查意见：</strong>两图要让读者知道它们属于同一组方程，而不是两个互不相干的结果。</p>"
+            },
+            {
+              "id": "record-conditional-shape-equation",
+              "kind": "image",
+              "src": "assets/record-conditional-shape-equation.svg",
+              "alt": "同一次运行记录重绘：固定选中位置，求形状参数"
+            },
+            {
+              "id": "record-conditional-shape-equation-caption",
+              "kind": "text",
+              "html": "<p style=\"color:#64748b;font-size:14px\">记录重绘，供核对图意与建议阅读范围；不是网站改后截图。点值来自同一现行方法运行，未另造估计器。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "figure-candidate-residuals",
+      "title": "4.3 有多个根时采用哪个",
+      "mode": "content",
+      "options": [
+        {
+          "id": "figure-candidate-residuals-content",
+          "label": "4.3 有多个根时采用哪个",
+          "blocks": [
+            {
+              "id": "chart-candidate-residuals-assessment",
+              "kind": "text",
+              "html": "<p><strong>这幅图要回答：</strong>有多个根时采用哪个。</p><p><strong>建议：</strong>用候选表，保留β、γ、两个残差及最终选择标记。</p><p><strong>核查意见：</strong>仅有一个根时仍是小表；根的接受与选择规则由我核对，不逐项让你决定数值阈值。</p>"
+            },
+            {
+              "id": "candidate-values",
+              "kind": "visual",
+              "html": "<table><thead><tr><th>β</th><th>γ</th><th>T₁</th><th>T₂</th></tr></thead><tbody><tr><td>2.32765</td><td>282.339</td><td>-1.99951e-13</td><td>4.44089e-16</td></tr></tbody></table>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result-link",
+      "title": "5 图怎样连到最终结果",
+      "mode": "content",
+      "options": [
+        {
+          "id": "result-link-content",
+          "label": "5 图怎样连到最终结果",
+          "blocks": [
+            {
+              "id": "result-link-body",
+              "kind": "text",
+              "html": "<p><strong>联立加权方程，确定位置</strong>：γ̂=282.3386, T₁=-1.999512e-13, T₂=4.440892e-16</p><p><strong>在该位置确定形状</strong>：β̂=2.327651</p><p><strong>幂均值恢复尺度</strong>：η̂=117.5476</p><p><strong>呈现要求：</strong>图中选中点、公式中的量、最终三参数要来自同一次计算。更改输入后明确更新状态；无可采纳结果时，图与结果一起说明原因。</p><p><strong>我的处理范围：</strong>源码对应、数值记录、坐标、单位及边界标记由我核对；只有会改变估计规则或成功口径的改动，另行讨论。</p>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "核查依据",
+      "mode": "content",
+      "options": [
+        {
+          "id": "sources-content",
+          "label": "核查依据",
+          "blocks": [
+            {
+              "id": "sources-body",
+              "kind": "text",
+              "html": "<p><a href=\"assets/process-evidence.html\" target=\"_blank\" rel=\"noopener\">逐步源码、公式与本次计算记录</a> · <a href=\"assets/prior-algorithm-review.html\" target=\"_blank\" rel=\"noopener\">此前原文与实现核对</a></p><p>本轮仅更新审阅载体；网站算法、页面与开放状态均未修改。你的意见将落实到本方法网站的程序流程、计算过程和过程图呈现。</p>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
