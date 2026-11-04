@@ -8,9 +8,11 @@ import type { LibraryVersion } from '@/lib/library-search-types'
 import { libraryAuthorPreview } from '@/lib/library-card-presentation'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { LibraryCardMetadata } from './LibraryCardMetadata'
+import { LibraryPaperTitle } from './LibraryPaperTitle'
+import type { LibraryTitlePresentation } from '@/lib/library-titles'
 import { cn } from '@/lib/utils'
 
-interface CardPaper {
+interface CardPaper extends LibraryTitlePresentation {
   slug: string; title: string; author: string; year: number; summary: string; tags: string[]
   type?: string; publication?: string; short_publication?: string; doi?: string
   category?: LibraryCategory; availableVersions: LibraryVersion[]
@@ -93,8 +95,8 @@ export function LibraryCard({ paper }: { paper: CardPaper }) {
         <LibraryCardMetadata id={paper.slug} type={paper.type} publication={paper.publication || paper.short_publication}
           year={paper.year} doi={paper.doi} available={available} />
         <h3 className={cn('library-title text-xl leading-relaxed transition-colors', available ? 'text-slate-800 group-hover:text-blue-800' : 'text-slate-500')}>
-          {available ? <Link href={`/library/${paper.slug}`} className="library-card-link"><LibraryMathMarkdown inline>{paper.title}</LibraryMathMarkdown></Link>
-            : <LibraryMathMarkdown inline>{paper.title}</LibraryMathMarkdown>}
+          {available ? <Link href={`/library/${paper.slug}`} className="library-card-link"><LibraryPaperTitle paper={paper} /></Link>
+            : <LibraryPaperTitle paper={paper} />}
         </h3>
         <p className="library-card-authors relative z-20 text-sm text-slate-500 flex items-start gap-1.5" title={paper.author}>
           <User size={13} className="text-slate-400 shrink-0" />

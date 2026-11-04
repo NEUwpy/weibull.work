@@ -13,13 +13,16 @@ import { scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
 import { useLibrarySession } from '@/lib/library-auth-client'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { LibraryCard } from './LibraryCard'
+import { LibraryMasonry } from './LibraryMasonry'
 import { LibraryFilterMenu, type LibraryFilterOption } from './LibraryFilterMenu'
+import { LibraryPaperTitle } from './LibraryPaperTitle'
+import type { LibraryTitlePresentation } from '@/lib/library-titles'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
 import './responsive.css'
 
 
-type PaperMetadata = {
+type PaperMetadata = LibraryTitlePresentation & {
   slug: string
   title: string
   title_en?: string
@@ -251,7 +254,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           {searchError && <div role="alert" className="rounded-xl border border-rose-100 bg-rose-50 p-5 text-sm text-rose-700">{searchError}<button type="button" onClick={() => setRetry(value => value + 1)} className="ml-3 underline">重试</button></div>}
           {searchResponse?.results.map(hit => <article key={hit.id} className="max-w-5xl space-y-2 rounded-xl bg-white p-5 sm:p-6">
             <p className="text-xs leading-5 text-slate-500">{hit.slug} · {hit.version} · {hit.section}</p>
-            <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="library-title inline-block text-lg leading-7 text-blue-800 hover:underline"><LibraryMathMarkdown inline highlightTerms={searchResponse.terms}>{hit.title}</LibraryMathMarkdown></Link>
+            <Link href={librarySearchHitHref(hit.href, searchResponse.terms)} className="library-title inline-block text-lg leading-7 text-blue-800 hover:underline"><LibraryPaperTitle paper={hit} highlightTerms={searchResponse.terms} /></Link>
             <LibraryMathMarkdown highlightTerms={searchResponse.terms} className="text-sm leading-7 text-slate-600 [&_p]:my-0">{hit.excerpt}</LibraryMathMarkdown>
           </article>)}
           {searchResponse && !searchResponse.total && <div className="rounded-xl bg-white px-6 py-12 text-sm leading-7 text-slate-500"><p>未找到相关内容。</p><p>可以缩短检索句，或换用术语的另一种中英文表达。</p></div>}
@@ -262,16 +265,9 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           </nav>}
         </section>}
 
-        {mode === 'search' && (!query || isNumberQuery) && <div className="library-cards">
-          {filteredPapers.map(paper => <LibraryCard key={paper.slug} paper={paper} />)}
-
-          {/* Empty State */}
-          {filteredPapers.length === 0 && (
-            <div className="break-inside-avoid col-span-full py-32 text-center">
-              <p className="text-neutral-400 text-sm">未找到匹配的文献</p>
-            </div>
-          )}
-        </div>}
+        {mode === 'search' && (!query || isNumberQuery) && (filteredPapers.length > 0
+          ? <LibraryMasonry>{filteredPapers.map(paper => <LibraryCard key={paper.slug} paper={paper} />)}</LibraryMasonry>
+          : <div className="py-32 text-center"><p className="text-neutral-400 text-sm">未找到匹配的文献</p></div>)}
 
       </div>
     </main>

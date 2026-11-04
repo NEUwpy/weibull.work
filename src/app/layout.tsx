@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './globals.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database, Settings2, ChevronDown, BookOpen, FileText, Info, Brain, Menu, X } from 'lucide-react'
+import { Calculator, Library, Database, Settings2, SlidersHorizontal, ChevronDown, BookOpen, FileText, Info, Cpu, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { APP_VERSION } from '@/lib/config'
 
@@ -52,33 +52,33 @@ export default function RootLayout({
   let title = 'Weibull Calculator'
   let subtitle = '威布尔计算器'
   let Icon = Calculator
-  let themeColor = 'bg-blue-600 shadow-blue-200'
+  let themeColor = 'bg-blue-50 text-blue-600 border-blue-200'
 
   if (isLibrary) {
     title = 'Reliability Library'
     subtitle = '可靠性图书馆'
     Icon = Library
-    themeColor = 'bg-emerald-600 shadow-emerald-200'
+    themeColor = 'bg-emerald-50 text-emerald-600 border-emerald-200'
   } else if (isAI) {
     title = 'AI Methods'
     subtitle = '人工智能方法'
-    Icon = Brain
-    themeColor = 'bg-violet-600 shadow-violet-200'
+    Icon = Cpu
+    themeColor = 'bg-violet-50 text-violet-600 border-violet-200'
   } else if (isCases) {
     title = 'Case Database'
     subtitle = '案例数据库'
     Icon = Database
-    themeColor = 'bg-indigo-600 shadow-indigo-200'
+    themeColor = 'bg-indigo-50 text-indigo-600 border-indigo-200'
   } else if (isMethods) {
     title = 'Parameter Estimation Methods'
     subtitle = '参数估计方法'
-    Icon = Settings2
-    themeColor = 'bg-amber-600 shadow-amber-200'
+    Icon = SlidersHorizontal
+    themeColor = 'bg-amber-50 text-amber-600 border-amber-200'
   } else if (isHelp) {
     title = 'Software Info'
     subtitle = '软件信息'
     Icon = Info
-    themeColor = 'bg-slate-600 shadow-slate-200'
+    themeColor = 'bg-slate-100 text-slate-600 border-slate-300'
   }
 
   return (
@@ -89,13 +89,13 @@ export default function RootLayout({
           <div className="site-header-inner page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
             {/* Left: Dynamic Title */}
             <div className="site-title flex items-center gap-3">
-               {isMethods ? <Link href="/methods" aria-label="返回方法总览" className={cn("p-2 rounded-lg text-white shadow-sm transition-colors hover:brightness-110", themeColor)}><Icon size={20} /></Link> :
-                 <div className={cn("p-2 rounded-lg text-white shadow-sm transition-colors", themeColor)}><Icon size={20} /></div>}
+               {isMethods ? <Link href="/methods" aria-label="返回方法总览" className={cn("site-title-icon rounded-[9px] border transition-colors hover:brightness-95", themeColor)}><Icon size={26} strokeWidth={1.7} aria-hidden="true" /></Link> :
+                 <div className={cn("site-title-icon rounded-[9px] border transition-colors", themeColor)}><Icon size={26} strokeWidth={1.7} aria-hidden="true" /></div>}
                <div className="flex flex-col">
                   <h1 className="text-lg font-bold text-slate-900 leading-none">
                     {title}
                   </h1>
-                  <span className="text-sm text-slate-500 font-medium tracking-wide mt-0.5">
+                  <span className="text-sm text-slate-500 font-medium tracking-wide mt-1">
                     {subtitle}
                   </span>
                </div>
@@ -104,7 +104,7 @@ export default function RootLayout({
             {/* Right: Navigation Switcher */}
             <div className="desktop-navigation flex items-center gap-8">
                {/* Segmented Control */}
-               <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+               <div className="site-navigation-frame flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                   <Link
                     href="/"
                     className={cn(
@@ -138,7 +138,7 @@ export default function RootLayout({
                         : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                     )}
                   >
-                    <Brain size={18} />
+                    <Cpu size={18} />
                     人工智能方法
                   </Link>
                   <Link
@@ -233,7 +233,7 @@ export default function RootLayout({
               {[
                 { href: '/', label: '威布尔计算器', Icon: Calculator },
                 { href: '/methods', label: '参数估计方法', Icon: Settings2 },
-                { href: '/ai', label: '人工智能方法', Icon: Brain },
+                { href: '/ai', label: '人工智能方法', Icon: Cpu },
                 { href: '/cases', label: '案例数据库', Icon: Database },
                 { href: '/library', label: '可靠性图书馆', Icon: Library },
                 { href: '/help/manual/about', label: '用户手册', Icon: BookOpen },

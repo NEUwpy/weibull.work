@@ -1,7 +1,9 @@
+import type { LibraryTitlePresentation } from './library-titles'
+
 export type LibraryVersion = '原文' | '翻译'
 
 /** Public, selected-library excerpts shared by search results and answer citations. */
-export interface LibrarySearchHit {
+export interface LibrarySearchHit extends LibraryTitlePresentation {
   id: string
   slug: string
   title: string

@@ -234,6 +234,42 @@ test('complete catalog cards and introductions only read the cached note summary
   } finally { fs.readFileSync = read }
 }))
 
+test('title presentation reads a bounded cached original header, refreshes note titles and does not replace catalog facts', () => withSource(async ({ root, original, note, descriptor }) => {
+  const canonical = 'An original English paper title'
+  descriptor.sources[0].papers = [{ id, metadata: { title: canonical, year: 2025 } }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  write(original, '# ' + canonical + '\n\n' + 'Body text. '.repeat(2000) + 'SECRET_BEYOND_HEADER')
+  const open = fs.openSync, read = fs.readSync, close = fs.closeSync, fullRead = fs.readFileSync
+  const handles = new Set()
+  let headerBytes = 0
+  fs.openSync = function (file, ...args) { const handle = open.call(this, file, ...args); if (file === original) handles.add(handle); return handle }
+  fs.closeSync = function (handle) { handles.delete(handle); return close.call(this, handle) }
+  fs.readSync = function (handle, buffer, ...args) {
+    const bytes = read.call(this, handle, buffer, ...args)
+    if (handles.has(handle)) { headerBytes += bytes; assert.doesNotMatch(buffer.toString('utf8'), /SECRET_BEYOND_HEADER/) }
+    return bytes
+  }
+  fs.readFileSync = function (file, ...args) { if (file === original) throw new Error('A card opened the complete original'); return fullRead.call(this, file, ...args) }
+  try {
+    const [paper] = listPapers()
+    assert.equal(paper.title, canonical)
+    assert.equal(paper.display_title, noteData.中文标题)
+    assert.equal(paper.original_language, 'en')
+    listPapers()
+    assert.equal(headerBytes, 8192)
+    write(note, matter.stringify('## 一句话总结\n\nPUBLIC_NOTE_SUMMARY_994', { ...noteData, 中文标题: '更新后的中文译名' }))
+    assert.equal(listPapers()[0].display_title, '更新后的中文译名')
+    assert.equal(headerBytes, 8192)
+    const route = load('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': storage })
+    const payload = await (await route.GET({}, { params: { slug: id } })).json()
+    assert.equal(payload.paper.display_title, '更新后的中文译名')
+    assert.equal(payload.paper.original_language, 'en')
+    assert.doesNotMatch(JSON.stringify(payload), /PRIVATE_NOTE_993|SECRET_BEYOND_HEADER|sourceHeading|sourceTitle/)
+  } finally { fs.openSync = open; fs.readSync = read; fs.closeSync = close; fs.readFileSync = fullRead }
+  write(original, '# 中文原文标题\n\n正文内容。')
+  assert.equal(listPapers()[0].original_language, 'zh')
+}))
+
 test('missing selected roots keep catalog entries and recover without blocking available documents', () => withSource(async ({ root, source, descriptor }) => {
   const missingRoot = path.join(source, 'not-yet-mounted')
   const missingId = '182-047'

@@ -21,6 +21,7 @@ function cardHarness() {
     '@/lib/library-card-presentation': { libraryAuthorPreview: value => value },
     '@/components/shared/LibraryMathMarkdown': { LibraryMathMarkdown: () => null },
     './LibraryCardMetadata': { LibraryCardMetadata: () => null },
+    './LibraryPaperTitle': { LibraryPaperTitle: () => null },
     '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
   }
   const file = 'src/components/library/LibraryCard.tsx'

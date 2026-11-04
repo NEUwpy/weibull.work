@@ -19,10 +19,12 @@ import { LibraryLoginDialog } from '@/components/library/LibraryLoginDialog'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import type { LibraryVersion } from '@/lib/library-search-types'
 import type { LibraryCategory } from '@/lib/library-categories'
+import type { LibraryTitlePresentation } from '@/lib/library-titles'
+import { LibraryPaperTitle } from '@/components/library/LibraryPaperTitle'
 
 type ReadingView = '详情' | LibraryVersion
 const READING_VERSIONS: LibraryVersion[] = ['原文', '翻译']
-interface PublicPaper {
+interface PublicPaper extends LibraryTitlePresentation {
   slug: string
   title: string
   title_en?: string
@@ -132,8 +134,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             </div>
           </div>
           {sessionError && <p role="alert" className="mb-4 text-sm text-rose-600">{sessionError}</p>}
-          <h1 className="library-title text-3xl md:text-4xl text-slate-900 leading-tight"><LibraryMathMarkdown inline>{paper.title}</LibraryMathMarkdown></h1>
-          {paper.title_en && <h2 className="library-title mt-3 text-lg md:text-xl text-slate-400 leading-relaxed"><LibraryMathMarkdown inline>{paper.title_en}</LibraryMathMarkdown></h2>}
+          <h1 className="library-title text-3xl md:text-4xl text-slate-900 leading-tight"><LibraryPaperTitle paper={paper} /></h1>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-6 text-slate-500 text-sm">
             {paper.type && <span>{paper.type}</span>}
             {paper.year > 0 && <span className="inline-flex items-center gap-2"><Calendar size={15} className="text-slate-400" />{paper.year}</span>}
@@ -154,6 +155,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 <div><dt>文献编号</dt><dd>{slug}</dd></div>
                 <div><dt>类型</dt><dd>{paper.type || '未登记'}</dd></div>
                 <div><dt>发表年份</dt><dd>{paper.year > 0 ? paper.year : '未登记'}</dd></div>
+                {(paper.original_title || paper.title_en) && <div><dt>{paper.original_language === 'en' ? '英文原名' : '英文题名'}</dt><dd><LibraryMathMarkdown inline>{paper.original_title || paper.title_en || ''}</LibraryMathMarkdown></dd></div>}
                 <div><dt>作者</dt><dd>{paper.author || '未登记'}</dd></div>
                 <div><dt>出版信息</dt><dd>{paper.publication || '未登记'}</dd></div>
                 {paper.affiliation && <div><dt>机构</dt><dd>{paper.affiliation}</dd></div>}

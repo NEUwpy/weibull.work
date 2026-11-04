@@ -165,6 +165,8 @@ function* updateIndex(documents: LibraryDocument[]): Generator<void> {
         const hit: LibrarySearchHit = {
           id: `${document.paper.slug}:${document.version}:${passage.startLine}:${index}`,
           slug: document.paper.slug, title: document.paper.title, version: document.version,
+          display_title: document.paper.display_title, original_title: document.paper.original_title,
+          original_language: document.paper.original_language,
           section: passage.section, startLine: passage.startLine, endLine: passage.endLine,
           text, excerpt: readable, score: 0,
           href: `/library/${encodeURIComponent(document.paper.slug)}?version=${encodeURIComponent(document.version)}#${libraryPassageId(passage.startLine)}`,
@@ -288,7 +290,8 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
   const catalogKey = JSON.stringify([options.type || 'all', options.category || 'all'])
   let catalog = indexCache.catalogs.get(catalogKey)
   if (!catalog) {
-    catalog = createLiteratureIndex(papers.filter(matches))
+    catalog = createLiteratureIndex(papers.filter(matches).map(paper => ({ ...paper,
+      title: paper.display_title || paper.title, title_en: paper.original_title || paper.title_en })))
     indexCache.catalogs.set(catalogKey, catalog)
   }
   const catalogMatches = (options.scope === 'text' ? [] : catalog.search(q)) as { record: PaperMetadata; score: number; fields: string[] }[]

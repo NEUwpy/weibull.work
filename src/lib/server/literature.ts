@@ -3,7 +3,8 @@ import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug, resolveContentFile } from './content-files'
 import { getDataRoot } from './data-root'
-import { indexSourcePapers, sourceDocument, sourceAsset, readSourceNoteSummary, type SourceIndex } from './source-library'
+import { indexSourcePapers, sourceDocument, sourceAsset, readSourceNotePublicInfo, readSourceOriginalHeader, type SourceIndex, type SourcePaper } from './source-library'
+import { libraryTitlePresentation, type LibraryTitlePresentation } from '../library-titles'
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 import type { LibraryVersion } from '../library-search-types'
 import { libraryCategoryForSource, libraryCategoryMappingVersion, type LibraryCategory } from '../library-categories'
@@ -26,7 +27,7 @@ export interface LibraryPaths {
   sourceDirectories?: string[]
 }
 
-export interface PaperMetadata {
+export interface PaperMetadata extends LibraryTitlePresentation {
   slug: string
   title: string
   title_en?: string
@@ -42,6 +43,11 @@ export interface PaperMetadata {
   related_method_id?: string
   availableVersions: LibraryVersion[]
   category?: LibraryCategory
+}
+
+function presentTitles(paper: PaperMetadata, source?: SourcePaper): PaperMetadata {
+  return { ...paper, ...libraryTitlePresentation({ ...paper,
+    ...(source ? readSourceNotePublicInfo(source) : {}), ...(source ? readSourceOriginalHeader(source) : {}) }) }
 }
 
 export interface PreferredPaper {
@@ -196,14 +202,14 @@ function metadataFrom(paths: LibraryPaths, slug: string): PaperMetadata | null {
     // Legacy partial tickets keep their original metadata adapter.
     const catalog = source.catalog
     const metadata = catalog?.title && catalog.year ? catalog : preferredFrom(paths, slug)?.metadata ?? catalog ?? {}
-    return { ...publicPaperMetadata(slug, { ...metadata, summary: readSourceNoteSummary(source) || metadata.summary || '' }, new Map(), availableVersions),
-      category: libraryCategoryForSource(source.directory) }
+    return presentTitles({ ...publicPaperMetadata(slug, { ...metadata, summary: readSourceNotePublicInfo(source).summary || metadata.summary || '' }, new Map(), availableVersions),
+      category: libraryCategoryForSource(source.directory) }, source)
   }
   const preferred = preferredFrom(paths, slug)
   if (!preferred?.metadata.title) return null
   const availableVersions = (['原文', '翻译'] as const).filter(version =>
     resolveContentFile(paths.contentDir, `${slug}-pdf${version}.md`) !== null)
-  return publicPaperMetadata(slug, preferred.metadata, new Map(), availableVersions)
+  return presentTitles(publicPaperMetadata(slug, preferred.metadata, new Map(), availableVersions))
 }
 
 function listFrom(paths: LibraryPaths): PaperMetadata[] {
@@ -230,7 +236,7 @@ interface SearchDocumentCache {
 
 // Shared across Next's independently compiled instrumentation and route modules.
 // Bump the namespace when the snapshot representation changes.
-const documentCacheKey = Symbol.for('weibull.library-documents.v4')
+const documentCacheKey = Symbol.for('weibull.library-documents.v5')
 const documentCaches = globalThis as unknown as Record<symbol, SearchDocumentCache>
 const documentCache = documentCaches[documentCacheKey] ??= {
   selector: '', guards: new Map(), documents: [], versions: new Map(),
@@ -301,7 +307,7 @@ export function readLibraryDocuments(): LibraryDocument[] {
     const versionMetadata = versions.map(document => matter(document.raw).data)
     const doi = paper.doi || versionMetadata.map(data => data.doi).find(value => typeof value === 'string')
     const alternateTitle = versionMetadata.map(data => data.title).find(value => typeof value === 'string' && value !== paper.title)
-    const catalog = { ...paper, ...(doi ? { doi } : {}), ...(!paper.title_en && alternateTitle ? { title_en: alternateTitle } : {}) }
+    const catalog = presentTitles({ ...paper, ...(doi ? { doi } : {}), ...(!paper.title_en && alternateTitle ? { title_en: alternateTitle } : {}) }, source)
     for (const document of versions) documents.push({ paper: catalog, ...document })
   }
   documentCache.selector = selector

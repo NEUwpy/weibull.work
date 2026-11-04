@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Weibull Header Calibri';
+  src: url('/fonts/header-calibri-bold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Weibull Header YanZhenqing';
+  src: url('/fonts/header-yanzhenqing.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
 body {
   background: #f8fafc;
   color: #0f172a;
@@ -79,6 +95,26 @@ body {
   max-width: 100% !important;
 }
 
+.site-header-inner { --header-control-size: calc(3rem + 2px); }
+.site-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--header-control-size);
+  height: var(--header-control-size);
+  flex-shrink: 0;
+}
+.site-navigation-frame { height: var(--header-control-size); }
+.site-title > :last-child { height: var(--header-control-size); justify-content: center; }
+.site-title h1 { font-family: 'Weibull Header Calibri', Calibri, Arial, sans-serif; }
+.site-title > :last-child > span {
+  font-family: 'Weibull Header YanZhenqing', '方正颜真卿楷书 简繁', KaiTi, serif;
+  font-size: 18px;
+  line-height: 1.25;
+  color: #475569;
+  font-synthesis: none;
+}
+
 /* Existing desktop utilities remain the baseline; compact layouts are opt-in. */
 .compact-navigation-toggle,
 .compact-navigation {
@@ -94,7 +130,7 @@ body {
     min-width: 0;
   }
 
-  .site-header-inner { gap: 16px; }
+  .site-header-inner { --header-control-size: 44px; gap: 16px; }
   .site-title { min-width: 0; }
   .site-title > :first-child { flex-shrink: 0; }
   .site-title > :last-child { min-width: 0; }
@@ -111,7 +147,7 @@ body {
   .page-shell { padding-left: 16px; padding-right: 16px; }
   section.page-shell { padding-top: 24px; padding-bottom: 48px; }
   .site-title h1 { font-size: 16px; }
-  .site-title span { font-size: 12px; }
+  .site-title > :last-child > span { font-size: 16px; }
   .compact-navigation { grid-template-columns: minmax(0, 1fr); padding: 8px 16px; max-height: calc(100dvh - 65px); overflow-y: auto; }
   .page-shell .prose img { max-width: 100%; }
 }

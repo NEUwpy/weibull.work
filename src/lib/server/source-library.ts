@@ -3,6 +3,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { isContentSlug } from './content-files'
 import { extractLibraryNoteSummary } from '../library-note-summary'
+import { libraryOriginalLanguage, type LibraryTitlePresentation } from '../library-titles'
 
 export interface SourcePaper {
   id: string
@@ -109,23 +110,72 @@ function readText(file: string): string {
   catch { return new TextDecoder('gbk', { fatal: true }).decode(bytes) }
 }
 
-const noteSummaryCache = new Map<string, { mtime: number; ctime: number; size: number; summary: string }>()
+const noteSummaryCache = new Map<string, { mtime: number; ctime: number; size: number; summary: string;
+  noteZh?: string; noteEn?: string; noteTitle?: string }>()
 
 /** Read only the selected note's summary, and invalidate it when the note changes. */
-export function readSourceNoteSummary(paper: SourcePaper): string {
-  if (!paper.note) return ''
+export function readSourceNotePublicInfo(paper: SourcePaper): { summary: string; noteZh?: string; noteEn?: string; noteTitle?: string } {
+  if (!paper.note) return { summary: '' }
   try {
     const stat = fs.statSync(paper.note)
     const cached = noteSummaryCache.get(paper.note)
-    if (cached && cached.mtime === stat.mtimeMs && cached.ctime === stat.ctimeMs && cached.size === stat.size) return cached.summary
+    if (cached && cached.mtime === stat.mtimeMs && cached.ctime === stat.ctimeMs && cached.size === stat.size) return cached
     const note = matter(readText(paper.note))
     const noteId = note.data.id ?? note.data.论文编号 ?? note.data.编号
     if (noteId !== undefined && String(noteId) !== paper.id) throw new Error(`笔记编号与文件名不一致：${paper.id}`)
     const summary = extractLibraryNoteSummary(note.content)
-    noteSummaryCache.set(paper.note, { mtime: stat.mtimeMs, ctime: stat.ctimeMs, size: stat.size, summary })
-    return summary
+    const text = (value: unknown) => typeof value === 'string' ? value : undefined
+    const result = { mtime: stat.mtimeMs, ctime: stat.ctimeMs, size: stat.size, summary,
+      noteZh: text(note.data.中文标题), noteEn: text(note.data.英文标题), noteTitle: text(note.data.标题) }
+    noteSummaryCache.set(paper.note, result)
+    return result
   } catch (error) {
-    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code || '')) return ''
+    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code || '')) return { summary: '' }
+    throw error
+  }
+}
+
+export function readSourceNoteSummary(paper: SourcePaper): string { return readSourceNotePublicInfo(paper).summary }
+
+interface OriginalHeader { sourceTitle?: string; sourceHeading?: string; sourceLanguage?: LibraryTitlePresentation['original_language'] }
+const originalHeaderCache = new Map<string, OriginalHeader & { revision: string }>()
+
+/** Inspect at most 8 KiB of the original header for its title language; never load its full body for a card. */
+export function readSourceOriginalHeader(paper: SourcePaper): OriginalHeader {
+  if (!paper.original) return {}
+  try {
+    const stat = fs.statSync(paper.original)
+    const revision = `${stat.mtimeMs}:${stat.ctimeMs}:${stat.size}`
+    const cached = originalHeaderCache.get(paper.original)
+    if (cached?.revision === revision) return cached
+    const file = fs.openSync(paper.original, 'r')
+    const buffer = Buffer.alloc(8192)
+    let size = 0
+    try { size = fs.readSync(file, buffer, 0, buffer.length, 0) } finally { fs.closeSync(file) }
+    let text: string
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, size), { stream: true }) }
+    catch { text = new TextDecoder('gbk', { fatal: true }).decode(buffer.subarray(0, size), { stream: true }) }
+    text = text.replace(/^\uFEFF/, '')
+    const frontmatter = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/.exec(text)?.[0]
+    const data = frontmatter ? matter(frontmatter).data : {}
+    const body = frontmatter ? text.slice(frontmatter.length) : text
+    const headings = Array.from(body.matchAll(/^#\s+(.+)$/gm))
+    const sourceHeading = headings[0]?.[1]?.trim()
+    const sourceTitle = typeof data.title === 'string' ? data.title : body.split(/\r?\n/).find(line => line.trim() && !/^[-#*!|]/.test(line))?.trim()
+    let sourceLanguage = libraryOriginalLanguage(sourceHeading || sourceTitle)
+    // Some English originals have an editor-added Chinese title followed by the original title.
+    // In this ambiguous case, inspect only the opening abstract already inside this bounded header.
+    if (sourceLanguage === 'zh' && libraryOriginalLanguage(headings[1]?.[1]) === 'en' &&
+      (headings[1].index || 0) - (headings[0].index || 0) < 500) {
+      const abstract = /^#{1,6}\s+.*(?:摘要|abstract)[^\n]*\r?\n([\s\S]*)/im.exec(body)?.[1]
+      const paragraph = abstract?.trim().split(/\r?\n\s*\r?\n/)[0]
+      sourceLanguage = libraryOriginalLanguage(paragraph) || sourceLanguage
+    }
+    const result = { revision, sourceTitle, sourceHeading, sourceLanguage }
+    originalHeaderCache.set(paper.original, result)
+    return result
+  } catch (error) {
+    if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException).code || '')) return {}
     throw error
   }
 }

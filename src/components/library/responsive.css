@@ -10,11 +10,16 @@
 
 .library-cards {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 32px;
 }
-.library-cards > .library-card-slot { margin-bottom: 0; }
+.library-card-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: inherit;
+}
+.library-card-column > .library-card-slot { margin-bottom: 0; }
 
 .library-toolbar {
   display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -96,6 +101,9 @@
 .library-title .katex-display > .katex {
   display: inline;
 }
+.library-title-text { animation: library-title-appear .16s ease-out; }
+@keyframes library-title-appear { from { opacity: .6; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .library-title-text { animation: none; } }
 
 .library-card-authors > svg {
   margin-top: 3.5px;
@@ -106,7 +114,7 @@
 .library-card-slot[data-expanded] > .library-card {
   border-color: #cbd5e1; box-shadow: 0 8px 24px rgb(15 23 42 / .08);
 }
-.library-card-summary-clip { max-height: 1.625em; overflow: hidden; transition: max-height .24s ease; }
+.library-card-summary-clip { max-height: 4.875em; overflow: hidden; transition: max-height .24s ease; }
 .library-card-slot[data-expanded] .library-card-summary-clip { max-height: var(--library-summary-height); }
 .library-card-key-tags { min-width: 0; overflow: hidden; flex-wrap: nowrap; }
 .library-card-key-tags > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -127,9 +135,12 @@
 }
 
 .library-card-link::after { content: ''; position: absolute; inset: 0; z-index: 10; border-radius: .75rem; }
+.library-card-link .library-paper-title { position: relative; z-index: 20; }
 .library-card-link:focus-visible { outline: none; }
 .library-card-link:focus-visible::after { outline: 2px solid #10b981; outline-offset: 2px; }
 
+.library-card-metadata { position: relative; z-index: 30; }
+.library-card-slot:has(.library-card-info:not([data-dismissed]):focus-within) { z-index: 40; }
 .library-card-info { position: relative; z-index: 20; display: inline-flex; }
 .library-card-info-trigger {
   display: grid; place-items: center; width: 24px; height: 24px;
@@ -153,6 +164,7 @@
   visibility: visible; opacity: 1; pointer-events: auto;
 }
 @media (hover: hover) {
+  .library-card-slot:has(.library-card-info:not([data-dismissed]):hover) { z-index: 40; }
   .library-card-info:not([data-dismissed]):hover > .library-card-tooltip {
     visibility: visible; opacity: 1; pointer-events: auto;
   }
@@ -349,7 +361,6 @@
   }
 
   .library-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 24px;
   }
 
@@ -375,10 +386,6 @@
     padding-right: 16px;
     padding-top: 24px;
     padding-bottom: 32px;
-  }
-
-  .library-cards {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .library-cards article > div {
