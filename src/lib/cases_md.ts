@@ -3,7 +3,7 @@
 import fs from 'fs'
 import path from 'path'
 import matter from 'gray-matter'
-import { readCaseDatasetById, readCalculableCaseDatasets, datasetCaseItem } from './server/case-datasets'
+import { readCaseDatasetById, readCalculableCaseDatasets, datasetCaseItem, readCaseCatalogLayout } from './server/case-datasets'
 import type { CaseDataset } from './case-datasets'
 
 const CASES_DIR = path.join(process.cwd(), 'src/content/cases')
@@ -227,6 +227,7 @@ export function getSubCases(groupId: string): SubCaseItem[] {
 
   const files = fs.readdirSync(groupPath)
     .filter(file => file.endsWith('.md') && !file.startsWith('_'))
+  const group = getAllGroups().find(group => group.id === groupId)
 
   const subCases = files.map(file => {
     const filePath = path.join(groupPath, file)
@@ -235,8 +236,8 @@ export function getSubCases(groupId: string): SubCaseItem[] {
 
     return {
       id: data.id || file.replace(/\.md$/, ''),
-      title: data.title || file.replace(/\.md$/, ''),
-      type: data.type || '真实样本',
+      title: /^样本\d+-\d+$/.test(data.title || '') ? `第${Number((data.id || file).match(/-(\d+)/)?.[1])}次抽样` : data.title || file.replace(/\.md$/, ''),
+      type: group?.type || data.type || '真实样本',
       tags: data.tags || [],
       data_raw: data.data_raw || '',
       description: extractDescription(content),
@@ -258,57 +259,8 @@ export function getSubCases(groupId: string): SubCaseItem[] {
 
 // 获取单个子案例
 export function getSubCaseById(groupId: string, caseId: string): SubCaseItem | null {
-  const groupPath = path.join(GROUPS_DIR, groupId)
-  const filePath = path.join(groupPath, `${caseId}.md`)
-
-  if (!fs.existsSync(filePath)) {
-    // 尝试其他命名方式
-    const files = fs.readdirSync(groupPath)
-      .filter(file => file.endsWith('.md') && !file.startsWith('_'))
-
-    for (const file of files) {
-      const fullPath = path.join(groupPath, file)
-      const fileContent = fs.readFileSync(fullPath, 'utf-8')
-      const { data } = matter(fileContent)
-
-      if (data.id === caseId) {
-        const { data: d, content } = matter(fileContent)
-        return {
-          id: d.id || file.replace(/\.md$/, ''),
-          title: d.title || file.replace(/\.md$/, ''),
-          type: d.type || '真实样本',
-          tags: d.tags || [],
-          data_raw: d.data_raw || '',
-          description: extractDescription(content),
-          created_at: d.created_at || new Date().toISOString(),
-          related_paper_slug: d.related_paper_slug,
-          parameters: d.parameters,
-          true_params: d.true_params,
-          groupId,
-          isGroup: false as const
-        }
-      }
-    }
-    return null
-  }
-
-  const fileContent = fs.readFileSync(filePath, 'utf-8')
-  const { data, content } = matter(fileContent)
-
-  return {
-    id: data.id || caseId,
-    title: data.title || caseId,
-    type: data.type || '真实样本',
-    tags: data.tags || [],
-    data_raw: data.data_raw || '',
-    description: extractDescription(content),
-    created_at: data.created_at || new Date().toISOString(),
-    related_paper_slug: data.related_paper_slug,
-    parameters: data.parameters,
-    true_params: data.true_params,
-    groupId,
-    isGroup: false as const
-  }
+  if (!getAllGroups().some(group => group.id === groupId)) return null
+  return getSubCases(groupId).find(item => item.id === caseId) || null
 }
 
 // 获取所有案例和案例组（用于列表页）
@@ -365,7 +317,21 @@ export function getCasesTree(): CaseTreeNode[] {
 
   // 2. 获取所有独立案例（不在组内的）
   const allCases = getAllCases()
+  const byId = new Map(allCases.map(item => [item.id, item]))
+  const grouped = new Set<string>()
+  for (const group of readCaseCatalogLayout().groups) {
+    const children = group.members.flatMap(member => {
+      grouped.add(member.id)
+      const item = byId.get(member.id)
+      if (!item || item.can_calculate === false || member.role === 'derived') return []
+      return [{ id: item.id, title: member.name, data_raw: item.data_raw,
+        dataPoints: item.data_raw.split('\n').filter(line => line.trim()).length, groupId: group.id }]
+    })
+    if (children.length) nodes.push({ type: 'group', id: group.id, title: group.name,
+      sample_count: children.length, children })
+  }
   for (const c of allCases) {
+    if (grouped.has(c.id)) continue
     if (c.can_calculate === false) continue
     nodes.push({
       type: 'case',

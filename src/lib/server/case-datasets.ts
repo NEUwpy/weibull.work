@@ -1,10 +1,40 @@
 import fs from 'fs'
 import path from 'path'
 import { resolveDataEntry } from './data-root'
-import { canCalculateDataset, datasetScale, natureLabels, observationLabels, type CaseDataset, type CaseDatasetIndexEntry } from '../case-datasets'
+import { canCalculateDataset, datasetScale, natureLabels, observationLabels, type CaseDataset, type CaseDatasetIndexEntry, type CaseCatalogGroup, type CaseMemberRole } from '../case-datasets'
 
 const cached = new Map<string, { revision: string; record: CaseDataset }>()
 const identifier = /^[A-Za-z0-9\u3400-\u9fff][A-Za-z0-9\u3400-\u9fff_-]*$/
+
+/** Scanning finds materials; this explicit directory selects and groups publishable cases. */
+export function readCaseCatalogLayout(): { configured: boolean; groups: CaseCatalogGroup[]; issues: string[] } {
+  const file = resolveDataEntry(['cases', 'catalog.json'])
+  if (!file) return { configured: false, groups: [], issues: [] }
+  try {
+    const value = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''))
+    if (value?.schema_version !== 1 || !Array.isArray(value.groups)) throw new Error('案例分组目录格式无效')
+    const ids = new Set<string>()
+    const members = new Set<string>()
+    for (const group of value.groups) {
+      if (!object(group) || typeof group.id !== 'string' || !identifier.test(group.id) || ids.has(group.id)
+        || typeof group.name !== 'string' || !group.name.trim()
+        || !['observed', 'simulated', 'result'].includes(group.kind)
+        || (group.description !== undefined && typeof group.description !== 'string')
+        || !Array.isArray(group.members) || !group.members.length) throw new Error('案例分组条目无效')
+      ids.add(group.id)
+      for (const member of group.members) {
+        if (!object(member) || typeof member.id !== 'string' || !identifier.test(member.id) || members.has(member.id)
+          || typeof member.name !== 'string' || !member.name.trim()
+          || (member.role !== undefined && !['sample', 'derived', 'table', 'figure', 'external'].includes(member.role))) throw new Error('案例组内成员无效或重复')
+        members.add(member.id)
+      }
+    }
+    if (Array.from(ids).some(id => members.has(id))) throw new Error('案例组编号不能与数据编号重复')
+    return { configured: true, groups: value.groups, issues: [] }
+  } catch (error) {
+    return { configured: true, groups: [], issues: [(error as Error).message] }
+  }
+}
 
 function object(value: unknown): value is Record<string, any> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -82,9 +112,9 @@ function storedIndex(): Map<string, CaseDatasetIndexEntry> {
 }
 
 /** The generated index avoids opening thousands of tables for a directory request. */
-export function readCaseDatasetIndex(): { records: CaseDatasetIndexEntry[]; issues: string[] } {
+export function readCaseDatasetIndex(): { records: CaseDatasetIndexEntry[]; issues: string[]; pending_records: number } {
   const directory = resolveDataEntry(['cases', 'records'], 'directory')
-  if (!directory) return { records: [], issues: [] }
+  if (!directory) return { records: [], issues: [], pending_records: 0 }
   const issues: string[] = []
   let stored = new Map<string, CaseDatasetIndexEntry>()
   try { stored = storedIndex() } catch (error) { issues.push((error as Error).message) }
@@ -106,7 +136,17 @@ export function readCaseDatasetIndex(): { records: CaseDatasetIndexEntry[]; issu
       records.push(entry)
     } catch (error) { issues.push(`${name} · ${(error as Error).message}`) }
   }
-  return { records, issues }
+  const layout = readCaseCatalogLayout()
+  issues.push(...layout.issues)
+  if (!layout.configured) {
+    if (records.length) issues.push('案例分组目录暂缺，请先整理并生成目录。')
+    return { records: [], issues, pending_records: records.length }
+  }
+  const selected = new Map(layout.groups.flatMap(group => group.members.map(member => [member.id, member] as const)))
+  const published = records.filter(record => selected.has(record.id)).map(record => ({ ...record, name: selected.get(record.id)!.name }))
+  const available = new Set(published.map(record => record.id))
+  for (const id of Array.from(selected.keys())) if (!available.has(id)) issues.push(`组内数据暂缺：${id}`)
+  return { records: published, issues, pending_records: records.length - published.length }
 }
 
 function readIndexedDataset(entry: CaseDatasetIndexEntry): CaseDataset | null {
@@ -118,15 +158,18 @@ function readIndexedDataset(entry: CaseDatasetIndexEntry): CaseDataset | null {
   return record
 }
 
-export function readCaseDatasetById(id: string): CaseDataset | null {
+export function readCaseDatasetById(id: string): (CaseDataset & { role?: CaseMemberRole }) | null {
   const entry = readCaseDatasetIndex().records.find(entry => entry.id === id)
-  return entry ? readIndexedDataset(entry) : null
+  if (!entry) return null
+  const record = readIndexedDataset(entry)
+  const member = readCaseCatalogLayout().groups.flatMap(group => group.members).find(member => member.id === id)
+  return record ? { ...record, name: entry.name, ...(member?.role ? { role: member.role } : {}) } : null
 }
 
 export function readCalculableCaseDatasets(): CaseDataset[] {
   return readCaseDatasetIndex().records.filter(entry => entry.can_calculate).flatMap(entry => {
     const record = readIndexedDataset(entry)
-    return record && canCalculateDataset(record) ? [record] : []
+    return record && canCalculateDataset(record) ? [{ ...record, name: entry.name }] : []
   })
 }
 

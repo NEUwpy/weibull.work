@@ -35,9 +35,33 @@ export type CatalogDataset = CaseDataset & {
   can_calculate: boolean
   figure_url?: string
   legacy_href?: string
+  role?: CaseMemberRole
 }
 
-export type CatalogSummary = Omit<CatalogDataset, 'data'> & { scale: string }
+export type CaseMemberRole = 'sample' | 'derived' | 'table' | 'figure' | 'external'
+export type CatalogSummary = Omit<CatalogDataset, 'data'> & { scale: string; is_group?: false }
+
+export type CaseCatalogGroup = {
+  id: string
+  name: string
+  kind: 'observed' | 'simulated' | 'result'
+  description?: string
+  members: { id: string; name: string; role?: CaseMemberRole }[]
+}
+
+export type CatalogGroupSummary = {
+  id: string
+  name: string
+  is_group: true
+  nature: CaseNature
+  sources: CaseSource[]
+  scale: string
+  can_calculate: false
+  member_count: number
+  description?: string
+}
+export type CatalogGroupDetail = CatalogGroupSummary & { members: CatalogSummary[] }
+export type CatalogEntry = CatalogSummary | CatalogGroupSummary
 
 export type CaseDatasetIndexEntry = Omit<CaseDataset, 'data'> & {
   file: string
@@ -49,17 +73,20 @@ export type CaseDatasetIndexEntry = Omit<CaseDataset, 'data'> & {
 }
 
 export type CaseCatalog = {
-  items: CatalogSummary[]
+  items: CatalogEntry[]
   total: number
   matched: number
   offset: number
   limit: number
   coverage: { total: number; scanned: number; reviewed: number }
+  counts: { observed: number; simulated: number; result: number; unknown: number }
+  records: number
+  pending_records: number
   issues: string[]
 }
 
 export const natureLabels: Record<CaseNature['kind'], string> = {
-  observed: '实测', simulated: '模拟', result: '结果汇总', unknown: '性质待核实',
+  observed: '实测数据', simulated: '蒙特卡洛数据', result: '估计结果', unknown: '性质待核实',
 }
 
 export const observationLabels: Record<CaseNature['observation'], string> = {
