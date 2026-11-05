@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Target, ChevronRight, Layers, BarChart3, Database } from 'lucide-react'
+import { Target, ChevronRight, Layers, BarChart3, Database } from 'lucide-react'
 
 const schemes = [
   {
@@ -109,10 +109,6 @@ export default function DirectEstimationPage() {
     <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
       {/* Header */}
       <div className="space-y-3">
-        <Link href="/ai" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
-          <ArrowLeft size={14} />
-          返回 AI 方法总览
-        </Link>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-cyan-600 text-white shadow-sm">
             <Target size={22} />

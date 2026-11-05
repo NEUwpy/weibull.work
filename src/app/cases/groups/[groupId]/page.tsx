@@ -98,9 +98,6 @@ export default function CaseGroupPage() {
           <div className="text-center text-slate-400">
             <FolderOpen size={48} className="mx-auto mb-4 opacity-20" />
             <p>案例组不存在</p>
-            <Link href="/cases" className="text-emerald-600 hover:underline mt-4 inline-block">
-              返回案例列表
-            </Link>
           </div>
         </div>
       </main>

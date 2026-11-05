@@ -1,4 +1,5 @@
 import React from 'react'
+import { LibraryDocumentLink as Link } from '@/components/library/LibraryDocumentDialog'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -26,7 +27,7 @@ export function LibraryMathMarkdown({ children, className = '', highlightTerms =
       unwrapDisallowed={inline}
       components={{
         a: ({ href, children }) => href && links.has(href)
-          ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+          ? <Link href={href}>{children}</Link>
           : <span>{children}</span>,
         img: ({ alt }) => <span>{alt}</span>,
       }}>{normalizeLibraryMath(children)}</Markdown>

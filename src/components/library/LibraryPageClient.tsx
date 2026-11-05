@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect, useRef } from 'react'
-import Link from 'next/link'
+import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, Loader2, LayoutGrid, FileText, BookOpen, ArrowDownWideNarrow } from 'lucide-react'
 import type { LibrarySearchResponse, LibraryVersion } from '@/lib/library-search-types'
@@ -19,6 +19,7 @@ import { LibraryPaperTitle } from './LibraryPaperTitle'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
 import { cn } from '@/lib/utils'
 import { ChatDialog } from '@/components/chat'
+import { readLibraryChatSession, setLibraryChatActive, startLibraryChat } from '@/lib/library-chat-session'
 import './responsive.css'
 
 
@@ -110,6 +111,14 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   useEffect(() => { setOffset(0); setMode('search') }, [categoryFilter, sortMode])
 
   useEffect(() => {
+    const saved = readLibraryChatSession()
+    if (!saved?.active) return
+    setAnswerRequest(saved.request)
+    setDraftQuery(saved.request.question)
+    setMode('answer')
+  }, [])
+
+  useEffect(() => {
     setSearchResponse(null)
     setSearchError('')
     if (!query || isNumberQuery || mode !== 'search') { setSearching(false); return }
@@ -135,6 +144,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   function runSearch() {
     const next = draftQuery.trim()
+    setLibraryChatActive(false)
     setMode('search')
     setOffset(0)
     if (next === query && searchScope === 'auto') setRetry(value => value + 1)
@@ -153,7 +163,9 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   function askQuestion() {
     const question = draftQuery.trim()
     if (!question) return
-    setAnswerRequest(previous => ({ id: (previous?.id || 0) + 1, question }))
+    const request = { id: Math.max(Date.now(), (answerRequest?.id || 0) + 1), question }
+    startLibraryChat(request)
+    setAnswerRequest(request)
     setMode('answer')
   }
 
@@ -161,6 +173,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   function chooseSort(sort: string) {
     if (!isLibrarySort(sort)) return
+    setLibraryChatActive(false)
     setOffset(0)
     const url = new URL(window.location.href)
     url.searchParams.set('sort', sort)
@@ -169,6 +182,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
   function chooseCategory(category: string) {
     if (!validLibraryCategoryFilter(category)) return
+    setLibraryChatActive(false)
     setOffset(0)
     setMode('search')
     const url = new URL(window.location.href)
@@ -178,6 +192,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   }
 
   function clearSearch() {
+    setLibraryChatActive(false)
     setDraftQuery('')
     setOffset(0)
     const url = new URL(window.location.href)

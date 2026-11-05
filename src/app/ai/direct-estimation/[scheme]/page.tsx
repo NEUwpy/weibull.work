@@ -1,9 +1,8 @@
 "use client"
 
 import React, { useState } from 'react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Target, BookOpen, Cpu, Database, Play, BarChart3, FlaskConical, GitCompare } from 'lucide-react'
+import { Target, BookOpen, Cpu, Database, Play, BarChart3, FlaskConical, GitCompare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TheoryTab } from '../components/TheoryTab'
 import { TrainingTab } from '../components/TrainingTab'
@@ -45,9 +44,6 @@ export default function SchemePage() {
       <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8">
         <div className="text-center py-12">
           <p className="text-slate-500">未知方案: {scheme}</p>
-          <Link href="/ai/direct-estimation" className="text-cyan-600 hover:underline text-sm mt-2 inline-block">
-            返回方案选择
-          </Link>
         </div>
       </section>
     )
@@ -57,10 +53,6 @@ export default function SchemePage() {
     <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-8 space-y-6">
       {/* Header */}
       <div className="space-y-3">
-        <Link href="/ai/direct-estimation" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 transition-colors">
-          <ArrowLeft size={14} />
-          返回方案选择
-        </Link>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-cyan-600 text-white shadow-sm">
             <Target size={22} />

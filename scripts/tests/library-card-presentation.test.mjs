@@ -24,6 +24,7 @@ const require = createRequire(import.meta.url)
 const module = { exports: {} }
 const esm = value => ({ __esModule: true, default: value })
 const imports = { 'react-markdown': esm(Markdown), 'remark-gfm': esm(remarkGfm), 'remark-math': esm(remarkMath),
+  '@/components/library/LibraryDocumentDialog': { LibraryDocumentLink: ({ children, ...props }) => React.createElement('a', props, children) },
   'rehype-katex': esm(rehypeKatex), '@/lib/library-math-markdown': math, '@/lib/library-answer-markdown': citations }
 vm.runInNewContext(compiled, { module, exports: module.exports, require: name =>
   name.endsWith('.css') ? {} : imports[name] ?? require(name) }, { filename: file })

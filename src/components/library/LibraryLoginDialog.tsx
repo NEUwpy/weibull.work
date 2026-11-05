@@ -6,7 +6,7 @@ import { ArrowRight, Loader2, LockKeyhole, X } from 'lucide-react'
 import { libraryAuthClient } from '@/lib/library-auth-client'
 import './login.css'
 
-export function LibraryLoginDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function LibraryLoginDialog({ open, onClose, container }: { open: boolean; onClose: () => void; container?: HTMLElement | null }) {
   const [mounted, setMounted] = useState(false)
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -76,6 +76,6 @@ export function LibraryLoginDialog({ open, onClose }: { open: boolean; onClose: 
         </form>
         <p className="library-login-note">仅限已开放账号 · 暂未开放注册</p>
       </div>
-    </div>, document.body,
+    </div>, container || document.body,
   )
 }

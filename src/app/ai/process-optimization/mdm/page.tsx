@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Gauge,
@@ -242,9 +241,6 @@ function MDMProcessOptimizationContent() {
       />
       <section className="page-shell [--analysis-actions-offset:-2rem] mx-auto w-full max-w-[1500px] space-y-6 px-8 py-9 pl-[4.5rem]">
       <header className="space-y-3">
-        <Link href="/ai/process-optimization" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600">
-          <ArrowLeft size={14} /> 返回过程量优化
-        </Link>
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-violet-600 p-2.5 text-white"><Gauge size={22} /></div>
           <div>

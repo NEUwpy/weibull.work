@@ -1,13 +1,10 @@
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Gauge, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, Gauge, SlidersHorizontal } from 'lucide-react'
 
 export default function ProcessOptimizationPage() {
   return (
     <section className="page-shell mx-auto w-full max-w-[1500px] space-y-7 px-8 py-10 pl-[4.5rem]">
       <header className="space-y-3">
-        <Link href="/ai" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600">
-          <ArrowLeft size={14} /> 返回人工智能方法
-        </Link>
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-violet-600 p-2.5 text-white"><Gauge size={22} /></div>
           <div>

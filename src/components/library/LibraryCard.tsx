@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import Link from 'next/link'
+import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
 import { ChevronDown, ChevronUp, User } from 'lucide-react'
 import type { LibraryCategory } from '@/lib/library-categories'
 import type { LibraryVersion } from '@/lib/library-search-types'

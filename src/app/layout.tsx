@@ -53,33 +53,41 @@ export default function RootLayout({
   let subtitle = '威布尔计算器'
   let Icon = Calculator
   let themeColor = 'bg-blue-50 text-blue-600 border-blue-200'
+  let homeHref = '/'
 
   if (isLibrary) {
     title = 'Reliability Library'
     subtitle = '可靠性图书馆'
     Icon = Library
     themeColor = 'bg-emerald-50 text-emerald-600 border-emerald-200'
+    homeHref = '/library'
   } else if (isAI) {
     title = 'AI Methods'
     subtitle = '人工智能方法'
     Icon = Cpu
     themeColor = 'bg-violet-50 text-violet-600 border-violet-200'
+    homeHref = '/ai'
   } else if (isCases) {
     title = 'Case Database'
     subtitle = '案例数据库'
     Icon = Database
     themeColor = 'bg-indigo-50 text-indigo-600 border-indigo-200'
+    homeHref = '/cases'
   } else if (isMethods) {
     title = 'Parameter Estimation Methods'
     subtitle = '参数估计方法'
     Icon = SlidersHorizontal
     themeColor = 'bg-amber-50 text-amber-600 border-amber-200'
+    homeHref = '/methods'
   } else if (isHelp) {
     title = 'Software Info'
     subtitle = '软件信息'
     Icon = Info
     themeColor = 'bg-slate-100 text-slate-600 border-slate-300'
+    homeHref = '/help'
   }
+
+  const homeLabel = isMethods ? '返回方法总览' : `返回${subtitle}主页`
 
   return (
     <html lang="zh-CN">
@@ -89,8 +97,18 @@ export default function RootLayout({
           <div className="site-header-inner page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
             {/* Left: Dynamic Title */}
             <div className="site-title flex items-center gap-3">
-               {isMethods ? <Link href="/methods" aria-label="返回方法总览" className={cn("site-title-icon rounded-[9px] border transition-colors hover:brightness-95", themeColor)}><Icon size={26} strokeWidth={1.7} aria-hidden="true" /></Link> :
-                 <div className={cn("site-title-icon rounded-[9px] border transition-colors", themeColor)}><Icon size={26} strokeWidth={1.7} aria-hidden="true" /></div>}
+               <Link
+                 href={homeHref}
+                 aria-label={homeLabel}
+                 title={homeLabel}
+                 onClick={event => {
+                   setMobileNavOpen(false); setInfoOpen(false)
+                   if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) window.dispatchEvent(new CustomEvent('weibull:module-home', { detail: homeHref }))
+                 }}
+                 className={cn("site-title-icon rounded-[9px] border transition-colors hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", themeColor)}
+               >
+                 <Icon size={26} strokeWidth={1.7} aria-hidden="true" />
+               </Link>
                <div className="flex flex-col">
                   <h1 className="text-lg font-bold text-slate-900 leading-none">
                     {title}

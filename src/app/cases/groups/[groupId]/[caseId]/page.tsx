@@ -84,9 +84,6 @@ export default function SubCasePage() {
           <div className="text-center text-slate-400">
             <FileText size={48} className="mx-auto mb-4 opacity-20" />
             <p>子案例不存在</p>
-            <Link href={`/cases/groups/${groupId}`} className="text-emerald-600 hover:underline mt-4 inline-block">
-              返回案例组
-            </Link>
           </div>
         </div>
       </main>

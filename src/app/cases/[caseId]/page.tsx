@@ -87,9 +87,6 @@ export default function CaseDetailPage() {
           <div className="text-center text-slate-400">
             <FileText size={48} className="mx-auto mb-4 opacity-20" />
             <p>案例不存在</p>
-            <Link href="/cases" className="text-emerald-600 hover:underline mt-4 inline-block">
-              返回案例列表
-            </Link>
           </div>
         </div>
       </main>

@@ -18,6 +18,7 @@ function cardHarness() {
   const module = { exports: {} }
   const imports = {
     react: hooks, 'next/link': () => null, 'lucide-react': { ChevronDown: () => null, ChevronUp: () => null, User: () => null },
+    './LibraryDocumentDialog': { LibraryDocumentLink: () => null },
     '@/lib/library-card-presentation': { libraryAuthorPreview: value => value },
     '@/components/shared/LibraryMathMarkdown': { LibraryMathMarkdown: () => null },
     './LibraryCardMetadata': { LibraryCardMetadata: () => null },
