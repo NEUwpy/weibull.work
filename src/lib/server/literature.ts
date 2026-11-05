@@ -8,6 +8,7 @@ import { libraryTitlePresentation, type LibraryTitlePresentation } from '../libr
 import { readSourceReferenceIndex, readSourceSearchDois, type ReferenceIndexLocation } from './reference-index'
 import type { LibraryVersion } from '../library-search-types'
 import { libraryCategoryForSource, libraryCategoryMappingVersion, type LibraryCategory } from '../library-categories'
+import { validateLibraryCredits, type LibraryCredits } from '../library-credits'
 
 export class LibraryConfigurationError extends Error {
   constructor(message: string) {
@@ -34,6 +35,7 @@ export interface PaperMetadata extends LibraryTitlePresentation {
   author: string
   doi?: string
   affiliation?: string
+  credits?: LibraryCredits
   publication?: string
   short_publication?: string
   type?: string
@@ -182,6 +184,7 @@ function publicPaperMetadata(slug: string, data: Record<string, any>, sourceDois
   return {
     slug, title: data.title || slug, title_en: data.title_en,
     author: data.author || 'Unknown', affiliation: data.affiliation,
+    ...(data.credits !== undefined ? { credits: validateLibraryCredits(data.credits) } : {}),
     doi: (typeof data.doi === 'string' ? data.doi : undefined) || sourceDois.get(slug),
     publication: data.publication, short_publication: data.short_publication,
     type: data.type || '文献', year: data.year || 0,

@@ -8,6 +8,9 @@
 import { DataPoint, WeibullResult, calculateMedianRanks } from '@/lib/weibull'
 import { getApiBaseUrl } from '@/lib/config'
 import { MDM_DEFAULT_OFFSET, isMdmOffsetOption } from '@/lib/calculator-state'
+import { CalculationError, requestCalculationJson } from '@/lib/calculation-feedback'
+
+export { CalculationError } from '@/lib/calculation-feedback'
 
 export interface CalculateOptions {
   methodId: string
@@ -21,13 +24,6 @@ export interface CalculateResponse {
   traceData?: any
   calculation?: unknown
   methodId: string
-}
-
-export class CalculationError extends Error {
-  constructor(message: string, public calculation?: unknown, public traceData?: unknown) {
-    super(message)
-    this.name = 'CalculationError'
-  }
 }
 
 /**
@@ -51,33 +47,19 @@ export async function calculateWeibull(options: CalculateOptions): Promise<Calcu
   if (methodId.toLowerCase() === 'mdm') {
     const selectedOffset = offset ?? MDM_DEFAULT_OFFSET
     if (!isMdmOffsetOption(selectedOffset)) {
-      throw new Error('MDM 偏移量必须使用 0.00–0.50、步长 0.02 的可选值')
+      throw new CalculationError('MDM 偏移量必须使用 0.00–0.50、步长 0.02 的可选值', undefined, undefined, { kind: 'input' })
     }
     requestBody.offset = selectedOffset
   }
 
-  const response = await fetch(`${getApiBaseUrl()}/calculate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  })
-
-  if (!response.ok) {
-    const errData = await response.json()
-    const detail = errData.detail
-    throw new CalculationError(
-      typeof detail === 'string' ? detail : detail?.message || '计算失败',
-      detail?.calculation, detail?.trace_data,
-    )
-  }
-
-  const res = await response.json()
+  const res = await requestCalculationJson(`${getApiBaseUrl()}/calculate`, requestBody, true)
 
   const backendMethod = (res.method || '').toLowerCase()
   const requestedMethod = methodId.toLowerCase()
   if (backendMethod !== requestedMethod) {
-    throw new Error(
+    throw new CalculationError(
       `方法身份不一致：请求 ${methodId}，返回 ${res.method}`,
+      undefined, undefined, { kind: 'response' },
     )
   }
 

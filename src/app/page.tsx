@@ -13,7 +13,9 @@ import {
 } from '@/lib/weibull'
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
+import { CalculationNoticeDialog } from '@/components/calculator/CalculationNoticeDialog'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { CalculationError, getCalculationNotice, type CalculationNotice } from '@/lib/calculation-feedback'
 import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
 import { createLatestRequestTracker } from '@/lib/latest-request'
 import {
@@ -85,6 +87,7 @@ function CalculatorContent() {
   const [isMethodSelectorOpen, setIsMethodSelectorOpen] = useState(false)
   const [isDataEditorOpen, setIsDataEditorOpen] = useState(false)
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
+  const [calculationNotice, setCalculationNotice] = useState<CalculationNotice | null>(null)
   const [mdmOffsetUpdatingCardIds, setMdmOffsetUpdatingCardIds] = useState<Set<string>>(new Set())
   const calculationRequests = React.useRef(createLatestRequestTracker())
   const invalidateCalculation = (cardId: string) => {
@@ -421,14 +424,16 @@ function CalculatorContent() {
     if (!card) return sources
 
     if (!card.methodId) {
-      alert('请先选择方法')
+      setCalculationNotice(getCalculationNotice(new CalculationError('请先选择估计方法。', undefined, undefined, { kind: 'input' })))
       return sources
     }
 
+    let sourceName: string | undefined
     try {
       const calculations: { result: WeibullResult; optimization?: MdmProcessOptimizationResult; selectedOffset: number }[] = []
       for (const source of sources) {
         if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
+        sourceName = source.name
         const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
         const optimization = card.methodId!.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
           ? await optimizeMdmOffset(failureValues)
@@ -440,7 +445,7 @@ function CalculatorContent() {
           offset: card.methodId!.toLowerCase() === 'mdm' ? selectedOffset : undefined,
         })
         const failure = getEstimateFailure(result)
-        if (failure) throw new Error(failure)
+        if (failure) throw new CalculationError(failure, undefined, undefined, { kind: 'solver' })
         calculations.push({ result, optimization, selectedOffset })
       }
 
@@ -465,9 +470,7 @@ function CalculatorContent() {
       }))
     } catch (err) {
       if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('Batch parameter estimation failed:', err)
-      alert(`参数估计失败: ${message}`)
+      setCalculationNotice(getCalculationNotice(err, card.methodId, sourceName))
     }
 
     return sources
@@ -517,7 +520,7 @@ function CalculatorContent() {
   const calculateCardSnapshot = async (card: CardData, requestTicket: number) => {
     const modeFailure = getEstimationModeFailure(card.is3P !== false)
     if (modeFailure) {
-      alert(modeFailure)
+      setCalculationNotice(getCalculationNotice(new CalculationError(modeFailure, undefined, undefined, { kind: 'input' })))
       return
     }
 
@@ -529,11 +532,11 @@ function CalculatorContent() {
 
     // 单数据源计算
     if (!card.data || card.data.length === 0) {
-      alert('请先输入样本')
+      setCalculationNotice(getCalculationNotice(new CalculationError('请先输入样本。', undefined, undefined, { kind: 'input' })))
       return
     }
     if (!card.methodId) {
-      alert('请先选择方法')
+      setCalculationNotice(getCalculationNotice(new CalculationError('请先选择估计方法。', undefined, undefined, { kind: 'input' })))
       return
     }
 
@@ -549,7 +552,7 @@ function CalculatorContent() {
         offset: card.methodId.toLowerCase() === 'mdm' ? selectedOffset : undefined,
       })
       const failure = getEstimateFailure(result)
-      if (failure) throw new Error(failure)
+      if (failure) throw new CalculationError(failure, undefined, undefined, { kind: 'solver' })
 
       if (!calculationRequests.current.isCurrent(card.id, requestTicket)) return
       setCards(prev => prev.map(c => c.id === card.id && calculationRequests.current.isCurrent(card.id, requestTicket) ? {
@@ -561,9 +564,7 @@ function CalculatorContent() {
       } : c))
     } catch (err) {
       if (!calculationRequests.current.isCurrent(card.id, requestTicket)) return
-      const message = err instanceof Error ? err.message : String(err)
-      console.error('Parameter estimation failed:', err)
-      alert(`参数估计失败: ${message}`)
+      setCalculationNotice(getCalculationNotice(err, card.methodId))
     }
   }
 
@@ -631,6 +632,7 @@ function CalculatorContent() {
 
   return (
     <>
+      {calculationNotice && <CalculationNoticeDialog notice={calculationNotice} onClose={() => setCalculationNotice(null)} />}
       <MethodSelector 
         isOpen={isMethodSelectorOpen} 
         onClose={() => setIsMethodSelectorOpen(false)}

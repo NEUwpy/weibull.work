@@ -5,16 +5,18 @@ import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
 import { ChevronDown, ChevronUp, User } from 'lucide-react'
 import type { LibraryCategory } from '@/lib/library-categories'
 import type { LibraryVersion } from '@/lib/library-search-types'
-import { libraryAuthorPreview } from '@/lib/library-card-presentation'
+import { LibraryAuthors } from './LibraryAuthors'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { LibraryCardMetadata } from './LibraryCardMetadata'
 import { LibraryPaperTitle } from './LibraryPaperTitle'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
+import type { LibraryCredits } from '@/lib/library-credits'
 import { cn } from '@/lib/utils'
 
 interface CardPaper extends LibraryTitlePresentation {
   slug: string; title: string; author: string; year: number; summary: string; tags: string[]
   type?: string; publication?: string; short_publication?: string; doi?: string
+  credits?: LibraryCredits
   category?: LibraryCategory; availableVersions: LibraryVersion[]
 }
 
@@ -100,7 +102,7 @@ export function LibraryCard({ paper }: { paper: CardPaper }) {
         </h3>
         <p className="library-card-authors relative z-20 text-sm text-slate-500 flex items-start gap-1.5" title={paper.author}>
           <User size={13} className="text-slate-400 shrink-0" />
-          <span className="min-w-0 line-clamp-2">{libraryAuthorPreview(paper.author)}</span>
+          <span className="min-w-0 line-clamp-2"><LibraryAuthors author={paper.author} credits={paper.credits} from={paper.slug} preview /></span>
         </p>
         <div id={contentId}>
           <div className="library-card-summary-clip text-sm" style={{ '--library-summary-height': `${summaryHeight}px` } as React.CSSProperties}>

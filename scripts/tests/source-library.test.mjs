@@ -106,6 +106,20 @@ function withSource(run) {
     })
 }
 
+test('structured source credits survive public catalog and API reads without exposing private note fields', () => withSource(async ({ note, root, descriptor }) => {
+  const credits = { authors: [{ name: '新署名', name_en: 'New Signature', units: ['u'] }], institutions: [{ id: 'u', name: 'Example University' }] }
+  write(note, matter.stringify('## 一句话总结\n\nPublic summary\n\n## 对我的研究启发\n\nPRIVATE_CREDIT_NOTE\n', { ...noteData, credits }))
+  assert.equal(listPapers()[0].credits.authors[0].name_en, 'New Signature')
+  // A registered scalar catalog must retain compiled source credits too.
+  descriptor.sources[0].papers = [{ id, metadata: { title: 'Registered', author: '新署名', year: 2025, type: '期刊', tags: [], credits } }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  const endpoint = load('src/app/api/library/papers/[slug]/route.ts', { '@/lib/server/literature': storage })
+  const response = await endpoint.GET({}, { params: { slug: id } })
+  const body = await response.json()
+  assert.deepEqual(JSON.parse(JSON.stringify(body.paper.credits)), credits)
+  assert.doesNotMatch(JSON.stringify(body), /PRIVATE_CREDIT_NOTE|对我的研究启发/)
+}))
+
 test('source selection holds configuration only and maps Chinese note metadata without copying its private body', () => withSource(({ root, original, translation, note }) => {
   const before = [original, translation, note].map(file => fs.readFileSync(file, 'utf8'))
   assert.equal(getLibraryPaths().mode, 'source')

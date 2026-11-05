@@ -17,10 +17,12 @@ import { LibraryMasonry } from './LibraryMasonry'
 import { LibraryFilterMenu, type LibraryFilterOption } from './LibraryFilterMenu'
 import { LibraryPaperTitle } from './LibraryPaperTitle'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
-import { cn } from '@/lib/utils'
+import type { LibraryCredits } from '@/lib/library-credits'
 import { CatalogSearchForm } from '@/components/shared/CatalogSearchForm'
 import { ChatDialog } from '@/components/chat'
 import { readLibraryChatSession, setLibraryChatActive, startLibraryChat } from '@/lib/library-chat-session'
+import { libraryAuthorMatchesQuery } from '@/lib/library-authors'
+import { libraryInstitutionMatchesQuery } from '@/lib/library-institutions'
 import './responsive.css'
 
 
@@ -31,6 +33,7 @@ type PaperMetadata = LibraryTitlePresentation & {
   author: string
   doi?: string
   affiliation?: string
+  credits?: LibraryCredits
   publication?: string
   short_publication?: string
   type?: string
@@ -58,7 +61,13 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const searchScope = searchParams.get('scope') === 'text' ? 'text' : 'auto'
   const categoryFilter = searchParams.get('category') || 'all'
   const isNumberQuery = searchScope !== 'text' && /^(?:\d{1,3}|\d{3}-\d{0,3})$/.test(query)
-  const browsingCards = !query || isNumberQuery
+  const authorPapers = useMemo(() => searchScope !== 'text' && query && !isNumberQuery
+    ? papers.filter(paper => libraryAuthorMatchesQuery(paper.author, query, paper.credits, papers)) : [], [papers, query, searchScope, isNumberQuery])
+  const isAuthorQuery = authorPapers.length > 0
+  const institutionPapers = useMemo(() => searchScope !== 'text' && query && !isNumberQuery && !isAuthorQuery
+    ? papers.filter(paper => libraryInstitutionMatchesQuery(paper, query, papers)) : [], [papers, query, searchScope, isNumberQuery, isAuthorQuery])
+  const isInstitutionQuery = institutionPapers.length > 0
+  const browsingCards = !query || isNumberQuery || isAuthorQuery || isInstitutionQuery
   const requestedSort = searchParams.get('sort') || ''
   const sortMode: LibrarySort = isLibrarySort(requestedSort) && (!browsingCards || requestedSort !== 'relevance')
     ? requestedSort : browsingCards ? 'year-desc' : 'relevance'
@@ -102,7 +111,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   useEffect(() => {
     setSearchResponse(null)
     setSearchError('')
-    if (!query || isNumberQuery || mode !== 'search') { setSearching(false); return }
+    if (browsingCards || mode !== 'search') { setSearching(false); return }
     const controller = new AbortController()
     let active = true
     setSearching(true)
@@ -116,12 +125,12 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       .catch(cause => { if (active && !controller.signal.aborted) setSearchError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '检索连接失败，请稍后重试。') })
       .finally(() => { if (active) setSearching(false) })
     return () => { active = false; controller.abort() }
-  }, [query, searchScope, isNumberQuery, offset, typeFilter, categoryFilter, sortMode, retry, mode])
+  }, [query, searchScope, browsingCards, offset, typeFilter, categoryFilter, sortMode, retry, mode])
 
   useEffect(() => {
-    if (session.status !== 'authenticated' || searching || isNumberQuery || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
+    if (session.status !== 'authenticated' || searching || browsingCards || mode !== 'search' || !searchResponse?.results.length || searchResponse.query !== query) return
     return scheduleLibraryResultPrefetch(searchResponse.results)
-  }, [session.status, searchResponse, searching, query, isNumberQuery, offset, typeFilter, retry, mode])
+  }, [session.status, searchResponse, searching, query, browsingCards, offset, typeFilter, retry, mode])
 
   function runSearch() {
     const next = draftQuery.trim()
@@ -177,13 +186,15 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     router.replace(url.pathname + url.search, { scroll: false })
   }
 
-  // Number queries filter the same cards used by the library homepage.
+  // Author and number queries filter the homepage cards before full-text search.
   const filteredPapers = useMemo<PaperMetadata[]>(() => {
     return categoryPapers.filter(paper => {
       if (isNumberQuery && !paper.slug.startsWith(query)) return false
+      if (isAuthorQuery && !authorPapers.includes(paper)) return false
+      if (isInstitutionQuery && !institutionPapers.includes(paper)) return false
       return matchesLibraryType(paper, typeFilter)
     }).sort((left, right) => compareLibraryOrder(left, right, sortMode))
-  }, [categoryPapers, typeFilter, query, isNumberQuery, sortMode])
+  }, [categoryPapers, typeFilter, query, isNumberQuery, isAuthorQuery, authorPapers, isInstitutionQuery, institutionPapers, sortMode])
 
   return (
     <main className="library-page flex-1 bg-neutral-50 min-h-screen">
@@ -191,7 +202,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
 
         <div className="space-y-3">
           <CatalogSearchForm value={draftQuery} onChange={setDraftQuery} onSearch={runSearch} onAsk={askQuestion}
-            label="搜索文献" placeholder="输入编号、关键词、句子或问题…" searching={searching} />
+            label="搜索文献" placeholder="输入编号、作者、单位、关键词、句子或问题…" searching={searching} />
         </div>
 
         {mode === 'answer' && answerRequest && <ChatDialog key={answerRequest.id} request={answerRequest} />}
@@ -220,12 +231,12 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           </div>
         </section>}
 
-        {mode === 'search' && isNumberQuery && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
-          <p role="status" className="text-sm leading-6 text-slate-500">“{query}” · 找到 <span className="font-semibold text-slate-800">{filteredPapers.length}</span> 篇文献</p>
+        {mode === 'search' && query && browsingCards && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <p role="status" className="text-sm leading-6 text-slate-500">“{query}” · {isAuthorQuery ? '作者匹配' : isInstitutionQuery ? '单位匹配' : '找到'} <span className="font-semibold text-slate-800">{filteredPapers.length}</span> 篇文献</p>
           <button type="button" onClick={clearSearch} className="text-sm text-blue-600 hover:underline">浏览全部文献</button>
         </div>}
 
-        {mode === 'search' && query && !isNumberQuery && <section aria-label="文献检索结果" className="library-search-results space-y-7">
+        {mode === 'search' && !browsingCards && <section aria-label="文献检索结果" className="library-search-results space-y-7">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <p role="status" className="text-sm leading-6 text-slate-500">
               {searching ? <span className="flex items-center gap-2"><Loader2 size={15} className="animate-spin" />正在检索文献正文…</span>
@@ -247,7 +258,7 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
           </nav>}
         </section>}
 
-        {mode === 'search' && (!query || isNumberQuery) && (filteredPapers.length > 0
+        {mode === 'search' && browsingCards && (filteredPapers.length > 0
           ? <LibraryMasonry>{filteredPapers.map(paper => <LibraryCard key={paper.slug} paper={paper} />)}</LibraryMasonry>
           : <div className="py-32 text-center"><p className="text-neutral-400 text-sm">未找到匹配的文献</p></div>)}
 

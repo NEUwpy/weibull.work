@@ -9,8 +9,8 @@ export async function GET(_request: Request, { params }: { params: { slug: strin
   try {
     const paper = readPaperMetadata(params.slug)
     if (!paper) return NextResponse.json({ error: '文献未找到。' }, { status: 404 })
-    const { slug, title, title_en, display_title, original_title, original_language, author, doi, affiliation, publication, short_publication, type, year, tags, summary, related_method_id, category } = paper
-    return NextResponse.json({ paper: { slug, title, title_en, display_title, original_title, original_language, author, doi, affiliation, publication, short_publication, type, year, tags, summary, related_method_id, category },
+    const { slug, title, title_en, display_title, original_title, original_language, author, doi, affiliation, credits, publication, short_publication, type, year, tags, summary, related_method_id, category } = paper
+    return NextResponse.json({ paper: { slug, title, title_en, display_title, original_title, original_language, author, doi, affiliation, credits, publication, short_publication, type, year, tags, summary, related_method_id, category },
       versions: paper.availableVersions }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Library metadata read failed:', error instanceof Error ? error.name : 'Unknown error')

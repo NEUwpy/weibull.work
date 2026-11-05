@@ -1,27 +1,19 @@
 import { getApiBaseUrl, API_ENDPOINTS } from '@/lib/config'
 import { MdmProcessOptimizationResult } from '@/lib/mdm-process-optimization-contract'
+import { CalculationError, requestCalculationJson } from '@/lib/calculation-feedback'
 
 export * from '@/lib/mdm-process-optimization-contract'
 
 export async function optimizeMdmOffset(values: number[]): Promise<MdmProcessOptimizationResult> {
-  const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.aiOptimizeMdmOffset}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: values }),
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}))
-    throw new Error(errorBody.detail || `AI 偏移量优化失败（HTTP ${response.status}）`)
-  }
-
-  const result = await response.json() as MdmProcessOptimizationResult
+  const result = await requestCalculationJson(
+    `${getApiBaseUrl()}${API_ENDPOINTS.aiOptimizeMdmOffset}`, { data: values },
+  ) as MdmProcessOptimizationResult
   if (
-    result.delta_grid.length !== 26
-    || result.predicted_loss_curve.length !== 26
+    !Array.isArray(result.delta_grid) || result.delta_grid.length !== 26
+    || !Array.isArray(result.predicted_loss_curve) || result.predicted_loss_curve.length !== 26
     || result.selected_delta !== result.delta_grid[result.selected_index]
   ) {
-    throw new Error('AI 偏移量优化接口返回了无效的候选曲线')
+    throw new CalculationError('AI 偏移量优化接口返回了无效的候选曲线', undefined, undefined, { kind: 'response' })
   }
   return result
 }

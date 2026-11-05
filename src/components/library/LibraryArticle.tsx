@@ -20,7 +20,11 @@ import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import type { LibraryVersion } from '@/lib/library-search-types'
 import type { LibraryCategory } from '@/lib/library-categories'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
+import type { LibraryCredits } from '@/lib/library-credits'
 import { LibraryPaperTitle } from '@/components/library/LibraryPaperTitle'
+import { LibraryAuthors } from './LibraryAuthors'
+import { LibraryInstitutions } from './LibraryInstitutions'
+import { libraryPaperInstitutions } from '@/lib/library-institutions'
 
 type ReadingView = '详情' | LibraryVersion
 const READING_VERSIONS: LibraryVersion[] = ['原文', '翻译']
@@ -30,6 +34,7 @@ interface PublicPaper extends LibraryTitlePresentation {
   title_en?: string
   author: string
   affiliation?: string
+  credits?: LibraryCredits
   publication?: string
   year: number
   type?: string
@@ -124,6 +129,7 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
   const selectedVersion = view !== '详情' && versions.includes(view) ? view : null
   const readingView = selectedVersion || '详情'
   const topics = Array.from(new Set([paper.category?.groupName, paper.category?.name, ...paper.tags].filter((tag): tag is string => Boolean(tag))))
+  const institutions = libraryPaperInstitutions(paper)
 
   return (
     <main ref={article} className="library-reader flex-1 bg-slate-50 min-h-screen">
@@ -162,9 +168,9 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
                 <div><dt>类型</dt><dd>{paper.type || '未登记'}</dd></div>
                 <div><dt>发表年份</dt><dd>{paper.year > 0 ? paper.year : '未登记'}</dd></div>
                 {(paper.original_title || paper.title_en) && <div><dt>{paper.original_language === 'en' ? '英文原名' : '英文题名'}</dt><dd><LibraryMathMarkdown inline>{paper.original_title || paper.title_en || ''}</LibraryMathMarkdown></dd></div>}
-                <div><dt>作者</dt><dd>{paper.author || '未登记'}</dd></div>
+                <div><dt>作者</dt><dd><LibraryAuthors author={paper.author || '未登记'} credits={paper.credits} from={paper.slug} /></dd></div>
                 <div><dt>出版信息</dt><dd>{paper.publication || '未登记'}</dd></div>
-                {paper.affiliation && <div><dt>机构</dt><dd>{paper.affiliation}</dd></div>}
+                {institutions.length > 0 && <div><dt>机构</dt><dd><LibraryInstitutions affiliation={institutions.join('；')} credits={paper.credits} from={paper.slug} /></dd></div>}
                 <div><dt>DOI</dt><dd>{paper.doi ? <a href={'https://doi.org/' + paper.doi} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{paper.doi}</a> : '未登记'}</dd></div>
                 <div><dt>主题</dt><dd>{topics.length ? topics.join(' · ') : '未登记'}</dd></div>
                 <div><dt>可阅读版本</dt><dd>{versions.map(version => version === '翻译' ? '译文' : '原文').join(' / ') || '资料待补齐'}</dd></div>

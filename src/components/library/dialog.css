@@ -20,7 +20,8 @@
 .library-document-dialog-expand:hover { background: #f1f5f9; color: #1d4ed8; }
 .library-document-dialog-close { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; color: #64748b; }
 .library-document-dialog-close:hover { background: #f1f5f9; color: #0f172a; }
-.library-document-dialog-back { display: none; align-items: center; gap: 6px; min-height: 40px; padding: 4px 8px 4px 0; color: #475569; }
+.library-document-dialog-back { display: none; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; color: #475569; }
+.library-document-dialog[data-has-parent] .library-document-dialog-back { display: inline-flex; }
 .library-document-dialog :is(.library-document-dialog-close, .library-document-dialog-expand, .library-document-dialog-back):focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
 .library-document-dialog-scroll { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; }
 .library-document-dialog .library-reader { min-height: 100%; }
@@ -49,3 +50,18 @@
   .library-document-dialog .library-title.text-3xl { font-size: 24px; }
 }
 @media (prefers-reduced-motion: reduce) { .library-document-dialog[open] { animation: none; } }
+
+.library-author-link { display: inline; text-align: start; border-radius: 3px; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.library-author-link:hover { color: #047857; text-decoration-line: underline; }
+.library-author-link:focus-visible { outline: 2px solid #10b981; outline-offset: 3px; }
+.library-entity-dialog { width: min(920px, calc(100vw - 80px)); }
+.library-entity-content { padding: 36px 44px 44px; }
+.library-entity-header { display: flex; gap: 20px; align-items: flex-start; overflow-wrap: anywhere; }
+.library-entity-papers { display: grid; gap: 16px; margin-top: 20px; }
+.library-entity-paper { padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: white; overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .library-entity-dialog { width: 100vw; }
+  .library-entity-content { padding: 24px 16px; }
+  .library-entity-header { gap: 14px; }
+  .library-entity-paper { padding: 20px 16px; }
+}

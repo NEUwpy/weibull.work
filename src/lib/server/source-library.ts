@@ -4,6 +4,7 @@ import matter from 'gray-matter'
 import { isContentSlug } from './content-files'
 import { extractLibraryNoteSummary } from '../library-note-summary'
 import { libraryOriginalLanguage, type LibraryTitlePresentation } from '../library-titles'
+import { validateLibraryCredits } from '../library-credits'
 
 export interface SourcePaper {
   id: string
@@ -48,9 +49,10 @@ export function indexSourcePapers(sources: unknown, observedDirectories?: string
       if (typeof id !== 'string' || !isContentSlug(id)) throw new Error('题录必须有合法文献编号 id')
       const metadata = typeof item === 'string' ? undefined : item.metadata
       if (metadata !== undefined && (!metadata || typeof metadata !== 'object' || Array.isArray(metadata))) throw new Error(`metadata 必须为题录对象：${id}`)
-      const allowed = new Set(['title', 'title_en', 'author', 'doi', 'affiliation', 'publication', 'short_publication', 'type', 'year', 'tags', 'summary', 'related_method_id'])
+      const allowed = new Set(['title', 'title_en', 'author', 'doi', 'affiliation', 'publication', 'short_publication', 'type', 'year', 'tags', 'summary', 'related_method_id', 'credits'])
       if (metadata && Object.keys(metadata).some(key => !allowed.has(key))) throw new Error(`题录包含未支持字段：${id}`)
       for (const [field, value] of Object.entries(metadata ?? {})) {
+        if (field === 'credits') { validateLibraryCredits(value); continue }
         const valid = field === 'year' ? typeof value === 'number' && Number.isInteger(value) && value >= 1000 && value <= 9999
           : field === 'tags' ? Array.isArray(value) && value.every(tag => typeof tag === 'string') : typeof value === 'string'
         if (!valid) throw new Error(`JSON题录字段格式无效：${id} / ${field}`)
@@ -235,9 +237,12 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
   if (!(typeof tags === 'string' || (Array.isArray(tags) && tags.every(tag => typeof tag === 'string')))) {
     throw new Error(`关键词必须为字符串或字符串数组：${paper.id}`)
   }
+  const creditsValue = paper.catalog?.credits ?? n.credits ?? document.data.credits
+  const credits = creditsValue === undefined ? undefined : validateLibraryCredits(creditsValue)
   const metadata = Object.fromEntries(Object.entries({
     title, title_en: data.title_en ?? n.英文标题,
-    author: data.author ?? n.作者 ?? 'Unknown', doi: data.doi, affiliation: data.affiliation ?? n.单位,
+    author: data.author || n.作者 || credits?.authors.map(author => author.name).join(', ') || 'Unknown', doi: data.doi,
+    affiliation: data.affiliation || n.单位 || credits?.institutions?.map(unit => unit.name).join('；'), credits,
     publication: data.publication ?? n.出版物 ?? n.期刊或类型 ?? n.期刊,
     short_publication: data.short_publication ?? n.出版简称 ?? n.期刊简称,
     type: data.type ?? n.文献类型 ?? n.type ?? '文献', year,
@@ -246,7 +251,7 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
     related_method_id: data.related_method_id ?? n.关联方法,
   }).filter(([, value]) => value !== undefined))
   for (const [field, value] of Object.entries(metadata)) {
-    if (field !== 'year' && field !== 'tags' && typeof value !== 'string') throw new Error(`题录字段应为字符串：${paper.id} / ${field}`)
+    if (field !== 'year' && field !== 'tags' && field !== 'credits' && typeof value !== 'string') throw new Error(`题录字段应为字符串：${paper.id} / ${field}`)
   }
   const body = document.content.replace(/(!\[[^\]\r\n]*\])\(([^)\r\n]+)\)/g, (match, alt, target) => `${alt}(${imageUrl(paper, target)})`)
   const display = document.data.citation_style === 'numeric-parentheses' ? { citation_style: 'numeric-parentheses' } : {}
