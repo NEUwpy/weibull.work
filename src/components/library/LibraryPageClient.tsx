@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, Loader2, LayoutGrid, FileText, BookOpen, ArrowDownWideNarrow } from 'lucide-react'
+import { Loader2, LayoutGrid, FileText, BookOpen, ArrowDownWideNarrow } from 'lucide-react'
 import type { LibrarySearchResponse, LibraryVersion } from '@/lib/library-search-types'
 import { librarySearchHitHref } from '@/lib/library-search-highlight'
 import { matchesLibraryType, type LibraryTypeFilter } from '@/lib/library-types'
@@ -18,6 +18,7 @@ import { LibraryFilterMenu, type LibraryFilterOption } from './LibraryFilterMenu
 import { LibraryPaperTitle } from './LibraryPaperTitle'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
 import { cn } from '@/lib/utils'
+import { CatalogSearchForm } from '@/components/shared/CatalogSearchForm'
 import { ChatDialog } from '@/components/chat'
 import { readLibraryChatSession, setLibraryChatActive, startLibraryChat } from '@/lib/library-chat-session'
 import './responsive.css'
@@ -49,12 +50,6 @@ interface LibraryPageClientProps {
 
 const PAGE_SIZE = 10
 
-function fitSearchInput(input: HTMLTextAreaElement) {
-  input.style.height = 'auto'
-  input.style.height = `${Math.min(input.scrollHeight, 168)}px`
-  input.style.overflowY = input.scrollHeight > 168 ? 'auto' : 'hidden'
-}
-
 export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const session = useLibrarySession()
   const router = useRouter()
@@ -76,7 +71,6 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
   const [searchResponse, setSearchResponse] = useState<LibrarySearchResponse | null>(null)
   const [mode, setMode] = useState<'search' | 'answer'>('search')
   const [answerRequest, setAnswerRequest] = useState<{ id: number; question: string } | null>(null)
-  const searchInput = useRef<HTMLTextAreaElement>(null)
   const categoryGroups = useMemo(() => libraryCategoryGroups(papers), [papers])
   const categoryOptions = useMemo<LibraryFilterOption[]>(() => [
     { value: 'all', label: '全部主题', count: papers.length },
@@ -88,19 +82,6 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     ]),
   ], [categoryGroups, papers.length])
   const categoryPapers = useMemo(() => papers.filter(paper => matchesLibraryCategory(paper, categoryFilter)), [papers, categoryFilter])
-
-  useEffect(() => { if (searchInput.current) fitSearchInput(searchInput.current) }, [draftQuery])
-  useEffect(() => {
-    const input = searchInput.current
-    if (!input) return
-    let width = 0
-    const observer = new ResizeObserver(entries => {
-      const nextWidth = entries[0].contentRect.width
-      if (nextWidth !== width) { width = nextWidth; fitSearchInput(input) }
-    })
-    observer.observe(input)
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     setDraftQuery(query)
@@ -153,11 +134,6 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
     else url.searchParams.delete('q')
     url.searchParams.delete('scope')
     router.replace(url.pathname + url.search, { scroll: false })
-  }
-
-  function submitSearch(event: React.FormEvent) {
-    event.preventDefault()
-    runSearch()
   }
 
   function askQuestion() {
@@ -214,17 +190,8 @@ export function LibraryPageClient({ papers }: LibraryPageClientProps) {
       <div className="library-page-shell page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto py-16 space-y-8">
 
         <div className="space-y-3">
-          <form onSubmit={submitSearch} className="library-search-form flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-50">
-            <Search size={21} className="library-search-icon shrink-0 text-slate-400" />
-            <textarea ref={searchInput} aria-label="搜索文献" rows={1} maxLength={2000} value={draftQuery} onChange={event => setDraftQuery(event.target.value)}
-              onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }}
-              placeholder="输入编号、关键词、句子或问题…"
-              className="min-w-0 flex-1 resize-none bg-transparent py-3 text-sm leading-6 text-slate-700 outline-none" />
-            <div className="library-search-actions grid shrink-0 grid-cols-2 gap-2">
-              <button type="submit" disabled={searching} className="library-search-primary rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">搜索</button>
-              <button type="button" onClick={askQuestion} disabled={!draftQuery.trim()} className="library-search-primary rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40">AI 问答</button>
-            </div>
-          </form>
+          <CatalogSearchForm value={draftQuery} onChange={setDraftQuery} onSearch={runSearch} onAsk={askQuestion}
+            label="搜索文献" placeholder="输入编号、关键词、句子或问题…" searching={searching} />
         </div>
 
         {mode === 'answer' && answerRequest && <ChatDialog key={answerRequest.id} request={answerRequest} />}

@@ -61,8 +61,9 @@
 .case-member-select { display: none; }
 .case-data-toolbar { position: sticky; z-index: 1; top: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 0 10px; border-bottom: 1px solid #e2e8f0; background: white; }
 .case-data-toolbar h3 { flex: 1 1 200px; font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
-.case-calculate { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 7px 12px; border-radius: 7px; background: #4338a4; color: white; font-weight: 650; }
-.case-calculate:hover { background: #373081; }
+.case-copy-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-left: auto; }
+.case-copy { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 7px; color: #45478a; }
+.case-copy:hover { background: #f3f3fb; }
 
 @media (max-width: 1023px) { .case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 767px) {

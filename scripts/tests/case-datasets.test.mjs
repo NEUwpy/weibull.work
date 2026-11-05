@@ -48,6 +48,14 @@ test('only complete positive observed or simulated samples enter calculation', (
   ]) assert.equal(canCalculateDataset(record), false)
 })
 
+test('copy text preserves sample precision and tabular cells without adding metadata', () => {
+  const { datasetText } = load('src/lib/case-datasets.ts')
+  assert.equal(datasetText({ ...sample(), data: [24.54, 28, 25.69] }), '24.54\n28\n25.69')
+  assert.equal(datasetText({ ...sample(), data: { kind: 'table', rows: [['方法', '估计值'], ['MLE', 1.2345], ['LSE', null]] } }), '方法\t估计值\nMLE\t1.2345\nLSE\t')
+  assert.equal(datasetText({ ...sample(), data: { kind: 'figure', asset: 'plot.png', caption: '原图说明' } }), '原图说明')
+  assert.equal(datasetText({ ...sample(), data: { kind: 'external', description: '外部数据', url: 'https://example.com/data' } }), '外部数据\nhttps://example.com/data')
+})
+
 test('independent files update on reread and invalid records do not hide valid neighbours', () => fixture(({ write, publish }) => {
   const { readCaseDatasetIndex, readCaseDatasetById, datasetFigureUrl } = load('src/lib/server/case-datasets.ts')
   write('cases/records/one.json', sample())
