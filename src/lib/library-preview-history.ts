@@ -1,16 +1,17 @@
-const PREVIEW_KEY = '__weibullLibraryPreview'
+type PreviewWindow = Pick<Window, 'history' | 'location' | 'addEventListener' | 'removeEventListener'>
 
-/** One temporary history entry per preview; document/tab changes replace that entry. */
-export function createLibraryPreviewHistory(target: Pick<Window, 'history' | 'location' | 'addEventListener' | 'removeEventListener'>, onChange: (href: string | null) => void) {
+/** One temporary history entry per preview. Switching its contents replaces the entry. */
+export function createPreviewHistory(target: PreviewWindow, onChange: (value: string | null) => void,
+  key: string, isValid: (value: string) => boolean) {
   let closing = false
   const currentHref = () => {
-    const href = target.history.state?.[PREVIEW_KEY]
-    return typeof href === 'string' && /^\/library\/[^/?#]+(?:[?#]|$)/.test(href) ? href : null
+    const href = target.history.state?.[key]
+    return typeof href === 'string' && isValid(href) ? href : null
   }
   const stateWith = (href: string | null) => {
     const state = { ...target.history.state }
-    if (href) state[PREVIEW_KEY] = href
-    else delete state[PREVIEW_KEY]
+    if (href) state[key] = href
+    else delete state[key]
     return state
   }
   const pop = () => { closing = false; onChange(currentHref()) }
@@ -37,4 +38,8 @@ export function createLibraryPreviewHistory(target: Pick<Window, 'history' | 'lo
     },
     dispose() { target.removeEventListener('popstate', pop) },
   }
+}
+
+export function createLibraryPreviewHistory(target: PreviewWindow, onChange: (href: string | null) => void) {
+  return createPreviewHistory(target, onChange, '__weibullLibraryPreview', href => /^\/library\/[^/?#]+(?:[?#]|$)/.test(href))
 }

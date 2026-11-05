@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例数据库 · 卡片试用</title>
+<style>
+__CATALOG_CSS__
+*{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#17233a;font:16px/1.55 system-ui,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}button:not(.case-card){border:0;background:none}h1,h2,h3,p{margin:0}
+.case-filters button{border-bottom:2px solid transparent}.case-filters button[aria-pressed=true]{border-color:#4338ca}
+main{max-width:1400px;margin:auto;padding:24px clamp(16px,4vw,48px)}.intro{color:#526178;margin:4px 0 18px}
+#filter{width:100%;min-height:44px;margin:16px 0;padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px}
+[hidden]{display:none!important}.case-preview-header div{min-width:0}.case-preview-close{font-size:24px}
+.preview-detail{padding:0 20px 20px;min-width:0}.preview-detail>p,.preview-detail pre{margin:12px 0}
+.preview-detail pre{background:#f1f5f9;padding:12px;border-radius:7px}.preview-detail img{max-width:100%;height:auto}
+.preview-detail figure{margin:12px 0}.preview-detail table{border-collapse:collapse}.preview-detail td,.preview-detail th{padding:6px 8px;border:1px solid #dbe3ee}
+.case-calculate{text-decoration:none}.copy-button{margin-top:8px;color:#3730a3;border:1px solid #cbd5e1!important;border-radius:7px;padding:6px 12px;min-height:44px}
+</style>
+<main>
+  <h1>案例数据库</h1>
+  <p class="intro">卡片试用 · 使用当前案例目录的数据</p>
+  <nav class="case-filters" aria-label="按数据性质浏览">__FILTERS__</nav>
+  <input id="filter" type="search" aria-label="搜索案例" placeholder="搜索数据名称、组内数据或文献编号">
+  <div class="case-grid">__CARDS__</div>
+  <p id="empty" hidden>没有匹配的案例。</p>
+</main>
+<dialog class="case-preview" aria-labelledby="case-preview-title">
+  <header class="case-preview-header">
+    <button type="button" class="case-preview-back" aria-label="返回案例目录">←</button>
+    <div><p id="case-kind"></p><h2 id="case-preview-title"></h2></div>
+    <button type="button" class="case-preview-close" aria-label="关闭案例详情" autofocus>×</button>
+  </header>
+  <p class="case-group-note" id="case-description"></p>
+  <div class="case-group-body">
+    <nav class="case-members" aria-label="组内数据"></nav>
+    <label class="case-member-select">组内数据<select></select></label>
+    <div class="case-preview-scroll"></div>
+  </div>
+</dialog>
+__DETAILS__
+<script>
+const cards = Array.from(document.querySelectorAll('.case-card'));
+const filters = Array.from(document.querySelectorAll('.case-filters button'));
+const input = document.querySelector('#filter');
+const dialog = document.querySelector('dialog');
+const members = dialog.querySelector('.case-members');
+const select = dialog.querySelector('select');
+const scroll = dialog.querySelector('.case-preview-scroll');
+let currentKind = 'observed';
+let activeCard;
+let records;
+
+function filterCards() {
+  const term = input.value.trim().toLowerCase();
+  for (const button of filters) button.setAttribute('aria-pressed', String(button.dataset.kind === currentKind));
+  for (const card of cards) card.hidden = card.dataset.kind !== currentKind || !card.dataset.search.includes(term);
+  document.querySelector('#empty').hidden = cards.some(card => !card.hidden);
+}
+for (const button of filters) button.addEventListener('click', () => { currentKind = button.dataset.kind; filterCards(); });
+input.addEventListener('input', filterCards);
+
+function showMember(index) {
+  for (const button of members.querySelectorAll('button')) button.setAttribute('aria-pressed', String(Number(button.dataset.index) === index));
+  select.selectedIndex = index;
+  scroll.replaceChildren(records[index].cloneNode(true));
+  scroll.scrollTop = 0;
+}
+
+for (const card of cards) card.addEventListener('click', () => {
+  activeCard = card;
+  records = Array.from(document.getElementById(card.dataset.detail).content.children);
+  document.querySelector('#case-kind').textContent = card.querySelector('.case-card-kind').textContent;
+  document.querySelector('#case-preview-title').textContent = card.querySelector('.case-card-title').textContent;
+  const description = document.querySelector('#case-description');
+  description.textContent = card.dataset.description;
+  description.hidden = !description.textContent;
+  members.hidden = select.parentElement.hidden = records.length < 2;
+  members.replaceChildren();
+  select.replaceChildren();
+  const label = document.createElement('p');
+  label.textContent = '组内数据';
+  members.append(label);
+  records.forEach((record, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.index = index;
+    const name = document.createElement('span');
+    name.textContent = record.dataset.name;
+    const scale = document.createElement('small');
+    scale.textContent = record.dataset.scale;
+    button.append(name, scale);
+    button.addEventListener('click', () => showMember(index));
+    members.append(button);
+    select.add(new Option(record.dataset.name, index));
+  });
+  showMember(0);
+  dialog.showModal();
+  document.body.style.overflow = 'hidden';
+});
+select.addEventListener('change', () => showMember(select.selectedIndex));
+for (const button of dialog.querySelectorAll('.case-preview-back,.case-preview-close')) button.addEventListener('click', () => dialog.close());
+dialog.addEventListener('click', event => {
+  if (event.target !== dialog) return;
+  const {left,right,top,bottom} = dialog.getBoundingClientRect();
+  if (event.clientX < left || event.clientX > right || event.clientY < top || event.clientY > bottom) dialog.close();
+});
+dialog.addEventListener('close', () => {
+  document.body.style.overflow = '';
+  activeCard?.focus({preventScroll:true});
+});
+scroll.addEventListener('click', async event => {
+  const button = event.target.closest('[data-copy]');
+  if (!button) return;
+  try { await navigator.clipboard.writeText(button.dataset.copy); button.textContent = '已复制'; }
+  catch { button.textContent = '请选中并复制样本数值'; }
+});
+filterCards();
+</script>
+</html>

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { ArrowLeft, Expand, X } from 'lucide-react'
 import { setLibraryChatActive } from '@/lib/library-chat-session'
 import { createLibraryPreviewHistory } from '@/lib/library-preview-history'
+import { usePreviewDialog } from '@/components/shared/usePreviewDialog'
 import './dialog.css'
 
 const LibraryArticle = dynamic(() => import('./LibraryArticle').then(module => module.LibraryArticle), {
@@ -59,50 +60,20 @@ export function LibraryDocumentProvider({ children }: { children: React.ReactNod
 }
 
 function LibraryDocumentDialog({ href, onNavigate, onClose, onLeave }: { href: string; onNavigate: (href: string) => void; onClose: () => void; onLeave: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null)
+  const { dialog, closeButton } = usePreviewDialog(onClose)
   const scroll = useRef<HTMLDivElement>(null)
-  const close = useRef(onClose)
-  close.current = onClose
   const url = new URL(href, 'http://library.local')
   const slug = decodeURIComponent(url.pathname.split('/')[2])
 
-  useEffect(() => {
-    const panel = dialog.current!
-    const previousFocus = document.activeElement as HTMLElement | null
-    const previousOverflow = document.body.style.overflow
-    const previousScroll = { left: window.scrollX, top: window.scrollY }
-    const previousPadding = document.body.style.paddingRight
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
-    if (scrollbarWidth > 0) document.body.style.paddingRight = `${parseFloat(window.getComputedStyle(document.body).paddingRight) + scrollbarWidth}px`
-    document.body.style.overflow = 'hidden'
-    panel.showModal()
-    panel.querySelector<HTMLButtonElement>('.library-document-dialog-close')?.focus({ preventScroll: true })
-    window.scrollTo(previousScroll)
-    return () => {
-      panel.close()
-      document.body.style.overflow = previousOverflow
-      document.body.style.paddingRight = previousPadding
-      previousFocus?.focus({ preventScroll: true })
-      window.scrollTo(previousScroll)
-    }
-  }, [])
-
   useEffect(() => { scroll.current?.scrollTo(0, 0) }, [href])
 
-  return <dialog ref={dialog} className="library-document-dialog" aria-label="文献资料" onCancel={event => {
-    event.preventDefault()
-    close.current()
-  }} onClick={event => {
-    if (event.target !== event.currentTarget) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close.current()
-  }}>
+  return <dialog {...dialog} className="library-document-dialog" aria-label="文献资料">
     <div className="library-document-dialog-bar">
       <button type="button" className="library-document-dialog-back" aria-label="返回原窗口" onClick={onClose}><ArrowLeft size={20} aria-hidden="true" />返回</button>
       <span className="library-document-dialog-heading">文献资料 <span className="library-document-dialog-id">{slug}</span></span>
       <div className="flex items-center gap-2">
         <Link href={href} replace className="library-document-dialog-expand" onClick={event => { if (plainClick(event)) onLeave() }}><Expand size={16} aria-hidden="true" />完整打开</Link>
-        <button type="button" className="library-document-dialog-close" aria-label="关闭文献资料" title="关闭" onClick={onClose} autoFocus><X size={22} /></button>
+        <button type="button" ref={closeButton} className="library-document-dialog-close" aria-label="关闭文献资料" title="关闭" onClick={onClose}><X size={22} /></button>
       </div>
     </div>
     <div ref={scroll} className="library-document-dialog-scroll" data-library-dialog-scroll onClick={event => {

@@ -19,6 +19,7 @@ function harness() {
     react: hooks, 'next/link': () => null, 'next/dynamic': () => () => null,
     'next/navigation': { usePathname: () => '/library' }, 'lucide-react': { Expand: () => null, X: () => null },
     '@/lib/library-chat-session': { setLibraryChatActive: value => { active = value } }, './dialog.css': {},
+    '@/components/shared/usePreviewDialog': {},
     '@/lib/library-preview-history': { createLibraryPreviewHistory: (_window, onChange) => ({
       open: onChange, close: () => onChange(null), leave: () => onChange(null), dispose() {},
     }) },

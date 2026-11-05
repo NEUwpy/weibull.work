@@ -1,19 +1,23 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Markdown from 'react-markdown'
-import { Search, Copy, Download, Calculator, ChevronDown, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react'
+import { Search, Copy, Download, Calculator, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, BookOpen, Database, Dices, BarChart3, X } from 'lucide-react'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
+import { usePreviewDialog } from '@/components/shared/usePreviewDialog'
+import { createPreviewHistory } from '@/lib/library-preview-history'
 import { processLibraryContent, getLibraryMarkdownOptions } from '@/lib/library-markdown'
-import { datasetText, natureLabels, observationLabels, type CatalogDataset, type CatalogSummary, type CatalogGroupSummary, type CatalogGroupDetail, type CaseCatalog } from '@/lib/case-datasets'
+import { datasetText, natureLabels, observationLabels, type CatalogDataset, type CatalogEntry, type CatalogSummary, type CatalogGroupDetail, type CaseCatalog } from '@/lib/case-datasets'
 import '@/components/library/document.css'
 import '@/components/library/table.css'
 import 'katex/dist/katex.min.css'
+import './case-catalog.css'
 
 const buttonStyle = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40'
 const catalogKinds = ['observed', 'simulated', 'result'] as const
 type CatalogKind = typeof catalogKinds[number]
+const caseIcons = { observed: Database, simulated: Dices, result: BarChart3, unknown: Database }
 
 function ReadStatus({ error, retry, children }: { error: string; retry: () => void; children: React.ReactNode }) {
   return <div className="border-t border-slate-100 p-5 text-sm text-slate-500">
@@ -35,77 +39,96 @@ function TableData({ record }: { record: CatalogDataset }) {
   </table></div>
 }
 
-function DatasetContent({ summary }: { summary: CatalogSummary }) {
-  const [record, setRecord] = useState<CatalogDataset | null>(null)
+type CaseDetail = { item: CatalogDataset; group?: never } | { group: CatalogGroupDetail; item?: never }
+
+function useCaseDetail(id: string) {
+  const [detail, setDetail] = useState<CaseDetail | null>(null)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
   useEffect(() => {
-    if (record) return
     const controller = new AbortController()
     setError('')
-    fetch('/api/cases/catalog?id=' + encodeURIComponent(summary.id), { signal: controller.signal, cache: 'no-store' })
-      .then(async response => { const data = await response.json(); if (!response.ok || !data.item) throw new Error(data.error || '数据暂时无法读取。'); return data.item })
-      .then(item => { if (!controller.signal.aborted) setRecord(item) })
+    fetch('/api/cases/catalog?id=' + encodeURIComponent(id), { signal: controller.signal, cache: 'no-store' })
+      .then(async response => { const data = await response.json(); if (!response.ok || (!data.group && !data.item)) throw new Error(data.error || '数据暂时无法读取。'); return data as CaseDetail })
+      .then(data => { if (!controller.signal.aborted) setDetail(data) })
       .catch(cause => { if (!controller.signal.aborted) setError(cause.message || '连接失败，请重试。') })
     return () => controller.abort()
-  }, [record, summary.id, reload])
-  return record ? <DatasetDetails record={{ ...record, name: summary.name, role: summary.role || record.role }} />
-    : <ReadStatus error={error} retry={() => setReload(value => value + 1)}>正在读取这份数据…</ReadStatus>
+  }, [id, reload])
+  return { detail, error, retry: () => setReload(value => value + 1) }
 }
 
-function DatasetRow({ summary, member = false }: { summary: CatalogSummary; member?: boolean }) {
-  const [visited, setVisited] = useState(false)
-  return <details className="group/dataset min-w-0 rounded-xl border border-slate-200 bg-white" onToggle={event => {
-    if (event.target === event.currentTarget && event.currentTarget.open) setVisited(true)
-  }}>
-    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-      <ChevronDown size={18} className="shrink-0 text-slate-400 transition-transform group-open/dataset:rotate-180" />
-      <span className="line-clamp-2 min-w-0 flex-1 basis-[220px] font-semibold text-slate-800"><LibraryMathMarkdown inline>{summary.name}</LibraryMathMarkdown></span>
-      {summary.role === 'derived' && <span className="rounded-md bg-slate-100 px-2 py-1 text-sm text-slate-600">合并视图</span>}
-      <span className="text-sm text-slate-500">{summary.scale}</span>
-      {!member && <span className="text-sm text-slate-500">{Array.from(new Set(summary.sources.map(source => source.paper_id))).join(' · ') || '平台样本'}</span>}
-    </summary>
-    {visited && <DatasetContent summary={summary} />}
-  </details>
+function CaseCard({ entry, onOpen }: { entry: CatalogEntry; onOpen: () => void }) {
+  const kind = entry.nature.kind
+  const Icon = caseIcons[kind]
+  const description = entry.is_group ? entry.description : entry.nature.quantity || entry.nature.note
+  return <button type="button" className="case-card" data-kind={kind} onClick={onOpen} aria-haspopup="dialog">
+    <span className="case-card-kind"><Icon size={18} aria-hidden="true" />{natureLabels[kind]}</span>
+    <span className="case-card-title">{entry.name}</span>
+    {description && <span className="case-card-description">{description}</span>}
+    <span className="case-card-footer"><span>{entry.scale}</span><ArrowUpRight size={19} aria-hidden="true" /></span>
+  </button>
 }
 
-function DatasetGroup({ summary }: { summary: CatalogGroupSummary }) {
-  const [open, setOpen] = useState(false)
-  const [group, setGroup] = useState<CatalogGroupDetail | null>(null)
-  const [error, setError] = useState('')
-  const [reload, setReload] = useState(0)
-  useEffect(() => {
-    if (!open || group) return
-    const controller = new AbortController()
-    setError('')
-    fetch('/api/cases/catalog?id=' + encodeURIComponent(summary.id), { signal: controller.signal, cache: 'no-store' })
-      .then(async response => { const data = await response.json(); if (!response.ok || !data.group) throw new Error(data.error || '这组数据暂时无法读取。'); return data.group })
-      .then(item => { if (!controller.signal.aborted) setGroup(item) })
-      .catch(cause => { if (!controller.signal.aborted) setError(cause.message || '连接失败，请重试。') })
-    return () => controller.abort()
-  }, [open, group, summary.id, reload])
-
-  return <details className="group/catalog min-w-0 rounded-xl border border-slate-200 bg-white" onToggle={event => {
-    if (event.target === event.currentTarget) setOpen(event.currentTarget.open)
-  }}>
-    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-      <ChevronDown size={18} className="shrink-0 text-slate-400 transition-transform group-open/catalog:rotate-180" />
-      <span className="min-w-0 flex-1 basis-[220px] font-semibold text-slate-800"><LibraryMathMarkdown inline>{summary.name}</LibraryMathMarkdown></span>
-      <span className="text-sm text-emerald-700">{summary.scale}</span>
-      <span className="text-sm text-slate-500">{Array.from(new Set(summary.sources.map(source => source.paper_id))).join(' · ') || '平台样本'}</span>
-    </summary>
-    {group ? <>
-      {group.description && <LibraryMathMarkdown className="border-t border-slate-100 px-4 py-4 text-sm leading-6 text-slate-600 sm:px-5">{group.description}</LibraryMathMarkdown>}
-      {group.members.length === 1 ? <DatasetContent summary={group.members[0]} />
-        : <div className="min-w-0 space-y-3 border-t border-slate-100 bg-slate-50/70 p-3 sm:p-5">
-          {group.members.map(member => <DatasetRow key={member.id} summary={member} member />)}
-          {!group.members.length && <p className="text-sm text-slate-500">这组数据暂时没有可用内容。</p>}
-        </div>}
-    </> : open && <ReadStatus error={error} retry={() => setReload(value => value + 1)}>正在读取这组数据…</ReadStatus>}
-  </details>
+function DatasetContent({ summary, onLeave }: { summary: CatalogSummary; onLeave: () => void }) {
+  const { detail, error, retry } = useCaseDetail(summary.id)
+  return detail?.item ? <DatasetDetails record={{ ...detail.item, name: summary.name, role: summary.role || detail.item.role }} onLeave={onLeave} />
+    : <ReadStatus error={error} retry={retry}>正在读取这份数据…</ReadStatus>
 }
 
-function DatasetDetails({ record }: { record: CatalogDataset }) {
+function GroupContent({ group, onLeave }: { group: CatalogGroupDetail; onLeave: () => void }) {
+  const [selectedId, setSelectedId] = useState(group.members[0]?.id)
+  const selected = group.members.find(member => member.id === selectedId)
+  const scroll = useRef<HTMLDivElement>(null)
+  function select(id: string) {
+    setSelectedId(id)
+    scroll.current?.scrollTo(0, 0)
+  }
+
+  return <>
+    {group.description && <LibraryMathMarkdown className="case-group-note">{group.description}</LibraryMathMarkdown>}
+    <div className={'case-group-body' + (group.members.length > 1 ? ' has-members' : '')}>
+      {group.members.length > 1 && <>
+        <nav className="case-members" aria-label="组内数据">
+          <p>组内数据</p>
+          {group.members.map(member => <button type="button" key={member.id} aria-pressed={selectedId === member.id} onClick={() => select(member.id)}>
+            <span>{member.name}</span><small>{member.role === 'derived' ? '合并视图 · ' : ''}{member.scale}</small>
+          </button>)}
+        </nav>
+        <label className="case-member-select">组内数据
+          <select value={selectedId} onChange={event => select(event.target.value)}>
+            {group.members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+          </select>
+        </label>
+      </>}
+      <div className="case-preview-scroll" ref={scroll}>
+        {selected ? <DatasetContent key={selected.id} summary={selected} onLeave={onLeave} /> : <p className="p-5">这组数据暂时没有可用内容。</p>}
+      </div>
+    </div>
+  </>
+}
+
+function CasePreview({ id, entry, onClose, onLeave }: { id: string; entry?: CatalogEntry; onClose: () => void; onLeave: () => void }) {
+  const { dialog, closeButton } = usePreviewDialog(onClose)
+  const { detail, error, retry } = useCaseDetail(id)
+  const record = detail?.group || detail?.item || entry
+  return <dialog {...dialog} className="case-preview" aria-labelledby="case-preview-title">
+    <header className="case-preview-header">
+      <button type="button" className="case-preview-back" onClick={onClose} aria-label="返回案例目录"><ArrowLeft size={20} aria-hidden="true" /></button>
+      <div className="min-w-0">
+        <p>{record ? natureLabels[record.nature.kind] : '案例数据'}</p>
+        <h2 id="case-preview-title">{record?.name || '查看案例'}</h2>
+      </div>
+      <button type="button" ref={closeButton} className="case-preview-close" aria-label="关闭案例详情" onClick={onClose}><X size={23} aria-hidden="true" /></button>
+    </header>
+    {detail?.group ? <GroupContent group={detail.group} onLeave={onLeave} />
+      : <div className="case-preview-scroll">
+        {detail?.item ? <DatasetDetails record={detail.item} onLeave={onLeave} />
+          : <ReadStatus error={error} retry={retry}>正在读取案例数据…</ReadStatus>}
+      </div>}
+  </dialog>
+}
+
+function DatasetDetails({ record, onLeave }: { record: CatalogDataset; onLeave: () => void }) {
   const [message, setMessage] = useState('')
   async function copy() {
     try { await navigator.clipboard.writeText(datasetText(record)); setMessage('已复制') }
@@ -122,7 +145,15 @@ function DatasetDetails({ record }: { record: CatalogDataset }) {
     URL.revokeObjectURL(href)
   }
   const data = record.data
-  return <div className="min-w-0 space-y-5 border-t border-slate-100 px-4 py-5 sm:px-5">
+  return <div className="min-w-0 space-y-5 px-4 pb-5 sm:px-6">
+      <div className="case-data-toolbar">
+        <h3>{record.name}</h3>
+        {record.can_calculate && <Link className="case-calculate" replace onClick={event => {
+          if (!event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) onLeave()
+        }} href={record.legacy_href?.includes('/groups/') ? '/?data=' + encodeURIComponent((data as number[]).join(',')) : '/?caseId=' + encodeURIComponent(record.id)}>
+          <Calculator size={17} aria-hidden="true" />带入威布尔计算器
+        </Link>}
+      </div>
       {record.role === 'derived' && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">合并视图：由本组样本合并生成，不另计独立样本。</p>}
       <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
         <span>{observationLabels[record.nature.observation]}</span>
@@ -153,7 +184,6 @@ function DatasetDetails({ record }: { record: CatalogDataset }) {
       <div className="flex flex-wrap items-center gap-2">
         <button className={buttonStyle} onClick={copy}><Copy size={16} />{Array.isArray(data) || data.kind === 'table' ? '复制数据' : '复制说明'}</button>
         <button className={buttonStyle} onClick={download}><Download size={16} />下载 JSON</button>
-        {record.can_calculate && <Link className={buttonStyle} href={record.legacy_href?.includes('/groups/') ? '/?data=' + encodeURIComponent((data as number[]).join(',')) : '/?caseId=' + encodeURIComponent(record.id)}><Calculator size={16} />去计算</Link>}
         {record.legacy_href && <Link className={buttonStyle} href={record.legacy_href}>原案例</Link>}
         <span role="status" className="text-sm text-emerald-700">{message}</span>
       </div>
@@ -168,6 +198,13 @@ export default function CasesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const preview = useRef<ReturnType<typeof createPreviewHistory> | null>(null)
+  useEffect(() => {
+    const history = createPreviewHistory(window, setPreviewId, '__weibullCasePreview', id => /^[\w\u3400-\u9fff-]+$/.test(id))
+    preview.current = history
+    return () => { history.dispose(); preview.current = null }
+  }, [])
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true); setError('')
@@ -185,16 +222,13 @@ export default function CasesPage() {
   return <main className="min-h-screen flex-1 bg-slate-50">
     <div className="page-shell mx-auto w-full max-w-[1500px] space-y-6 px-5 py-8 sm:px-10">
       <div><h1 className="text-2xl font-bold text-slate-800">案例数据库</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-500">按组查阅数据，展开查看样本、性质与文献来源。{catalog ? '已整理 ' + catalog.total + ' 组。' : ''}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">查阅威布尔参数估计用的样本和研究结果。</p>
       </div>
-      <nav aria-label="按数据性质浏览" className="grid grid-cols-3 gap-2 sm:gap-3">
+      <nav aria-label="按数据性质浏览" className="case-filters">
         {catalogKinds.map(value => <button key={value} type="button" aria-pressed={kind === value}
           onClick={() => { setKind(value); setOffset(0) }}
-          className={'flex min-h-[76px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-3 text-base font-semibold transition-colors sm:flex-row sm:gap-3 sm:px-4 ' + (kind === value
-            ? 'border-emerald-600 bg-emerald-700 text-white'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50')}>
+          >
           <span>{natureLabels[value]}</span>
-          {catalog && <span className={'text-sm font-normal ' + (kind === value ? 'text-emerald-100' : 'text-slate-400')}>{catalog.counts[value]} 组</span>}
         </button>)}
       </nav>
       <div className="relative min-w-0"><Search size={18} className="absolute left-3 top-3 text-slate-400" /><input aria-label={'搜索' + natureLabels[kind]} value={query}
@@ -202,17 +236,18 @@ export default function CasesPage() {
           className="min-h-[44px] w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-base outline-none focus:border-emerald-500" /></div>
       {error && <div role="alert" className="flex flex-wrap items-center gap-3 text-red-700"><p>{error}</p><button className={buttonStyle} onClick={() => setReload(value => value + 1)}>重试</button></div>}
       {catalog?.issues.length ? <details className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"><summary className="cursor-pointer">有 {catalog.issues.length} 项数据读取问题</summary><ul className="mt-2 space-y-1">{catalog.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details> : null}
-      <div aria-busy={loading} className="space-y-3">
-        {loading ? <p className="py-8 text-center text-slate-500">正在读取{natureLabels[kind]}…</p> : !error && catalog?.items.map(record => record.is_group
-          ? <DatasetGroup key={record.id} summary={record} />
-          : <DatasetRow key={record.id} summary={record} />)}
+      <div aria-busy={loading}>
+        {loading ? <p className="py-8 text-center text-slate-500">正在读取{natureLabels[kind]}…</p>
+          : !error && <div className="case-grid">{catalog?.items.map(entry => <CaseCard key={entry.id} entry={entry} onOpen={() => preview.current?.open(entry.id)} />)}</div>}
         {!loading && !error && !catalog?.items.length && <p className="py-8 text-center text-slate-500">{query ? '本类中没有匹配的数据组。' : '本类暂未整理数据组。'}</p>}
       </div>
-      {!loading && !error && catalog && catalog.matched > 0 && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+      {!loading && !error && catalog && catalog.matched > catalog.limit && <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <p>第 {offset + 1}–{Math.min(offset + catalog.items.length, catalog.matched)} 组，共 {catalog.matched} 组</p>
         <div className="flex gap-2"><button className={buttonStyle} disabled={loading || offset === 0} onClick={() => setOffset(Math.max(0, offset - catalog.limit))}><ChevronLeft size={16} />上一页</button>
           <button className={buttonStyle} disabled={loading || offset + catalog.limit >= catalog.matched} onClick={() => setOffset(offset + catalog.limit)}>下一页<ChevronRight size={16} /></button></div>
       </div>}
     </div>
+    {previewId && <CasePreview key={previewId} id={previewId} entry={catalog?.items.find(entry => entry.id === previewId)}
+      onClose={() => preview.current?.close()} onLeave={() => preview.current?.leave()} />}
   </main>
 }

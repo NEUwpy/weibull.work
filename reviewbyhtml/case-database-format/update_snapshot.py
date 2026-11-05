@@ -9,6 +9,7 @@ import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent
+PROJECT = ROOT.parents[1]
 DATA = Path('D:/weibull-data')
 BASE = 'http://127.0.0.1:3000'
 sys.path.insert(0, 'C:/Users/36089/.codex/skills/review-html/scripts')
@@ -19,7 +20,7 @@ def api(params=''):
         return json.load(response)
 
 def escape(value):
-    return html.escape(str(value or ''))
+    return html.escape('' if value is None else str(value))
 
 page = api('limit=100')
 rows = page['items']
@@ -35,17 +36,22 @@ labels = {'observed':'实测数据', 'simulated':'蒙特卡洛数据', 'result':
 
 def member_html(summary, record):
     data = record['data']
-    extra = ' · 合并视图，不另计独立样本' if summary.get('role') == 'derived' else ''
-    body = '<p>' + escape(record['nature'].get('note', '')) + '</p>'
+    extra = '合并视图 · ' if summary.get('role') == 'derived' else ''
+    name = escape(summary['name'])
+    sample_url = BASE + '/?data=' + urllib.parse.quote(','.join(map(str, data))) if summary['can_calculate'] and isinstance(data, list) else ''
+    calculate = f'<a class="case-calculate" href="{sample_url}" target="_blank" rel="noopener">带入本机威布尔计算器</a>' if sample_url else ''
+    body = f'<header class="case-data-toolbar"><h3>{name}</h3>{calculate}</header>'
+    body += '<p>' + escape(record['nature'].get('note', '')) + '</p>'
     if isinstance(data, list):
         body += '<pre style="white-space:pre-wrap;word-break:break-word">' + escape('，'.join(map(str,data))) + '</pre>'
+        body += '<button class="copy-button" type="button" data-copy="' + escape('\n'.join(map(str, data))) + '">复制样本数据</button>'
     elif data['kind'] == 'table':
         body += '<div style="overflow:auto;max-width:100%">' + (data.get('html') or '<table><tbody>' + ''.join('<tr>' + ''.join('<td>' + escape(cell) + '</td>' for cell in row) + '</tr>' for row in data['rows']) + '</tbody></table>') + '</div>'
     elif data['kind'] == 'figure':
         source = next(source_dirs[source['paper_id']] / data['asset'] for source in record['sources'] if (source_dirs[source['paper_id']] / data['asset']).is_file())
         target = ROOT / 'assets' / (record['id'] + source.suffix)
         shutil.copyfile(source,target)
-        body += '<figure><img src="assets/' + escape(target.name) + '" style="max-width:100%;height:auto" alt="' + escape(summary['name']) + '"><figcaption>' + escape(data.get('caption','')) + '</figcaption></figure>'
+        body += '<figure><img src="' + escape(target.name) + '" alt="' + name + '"><figcaption>' + escape(data.get('caption','')) + '</figcaption></figure>'
     else:
         body += '<p>' + escape(data.get('description','')) + '</p>'
     for source in summary.get('sources',record.get('sources',[])):
@@ -53,40 +59,51 @@ def member_html(summary, record):
         if source.get('original_reference'): body += '<br>原始文献线索：' + escape(source['original_reference'])
         body += '</p>'
     if not record.get('sources'): body += '<p>平台生成样本；关联论文说明方法，不表示样本摘自论文。</p>'
-    return '<details style="margin:.7em 0;padding:.6em;border:1px solid #e2e8f0;border-radius:8px"><summary style="cursor:pointer;font-weight:600">' + escape(summary['name']) + ' · ' + escape(summary.get('scale','')) + escape(extra) + '</summary>' + body + '</details>'
+    return f'<section class="preview-detail" data-name="{name}" data-scale="{escape(extra + summary.get("scale", ""))}">{body}</section>'
 
-categories=[]
-for kind,label in labels.items():
-    fragments=[]
-    for row in rows:
-        if row['nature']['kind'] != kind: continue
-        detail=details[row['id']]
-        if 'group' in detail:
-            group=detail['group']; body='<p>' + escape(group.get('description','')) + '</p>'
-            for summary in group['members']:
-                file=DATA / 'cases/records' / (summary['id'] + '.json')
-                record=json.loads(file.read_text(encoding='utf-8-sig')) if file.exists() else legacy[summary['id']]
-                body+=member_html(summary,record)
-            fragments.append('<details style="padding:.75em;margin:.8em 0;border:1px solid #cbd5e1;border-radius:10px"><summary style="cursor:pointer;font-weight:700">' + escape(group['name']) + ' · ' + escape(group['scale']) + '</summary>' + body + '</details>')
-        else:
-            fragments.append(member_html(row,detail['item']))
-    categories.append('<h3>'+label+'（'+str(page['counts'][kind])+'组）</h3>'+''.join(fragments))
+cards, templates = [], []
+for row in rows:
+    kind = row['nature']['kind']
+    if kind not in labels:
+        continue
+    ident = escape(row['id'])
+    detail = details[row['id']]
+    group = detail.get('group')
+    description = group.get('description') if group else row['nature'].get('quantity') or row['nature'].get('note')
+    members = group['members'] if group else [row]
+    search = ' '.join([row['name'], row['id'], description or '', *[member['name'] for member in members],
+                       *[source['paper_id'] for source in row['sources']]]).lower()
+    cards.append(f'<button class="case-card" type="button" aria-haspopup="dialog" data-kind="{kind}" data-detail="{ident}" '
+                 f'data-description="{escape(description)}" data-search="{escape(search)}">'
+                 f'<span class="case-card-kind">{labels[kind]}</span><span class="case-card-title">{escape(row["name"])}</span>'
+                 f'<span class="case-card-description">{escape(description)}</span>'
+                 f'<span class="case-card-footer">{escape(row["scale"])}<span aria-hidden="true">↗</span></span></button>')
+    content = []
+    for member in members:
+        file = DATA / 'cases/records' / (member['id'] + '.json')
+        record = (json.loads(file.read_text(encoding='utf-8-sig')) if file.exists() else legacy[member['id']]) if group else detail['item']
+        content.append(member_html(member, record))
+    templates.append(f'<template id="{ident}">{"".join(content)}</template>')
+
+preview = (ROOT / 'card-preview.template.html').read_text(encoding='utf-8')
+preview = preview.replace('__CATALOG_CSS__', (PROJECT / 'src/app/cases/case-catalog.css').read_text(encoding='utf-8'))
+preview = preview.replace('__FILTERS__', ''.join(f'<button type="button" data-kind="{kind}">{label}</button>' for kind, label in labels.items()))
+preview = preview.replace('__CARDS__', ''.join(cards)).replace('__DETAILS__', render_html_batch([''.join(templates)])[0])
+(ROOT / 'assets/card-preview.html').write_text(preview, encoding='utf-8')
 
 board_path=ROOT / 'board.json'
 board=json.loads(board_path.read_text(encoding='utf-8-sig'))
-board['revision']=4
-board['title']='案例数据库 · 样本组与收录范围修订'
-board['archive_plan']='保存本轮按样本组组织的本机案例页面、中文选材目录、规范及验证记录；保留原数据与未整理清单。全库参数估计材料继续逐篇整理，本轮不部署NAS或公网案例站。'
+board['revision']=5
+board['title']='案例数据库 · 卡片与样本浮层'
+board['archive_plan']='保存案例卡片、样本详情浮层、操作说明和本轮审阅记录。'
 units={unit['id']:unit for unit in board['units']}
-units['preview']['title']='1. 按样本组查阅'
+units['preview']['title']='1. 试用案例卡片'
 blocks=units['preview']['options'][0]['blocks']
 byid={block['id']:block for block in blocks}
-byid['summary']['html']='<p>已按本次意见改为<mark>实测数据、蒙特卡洛数据、估计结果</mark>三个入口，先看组，再展开组内成员。Hirose五批试件归为一组；100点合并只作派生视图；平台30次抽样也收在一个组内。</p><p>下方是当前目录的全部20个展示条目，可展开查看实际数值、表格和出处。它包含17个新整理组及3个既有条目；底层仍按数据、性质、来源保存。名称统一为中文。</p>'
-newblock={'id':'grouped-content','kind':'visual','html':''.join(categories)}
-blocks[:]=[block for block in blocks if block['id'] != 'grouped-content']
-blocks.insert(1,newblock)
-byid['catalog-preview']['images']=[{'id':'desktop','label':'实际页面：五批样本收在同一组','src':'assets/cases-desktop.png','alt':'实测样本组与派生视图'}, {'id':'half','label':'实际页面：蒙特卡洛样本组','src':'assets/cases-half.png','alt':'按组查看平台重复抽样'}, {'id':'mobile','label':'实际页面：手机宽度','src':'assets/cases-mobile.png','alt':'手机宽度中的中文样本组'}]
-byid['preview-evidence']['html']='<p><a href="http://127.0.0.1:3000/cases" target="_blank" rel="noreferrer">打开本机实际案例页</a>。上方内容快照与配图来自本轮实际目录；计算、复制和下载在实际案例页操作。NAS与公网案例站尚未部署。</p>'
+byid['summary']['html']='<p><a href="assets/card-preview.html" target="_blank" rel="noopener"><strong>打开可操作的卡片试用页 ↗</strong></a></p><p>卡片按行列对齐，卡面显示数据对象、性质和规模。打开卡片后，可在同一浮层切换样本和结果。完整样本的计算入口就在数据标题旁。</p>'
+byid['grouped-content']['html']='<p>试用页采用当前目录的真实数据。可试试打开“环氧树脂击穿电压试验”，从第1批切到第2批，再看合并样本或结果表。手机上用顶部的组内选择。计算入口指向本机站点，手机试用时可复制样本数值。</p>'
+byid['catalog-preview']['images']=[{'id':'desktop','label':'本机页面 · 案例卡片网格','src':'assets/cards-grid.png','alt':'规整排列的实测数据卡片'}, {'id':'half','label':'本机页面 · 样本详情浮层','src':'assets/cards-dialog.png','alt':'组内样本切换与计算入口'}, {'id':'mobile','label':'本机页面 · 手机浮层','src':'assets/cards-mobile.png','alt':'手机顶部选择组内数据'}]
+byid['preview-evidence']['html']='<p>电脑上可直接体验完整流程。<a href="http://127.0.0.1:3000/cases" target="_blank" rel="noreferrer">打开本机案例页 ↗</a></p>'
 fmt={block['id']:block for block in units['format']['options'][0]['blocks']}
 units['format']['title']='2. 数据与来源仍可引用'
 fmt['ownership']['html']='<p>同一研究中成套使用的样本归为一组，相关估计表和拟合图收在组内；每份原始数据保留独立编号与来源，合并数据不重复计数。来源继续连接库中实际提供数据的文献，二引标明转引并保留原论文线索。</p><p>当前新增目录包含68项成员：16份原始数值样本、1份合并视图、46份表格、5份数据图，关联13项书单资料。另保留32份平台样本。样本可计算不代表论文的全部材料已核查完。</p>'
@@ -94,7 +111,7 @@ fmt['json-preview']['html']='<details><summary>看分组怎样连接原数据</s
 units['build']['title']='3. 范围与待补内容'
 for block in units['build']['options'][0]['blocks']:
     if block['id']=='build-phases':
-        block['html']='<p>已从展示范围排除93项深度学习、神经网络等无关资料的1,731条记录。其余2,954条材料仍需判断是否属于参数估计数据、核对结构和中文命名；原件保留在后台清单。扫描总量不再当作案例完成量。</p><p>已选结果材料核对了用途和原文位置；只有182-104的全部可复用结果完成PDF逐格核查，其余结果表仍待逐格核查。错挂图题、跨页碎表和可疑表头暂缓展示，具体位置已登记。</p><p>24项案例、数据与计算器回归、9项导入回归、目录一致性检查、类型检查和生产构建通过。默认不实时监听，网页提交后通知本对话即可。</p>'
+        block['html']='<p>现有目录包含20个展示条目。另有2,954条材料仍需筛选、核对和命名。当前已选结果材料核对了用途和原文位置，其中182-104的可复用结果完成了PDF逐格核查。</p>'
 allblocks=[block for unit in board['units'] for option in unit['options'] for block in option['blocks'] if 'html' in block]
 for block,markup in zip(allblocks,render_html_batch([block['html'] for block in allblocks])): block['html']=markup
 board_path.write_text(json.dumps(board,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
