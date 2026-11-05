@@ -2,7 +2,7 @@
   "groups": [
     {
       "id": "catalog-epoxy-breakdown",
-      "name": "环氧树脂击穿电压试验（五批）",
+      "name": "环氧树脂击穿电压试验",
       "kind": "observed",
       "description": "五批实测数据各20点；合并100点按原文作为同分布的派生视图，不计为第六批试验。原文未标明电压单位。",
       "members": [
@@ -181,7 +181,7 @@
     },
     {
       "id": "catalog-bushing-wear",
-      "name": "航空发动机衬套磨损试验（含删失）",
+      "name": "航空发动机衬套磨损试验",
       "kind": "observed",
       "description": "12个聚酰亚胺衬套磨损观测，单位为循环次数；状态1表示失效、0表示右删失，不能作为完整寿命数组直接计算。",
       "members": [
@@ -195,22 +195,25 @@
           "name": "表2 衬套磨损参数估计结果",
           "role": "table"
         }
+      ],
+      "tags": [
+        "右删失"
       ]
     },
     {
       "id": "catalog-soman-generated",
-      "name": "Soman与Misra的威布尔模拟样本",
+      "name": "Soman与Misra的威布尔数值例",
       "kind": "simulated",
       "description": "论文明确生成的两套30点样本。样本及三个结果表已核对原PDF；它们属于模拟数值例。",
       "members": [
         {
           "id": "sample-soman-1992-example-1",
-          "name": "数值例一模拟样本（30点）",
+          "name": "数值例一样本（30点）",
           "role": "sample"
         },
         {
           "id": "sample-soman-1992-example-2",
-          "name": "数值例二模拟样本（30点）",
+          "name": "数值例二样本（30点）",
           "role": "sample"
         },
         {
@@ -232,18 +235,18 @@
     },
     {
       "id": "catalog-qiao-generated",
-      "name": "Qiao与Tsokos的威布尔模拟样本",
+      "name": "Qiao与Tsokos的威布尔数值例",
       "kind": "simulated",
       "description": "两套模拟样本分别为32点和50点；前者转引Sinha生成数据，后者由论文作者生成。",
       "members": [
         {
           "id": "sample-qiao-tsokos-1995-table-2",
-          "name": "表2 模拟样本（32点）",
+          "name": "表2 样本（32点）",
           "role": "sample"
         },
         {
           "id": "sample-qiao-tsokos-1995-table-4",
-          "name": "表4 模拟样本（50点）",
+          "name": "表4 样本（50点）",
           "role": "sample"
         },
         {
@@ -270,20 +273,20 @@
     },
     {
       "id": "catalog-cousineau-generated",
-      "name": "Cousineau的威布尔模拟样本",
+      "name": "Cousineau的威布尔数值例",
       "kind": "simulated",
       "description": "原文数值例给出的10点威布尔生成样本；生成参数沿用原文符号，原文未指定单位。",
       "members": [
         {
           "id": "sample-cousineau-2009-example",
-          "name": "数值例模拟样本（10点）",
+          "name": "数值例样本（10点）",
           "role": "sample"
         }
       ]
     },
     {
       "id": "catalog-minimum-discrepancy-results",
-      "name": "最小差异法的模拟估计比较",
+      "name": "最小差异法的估计精度比较",
       "kind": "result",
       "description": "182-030中的模拟样本估计汇总，比较最小差异法、极大似然法与最小二乘法；结果表按原文保留。",
       "members": [
@@ -294,7 +297,7 @@
         },
         {
           "id": "182-030-table-002",
-          "name": "表2 各模拟样本的精度与保守性比较",
+          "name": "表2 各样本的精度与保守性比较",
           "role": "table"
         },
         {
@@ -309,14 +312,17 @@
         },
         {
           "id": "182-030-table-005",
-          "name": "表5 另一组模拟样本的参数统计",
+          "name": "表5 另一组样本的参数统计",
           "role": "table"
         }
+      ],
+      "tags": [
+        "模拟研究"
       ]
     },
     {
       "id": "catalog-weighted-likelihood-results",
-      "name": "加权极大似然法的模拟估计比较",
+      "name": "加权极大似然法的估计精度比较",
       "kind": "result",
       "description": "182-088中的模拟结果：表5在已知真形状与真位置时评估尺度，表6评估形状与位置，表7与表8比较三种完整估计方案。表内全部数字仍待逐格核对PDF。",
       "members": [
@@ -340,11 +346,14 @@
           "name": "表8 三种估计方案的标准差比较",
           "role": "table"
         }
+      ],
+      "tags": [
+        "模拟研究"
       ]
     },
     {
       "id": "catalog-akram-simulation-results",
-      "name": "Akram与Hayat的估计量模拟比较",
+      "name": "Akram与Hayat的估计量比较",
       "kind": "result",
       "description": "182-096固定尺度与位置、改变形状和样本量的模拟偏差与均方误差汇总；与该文两套实测疲劳数据分开。",
       "members": [
@@ -388,11 +397,14 @@
           "name": "表9 形状参数为9时的偏差与均方误差",
           "role": "table"
         }
+      ],
+      "tags": [
+        "模拟研究"
       ]
     },
     {
       "id": "catalog-iterative-cdf-results",
-      "name": "迭代累积分布法的删失模拟比较",
+      "name": "迭代累积分布法的估计精度比较",
       "kind": "result",
       "description": "182-103比较极大似然、最小二乘与迭代累积分布估计。图2至图4为样本量20的模拟结果，附表按原文分块；与衬套实测试验分开。",
       "members": [
@@ -431,6 +443,10 @@
           "name": "表A3 尺度参数统计（续表）",
           "role": "table"
         }
+      ],
+      "tags": [
+        "模拟研究",
+        "删失样本"
       ]
     },
     {
@@ -474,6 +490,9 @@
           "name": "表10 分位数置信区间覆盖率",
           "role": "table"
         }
+      ],
+      "tags": [
+        "模拟研究"
       ]
     }
   ],

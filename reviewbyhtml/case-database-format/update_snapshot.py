@@ -1,5 +1,6 @@
 """Refresh the review from the running grouped catalog, without submitting feedback."""
 from pathlib import Path
+import argparse
 import concurrent.futures
 import html
 import json
@@ -11,7 +12,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parent
 PROJECT = ROOT.parents[1]
 DATA = Path('D:/weibull-data')
-BASE = 'http://127.0.0.1:3000'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--base', default='http://127.0.0.1:3000')
+BASE = parser.parse_args().base.rstrip('/')
 sys.path.insert(0, 'C:/Users/36089/.codex/skills/review-html/scripts')
 from math_html import render_html_batch
 
@@ -71,11 +74,13 @@ for row in rows:
     group = detail.get('group')
     description = group.get('description') if group else row['nature'].get('quantity') or row['nature'].get('note')
     members = group['members'] if group else [row]
-    search = ' '.join([row['name'], row['id'], description or '', *[member['name'] for member in members],
+    tags = [labels[kind], *row['nature'].get('tags', [])]
+    search = ' '.join([row['name'], row['id'], description or '', *tags, *[member['name'] for member in members],
                        *[source['paper_id'] for source in row['sources']]]).lower()
     cards.append(f'<button class="case-card" type="button" aria-haspopup="dialog" data-kind="{kind}" data-detail="{ident}" '
                  f'data-description="{escape(description)}" data-search="{escape(search)}">'
-                 f'<span class="case-card-kind">{labels[kind]}</span><span class="case-card-title">{escape(row["name"])}</span>'
+                 f'<span class="case-card-title">{escape(row["name"])}</span>'
+                 f'<span class="case-nature-tags">{"".join("<span class=case-tag>" + escape(tag) + "</span>" for tag in tags)}</span>'
                  f'<span class="case-card-description">{escape(description)}</span>'
                  f'<span class="case-card-footer">{escape(row["scale"])}<span aria-hidden="true">↗</span></span></button>')
     content = []
@@ -87,27 +92,28 @@ for row in rows:
 
 preview = (ROOT / 'card-preview.template.html').read_text(encoding='utf-8')
 preview = preview.replace('__CATALOG_CSS__', (PROJECT / 'src/app/cases/case-catalog.css').read_text(encoding='utf-8'))
+preview = preview.replace('__SHELL_CSS__', (PROJECT / 'src/app/site-shell.css').read_text(encoding='utf-8'))
 preview = preview.replace('__FILTERS__', ''.join(f'<button type="button" data-kind="{kind}">{label}</button>' for kind, label in labels.items()))
 preview = preview.replace('__CARDS__', ''.join(cards)).replace('__DETAILS__', render_html_batch([''.join(templates)])[0])
 (ROOT / 'assets/card-preview.html').write_text(preview, encoding='utf-8')
 
 board_path=ROOT / 'board.json'
 board=json.loads(board_path.read_text(encoding='utf-8-sig'))
-board['revision']=5
+board['revision']=6
 board['title']='案例数据库 · 卡片与样本浮层'
 board['archive_plan']='保存案例卡片、样本详情浮层、操作说明和本轮审阅记录。'
 units={unit['id']:unit for unit in board['units']}
 units['preview']['title']='1. 试用案例卡片'
 blocks=units['preview']['options'][0]['blocks']
 byid={block['id']:block for block in blocks}
-byid['summary']['html']='<p><a href="assets/card-preview.html" target="_blank" rel="noopener"><strong>打开可操作的卡片试用页 ↗</strong></a></p><p>卡片按行列对齐，卡面显示数据对象、性质和规模。打开卡片后，可在同一浮层切换样本和结果。完整样本的计算入口就在数据标题旁。</p>'
+byid['summary']['html']='<p><a href="assets/card-preview.html" target="_blank" rel="noopener"><strong>打开可操作的卡片试用页 ↗</strong></a></p><p>标题只写数据对象，实测、蒙特卡洛、估计结果及删失等性质独立显示为标签。标题、筛选栏、搜索框和卡片网格，左侧对齐顶栏图标框，右侧对齐最右控件外边缘。打开卡片后在同一浮层切换样本和结果，完整样本的计算入口就在数据标题旁。</p>'
 byid['grouped-content']['html']='<p>试用页采用当前目录的真实数据。可试试打开“环氧树脂击穿电压试验”，从第1批切到第2批，再看合并样本或结果表。手机上用顶部的组内选择。计算入口指向本机站点，手机试用时可复制样本数值。</p>'
-byid['catalog-preview']['images']=[{'id':'desktop','label':'本机页面 · 案例卡片网格','src':'assets/cards-grid.png','alt':'规整排列的实测数据卡片'}, {'id':'half','label':'本机页面 · 样本详情浮层','src':'assets/cards-dialog.png','alt':'组内样本切换与计算入口'}, {'id':'mobile','label':'本机页面 · 手机浮层','src':'assets/cards-mobile.png','alt':'手机顶部选择组内数据'}]
-byid['preview-evidence']['html']='<p>电脑上可直接体验完整流程。<a href="http://127.0.0.1:3000/cases" target="_blank" rel="noreferrer">打开本机案例页 ↗</a></p>'
+byid['catalog-preview']['images']=[{'id':'desktop','label':'本机页面 · 对齐顶栏的卡片网格','src':'assets/cards-grid.png','alt':'标题、筛选、搜索和卡片两侧对齐顶栏控件外边缘'}, {'id':'half','label':'本机页面 · 样本详情浮层','src':'assets/cards-dialog.png','alt':'组内样本切换与计算入口'}, {'id':'mobile','label':'本机页面 · 手机卡片排列','src':'assets/cards-mobile.png','alt':'手机标题、搜索和卡片对齐顶栏图标及菜单按钮'}]
+byid['preview-evidence']['html']='<p>电脑上可直接体验完整流程。<a href="' + BASE + '/cases" target="_blank" rel="noreferrer">打开本机案例页 ↗</a></p>'
 fmt={block['id']:block for block in units['format']['options'][0]['blocks']}
 units['format']['title']='2. 数据与来源仍可引用'
 fmt['ownership']['html']='<p>同一研究中成套使用的样本归为一组，相关估计表和拟合图收在组内；每份原始数据保留独立编号与来源，合并数据不重复计数。来源继续连接库中实际提供数据的文献，二引标明转引并保留原论文线索。</p><p>当前新增目录包含68项成员：16份原始数值样本、1份合并视图、46份表格、5份数据图，关联13项书单资料。另保留32份平台样本。样本可计算不代表论文的全部材料已核查完。</p>'
-fmt['json-preview']['html']='<details><summary>看分组怎样连接原数据</summary><pre><code>'+escape(json.dumps({'id':'catalog-epoxy-breakdown','name':'环氧树脂击穿电压试验（五批）','kind':'observed','members':[{'id':'sample-hirose-1996-case-1','name':'第1批击穿电压（20点）','role':'sample'},{'id':'sample-hirose-1996-all','name':'五批合并视图（100点）','role':'derived'}]},ensure_ascii=False,indent=2))+'</code></pre><p>以上仅展示字段示例；完整组的五批、合并视图和结果表见第一节。</p></details>'
+fmt['json-preview']['html']='<details><summary>看分组怎样连接原数据</summary><pre><code>'+escape(json.dumps({'id':'catalog-epoxy-breakdown','name':'环氧树脂击穿电压试验','kind':'observed','members':[{'id':'sample-hirose-1996-case-1','name':'第1批击穿电压（20点）','role':'sample'},{'id':'sample-hirose-1996-all','name':'五批合并视图（100点）','role':'derived'}]},ensure_ascii=False,indent=2))+'</code></pre><p>以上仅展示字段示例；完整组的五批、合并视图和结果表见第一节。</p></details>'
 units['build']['title']='3. 范围与待补内容'
 for block in units['build']['options'][0]['blocks']:
     if block['id']=='build-phases':

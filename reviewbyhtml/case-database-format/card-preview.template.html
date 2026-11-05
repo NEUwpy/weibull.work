@@ -5,10 +5,11 @@
 <title>案例数据库 · 卡片试用</title>
 <style>
 __CATALOG_CSS__
+__SHELL_CSS__
 *{box-sizing:border-box}body{margin:0;background:#f8fafc;color:#17233a;font:16px/1.55 system-ui,sans-serif}
 button,input,select{font:inherit}button{cursor:pointer}button:not(.case-card){border:0;background:none}h1,h2,h3,p{margin:0}
 .case-filters button{border-bottom:2px solid transparent}.case-filters button[aria-pressed=true]{border-color:#4338ca}
-main{max-width:1400px;margin:auto;padding:24px clamp(16px,4vw,48px)}.intro{color:#526178;margin:4px 0 18px}
+main{padding-block:32px}.intro{color:#526178;margin:4px 0 18px}
 #filter{width:100%;min-height:44px;margin:16px 0;padding:7px 12px;border:1px solid #cbd5e1;border-radius:7px}
 [hidden]{display:none!important}.case-preview-header div{min-width:0}.case-preview-close{font-size:24px}
 .preview-detail{padding:0 20px 20px;min-width:0}.preview-detail>p,.preview-detail pre{margin:12px 0}
@@ -16,7 +17,7 @@ main{max-width:1400px;margin:auto;padding:24px clamp(16px,4vw,48px)}.intro{color
 .preview-detail figure{margin:12px 0}.preview-detail table{border-collapse:collapse}.preview-detail td,.preview-detail th{padding:6px 8px;border:1px solid #dbe3ee}
 .case-calculate{text-decoration:none}.copy-button{margin-top:8px;color:#3730a3;border:1px solid #cbd5e1!important;border-radius:7px;padding:6px 12px;min-height:44px}
 </style>
-<main>
+<main class="site-aligned-shell">
   <h1>案例数据库</h1>
   <p class="intro">卡片试用 · 使用当前案例目录的数据</p>
   <nav class="case-filters" aria-label="按数据性质浏览">__FILTERS__</nav>
@@ -27,7 +28,7 @@ main{max-width:1400px;margin:auto;padding:24px clamp(16px,4vw,48px)}.intro{color
 <dialog class="case-preview" aria-labelledby="case-preview-title">
   <header class="case-preview-header">
     <button type="button" class="case-preview-back" aria-label="返回案例目录">←</button>
-    <div><p id="case-kind"></p><h2 id="case-preview-title"></h2></div>
+    <div><h2 id="case-preview-title"></h2><span class="case-nature-tags" id="case-kind"></span></div>
     <button type="button" class="case-preview-close" aria-label="关闭案例详情" autofocus>×</button>
   </header>
   <p class="case-group-note" id="case-description"></p>
@@ -69,7 +70,7 @@ function showMember(index) {
 for (const card of cards) card.addEventListener('click', () => {
   activeCard = card;
   records = Array.from(document.getElementById(card.dataset.detail).content.children);
-  document.querySelector('#case-kind').textContent = card.querySelector('.case-card-kind').textContent;
+  document.querySelector('#case-kind').replaceChildren(...Array.from(card.querySelector('.case-nature-tags').children, tag => tag.cloneNode(true)));
   document.querySelector('#case-preview-title').textContent = card.querySelector('.case-card-title').textContent;
   const description = document.querySelector('#case-description');
   description.textContent = card.dataset.description;

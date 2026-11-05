@@ -78,6 +78,7 @@ def build_catalog(cases, library, selection_path):
     for group in groups:
         require(chinese_name(group["name"]), f"案例组名称须为规范中文：{group['id']}")
         require(group["kind"] in {"observed", "simulated", "result"}, f"案例组性质无效：{group['id']}")
+        require(isinstance(group.get("tags", []), list) and all(isinstance(tag, str) and tag.strip() for tag in group.get("tags", [])), f"案例组性质标签无效：{group['id']}")
         require(group["members"], f"空案例组：{group['id']}")
         for member in group["members"]:
             ident, role = member["id"], member["role"]

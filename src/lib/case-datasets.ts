@@ -4,6 +4,7 @@ export type CaseNature = {
   quantity?: string
   unit?: string | null
   note?: string
+  tags?: string[]
 }
 
 export type CaseSource = {
@@ -46,6 +47,7 @@ export type CaseCatalogGroup = {
   name: string
   kind: 'observed' | 'simulated' | 'result'
   description?: string
+  tags?: string[]
   members: { id: string; name: string; role?: CaseMemberRole }[]
 }
 

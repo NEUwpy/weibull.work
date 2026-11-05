@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import './globals.css'
+import './site-shell.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Calculator, Library, Database, Settings2, SlidersHorizontal, ChevronDown, BookOpen, FileText, Info, Cpu, Menu, X } from 'lucide-react'
@@ -94,7 +95,7 @@ export default function RootLayout({
       <body className="bg-slate-50 min-h-screen flex flex-col">
         {/* Global Immersive Header */}
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-          <div className="site-header-inner page-shell max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] h-16 flex items-center justify-between">
+          <div className="site-header-inner page-shell site-aligned-shell h-16 flex items-center justify-between">
             {/* Left: Dynamic Title */}
             <div className="site-title flex items-center gap-3">
                <Link

@@ -3,12 +3,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Markdown from 'react-markdown'
-import { Search, Copy, Download, Calculator, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, BookOpen, Database, Dices, BarChart3, X } from 'lucide-react'
+import { Search, Copy, Download, Calculator, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, BookOpen, X } from 'lucide-react'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { usePreviewDialog } from '@/components/shared/usePreviewDialog'
 import { createPreviewHistory } from '@/lib/library-preview-history'
 import { processLibraryContent, getLibraryMarkdownOptions } from '@/lib/library-markdown'
-import { datasetText, natureLabels, observationLabels, type CatalogDataset, type CatalogEntry, type CatalogSummary, type CatalogGroupDetail, type CaseCatalog } from '@/lib/case-datasets'
+import { datasetText, natureLabels, observationLabels, type CaseNature, type CatalogDataset, type CatalogEntry, type CatalogSummary, type CatalogGroupDetail, type CaseCatalog } from '@/lib/case-datasets'
 import '@/components/library/document.css'
 import '@/components/library/table.css'
 import 'katex/dist/katex.min.css'
@@ -17,7 +17,12 @@ import './case-catalog.css'
 const buttonStyle = 'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40'
 const catalogKinds = ['observed', 'simulated', 'result'] as const
 type CatalogKind = typeof catalogKinds[number]
-const caseIcons = { observed: Database, simulated: Dices, result: BarChart3, unknown: Database }
+
+function NatureTags({ nature }: { nature: CaseNature }) {
+  return <span className="case-nature-tags">
+    {[natureLabels[nature.kind], ...(nature.tags || [])].map(tag => <span className="case-tag" key={tag}>{tag}</span>)}
+  </span>
+}
 
 function ReadStatus({ error, retry, children }: { error: string; retry: () => void; children: React.ReactNode }) {
   return <div className="border-t border-slate-100 p-5 text-sm text-slate-500">
@@ -59,11 +64,10 @@ function useCaseDetail(id: string) {
 
 function CaseCard({ entry, onOpen }: { entry: CatalogEntry; onOpen: () => void }) {
   const kind = entry.nature.kind
-  const Icon = caseIcons[kind]
   const description = entry.is_group ? entry.description : entry.nature.quantity || entry.nature.note
   return <button type="button" className="case-card" data-kind={kind} onClick={onOpen} aria-haspopup="dialog">
-    <span className="case-card-kind"><Icon size={18} aria-hidden="true" />{natureLabels[kind]}</span>
     <span className="case-card-title">{entry.name}</span>
+    <NatureTags nature={entry.nature} />
     {description && <span className="case-card-description">{description}</span>}
     <span className="case-card-footer"><span>{entry.scale}</span><ArrowUpRight size={19} aria-hidden="true" /></span>
   </button>
@@ -115,8 +119,8 @@ function CasePreview({ id, entry, onClose, onLeave }: { id: string; entry?: Cata
     <header className="case-preview-header">
       <button type="button" className="case-preview-back" onClick={onClose} aria-label="返回案例目录"><ArrowLeft size={20} aria-hidden="true" /></button>
       <div className="min-w-0">
-        <p>{record ? natureLabels[record.nature.kind] : '案例数据'}</p>
         <h2 id="case-preview-title">{record?.name || '查看案例'}</h2>
+        {record && <NatureTags nature={record.nature} />}
       </div>
       <button type="button" ref={closeButton} className="case-preview-close" aria-label="关闭案例详情" onClick={onClose}><X size={23} aria-hidden="true" /></button>
     </header>
@@ -156,7 +160,7 @@ function DatasetDetails({ record, onLeave }: { record: CatalogDataset; onLeave: 
       </div>
       {record.role === 'derived' && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">合并视图：由本组样本合并生成，不另计独立样本。</p>}
       <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-        <span>{observationLabels[record.nature.observation]}</span>
+        <span className="case-tag">{observationLabels[record.nature.observation]}</span>
         {record.nature.quantity && <span>· {record.nature.quantity}</span>}
         <span>· 单位{record.nature.unit ? ' ' + record.nature.unit : '未注明'}</span>
         <span className="ml-auto break-all text-slate-400">{record.id}</span>
@@ -220,7 +224,7 @@ export default function CasesPage() {
   }, [query, kind, offset, reload])
 
   return <main className="min-h-screen flex-1 bg-slate-50">
-    <div className="page-shell mx-auto w-full max-w-[1500px] space-y-6 px-5 py-8 sm:px-10">
+    <div className="page-shell site-aligned-shell space-y-6 py-8">
       <div><h1 className="text-2xl font-bold text-slate-800">案例数据库</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">查阅威布尔参数估计用的样本和研究结果。</p>
       </div>

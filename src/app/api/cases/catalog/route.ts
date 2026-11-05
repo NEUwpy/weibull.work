@@ -36,7 +36,7 @@ function groupDetail(group: Omit<CaseCatalogGroup, 'members'>, members: CatalogS
     if (!sources.has(key)) sources.set(key, source)
   }
   return { id: group.id, name: group.name, is_group: true, can_calculate: false,
-    nature: { kind: group.kind, observation: 'grouped' }, scale: parts.join(' · '),
+    nature: { kind: group.kind, observation: 'grouped', ...(group.tags?.length ? { tags: group.tags } : {}) }, scale: parts.join(' · '),
     member_count: members.length, description: group.description, sources: Array.from(sources.values()), members }
 }
 
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
       const { members, ...summary } = group
       records.push(summary)
     }
-    const searchable = (record: CatalogEntry): string => [record.id, record.name, record.nature.quantity, record.nature.note,
+    const searchable = (record: CatalogEntry): string => [record.id, record.name, record.nature.quantity, record.nature.note, ...(record.nature.tags || []),
       ...(record.is_group ? [record.description] : []),
       ...record.sources.flatMap(source => [source.paper_id, source.title, source.author, source.location, source.original_reference])]
       .filter(Boolean).join(' ').toLocaleLowerCase()

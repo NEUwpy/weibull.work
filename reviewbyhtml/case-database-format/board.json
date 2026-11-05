@@ -2,7 +2,7 @@
   "id": "case-database-format",
   "title": "案例数据库 · 卡片与样本浮层",
   "document": true,
-  "revision": 5,
+  "revision": 6,
   "require_confirmation": true,
   "archive_plan": "保存案例卡片、样本详情浮层、操作说明和本轮审阅记录。",
   "units": [
@@ -18,7 +18,7 @@
             {
               "id": "summary",
               "kind": "text",
-              "html": "<p><a href=\"assets/card-preview.html\" target=\"_blank\" rel=\"noopener\"><strong>打开可操作的卡片试用页 ↗</strong></a></p><p>卡片按行列对齐，卡面显示数据对象、性质和规模。打开卡片后，可在同一浮层切换样本和结果。完整样本的计算入口就在数据标题旁。</p>"
+              "html": "<p><a href=\"assets/card-preview.html\" target=\"_blank\" rel=\"noopener\"><strong>打开可操作的卡片试用页 ↗</strong></a></p><p>标题只写数据对象，实测、蒙特卡洛、估计结果及删失等性质独立显示为标签。标题、筛选栏、搜索框和卡片网格，左侧对齐顶栏图标框，右侧对齐最右控件外边缘。打开卡片后在同一浮层切换样本和结果，完整样本的计算入口就在数据标题旁。</p>"
             },
             {
               "id": "grouped-content",
@@ -32,9 +32,9 @@
               "images": [
                 {
                   "id": "desktop",
-                  "label": "本机页面 · 案例卡片网格",
+                  "label": "本机页面 · 对齐顶栏的卡片网格",
                   "src": "assets/cards-grid.png",
-                  "alt": "规整排列的实测数据卡片"
+                  "alt": "标题、筛选、搜索和卡片两侧对齐顶栏控件外边缘"
                 },
                 {
                   "id": "half",
@@ -44,16 +44,16 @@
                 },
                 {
                   "id": "mobile",
-                  "label": "本机页面 · 手机浮层",
+                  "label": "本机页面 · 手机卡片排列",
                   "src": "assets/cards-mobile.png",
-                  "alt": "手机顶部选择组内数据"
+                  "alt": "手机标题、搜索和卡片对齐顶栏图标及菜单按钮"
                 }
               ]
             },
             {
               "id": "preview-evidence",
               "kind": "text",
-              "html": "<p>电脑上可直接体验完整流程。<a href=\"http://127.0.0.1:3000/cases\" target=\"_blank\" rel=\"noreferrer\">打开本机案例页 ↗</a></p>"
+              "html": "<p>电脑上可直接体验完整流程。<a href=\"http://127.0.0.1:3001/cases\" target=\"_blank\" rel=\"noreferrer\">打开本机案例页 ↗</a></p>"
             }
           ]
         }
@@ -76,7 +76,7 @@
             {
               "id": "json-preview",
               "kind": "text",
-              "html": "<details><summary>看分组怎样连接原数据</summary><pre><code>{\n  &quot;id&quot;: &quot;catalog-epoxy-breakdown&quot;,\n  &quot;name&quot;: &quot;环氧树脂击穿电压试验（五批）&quot;,\n  &quot;kind&quot;: &quot;observed&quot;,\n  &quot;members&quot;: [\n    {\n      &quot;id&quot;: &quot;sample-hirose-1996-case-1&quot;,\n      &quot;name&quot;: &quot;第1批击穿电压（20点）&quot;,\n      &quot;role&quot;: &quot;sample&quot;\n    },\n    {\n      &quot;id&quot;: &quot;sample-hirose-1996-all&quot;,\n      &quot;name&quot;: &quot;五批合并视图（100点）&quot;,\n      &quot;role&quot;: &quot;derived&quot;\n    }\n  ]\n}</code></pre><p>以上仅展示字段示例；完整组的五批、合并视图和结果表见第一节。</p></details>"
+              "html": "<details><summary>看分组怎样连接原数据</summary><pre><code>{\n  &quot;id&quot;: &quot;catalog-epoxy-breakdown&quot;,\n  &quot;name&quot;: &quot;环氧树脂击穿电压试验&quot;,\n  &quot;kind&quot;: &quot;observed&quot;,\n  &quot;members&quot;: [\n    {\n      &quot;id&quot;: &quot;sample-hirose-1996-case-1&quot;,\n      &quot;name&quot;: &quot;第1批击穿电压（20点）&quot;,\n      &quot;role&quot;: &quot;sample&quot;\n    },\n    {\n      &quot;id&quot;: &quot;sample-hirose-1996-all&quot;,\n      &quot;name&quot;: &quot;五批合并视图（100点）&quot;,\n      &quot;role&quot;: &quot;derived&quot;\n    }\n  ]\n}</code></pre><p>以上仅展示字段示例；完整组的五批、合并视图和结果表见第一节。</p></details>"
             }
           ]
         }

@@ -20,6 +20,7 @@ export function readCaseCatalogLayout(): { configured: boolean; groups: CaseCata
         || typeof group.name !== 'string' || !group.name.trim()
         || !['observed', 'simulated', 'result'].includes(group.kind)
         || (group.description !== undefined && typeof group.description !== 'string')
+        || (group.tags !== undefined && (!Array.isArray(group.tags) || !group.tags.every(tag => typeof tag === 'string' && tag.trim())))
         || !Array.isArray(group.members) || !group.members.length) throw new Error('案例分组条目无效')
       ids.add(group.id)
       for (const member of group.members) {
@@ -58,6 +59,7 @@ function validMetadata(value: unknown): boolean {
     && object(value.nature) && Object.hasOwn(natureLabels, value.nature.kind)
     && Object.hasOwn(observationLabels, value.nature.observation)
     && ['quantity', 'note'].every(key => value.nature[key] === undefined || typeof value.nature[key] === 'string')
+    && (value.nature.tags === undefined || (Array.isArray(value.nature.tags) && value.nature.tags.every((tag: unknown) => typeof tag === 'string' && tag.trim())))
     && (value.nature.unit === undefined || value.nature.unit === null || typeof value.nature.unit === 'string')
     && Array.isArray(value.sources) && value.sources.length > 0 && value.sources.every((source: unknown) => object(source)
       && typeof source.paper_id === 'string' && identifier.test(source.paper_id)

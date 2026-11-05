@@ -171,7 +171,7 @@ test('curated groups separate experiments and simulations, keep derived views in
   write('cases/catalog.json', { schema_version: 1, groups: [
     { id: 'experiment', name: '环氧树脂击穿试验样本组', kind: 'observed', members: [
       { id: 'batch', name: '第一批试件', role: 'sample' }, { id: 'combined', name: '各批合并数据', role: 'derived' }] },
-    { id: 'monte-carlo', name: '参数恢复模拟样本组', kind: 'simulated', members: [{ id: 'simulation', name: '数值算例一', role: 'sample' }] },
+    { id: 'monte-carlo', name: '参数恢复样本组', kind: 'simulated', tags: ['平台生成'], members: [{ id: 'simulation', name: '数值算例一', role: 'sample' }] },
   ] })
   const route = load('src/app/api/cases/catalog/route.ts', { '@/lib/server/literature': { listPapers: () => [] } })
   const get = async query => (await route.GET(new Request('http://localhost/api/cases/catalog?' + query))).json()
@@ -189,6 +189,8 @@ test('curated groups separate experiments and simulations, keep derived views in
   assert.equal((await get('id=batch')).item.name, '第一批试件')
   assert.equal((await get('id=combined')).item.role, 'derived')
   assert.ok((await get('kind=simulated')).items.some(item => item.id === 'monte-carlo'))
+  assert.deepEqual(Array.from((await get('id=monte-carlo')).group.nature.tags), ['平台生成'])
+  assert.equal((await get('q=平台生成')).items.filter(item => item.id === 'monte-carlo').length, 1)
   assert.ok(!(await get('kind=simulated')).items.some(item => item.id === 'experiment'))
   assert.equal((await route.GET(new Request('http://localhost/api/cases/catalog?id=deep-learning'))).status, 404)
   const storage = load('src/lib/cases_md.ts')
