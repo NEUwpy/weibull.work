@@ -7,6 +7,7 @@ import { Copy, Check, Download, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRig
 import { CatalogSearchForm } from '@/components/shared/CatalogSearchForm'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { usePreviewDialog } from '@/components/shared/usePreviewDialog'
+import { LibraryDocumentLink } from '@/components/library/LibraryDocumentDialog'
 import { createPreviewHistory } from '@/lib/library-preview-history'
 import type { CaseSearchResponse } from '@/lib/case-search'
 import { processLibraryContent, getLibraryMarkdownOptions } from '@/lib/library-markdown'
@@ -180,12 +181,12 @@ function DatasetDetails({ record }: { record: CatalogDataset }) {
           </div>}
       <div className="space-y-3 border-t border-slate-100 pt-4">
         {record.sources.map((source, index) => <div key={source.paper_id + '-' + index} className="space-y-1 text-sm text-slate-600">
-          <p><Link href={'/library/' + encodeURIComponent(source.paper_id) + '?version=' + encodeURIComponent('原文')} className="inline-flex items-start gap-1 text-emerald-700 hover:underline"><BookOpen size={15} className="mt-0.5 shrink-0" />
+          <p><LibraryDocumentLink href={'/library/' + encodeURIComponent(source.paper_id) + '?version=' + encodeURIComponent('原文')} className="inline-flex items-start gap-1 text-emerald-700 hover:underline"><BookOpen size={15} className="mt-0.5 shrink-0" />
             <span>[{source.paper_id}] {source.title || '查看文献'}{source.year ? '（' + source.year + '）' : ''}</span>
-          </Link></p>
+          </LibraryDocumentLink></p>
           <LibraryMathMarkdown className="text-sm text-slate-600">{source.location + (source.relation === 'secondary' ? ' · 经该文转引' : '') + (source.available === false ? ' · 文献待补' : '')}</LibraryMathMarkdown>
           {source.original_reference && <LibraryMathMarkdown className="text-sm text-slate-500">{'原始文献线索　' + source.original_reference}</LibraryMathMarkdown>}
-          {source.original_paper_id && <Link className="text-emerald-700 hover:underline" href={'/library/' + encodeURIComponent(source.original_paper_id)}>原始文献 [{source.original_paper_id}]</Link>}
+          {source.original_paper_id && <LibraryDocumentLink className="text-emerald-700 hover:underline" href={'/library/' + encodeURIComponent(source.original_paper_id)}>原始文献 [{source.original_paper_id}]</LibraryDocumentLink>}
         </div>)}
         {!record.sources.length && <p className="text-sm text-slate-500">平台保留样本，来源信息见原案例。</p>}
       </div>

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createLibraryPreviewHistory } from '../../src/lib/library-preview-history.ts'
+import { createLibraryPreviewHistory, createPreviewHistory } from '../../src/lib/library-preview-history.ts'
 
 const sourceState = { __NA: true, tree: ['library'], source: 'original window' }
 function browserHarness() {
@@ -49,6 +49,28 @@ test('browser Back closes the preview in one step and Forward reopens the last d
   assert.equal(app.target.history.state, sourceState)
   app.target.history.forward(); app.flush()
   assert.equal(app.changes.at(-1), '/library/182-046?version=原文#passage-59')
+})
+
+test('a paper opened above a case returns to that case before closing the catalog preview', () => {
+  const app = browserHarness()
+  app.target.history.replaceState(sourceState, '', '/cases')
+  const cases = []
+  const preview = createPreviewHistory(app.target, id => cases.push(id), '__weibullCasePreview', id => /^[\w-]+$/.test(id))
+  preview.open('hirose-batches')
+  app.controller.open('/library/182-010?version=原文')
+  app.controller.open('/library/182-010?version=翻译#passage-59')
+  assert.equal(app.target.location.href, '/cases')
+  assert.equal(app.target.history.state.__weibullCasePreview, 'hirose-batches')
+  app.controller.close(); app.flush()
+  assert.equal(app.changes.at(-1), null)
+  assert.equal(cases.at(-1), 'hirose-batches')
+  app.target.history.forward(); app.flush()
+  assert.equal(app.changes.at(-1), '/library/182-010?version=翻译#passage-59')
+  app.target.history.back(); app.flush()
+  preview.close(); app.flush()
+  assert.equal(cases.at(-1), null)
+  assert.equal(app.target.location.href, '/cases')
+  preview.dispose()
 })
 
 test('repeated close clicks consume only the preview entry and leave ordinary Back available', () => {

@@ -18,6 +18,15 @@
 .library-document h1 { font-size: 30px; margin: 0 0 1em; }
 .library-document h2 { font-size: 24px; margin: 1.8em 0 0.7em; }
 .library-document h3 { font-size: 20px; margin: 1.6em 0 0.6em; }
+.library-document .library-abstract {
+  margin: 0 0 2rem;
+  padding: 20px 24px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.library-document .library-abstract > :is(h1, h2, h3, h4, h5, h6):first-child { margin-top: 0; font-size: 22px; }
+.library-document .library-abstract > :last-child { margin-bottom: 0; }
 .library-document :is(h4, h5, h6) { font-size: 17px; margin: 1.5em 0 0.6em; }
 .library-document p { margin: 1em 0; text-align: left; }
 .library-document a { color: #2563eb; text-decoration: none; }

@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import { visit } from 'unist-util-visit'
 import GithubSlugger from 'github-slugger'
 
-export const LIBRARY_RENDERER_VERSION = '1.2.0'
+export const LIBRARY_RENDERER_VERSION = '1.3.0'
 
 export interface LibraryDiagnostic {
   code: string
@@ -94,12 +94,12 @@ function findReferenceSection(tree: any, length: number): { heading: any; start:
 
 // The source line numbers remain intact: removing a reference section replaces it
 // with blank lines, so diagnostics still point to the original Markdown.
-export function processLibraryContent(rawMarkdown: string): ProcessedLibraryContent {
+export function processLibraryContent(rawMarkdown: string, options: { requireAbstract?: boolean } = {}): ProcessedLibraryContent {
   const { data, content } = matter(rawMarkdown)
   const prefix = rawMarkdown.slice(0, rawMarkdown.length - content.length)
   const bodyLineOffset = (prefix.match(/\n/g) || []).length
   const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(content)
-  const diagnostics: LibraryDiagnostic[] = []
+  const diagnostics: LibraryDiagnostic[] = articleStructureDiagnostics(tree, bodyLineOffset, Boolean(options.requireAbstract))
   const referenceEntries: LibraryReference[] = []
   let body = content
   let referenceTitle = '参考文献'
@@ -136,6 +136,14 @@ export function processLibraryContent(rawMarkdown: string): ProcessedLibraryCont
     body = content.slice(0, start) + content.slice(start, end).replace(/[^\r\n]/g, '') + content.slice(end)
   }
 
+  // The reader already presents the public title and credits above the article.
+  // Keep source positions stable while starting article reading at its abstract.
+  const abstract = tree.children.find((node: any) => node.type === 'heading' && isAbstractTitle(nodeText(node)))
+  if (abstract && !['书籍', '软件文档', '技术资料'].includes(data.type)) {
+    const start = abstract.position.start.offset
+    body = body.slice(0, start).replace(/[^\r\n]/g, '') + body.slice(start)
+  }
+
   const slugger = new GithubSlugger()
   const bodyTree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(body)
   const headings: ProcessedLibraryContent['headings'] = []
@@ -149,6 +157,73 @@ export function processLibraryContent(rawMarkdown: string): ProcessedLibraryCont
 
 function nodeText(node: any): string {
   return typeof node.value === 'string' ? node.value : (node.children || []).map(nodeText).join('')
+}
+
+function isAbstractTitle(text: string): boolean {
+  return /^(?:abstract|摘\s*要|中文摘要|英文摘要)(?:\s*[:：.]|\s*[（(](?:abstract|摘要)[)）])?$/i.test(text.trim())
+}
+
+function isKeywordsTitle(text: string): boolean {
+  return /^(?:key\s*words?|关键词|关键字)(?:\s*[:：.]|$)/i.test(text.trim())
+}
+
+/** Content checks only: visual abstract styling belongs to the shared renderer. */
+function articleStructureDiagnostics(tree: any, offset: number, required: boolean): LibraryDiagnostic[] {
+  const diagnostics: LibraryDiagnostic[] = []
+  const report = (node: any, code: string, message: string) => diagnostics.push({ code, message, severity: 'error', line: (node?.position?.start?.line || 1) + offset })
+  const nodes: any[] = tree.children
+  const abstractIndex = nodes.findIndex(node => node.type === 'heading' && isAbstractTitle(nodeText(node)))
+  // Match standalone publisher controls, never mentions inside scientific prose,
+  // code examples, quotations, captions or bibliographic reference entries.
+  const publisher = /^(?:view supplementary material|submit your article to this journal|article views\s*[:：]|view related articles|view crossmark data|check for updates|(?:请)?(?:查看|检查)更新|查看补充材料|向本刊投稿|文章浏览量\s*[:：]|查看相关文章|查看\s*crossmark\s*数据|published online\s*[:：]|(?:首次)?在线发表\s*[:：]|to cite this article\s*[:：]|to link to this article\s*[:：]|引用本文\s*[:：]|原文链接\s*[:：]|full terms\s*[&＆]\s*conditions|journal homepage\s*[:：])/i
+  for (const node of nodes) {
+    if (!['paragraph', 'heading'].includes(node.type)) continue
+    const text = nodeText(node).replace(/\s+/g, ' ').trim()
+    if (text.length < 1000 && publisher.test(text)) report(node, 'article.publisher-chrome', '正文混入出版商页面控件或封面杂项；对照原文删除该项及仅为该控件服务的图标，保留实际补充材料说明和学术图表。')
+  }
+  if (!required) return diagnostics
+  if (abstractIndex < 0) {
+    const inline = nodes.find(node => node.type === 'paragraph' && /^(?:abstract|摘\s*要)\s*[:：.—-]?\s*/i.test(nodeText(node)))
+    report(inline || nodes[0], 'article.abstract-missing', '未找到独立的“## Abstract”或“## 摘要”区。请对照原文整理摘要，正文须从摘要开始；不得用笔记总结代替或编造摘要。')
+    return diagnostics
+  }
+  const abstract = nodes[abstractIndex]
+  const before = nodes.slice(0, abstractIndex)
+  // A single article title and its short bibliographic/author lines are front
+  // matter, not body sections. Tables, figures and numbered body sections are not.
+  const title = before.find(node => node.type === 'heading' && node.depth === 1)
+  for (const node of before) {
+    const text = nodeText(node).trim()
+    if ((node.type === 'heading' && node !== title) || ['table', 'code', 'math', 'blockquote', 'list'].includes(node.type) ||
+        (node.type === 'paragraph' && (node.children?.some((child: any) => child.type === 'image' || child.type === 'imageReference') || text.length > 900)) ||
+        (node.type === 'html' && /<(?:img|table)\b/i.test(text))) {
+      report(node, 'article.before-abstract', '摘要前存在正文章节、图表或非题录内容；核对PDF，删除识别杂项，实际正文与图表应放在摘要之后。')
+    }
+  }
+  const next = nodes.findIndex((node, index) => index > abstractIndex && node.type === 'heading' && node.depth <= abstract.depth)
+  const region = nodes.slice(abstractIndex + 1, next < 0 ? nodes.length : next)
+  const prose = region.filter(node => ['paragraph', 'list'].includes(node.type) && !isKeywordsTitle(nodeText(node)))
+  if (!prose.some(node => nodeText(node).trim())) report(abstract, 'article.abstract-empty', '摘要区为空或只有关键词；须保留原论文的摘要正文。')
+  const following = next < 0 ? [] : nodes.slice(next).filter(node => node.type === 'heading' && !isAbstractTitle(nodeText(node)) && !isKeywordsTitle(nodeText(node)) && !/^(?:references|参考文献|bibliography)\s*[:：]?$/i.test(nodeText(node).trim()))
+  if (!following.length) report(abstract, 'article.body-missing', '摘要之后未识别到正文章节；请检查是否仅保留了摘要或正文标题尚未整理，不能以摘要代替全文。')
+  return diagnostics
+}
+
+function rehypeLibraryAbstract() {
+  return (tree: any) => {
+    for (let index = 0; index < tree.children.length; index++) {
+      const heading = tree.children[index]
+      if (heading.type !== 'element' || !/^h[1-6]$/.test(heading.tagName) || !isAbstractTitle(nodeText(heading))) continue
+      let end = index + 1
+      while (end < tree.children.length) {
+        const node = tree.children[end]
+        if (node.type === 'element' && ((/^h[1-6]$/.test(node.tagName) && node.tagName <= heading.tagName) || (node.tagName === 'p' && isKeywordsTitle(nodeText(node))))) break
+        end++
+      }
+      const section = element('section', { className: ['library-abstract'], 'aria-label': nodeText(heading).trim() }, tree.children.slice(index, end))
+      tree.children.splice(index, end - index, section)
+    }
+  }
 }
 
 function headingText(node: any): string {
@@ -396,7 +471,7 @@ export function getLibraryMarkdownOptions(processed: ProcessedLibraryContent, ob
   const rehypePlugins: PluggableList = [rehypeRaw, rehypeSlug, [rehypeLibraryHtmlCellMath, { processed, observation }], rehypeKatex,
     ...(linkCitations ? [[rehypeLibraryCitations, { processed, observation }] as any] : []), rehypeStyleCaptions,
     ...(linkCitations ? [[rehypeLibraryPassages, { processed }] as any] : []),
-    rehypeLibraryTables,
+    rehypeLibraryTables, rehypeLibraryAbstract,
     [rehypeLibraryObserve, { processed, observation }]]
   return { remarkPlugins, rehypePlugins }
 }

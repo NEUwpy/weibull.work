@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: 'Weibull Header Calibri';
-  src: url('/fonts/header-calibri-bold.woff2') format('woff2');
+  font-family: 'Weibull Header Linux Libertine G';
+  src: url('/fonts/header-linux-libertine-g-bold.woff2') format('woff2');
   font-style: normal;
   font-weight: 700;
   font-display: swap;
@@ -106,13 +106,14 @@ body {
 }
 .site-navigation-frame { height: var(--header-control-size); }
 .site-title > :last-child { height: var(--header-control-size); justify-content: center; }
-.site-title h1 { font-family: 'Weibull Header Calibri', Calibri, Arial, sans-serif; }
+.site-title h1 { font-family: 'Weibull Header Linux Libertine G', 'Linux Libertine G', Georgia, serif; }
 .site-title > :last-child > span {
   font-family: 'Weibull Header YanZhenqing', '方正颜真卿楷书 简繁', KaiTi, serif;
   font-size: 18px;
   line-height: 1.25;
   color: #475569;
   font-synthesis: none;
+  transform: translateY(2px);
 }
 
 /* Existing desktop utilities remain the baseline; compact layouts are opt-in. */

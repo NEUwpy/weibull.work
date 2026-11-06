@@ -36,9 +36,14 @@ def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
         # criterion is readable. These calls occur after selection, never enter
         # root finding, and are identified separately from solver evaluations.
         if evaluations is not None:
-            start = max(lower, beta * .5, 1e-8)
-            stop = min(upper, beta * 1.5) if upper is not None else beta * 1.5
-            for value in np.unique(np.r_[np.linspace(start, stop, 61), beta]):
+            actual_shapes = [p['beta'] for p in evaluations if p['source'] == 'solver']
+            start = max(lower, min([beta*.5, *actual_shapes]), 1e-8)
+            stop = max([beta*1.5, *actual_shapes])
+            if upper is not None:
+                stop = min(upper, stop)
+            nodes = np.unique(np.r_[np.linspace(start, stop, 81),
+                                    np.geomspace(start, stop, 81), actual_shapes, beta])
+            for value in nodes:
                 score(float(value), source='diagnostic')
         return beta, residual, boundary
 

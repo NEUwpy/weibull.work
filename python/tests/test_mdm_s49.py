@@ -4,6 +4,8 @@ import os
 import sys
 
 import pytest
+import numpy as np
+from scipy.optimize import minimize_scalar
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -29,7 +31,9 @@ def test_default_mdm_truncates_negative_offset_root_to_zero():
     assert trace["constraint"] == "gamma >= 0"
     assert trace["gamma_steps"] == 20
     assert trace["optimal_gamma"] == 0.0
-    assert len(trace["grad_gamma_curve"]) == 20
+    computed = [p for p in trace["grad_gamma_curve"] if p['source'] != 'display_sample']
+    assert len(computed) == 20
+    assert len(trace["grad_gamma_curve"]) == len(computed)
     assert trace["probe_gradient_at_zero"] > trace["target_offset"]
 
 
@@ -105,6 +109,56 @@ def test_default_mdm_trace_curve_matches_solver_gradient_function():
     root_point = min(curve, key=lambda point: abs(point["gamma"] - gamma))
     assert root_point["gamma"] == pytest.approx(gamma)
     assert root_point["gradient"] == pytest.approx(trace["target_offset"], abs=1e-5)
+
+
+def test_mdm_curves_only_use_actual_solver_evaluations(monkeypatch):
+    from methods import mdm as mdm_module
+    evaluations = []
+    original = mdm_module.minimize_scalar
+    def counted(function, *args, **kwargs):
+        def objective(beta):
+            evaluations.append(float(beta))
+            return function(beta)
+        return original(objective, *args, **kwargs)
+    monkeypatch.setattr(mdm_module, 'minimize_scalar', counted)
+    sample = np.array([1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73])
+    mdm = MDM(sample)
+    plain = MDM(sample).run(trace=False, offset=.12)
+    original_evaluations = list(evaluations)
+    evaluations.clear()
+    assert mdm.run(trace=True, offset=.12) == plain
+    assert evaluations == original_evaluations
+    curve = mdm.trace_data['grad_gamma_curve']
+    by_gamma = {point['gamma']: point for point in curve}
+    for point in mdm.calculation_trace['details']['root_evaluations']:
+        assert by_gamma[point['gamma']]['gradient'] == point['gradient']
+        assert by_gamma[point['gamma']]['source'] in ('solver_evaluation', 'solver_root')
+    expected_gammas = {point['gamma'] for point in mdm.calculation_trace['details']['gradient_scan']}
+    expected_gammas.update(point['gamma'] for point in mdm.calculation_trace['details']['root_evaluations'])
+    assert set(by_gamma) == expected_gammas
+    assert all(point['source'] != 'display_sample' for point in curve)
+    plotted_shape = mdm.trace_data['sigma_beta_curve']
+    recorded_shape = mdm.calculation_trace['charts'][0]['series'][0]['points']
+    assert sorted((p['beta'], p['sigma'], p['evaluation']) for p in plotted_shape) == sorted(
+        (p['x'], p['y'], p['evaluation']) for p in recorded_shape)
+
+    probabilities = (np.arange(1, len(sample)+1)-.3)/(len(sample)+.4)
+    quantiles = -np.log1p(-probabilities)
+    def sigma(gamma):
+        return minimize_scalar(lambda beta: np.std((sample-gamma)/quantiles**(1/beta), ddof=1),
+                               bounds=(.1, 15.), method='bounded').fun
+    # Check actual function values independently near the selected root.
+    nearest = sorted(curve, key=lambda point: abs(point['gamma']-plain[2]))[:3]
+    for point in nearest:
+        h = min(sample)*1e-5
+        expected = (sigma(point['gamma']+h)-sigma(point['gamma']-h))/(2*h)
+        assert point['gradient'] == pytest.approx(expected, abs=2e-8)
+    for surface in mdm.trace_data['sigma_beta_gamma']:
+        assert list(zip(surface['betas'], surface['sigmas'])) == sorted(
+            (p['beta'], p['sigma']) for p in surface['solver_points'])
+        for point in surface['solver_points']:
+            expected = np.std((sample-surface['gamma'])/quantiles**(1/point['beta']), ddof=1)
+            assert point['sigma'] == pytest.approx(expected, rel=2e-12)
 
 
 def test_default_mdm_records_lightweight_solution_info_without_trace():

@@ -23,7 +23,7 @@ from scipy import integrate, special
 from scipy.optimize import minimize_scalar
 
 from base import WeibullBase
-from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step, regression_calculation
 
 # E[W_(i:n)] 缓存：White (1969) 对数威布尔顺序统计量一阶矩
 _OS_MEANS_CACHE = {}
@@ -134,7 +134,8 @@ class LSE(WeibullBase):
             s_res2 = float(np.sum(residuals ** 2)) / (n - 2)
             f_ratio = float('inf') if s_res2 <= 0 else s_y2 / s_res2
             if trace:
-                evaluations.append(dict(x=float(mu), y=f_ratio, evaluation=len(evaluations) + 1))
+                evaluations.append(dict(x=float(mu), y=f_ratio, slope=slope, intercept=intercept,
+                                        evaluation=len(evaluations) + 1))
             return slope, intercept, f_ratio
 
         def profile_f(mu):
@@ -221,6 +222,29 @@ class LSE(WeibullBase):
         }
 
         if trace:
+            # Reuse recorded White fits for linked reading. These views neither
+            # call a second estimator nor enter the position selection above.
+            finite_fits = {p['x']: p for p in evaluations if math.isfinite(p['y'])}
+            ordered_fits = sorted(finite_fits.values(), key=lambda p: p['x'])
+            view_positions = {float(best_mu)}
+            if ordered_fits:
+                targets = list(np.linspace(0.0, t_min, 9)) + [
+                    best_mu - (t_min - best_mu), best_mu + (t_min - best_mu) / 2.0]
+                view_positions.update(min(ordered_fits, key=lambda p: abs(p['x'] - target))['x']
+                                      for target in targets)
+            regression_views = []
+            for mu in sorted(view_positions):
+                point = finite_fits.get(mu)
+                if point is None:
+                    continue
+                b, a = point['slope'], point['intercept']
+                regression_views.append(dict(
+                    gamma=mu, criterion=point['y'], slope=b, intercept=a,
+                    beta=1.0 / b, eta=math.exp(a), selected=mu == best_mu,
+                    points=[dict(x=float(xi), y=float(yi), fit=float(a + b * xi),
+                                 observation=float(ti), distance=float(ti-mu))
+                            for xi, yi, ti in zip(X, np.log(t - mu), t)]))
+                regression_views[-1]['calculation'] = regression_calculation(regression_views[-1]['points'])
             curve = [
                 {"mu": float(m), "f_ratio": (float(f) if math.isfinite(f) else None)}
                 for m, f in zip(mus, f_values)
@@ -256,6 +280,8 @@ class LSE(WeibullBase):
                           calculation_step('回归斜率确定形状', r'\hat\beta=1/b', [('b', slope), ('β̂', shape)]),
                           calculation_step('回归截距确定尺度', r'\hat\eta=e^a', [('a', intercept), ('η̂', scale)])],
                 details=dict(**self.last_solution_info, slope=slope, intercept=intercept,
-                             order_statistic_means=X.tolist(), evaluations=evaluations))
+                             order_statistic_means=X.tolist(), evaluations=evaluations,
+                             regression_views=regression_views,
+                             reference=dict(paper='Soman–Misra (1992)', section='§2 Procedure，表1–2')))
 
         return [float(shape), float(scale), float(best_mu), float(r2), True]

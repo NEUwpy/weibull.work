@@ -22,7 +22,7 @@ class MLE(WeibullBase):
             return [None, None, None, 0., 'profile_solver_failed']
         self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations')}
         if trace:
-            self.calculation_trace = profile_calculation('mle', info, selected)
+            self.calculation_trace = profile_calculation('mle', info, selected, data=self.data)
             for candidate in info.get('candidates', []):
                 self.log_step(dict(phase='candidate', beta=candidate['beta'],
                                    eta=candidate['eta'], gamma=candidate['gamma'],

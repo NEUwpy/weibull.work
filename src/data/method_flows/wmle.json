@@ -5,13 +5,13 @@
   "description": "原权重与方程 → 条件求根 → 位置搜索与多根选择。",
   "steps": [
     {
-      "name": "数据与权重准备",
-      "description": "进入求解器，以最小寿命u归一化样本。",
+      "name": "准备样本与加权方程",
+      "description": "准备样本与J权重；J₃随求解中的候选形状变化。",
       "basis": "工程限制：内部形状求根上限10，最终候选还须β<9.99。",
       "notes": "Web统一入口至少3点；条件剖面至少2点。",
       "formula": {
         "expression": "u=t_{(1)},\\quad z_i=t_i/u,\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}",
-        "explanation": "进入求解器，以最小寿命u归一化样本。",
+        "explanation": "准备样本与J权重；J₃随求解中的候选形状变化。",
         "symbols": [
           {
             "symbol": "z_i",
@@ -62,13 +62,13 @@
       "primarySource": 2
     },
     {
-      "name": "条件形状求解",
-      "description": "固定位置，在0<β<10内用Brent求加权形状根；没有内部根时返回None。",
+      "name": "让形状方程成立",
+      "description": "固定一个位置γ，求使T₁=0的形状β，得到一组成对候选。",
       "basis": "数值策略：Brent求内部形状根；无0<β<10的根时不生成条件点。",
       "notes": "",
       "formula": {
         "expression": "v_i=\\ln d_i-\\overline{\\ln d},\\quad w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}},\\quad T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i=0",
-        "explanation": "固定位置，在0<β<10内用Brent求加权形状根；没有内部根时返回None。",
+        "explanation": "固定一个位置γ，求使T₁=0的形状β，得到一组成对候选。",
         "symbols": [
           {
             "symbol": "\\beta",
@@ -143,13 +143,13 @@
       "primarySource": 5
     },
     {
-      "name": "恢复尺度与计算方程残差",
-      "description": "用中心化对数距离和归一化幂权重计算T₁、T₂，目标是两者同时为零。",
+      "name": "代入位置方程并恢复尺度",
+      "description": "将成对的β、γ代入T₂，查看第二条方程是否也成立；同时按J₁恢复尺度。",
       "basis": "方法核心：原J₂/J₃加权方程；用logsumexp稳定幂和。",
       "notes": "",
       "formula": {
         "expression": "\\begin{gathered}\\eta=\\left(\\frac{\\sum_i(t_i-\\gamma)^\\beta}{nJ_1}\\right)^{1/\\beta}\\\\[6pt]\\begin{gathered}d_i=t_i-\\gamma\\\\[5pt] v_i=\\ln d_i-\\overline{\\ln d}\\\\[5pt] w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}}\\\\[5pt] T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i\\\\[5pt] T_2=\\overline{d^{-1}}\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3\\end{gathered}\\end{gathered}",
-        "explanation": "用中心化对数距离和归一化幂权重计算T₁、T₂，目标是两者同时为零。",
+        "explanation": "将成对的β、γ代入T₂，查看第二条方程是否也成立；同时按J₁恢复尺度。",
         "symbols": [
           {
             "symbol": "T_1",
@@ -221,13 +221,13 @@
       "primarySource": 1
     },
     {
-      "name": "搜索并校验位置候选",
-      "description": "缺少条件交点时，在γ=0最小化两个残差平方和；满足门槛才可采纳。",
+      "name": "寻找两方程的共同解",
+      "description": "沿T₁=0的条件解改变位置，寻找T₂也为零的位置，并核对原方程残差。",
       "basis": "兼容规则：保留原有零位置残差容忍，并明确标记近似边界根。",
       "notes": "近似解不声称两个残差同时精确为零；无合格候选时返回no_equation_root_found。",
       "formula": {
         "expression": "Q=T_1^2+T_2^2\\le10^{-8},\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}",
-        "explanation": "缺少条件交点时，在γ=0最小化两个残差平方和；满足门槛才可采纳。",
+        "explanation": "沿T₁=0的条件解改变位置，寻找T₂也为零的位置，并核对原方程残差。",
         "symbols": [
           {
             "symbol": "\\mathrm{boundary\\_residual\\_tolerance}",
@@ -284,13 +284,13 @@
       "primarySource": 2
     },
     {
-      "name": "多根选择与状态检查",
-      "description": "在目标值距最低值≤10⁻¹²的候选中，按既有初值邻近规则选一个。",
+      "name": "核对并选定共同解",
+      "description": "有多个合格共同解时，按现行选择规则确定最终β、γ，保留该点对应的η。",
       "basis": "工程选择：沿用原启发式β=2、γ=0.9tmin附近的距离规则。",
       "notes": "选择不使用仿真真值。",
       "formula": {
         "expression": "\\begin{gathered}\\mathcal C_*=\\{c:Q(c)\\le Q_{min}+10^{-12}\\}\\\\[5pt]\\hat c=\\arg\\min_{c\\in\\mathcal C_*}\\left[\\ln^2(\\beta/2)+\\left(\\frac{\\gamma-0.9u}{\\max(u,1)}\\right)^2\\right]\\end{gathered}",
-        "explanation": "在目标值距最低值≤10⁻¹²的候选中，按既有初值邻近规则选一个。",
+        "explanation": "有多个合格共同解时，按现行选择规则确定最终β、γ，保留该点对应的η。",
         "symbols": [
           {
             "symbol": "\\hat c",
@@ -333,13 +333,13 @@
       "primarySource": 0
     },
     {
-      "name": "计算拟合优度并返回",
-      "description": "计算拟合优度，返回形状、尺度和位置参数。",
+      "name": "返回结果与拟合检查",
+      "description": "返回三参数并补充拟合检查；拟合优度不参与加权方程求根。",
       "basis": "项目诊断：概率图R²不参与加权方程求根。",
       "notes": "trace候选和曲面不是优化迭代；失败与近似边界标记保留在last_solution_info。",
       "formula": {
         "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
-        "explanation": "计算拟合优度，返回形状、尺度和位置参数。",
+        "explanation": "返回三参数并补充拟合检查；拟合优度不参与加权方程求根。",
         "symbols": [
           {
             "symbol": "(β,η,γ,R²,status)",

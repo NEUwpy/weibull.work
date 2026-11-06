@@ -29,7 +29,23 @@ export const chartRegistry: ChartRegistry = {
   // ============================================================
   // ScatterPlot
   // ============================================================
-  ScatterPlot: [],
+  ScatterPlot: [
+    ...['mle', 'wmle', 'mmle'].map(method => ({
+      id: `${method}-scale-calculation`, label: `${method.toUpperCase()} 逐样本尺度计算`,
+      location: 'PowerScaleCalculation / shared ProcessChart',
+      description: '逐样本距离的幂次贡献、汇总量及尺度代入；数值过大或过小时使用等价归一化式。',
+      dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
+      props: { methodId: method, source: 'calculation.details.scale_calculation', exampleOnly: method === 'mmle' },
+    })),
+    {
+      id: 'mdm-scale-calculation',
+      label: 'MDM 逐样本伪尺度与平均值',
+      location: 'MDMScaleCalculation / shared ProcessChart',
+      description: '每个样本反算的伪尺度值与最终均值线；切换样本查看概率、位移和分母到伪尺度的实际代入。',
+      dataSource: { type: 'api', endpoint: 'POST /calculate' },
+      props: { methodId: 'mdm', x: '样本值 t₍ᵢ₎', y: '伪尺度 ηᵢ', mean: 'η̂', source: 'calculation.details.pseudo_scales' },
+    },
+  ],
 
   // ============================================================
   // Histogram
@@ -57,14 +73,22 @@ export const chartRegistry: ChartRegistry = {
   // LineChart (AIChartLine)
   // ============================================================
   LineChart: [
-    ...['mle', 'wmle', 'mdm', 'lse', 'lre', 'mm', 'mmle'].map(method => ({
+    ...['mle', 'wmle', 'lse', 'lre', 'mm', 'mmle'].map(method => ({
       id: `calculation-${method}`,
       label: `${method.toUpperCase()} 本次计算与选择判据`,
-      location: 'CalculationProcessViewer',
-        description: '按方法显示似然/方程、F比/相关回归、Weibull矩面积或真实不动点迭代，并对应参数恢复公式。',
+      location: method === 'mm' ? 'MethodCalculationSteps / MomentProcessViewer' : 'MethodCalculationSteps / ProcessChart',
+      description: '按求参阶段分步展示，说明坐标、曲线依据与取值判据，采纳点配虚线读数；联动比较和完整代入在详情中。',
       dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
-        props: { contract: 'calculation/schema_version=1', methodId: method, source: 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only' },
+      props: { contract: 'calculation/schema_version=1', methodId: method, source: 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only', exampleOnly: method === 'mmle' },
     })),
+    {
+      id: 'calculation-mdm',
+      label: 'MDM 形状寻优与位置梯度判据双图',
+      location: 'MDMVisualizer / SigmaBetaChart / GradientGammaChart',
+      description: '同一位置下的伪尺度标准差曲线与条件最小点，联动标记位置梯度判据；外推位置不画作真实交点。',
+      dataSource: { type: 'api', endpoint: 'POST /calculate' },
+      props: { contract: 'calculation/schema_version=1 + trace_data', methodId: 'mdm', source: 'backend-owned', interpolation: 'linear display only' },
+    },
     {
       id: 'methods-analysis-rmse',
       label: '现场模拟参数 RMSE 趋势',

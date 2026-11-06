@@ -180,12 +180,12 @@ class MM(WeibullBase):
                 selection=dict(description=description, status='ok', beta=float(shape),
                                eta=float(scale), gamma=float(location),
                                raw_estimate=raw_estimate, location_adjustment=location_adjustment),
-                charts=[plot_chart('weibull-moments', '生存函数面积形成样本矩', '失效时间 t', '经验生存函数的幂 Sₙ(t)ᵏ',
+                charts=[plot_chart('weibull-moments', '生存函数面积形成样本矩', '失效时间 t', '经验生存函数的幂 Ŝf(t)ᵏ',
                                    [dict(**plot_series(f'survival-{k}', f'k={k}，m̄={moment:.6g}',
                                         [plot_point(0, 1)] + [plot_point(value, ((n-i-1)/n)**k)
                                                               for i, value in enumerate(x)], role='diagnostic'),
                                          interpolation='stepAfter') for k, moment in ((1,m1),(2,m2),(4,m4))],
-                                   formula=r'\bar m_k=\int_0^\infty S_n(t)^k\,dt=\sum_{r=0}^{n-1}(1-r/n)^k(t_{(r+1)}-t_{(r)})',
+                                    formula=r'\bar m_k=\int_0^\infty [1-S_n(t)]^k\,dt=\sum_{r=0}^{n-1}(1-r/n)^k(t_{(r+1)}-t_{(r)})',
                                    description='三条阶梯曲线下的面积分别是 m̄₁、m̄₂、m̄₄，用来显式求解参数。'),
                         plot_chart('moment-admissibility', '样本矩能否给出正的形状和尺度',
                                    'd₂₄ = m̄₂−m̄₄', 'd₁₂ = m̄₁−m̄₂',
@@ -202,6 +202,22 @@ class MM(WeibullBase):
                                            [('η*（原始）',raw_estimate['eta']),('η̂（返回）',scale)])],
                 details=dict(**self.last_solution_info,
                              moment_terms=terms,
+                              moment_intervals=[dict(
+                                  left=float(x[i-1]) if i else 0.0, right=float(value),
+                                  survival=float(1.0-i/n),
+                                  contributions={str(k): terms[k][i] for k in (1, 2, 4)})
+                                  for i, value in enumerate(x)],
+                              formula_values=dict(d12=m1-m2, d24=m2-m4,
+                                                  shape_denominator=math.log(m1-m2)-math.log(m2-m4),
+                                                  location_numerator=m1*m4-m2*m2,
+                                                  location_denominator=m1+m4-2*m2,
+                                                  gamma_function=float(gamma_fn(1.0+1.0/shape)),
+                                                  minimum=float(x[0])),
+                              location_calculation=dict(
+                                  alternative=float(alt) if location_adjustment == 'alternative_a_star_star' else None,
+                                  sample_size=n, sample_size_root=float(n ** (1.0/shape)),
+                                  final_scale_numerator=float(m1-location)),
+                              reference=dict(paper='Cran (1988)', section='式(1)–(3)，位置参数节'),
                              scale_recomputed=location_adjustment is not None,
                              implementation_note='位置处理后的尺度重算是当前实现的工程补充规则，未经修正参数保留在 raw_estimate。'))
 

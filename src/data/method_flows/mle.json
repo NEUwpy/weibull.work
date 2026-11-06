@@ -5,13 +5,13 @@
   "description": "条件形状求根 → 有限似然候选搜索 → 边界极限单列。",
   "steps": [
     {
-      "name": "数据预处理",
-      "description": "进入求解器，以最小寿命u归一化样本。返回候选时恢复原单位。",
+      "name": "准备样本与支持范围",
+      "description": "整理样本，建立位置参数的可取范围；归一化只用于稳定计算。",
       "basis": "公共输入与工程域：β≥1、η>0、0≤γ<t₍₁₎。",
       "notes": "Web统一估计入口要求至少3点；条件剖面辅助函数至少要求2点。当前似然针对完整失效样本。",
       "formula": {
         "expression": "t_{(1)}\\le\\cdots\\le t_{(n)},\\quad u=t_{(1)},\\quad z_i=t_i/u",
-        "explanation": "进入求解器，以最小寿命u归一化样本。返回候选时恢复原单位。",
+        "explanation": "整理样本，建立位置参数的可取范围；归一化只用于稳定计算。",
         "symbols": [
           {
             "symbol": "z_i",
@@ -58,13 +58,13 @@
       "primarySource": 1
     },
     {
-      "name": "条件形状求解",
-      "description": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
+      "name": "固定位置，确定形状",
+      "description": "先固定一个位置γ，求该位置下使条件似然最大的形状β。",
       "basis": "标准似然的条件得分；数值上用Brent，倍增上界括根、指数权重先减最大值。",
       "notes": "全等样本无有限形状根。下界得分≤0时返回1并标记边界；此时不要求得分为零。",
       "formula": {
         "expression": "\\begin{gathered}d_i=t_i-\\gamma\\\\[5pt] v_i=\\ln d_i-\\overline{\\ln d}\\\\[5pt] w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}}\\\\[5pt] s_\\beta=\\frac1\\beta-\\sum_iw_iv_i=0\\end{gathered}",
-        "explanation": "固定位置，对中心化对数距离求形状得分的根；必要时采纳β=1下界。",
+        "explanation": "先固定一个位置γ，求该位置下使条件似然最大的形状β。",
         "symbols": [
           {
             "symbol": "\\beta",
@@ -137,13 +137,13 @@
       "primarySource": 4
     },
     {
-      "name": "恢复尺度与似然",
-      "description": "在条件形状下恢复η，计算用于位置搜索的似然及位置得分。",
+      "name": "确定对应尺度与似然",
+      "description": "将条件形状代回尺度公式，得到这个位置对应的η与似然值。",
       "basis": "标准三参数Weibull似然；程序用logsumexp稳定幂和。",
       "notes": "",
       "formula": {
         "expression": "\\begin{gathered}\\eta=\\left(\\frac1n\\sum_i d_i^\\beta\\right)^{1/\\beta}\\\\[5pt]\\ell_p=n[\\ln\\beta-\\overline{\\ln d}-\\ln\\overline{e^{\\beta v}}-1]\\\\[5pt] s_\\gamma=n\\left[\\beta\\sum_i\\frac{w_i}{d_i}-(\\beta-1)\\overline{d^{-1}}\\right]\\end{gathered}",
-        "explanation": "在条件形状下恢复η，计算用于位置搜索的似然及位置得分。",
+        "explanation": "将条件形状代回尺度公式，得到这个位置对应的η与似然值。",
         "symbols": [
           {
             "symbol": "η",
@@ -211,13 +211,13 @@
       "primarySource": 0
     },
     {
-      "name": "搜索并校验位置候选",
-      "description": "回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。",
+      "name": "换位置，重复条件求解",
+      "description": "换一个位置，重复前两步；寻找似然由升转降的候选位置。",
       "basis": "数值策略：零位置得分≤0时保留；内部候选要求β>1，并按位置去重。",
       "notes": "有限网格和局部精化不构成全域最优证明。候选记录不是优化迭代轨迹。",
       "formula": {
         "expression": "s_\\gamma(\\gamma_L)>0>s_\\gamma(\\gamma_R),\\quad0\\le\\gamma<t_{(1)}",
-        "explanation": "回到位置搜索：保留合格零边界，括根并补查窄谷和平坦峰。每次求值重复上面的条件剖面。",
+        "explanation": "换一个位置，重复前两步；寻找似然由升转降的候选位置。",
         "symbols": [
           {
             "symbol": "\\mathcal C",
@@ -260,13 +260,13 @@
       "primarySource": 0
     },
     {
-      "name": "比较候选与边界处理",
-      "description": "选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。",
+      "name": "比较似然，确定三参数",
+      "description": "比较合格候选位置的似然，选定最终γ及其对应β、η；支持边界极限单独记录。",
       "basis": "工程约束与诊断：γ=tmin不在开支撑内，不用任意ε伪造可达极大。",
       "notes": "无有限候选时返回no_finite_local_maximum；极限似然更高时也仅记录标记，不替换有限估计。",
       "formula": {
         "expression": "\\hat c=\\arg\\max_{c\\in\\mathcal C}\\ell(c),\\quad\\eta_{lim}=\\overline{t-t_{(1)}},\\quad\\ell_{lim}=-n(1+\\ln\\eta_{lim})",
-        "explanation": "选择原始似然最大的有限候选；β=1、γ趋近最小样本的极限单列。",
+        "explanation": "比较合格候选位置的似然，选定最终γ及其对应β、η；支持边界极限单独记录。",
         "symbols": [
           {
             "symbol": "\\hat c",
@@ -318,13 +318,13 @@
       "primarySource": 0
     },
     {
-      "name": "计算拟合优度并返回",
-      "description": "计算拟合优度，返回形状、尺度和位置参数。",
+      "name": "返回结果与拟合检查",
+      "description": "返回本次三参数并补充拟合检查；拟合优度不参与似然选点。",
       "basis": "项目接口与诊断：概率图R²不参与似然最大化。",
       "notes": "求解异常返回profile_solver_failed、参数为None。R²用变换后残差；γ越界或总平方和为零时返回0。此页为静态程序说明。",
       "formula": {
         "expression": "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
-        "explanation": "计算拟合优度，返回形状、尺度和位置参数。",
+        "explanation": "返回本次三参数并补充拟合检查；拟合优度不参与似然选点。",
         "symbols": [
           {
             "symbol": "(β,η,γ,R²,status)",

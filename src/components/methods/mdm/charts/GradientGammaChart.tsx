@@ -10,9 +10,10 @@
  */
 "use client"
 
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
-  LineChart,
+  ComposedChart,
+  Scatter,
   Line,
   XAxis,
   YAxis,
@@ -20,9 +21,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   Label
 } from 'recharts'
 import { cn } from '@/lib/utils'
+import { formatCalculationNumber as number } from '@/lib/calculation-trace'
 
 // 单条曲线数据类型
 export interface GradientGammaPoint {
@@ -83,6 +86,9 @@ interface GradientGammaChartProps {
   showZeroLine?: boolean      // 是否显示 y=0 参考线，默认 true
   showPoints?: boolean        // 是否显示曲线采样点，默认 false
   gammaReferenceLines?: GammaReferenceLine[]  // 额外的 γ 参考线
+  selectedPoint?: { gamma: number; gradient: number }
+  calculatedPoints?: GradientGammaPoint[]
+  interpolation?: 'linear' | 'monotone'
 
   // 样式
   height?: number
@@ -113,6 +119,9 @@ export function GradientGammaChart({
   showZeroLine = true,
   showPoints = false,
   gammaReferenceLines = [],
+  selectedPoint,
+  calculatedPoints = [],
+  interpolation = 'monotone',
   height = 300,
   showTitle = true,
   title,
@@ -120,18 +129,23 @@ export function GradientGammaChart({
   className,
   noContainer = false
 }: GradientGammaChartProps) {
+  const [hoveredPoint, setHoveredPoint] = useState<GradientGammaPoint | null>(null)
+  const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-gradient-calculated-point"
+    cx={props.cx} cy={props.cy} r={2.7} fill="#ef4444" stroke="#fff" strokeWidth={0.5}
+    data-gamma={props.payload.gamma} data-gradient={props.payload.gradient}
+    onMouseEnter={() => setHoveredPoint(props.payload)} onMouseLeave={() => setHoveredPoint(null)} />, [])
 
   // 计算显示用的曲线
   const displayCurves = useMemo(() => {
-    if (overlayMode) {
-      return curves
-    }
-    // 单曲线模式
-    if (singleCurve) {
-      return [{ id: 'current', data: singleCurve, color: '#ef4444', strokeWidth: 2 }]
-    }
-    return curves.length > 0 ? [curves[0]] : []
-  }, [curves, singleCurve, overlayMode])
+    const selected = overlayMode ? curves : singleCurve
+      ? [{ id: 'current', data: singleCurve, color: '#ef4444', strokeWidth: 2 }]
+      : curves.length > 0 ? [curves[0]] : []
+    return domain?.x ? selected.map(curve => ({ ...curve,
+      data: curve.data.filter(point => point.gamma >= domain.x![0] && point.gamma <= domain.x![1]) })) : selected
+  }, [curves, singleCurve, overlayMode, domain?.x])
+  const visibleCalculatedPoints = domain?.x
+    ? calculatedPoints.filter(point => point.gamma >= domain.x![0] && point.gamma <= domain.x![1])
+    : calculatedPoints
 
   // 计算坐标轴范围
   const allGammas = useMemo(() => {
@@ -193,7 +207,7 @@ export function GradientGammaChart({
   // 图表渲染部分
   const chartContent = (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart
+      <ComposedChart
         data={displayCurves[0]?.data || []}
         margin={{ top: 20, right: 25, bottom: 45, left: 20 }}
       >
@@ -202,37 +216,46 @@ export function GradientGammaChart({
           dataKey="gamma"
           type="number"
           domain={xDomain}
+          allowDataOverflow={!!domain?.x}
           tickFormatter={(v) => v.toFixed(0)}
-          tick={{ fontSize: 10 }}
+          tick={{ fontSize: 14 }}
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '位置参数 γ', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
+          label={{ value: '位置参数 γ', position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
         <YAxis
-          width={45}
+          dataKey="gradient"
+          width={68}
           domain={yDomain}
+          allowDataOverflow={!!domain?.y}
           tickFormatter={(v) => v.toFixed(3)}
-          tick={{ fontSize: 10 }}
+          tick={{ fontSize: 14 }}
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b' }}
+          label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
-        <Tooltip
-          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-          labelFormatter={(v) => `γ: ${Number(v).toFixed(1)}`}
-          formatter={(v: number, name: string) => [v.toFixed(4), name === 'gradient' ? '∇(γ)' : name]}
-        />
+        <Tooltip content={({ active, payload, label }) => {
+          const entry = payload?.find(item => item.name === '本次求解计算点') ?? payload?.[0]
+          const point = hoveredPoint ?? displayCurves[0]?.data.find(point => point.gamma === label) ?? entry?.payload
+          if ((!active && !hoveredPoint) || !Number.isFinite(point?.gamma) || !Number.isFinite(point?.gradient)) return null
+          const actual = !!hoveredPoint || entry?.name === '本次求解计算点' || ['trace_grid', 'solver_root', 'solver_evaluation'].includes(point.source)
+          return <div className="rounded-xl border border-slate-200 bg-white/95 p-3 text-sm shadow-sm">
+            <p>{actual ? '本次求解计算点' : '函数计算值'}</p>
+            <p>γ = {number(point.gamma)}，g(γ) = {number(point.gradient)}</p>
+            {typeof point.evaluation === 'number' && <p>求根求值序号：{point.evaluation}</p>}
+          </div>
+        }} />
 
         {/* δ 参考线 */}
         <ReferenceLine
           y={currentDelta}
           stroke="#10b981"
           strokeDasharray="3 3"
-          label={{ position: 'right', value: `δ=${currentDelta.toFixed(3)}`, fill: '#10b981', fontSize: 10 }}
+          label={{ position: 'insideTopRight', value: `δ=${currentDelta.toFixed(3)}`, fill: '#10b981', fontSize: 14 }}
         />
 
         {/* y=0 参考线 */}
@@ -271,10 +294,12 @@ export function GradientGammaChart({
             x={ref.gamma}
             stroke={ref.color || '#f59e0b'}
             strokeDasharray={ref.strokeDasharray || '3 3'}
-            label={{ value: ref.label, fill: ref.color || '#f59e0b', fontSize: 10, position: ref.position || 'top' }}
+            label={{ value: ref.label, fill: ref.color || '#f59e0b', fontSize: 14, position: ref.position || 'top' }}
           />
         ))}
 
+        {selectedPoint && Math.abs(selectedPoint.gradient-currentDelta) > 1e-10 && <ReferenceLine y={selectedPoint.gradient}
+          stroke="#b7791f" strokeDasharray="4 4" ifOverflow="extendDomain" />}
         {/* 曲线 */}
         {overlayMode ? (
           // 多条曲线叠加模式
@@ -282,7 +307,7 @@ export function GradientGammaChart({
             <Line
               key={curve.id}
               data={curve.data}
-              type="monotone"
+              type={interpolation}
               dataKey="gradient"
               stroke={curve.color || '#ef4444'}
               strokeWidth={curve.strokeWidth || 2}
@@ -290,20 +315,26 @@ export function GradientGammaChart({
               name={curve.name || `#${curve.id}`}
               opacity={curve.opacity ?? 1}
               activeDot={{ r: 5 }}
+              isAnimationActive={false}
             />
           ))
         ) : (
           // 单曲线模式
           <Line
-            type="monotone"
+            type={interpolation}
             dataKey="gradient"
             stroke="#ef4444"
             strokeWidth={2}
             dot={gradientPointDot}
             activeDot={{ r: 6 }}
+            isAnimationActive={false}
           />
         )}
-      </LineChart>
+        {!!visibleCalculatedPoints.length && <Scatter name="本次求解计算点" data={visibleCalculatedPoints} fill="#ef4444"
+          shape={drawCalculatedPoint} isAnimationActive={false} />}
+        {selectedPoint && <ReferenceDot x={selectedPoint.gamma} y={selectedPoint.gradient} r={5}
+          fill="#b7791f" stroke="#fff" strokeWidth={2} ifOverflow="extendDomain" />}
+      </ComposedChart>
     </ResponsiveContainer>
   )
 

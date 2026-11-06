@@ -395,8 +395,11 @@ class MDM(WeibullBase):
         # @inputs: found_gamma|\gamma^*|最优γ, found_beta|\beta^*|最优β, gammas|\gamma|γ数组, sigma_mins|\sigma_{min}|标准差数组, best_betas|\beta^*|最优β数组
         # @outputs: trace_data|trace_{data}|可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）
         if trace:
-            # Capture the actual solver state before the supplementary legacy
-            # surface sampling below. No surrogate values enter these charts.
+            # Freeze actual solver evaluations. Plotting must not run additional
+            # objective evaluations or create a separate sampling grid.
+            solver_beta_evaluations = {g: list(values) for g, values in beta_evaluations.items()}
+            solver_gradient_evaluations = {g: v for g, v in profile_gradient_cache.items()
+                                           if np.isfinite(v)}
             selected_sigma = float(beta_sigma_cache[float(found_gamma)][1])
             beta_points = [plot_point(p['beta'], p['sigma'], beta=p['beta'],
                                       gamma=float(found_gamma), evaluation=i + 1)
@@ -452,66 +455,75 @@ class MDM(WeibullBase):
                              gradient_scan=[dict(gamma=float(g), gradient=float(v))
                                             for g, v in zip(gammas, grads) if np.isfinite(v)],
                              pseudo_scales=[dict(observation=float(ti), rank=float(ri),
-                                                 eta=float(ei)) for ti, ri, ei in zip(t, ranks, etas)],
+                                                 distance=float(ti-found_gamma),
+                                                 rank_transform=float(xi), denominator=float(di),
+                                                 eta=float(ei))
+                                            for ti, ri, xi, di, ei in zip(t, ranks, neg_ln_1_minus_F, denom, etas)],
+                             pseudo_scale_sum=float(np.sum(etas)),
                              boundary_rule='gamma >= 0',
-                             supplementary_legacy_curves='旧 trace_data 中的曲面为额外函数采样，不是迭代轨迹'),
+                             supplementary_legacy_curves='旧 trace_data 曲线按横坐标排列本次实际求值，不额外补采样'),
             )
             # 1. Sigma vs Beta curve (at optimal gamma) - for backward compatibility
-            beta_scan = np.linspace(0.5, 5, 100)
-            sigma_beta_curve = []
-            for b_val in beta_scan:
-                s = calculate_eta_std(b_val, found_gamma, t)
-                sigma_beta_curve.append({"beta": b_val, "sigma": s})
+            sigma_beta_curve = [dict(p, source='solver_evaluation', evaluation=i+1)
+                                for i, p in enumerate(solver_beta_evaluations.get(float(found_gamma), []))]
+            sigma_beta_curve.sort(key=lambda point: point['beta'])
 
             # 2. Full 2D surface data: sigma_beta_gamma for 3D visualization
             num_gamma_samples = 20
             gamma_indices = np.linspace(0, len(gammas) - 1, num_gamma_samples, dtype=int)
             sampled_gammas = gammas[gamma_indices]
-            beta_range = np.linspace(0.5, 5, 100)
             sigma_beta_gamma = []
 
             for idx, g in enumerate(sampled_gammas):
-                sigma_curve = []
-                for b_val in beta_range:
-                    s = calculate_eta_std(b_val, g, t)
-                    sigma_curve.append(float(s))
+                evaluated = [dict(p, evaluation=i+1)
+                             for i, p in enumerate(solver_beta_evaluations.get(float(g), []))]
+                ordered = sorted(evaluated, key=lambda point: point['beta'])
 
                 sigma_beta_gamma.append({
                     "gamma": float(g),
-                    "betas": [float(b) for b in beta_range],
-                    "sigmas": sigma_curve
+                    "betas": [p['beta'] for p in ordered],
+                    "sigmas": [p['sigma'] for p in ordered],
+                    "solver_points": evaluated,
                 })
 
             # 3. Gradient vs Gamma curve. This uses the same profile_gradient
             # function as the backend solver, so the visual trace and result match.
             grad_gamma_points = {}
 
-            def add_gradient_point(gamma, gradient, source="trace_grid", virtual=False):
+            def add_gradient_point(gamma, gradient, source="trace_grid", virtual=False, evaluation=None):
                 gamma = float(gamma)
-                b, sig = find_best_beta_for_gamma(gamma)
-                denom = np.power(neg_ln_1_minus_F, 1.0/b)
-                etas_g = (t - gamma) / denom
-                eta_mean = float(np.mean(etas_g))
+                b, sig = beta_sigma_cache.get(gamma, (None, None))
+                eta_mean = None
+                if b is not None:
+                    denom = np.power(neg_ln_1_minus_F, 1.0/b)
+                    eta_mean = float(np.mean((t - gamma) / denom))
                 point = {
                     "gamma": gamma,
                     "gradient": float(gradient),
-                    "sigma_min": float(sig),
-                    "best_beta": float(b),
+                    "sigma_min": _json_float(sig),
+                    "best_beta": _json_float(b),
                     "best_eta": eta_mean,
                     "source": source,
                 }
                 if virtual:
                     point["virtual"] = True
+                if evaluation is not None:
+                    point['evaluation'] = evaluation
                 grad_gamma_points[gamma] = point
 
+            for g, gradient in solver_gradient_evaluations.items():
+                add_gradient_point(g, gradient, source='solver_evaluation')
             for i in range(len(gammas)):
                 add_gradient_point(gammas[i], grads[i])
+            for p in root_evaluations:
+                add_gradient_point(p['gamma'], p['gradient'], source='solver_evaluation',
+                                   evaluation=p.get('evaluation'))
 
             if solution_strategy == "brent_root":
                 if root_solver == "right_edge_fit":
                     add_gradient_point(found_gamma, offset, source="solver_root", virtual=True)
-                else:
-                    add_gradient_point(found_gamma, profile_gradient(found_gamma), source="solver_root")
+                elif selected_gradient is not None:
+                    add_gradient_point(found_gamma, selected_gradient, source="solver_root")
             elif solution_strategy == "truncated_at_zero":
                 add_gradient_point(0.0, probe_gradient_at_zero, source="solver_root")
 

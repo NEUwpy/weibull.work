@@ -36,7 +36,7 @@ export function LibraryDocumentLink({ href, onClick, ...props }: React.Component
   }} />
 }
 
-export function LibraryDocumentProvider({ children }: { children: React.ReactNode }) {
+export function LibraryDocumentProvider({ children, returnLabel }: { children: React.ReactNode; returnLabel?: string }) {
   const [trail, setTrail] = useState<string[]>([])
   const [homeVersion, setHomeVersion] = useState(0)
   const previewHistory = useRef<ReturnType<typeof createLibraryPreviewHistory> | null>(null)
@@ -69,7 +69,7 @@ export function LibraryDocumentProvider({ children }: { children: React.ReactNod
         <React.Fragment key={homeVersion}>{children}</React.Fragment>
         {trail.map((href, index) => {
           const previous = index > 0 ? new URL(trail[index - 1], 'http://library.local') : null
-          const backLabel = previous ? (previous.searchParams.has('institution') ? '返回单位' : previous.searchParams.has('author') ? '返回作者' : '返回文献') : undefined
+          const backLabel = previous ? (previous.searchParams.has('institution') ? '返回单位' : previous.searchParams.has('author') ? '返回作者' : '返回文献') : returnLabel
           return href.startsWith('/library?')
             ? <LibraryEntityDialog key={index} href={href} backLabel={backLabel} onClose={() => previewHistory.current?.close()} />
             : <LibraryDocumentDialog key={index} href={href} backLabel={backLabel} onNavigate={open} onClose={() => previewHistory.current?.close()} onLeave={() => previewHistory.current?.leave()} />

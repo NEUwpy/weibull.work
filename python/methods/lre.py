@@ -13,7 +13,7 @@ import math
 import numpy as np
 from scipy.optimize import minimize_scalar
 from base import WeibullBase
-from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step
+from .calculation_trace import plot_point, plot_series, plot_chart, calculation_step, regression_calculation
 
 
 class LRE(WeibullBase):
@@ -88,7 +88,7 @@ class LRE(WeibullBase):
             rho = float(np.dot(centered, y_centered) / np.sqrt(x_ss * y_ss))
             if trace:
                 evaluations.append(dict(x=float(-t_min * np.expm1(s)), y=rho,
-                                        evaluation=len(evaluations) + 1))
+                                        s=float(s), evaluation=len(evaluations) + 1))
             return -rho
 
         search_grid = np.unique(np.concatenate([
@@ -187,6 +187,39 @@ class LRE(WeibullBase):
             rho = -best_objective
             physical_x = x_vals + math.log(t_min)
             physical_intercept = intercept - beta_hat * math.log(t_min)
+            # Probability plots at locations already evaluated by this run.
+            # Keep the stable log-gap coordinate used by the actual objective.
+            finite_points = {p['x']: p for p in evaluations if math.isfinite(p['y'])}
+            ordered_points = sorted(finite_points.values(), key=lambda p: p['x'])
+            chosen = {float(gamma_hat)}
+            targets = list(np.linspace(0.0, t_min, 9)) + [
+                gamma_hat - (t_min - gamma_hat), gamma_hat + (t_min - gamma_hat) / 2.0]
+            chosen.update(min(ordered_points, key=lambda p: abs(p['x'] - target))['x']
+                          for target in targets)
+
+            def regression_view(gamma):
+                point = finite_points.get(gamma)
+                if gamma == gamma_hat:
+                    u, b, a, correlation = physical_x, float(beta_hat), float(physical_intercept), rho
+                else:
+                    u = np.log(relative_excess + np.exp(point['s'])) + math.log(t_min)
+                    centered = u - np.mean(u)
+                    b = float(np.dot(centered, y_centered) / np.dot(centered, centered))
+                    a = float(np.mean(y) - b * np.mean(u))
+                    correlation = point['y']
+                view = dict(gamma=float(gamma), criterion=float(correlation), slope=b, intercept=a,
+                            beta=b, eta=float(eta_hat) if gamma == gamma_hat else float(math.exp(-a / b)),
+                            selected=gamma == gamma_hat,
+                            points=[dict(x=float(xi), y=float(yi), fit=float(a + b * xi),
+                                         probability=float(pi), lifetime=float(np.exp(xi)), observation=float(ti),
+                                         distance=float(np.exp(xi)))
+                                    for xi, yi, pi, ti in zip(u, y, F, t)])
+                view['calculation'] = regression_calculation(view['points'])
+                view['distance_precision_note'] = bool(view['points'][0]['distance'] < np.finfo(float).eps*t_min*100)
+                return view
+
+            regression_views = [regression_view(gamma) for gamma in sorted(chosen)]
+            original_regression = regression_view(0.0)
             self.calculation_trace = dict(
                 schema_version=1, method='lre', criterion=dict(description=description),
                 selection=dict(description=description, status='ok', beta=float(beta_hat),
@@ -211,7 +244,9 @@ class LRE(WeibullBase):
                           calculation_step('概率图截距确定尺度', r'\hat\eta=e^{-a/b}',
                                            [('a', physical_intercept), ('η̂', eta_hat)])],
                 details=dict(**self.last_solution_info, slope=float(beta_hat),
-                             intercept=float(physical_intercept), evaluations=evaluations))
+                             intercept=float(physical_intercept), evaluations=evaluations,
+                             regression_views=regression_views, original_regression=original_regression,
+                             reference=dict(paper='Park (2017)', section='§5 Proposed+Plot，图4–5')))
             self.trace_data = self.calculation_trace
 
         return [float(beta_hat), float(eta_hat), float(gamma_hat), float(r2), True]

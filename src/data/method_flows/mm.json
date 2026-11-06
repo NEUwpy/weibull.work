@@ -59,8 +59,8 @@
       "primarySource": 1
     },
     {
-      "name": "计算样本 Weibull 矩",
-      "description": "用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）",
+      "name": "把阶梯面积相加，得到三个矩",
+      "description": "由经验生存函数的一次、二次、四次幂曲线下面积，得到三个样本Weibull矩。",
       "formula": {
         "expression": "\\bar{m}_k = \\sum_{r=0}^{n-1}\\left(1-\\frac{r}{n}\\right)^k (x_{(r+1)} - x_{(r)}), \\quad x_{(0)}=0",
         "symbols": [
@@ -69,7 +69,7 @@
             "meaning": "k 阶样本 Weibull 矩"
           }
         ],
-        "explanation": "用生存函数阶梯估计计算 k=1,2,4 阶样本矩（论文式(3)）"
+        "explanation": "由经验生存函数的一次、二次、四次幂曲线下面积，得到三个样本Weibull矩。"
       },
       "inputs": [
         {
@@ -119,11 +119,11 @@
       "primarySource": 1
     },
     {
-      "name": "检查矩组合并解参数",
-      "description": "论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度",
+      "name": "检查矩差，显式代入三参数",
+      "description": "矩差满足可采纳条件后，把三个样本矩代入Cran式(2a–c)，一次得到形状、位置、尺度。",
       "formula": {
         "expression": "\\begin{gathered}m_1-m_2>m_2-m_4>0\\\\[6pt]\\begin{gathered}\\beta^*=\\frac{\\ln2}{\\ln(m_1-m_2)-\\ln(m_2-m_4)}\\\\[5pt] \\gamma^*=\\frac{m_1m_4-m_2^2}{m_1+m_4-2m_2}\\\\[5pt] \\eta^*=\\frac{m_1-\\gamma^*}{\\Gamma(1+1/\\beta^*)}\\end{gathered}\\end{gathered}",
-        "explanation": "论文式(2a)-(2c)：由低阶矩显式解形状、位置、尺度",
+        "explanation": "矩差满足可采纳条件后，把三个样本矩代入Cran式(2a–c)，一次得到形状、位置、尺度。",
         "symbols": [
           {
             "symbol": "\\beta^*,\\gamma^*,\\eta^*",
@@ -192,11 +192,11 @@
       "primarySource": 1
     },
     {
-      "name": "修正位置与尺度",
-      "description": "a*<0 置零；a*>=x_(1) 用论文替代式 a**",
+      "name": "检查位置并作必要处理",
+      "description": "检查原始位置是否非负且低于最小观测；超界时按当前实现的规则处理并恢复尺度。",
       "formula": {
         "expression": "\\begin{gathered}\\gamma^*<0\\Rightarrow\\hat\\gamma=0;\\\\[5pt]\\gamma^*\\ge t_{(1)}\\Rightarrow\\hat\\gamma=\\max\\left(0,t_{(1)}-\\frac{\\eta^*\\Gamma(1+1/\\beta^*)}{n^{1/\\beta^*}}\\right)\\\\[5pt]\\hat\\eta=\\frac{m_1-\\hat\\gamma}{\\Gamma(1+1/\\beta^*)}\\end{gathered}",
-        "explanation": "a*<0 置零；a*>=x_(1) 用论文替代式 a**",
+        "explanation": "检查原始位置是否非负且低于最小观测；超界时按当前实现的规则处理并恢复尺度。",
         "symbols": [
           {
             "symbol": "\\hat\\gamma",
@@ -237,8 +237,8 @@
           "meaning": "修正后的尺度参数"
         }
       ],
-      "basis": "可采纳性处理：负位置置零；位置越过最小样本时采用论文替代位置并重算尺度。",
-      "notes": "",
+      "basis": "Cran（1988）式(3)之后：负位置可取零，越过最小观测时可采用替代位置。",
+      "notes": "位置处理后重算尺度、对替代位置再次限制非负，是当前实现的补充处理；图中同时保留原始解与返回值。",
       "sources": [
         {
           "file": "python/methods/mm.py",
@@ -252,7 +252,7 @@
       "primarySource": 0
     },
     {
-      "name": "计算两参数对照",
+      "name": "计算两参数对照，辅助判断阈值",
       "description": "论文 LOCATION 节：同时计算 a=0 的两参数矩估计用于阈值判断",
       "formula": {
         "expression": "c^{**} = \\frac{\\ln 2}{\\ln \\bar{m}_1 - \\ln \\bar{m}_2}, \\quad b^{**} = \\bar{m}_1 / \\Gamma(1+1/c^{**})",

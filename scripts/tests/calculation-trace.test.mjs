@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { calculationFocus, readCalculationTrace } from '../../src/lib/calculation-trace.ts'
+import { calculationFocus, readCalculationTrace, readPowerScaleCalculation } from '../../src/lib/calculation-trace.ts'
 
 const evidence = () => ({
   schema_version: 1, method: 'mle',
@@ -49,4 +49,24 @@ test('parameter recovery rejects nonfinite evidence and keeps empirical step int
   assert.equal(readCalculationTrace(source).trace, source)
   source.recovery[0].values[0].value = Infinity
   assert.equal(readCalculationTrace(source).error, 'invalid')
+})
+
+test('scale contributions must cover the sample and belong to the selected parameters', () => {
+  const trace = evidence()
+  trace.details = { scale_calculation: { beta: 2, gamma: 5, eta: 1000, count: 2, normalizer: 1,
+    divisor: 2, power_sum: 2000000, power_mean: 1000000, reference_distance: 1200,
+    scaled_sum: 1.3888888889, scaled_mean: .69444444445, scale_factor: .83333333333,
+    use_scaled: false, samples: [
+      { index: 1, observation: 753.3314773547883, distance: 748.3314773547883, power: 560000, scaled_power: .38888888889 },
+      { index: 2, observation: 1205, distance: 1200, power: 1440000, scaled_power: 1 },
+    ] } }
+  const original = JSON.stringify(trace)
+  assert.equal(readPowerScaleCalculation(trace), trace.details.scale_calculation)
+  assert.equal(JSON.stringify(trace), original)
+  trace.details.scale_calculation.samples.pop()
+  assert.equal(readPowerScaleCalculation(trace), null)
+  trace.details.scale_calculation.count = 1
+  trace.details.scale_calculation.gamma = 6
+  assert.equal(readPowerScaleCalculation(trace), null)
+  assert.equal(readPowerScaleCalculation(evidence()), null)
 })

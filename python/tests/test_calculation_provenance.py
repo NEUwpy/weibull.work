@@ -94,7 +94,7 @@ def test_mm_keeps_existing_scale_recalculation_until_algorithm_review():
 def test_mmle_steps_and_stop_line_match_actual_iterations():
     result = run_method('mmle', SAMPLE, trace=True)
     record = result['calculation']
-    steps = record['charts'][1]
+    steps = next(chart for chart in record['charts'] if chart['id'] == 'shape-step')
     assert len(steps['series'][0]['points']) == record['selection']['iterations']
     assert steps['selected'][0]['y'] <= steps['references'][0]['value']
     assert record['selection']['gamma'] == min(SAMPLE)

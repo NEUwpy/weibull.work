@@ -39,7 +39,7 @@ function harness() {
     return imports[name]
   }, URL, window: { addEventListener: (name, handler) => listeners.set(name, handler), removeEventListener() {} } }, { filename: file })
   return { link: props => module.exports.LibraryDocumentLink(props), opened,
-    render: () => { index = 0; refIndex = 0; const view = module.exports.LibraryDocumentProvider({ children: 'original window' }); mounted = true; return view },
+    render: (props = {}) => { index = 0; refIndex = 0; const view = module.exports.LibraryDocumentProvider({ children: 'original window', ...props }); mounted = true; return view },
     home: detail => listeners.get('weibull:module-home')({ detail }), active: () => active }
 }
 function click(patch = {}) {
@@ -113,4 +113,11 @@ test('nested previews label their return destination and retain the previous lay
   view.props.value('/library/182-046')
   layers = app.render().props.children.props.children.props.children[1]
   assert.equal(layers[3].props.backLabel, '返回单位')
+})
+
+test('the first paper preview can identify the case underneath as its return destination', () => {
+  const app = harness()
+  app.render({ returnLabel: '返回案例' }).props.value('/library/182-010?version=原文')
+  const layers = app.render({ returnLabel: '返回案例' }).props.children.props.children.props.children[1]
+  assert.equal(layers[0].props.backLabel, '返回案例')
 })

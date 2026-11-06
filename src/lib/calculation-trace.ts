@@ -50,6 +50,33 @@ export interface CalculationFocus {
   y: [number, number]
 }
 
+export interface PowerScaleCalculation {
+  beta: number; gamma: number; eta: number; count: number; normalizer: number; divisor: number
+  power_sum: number | null; power_mean: number | null
+  reference_distance: number; scaled_sum: number; scaled_mean: number; scale_factor: number
+  use_scaled: boolean
+  samples: { index: number; observation: number; distance: number; power: number | null; scaled_power: number }[]
+}
+
+/** An older or partial record must not silently omit sample contributions. */
+export function readPowerScaleCalculation(trace: CalculationTrace): PowerScaleCalculation | null {
+  if (!isRecord(trace.details) || !isRecord(trace.details.scale_calculation)) return null
+  const value = trace.details.scale_calculation
+  const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+  if (!['beta', 'gamma', 'eta', 'count', 'normalizer', 'divisor', 'reference_distance',
+    'scaled_sum', 'scaled_mean', 'scale_factor'].every(key => finite(value[key]))
+    || !['power_sum', 'power_mean'].every(key => value[key] === null || finite(value[key]))
+    || typeof value.use_scaled !== 'boolean' || !Array.isArray(value.samples)
+    || value.samples.length !== value.count || !value.samples.length
+    || (!value.use_scaled && (value.power_sum === null || value.power_mean === null
+      || value.samples.some(point => !isRecord(point) || point.power === null)))
+    || !['beta', 'gamma', 'eta'].every(key => value[key] === trace.selection[key])
+    || !value.samples.every(point => isRecord(point)
+      && ['index', 'observation', 'distance', 'scaled_power'].every(key => finite(point[key]))
+      && (point.power === null || finite(point.power)))) return null
+  return value as unknown as PowerScaleCalculation
+}
+
 /** Viewport-only zoom: all original points remain in the backend trace. */
 export function calculationFocus(chart: CalculationChart): CalculationFocus | null {
   const selected = chart.selected?.[0]

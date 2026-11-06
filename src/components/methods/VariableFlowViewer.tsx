@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import katex from 'katex'
 import { AlertCircle, ArrowDown, ChevronLeft, ChevronRight, Code2, FileCode2, GitBranch, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ function PythonLine({ line }: { line: string }) {
 }
 
 export default function VariableFlowViewer({ methodId }: { methodId: string }) {
+  const requestedStep = Number(useSearchParams().get('step'))
   const [flow, setFlow] = useState<MethodFlow | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,7 +55,10 @@ export default function VariableFlowViewer({ methodId }: { methodId: string }) {
         if (!response.ok) throw new Error('程序流程读取或源码定位失败，请重试。')
         const data: MethodFlow = await response.json()
         if (data.schemaVersion !== 2 || data.methodId !== methodId || !data.steps?.length || !data.sources?.length || data.steps.some(item => !item.sources.length)) throw new Error('程序流程不完整，无法展示。')
-        if (!controller.signal.aborted) setFlow(data)
+        if (!controller.signal.aborted) {
+          setFlow(data)
+          setStepIndex(Math.max(0, data.steps.findIndex(item => item.id === requestedStep)))
+        }
       } catch (cause) {
         if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : '程序流程读取失败。')
       } finally {
@@ -62,7 +67,7 @@ export default function VariableFlowViewer({ methodId }: { methodId: string }) {
     }
     void read()
     return () => controller.abort()
-  }, [methodId, retry])
+  }, [methodId, retry, requestedStep])
 
   const step = flow?.steps[stepIndex]
   const reference = step?.sources[0]

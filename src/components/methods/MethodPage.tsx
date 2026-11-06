@@ -18,11 +18,13 @@ import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 import { calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
 import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
+import mmleProcessExample from '@/data/method-process-examples/mmle.json'
 import { getMethodCapability } from '@/lib/method-status'
 import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption } from '@/lib/calculator-state'
 import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 
 // Dynamic imports for heavy visualizers
+const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MonteCarloWorkbookViewer = dynamic(() => import('@/components/methods/shared/studies/MonteCarloWorkbookViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -376,12 +378,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (offset === mdmOffset) return
     setMdmOffset(offset)
     setIs3P(true)
-    setCalculation(null)
-    setTraceData(null)
     setCalculationError(null)
-    setDataSources(previous => previous?.map(source => ({ ...source, calculation: undefined, traceData: undefined, result: undefined })))
-    setResult(undefined)
-    setFitMode('manual')
     setIsCalculating(true)
 
     const requestId = ++offsetRecalculationRequestRef.current
@@ -414,10 +411,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
           if (requestId !== offsetRecalculationRequestRef.current) return
           setDataSources(updatedSources)
-          if (updatedSources[0]?.result) setResult(updatedSources[0].result)
-          if (updatedSources[0]?.traceData) setTraceData(updatedSources[0].traceData)
-          setCalculation(updatedSources[0]?.calculation ?? null)
-          setActiveSourceIndex(0)
+          const activeSource = updatedSources[activeSourceIndex] ?? updatedSources[0]
+          if (activeSource?.result) setResult(activeSource.result)
+          if (activeSource?.traceData) setTraceData(activeSource.traceData)
+          setCalculation(activeSource?.calculation ?? null)
         } else if (data.length > 0) {
           const calculation = await calculateWeibull({
             methodId: method.id,
@@ -561,7 +558,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
           </div>
         ) : activeTab === 'lab' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {capability && ['done', 'in_progress'].includes(capability.layer2.calculation.status) ? (
+            {method.id.toLowerCase() === 'mmle' ? <div className="space-y-6" data-method-calculation-example="mmle">
+              <section className="rounded-2xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
+                <h2 className="text-lg font-semibold text-slate-800">计算示例 · n = {mmleProcessExample.sample.length}</h2>
+                <details className="mt-2 text-base text-slate-600">
+                  <summary className="cursor-pointer">查看本次样本</summary>
+                  <p className="mt-3 break-words tabular-nums">{mmleProcessExample.sample.join('，')}</p>
+                </details>
+              </section>
+              <CalculationProcessViewer calculation={mmleProcessExample.calculation} methodId="mmle" />
+            </div> : capability && ['done', 'in_progress'].includes(capability.layer2.calculation.status) ? (
               <div className="space-y-8">
             <AnalysisCard
               id="lab"
@@ -594,19 +600,20 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             {!(dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation) &&
               (dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError) &&
               <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError}</p>}
-            {(calculation || dataSources?.some(source => source.calculation)) && !isCalculating && (
-              <CalculationProcessViewer
+            {(calculation || dataSources?.some(source => source.calculation)) && (!isCalculating || method.id.toLowerCase() === 'mdm') && (
+              method.id.toLowerCase() === 'mdm' ? <MDMVisualizer
+                traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
+                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
+                mdmOffset={mdmOffset}
+                onMdmOffsetChange={handleMdmOffsetChange}
+                offsetStale={isCalculating}
+                isOffsetUpdating={isCalculating}
+              /> : <CalculationProcessViewer
                 calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
                 methodId={method.id}
               />
             )}
 
-             {isCalculating && (
-               <div className="bg-slate-50 rounded-3xl p-12 border border-slate-200 flex flex-col items-center justify-center">
-                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mb-4"></div>
-                 <p className="text-slate-600 font-bold">正在运行计算...</p>
-               </div>
-             )}
               </div>
             ) : (
               <MethodBuildStatus

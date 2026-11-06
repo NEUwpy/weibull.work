@@ -259,7 +259,7 @@ test('actual hard-break references from 421-003 render with observations and kee
     '[3] Rausand, M. and A. Høyland. 2004. System Reliability Theory: Models, Statistical Methods, and Applications. 2nd ed. Wiley-Interscience, Hoboken, NJ.'
   const raw = '---\ntitle: Book excerpt\n---\n# Book\n\n' + excerpt + '\n\nFollowing paragraph [2].\n\n![Diagram](diagram.jpg)\n\n## References\n[1] First\n[2] Second\n[3] Third\n'
   const compiled = await compileLibraryMarkdown(raw)
-  assert.equal(compiled.version, '1.2.0')
+  assert.equal(compiled.version, '1.3.0')
   assert.equal(compiled.version, LIBRARY_RENDERER_VERSION)
   assert.equal(compiled.diagnostics.filter(item => item.severity === 'error').length, 0)
   assert.deepEqual(compiled.citations.map(item => item.id), ['1', '2', '3', '2'])

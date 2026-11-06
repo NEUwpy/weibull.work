@@ -91,6 +91,17 @@ def test_mdm_inner_curve_uses_real_objective_and_exact_selected_gamma():
     assert selected['x'] == beta
     assert selected['y'] == pytest.approx(np.std(pseudo_scales, ddof=1), rel=1e-12)
     assert eta == pytest.approx(np.mean(pseudo_scales), rel=1e-12)
+    operands = record['details']['pseudo_scales']
+    assert len(operands) == len(PAPER_SAMPLE)
+    for index, point in enumerate(operands):
+        assert point['observation'] == sorted(PAPER_SAMPLE)[index]
+        assert point['rank'] == ranks[index]
+        assert point['distance'] == point['observation'] - gamma
+        assert point['rank_transform'] == transformed_ranks[index]
+        assert point['denominator'] == pytest.approx((-np.log1p(-point['rank'])) ** (1 / beta), rel=1e-12)
+        assert point['eta'] == point['distance'] / point['denominator']
+    assert record['details']['pseudo_scale_sum'] == pytest.approx(sum(point['eta'] for point in operands), rel=1e-12)
+    assert record['details']['pseudo_scale_sum'] / len(operands) == eta
     root_plot = _chart(record, 'location-criterion')
     assert root_plot['selected'][0]['x'] == gamma
     assert root_plot['selected'][0]['y'] == pytest.approx(.1, abs=1e-8)

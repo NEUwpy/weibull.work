@@ -299,7 +299,8 @@ class WMLE(WeibullBase):
         self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations')}
         if trace:
             from .calculation_trace import profile_calculation
-            self.calculation_trace = profile_calculation('wmle', info, selected)
+            self.calculation_trace = profile_calculation('wmle', info, selected,
+                                                       data=self.data, weights=sys.modules[__name__])
             for candidate in info.get('candidates', []):
                 self.log_step(dict(phase='candidate', beta=candidate['beta'],
                                    eta=candidate['eta'], gamma=candidate['gamma'],

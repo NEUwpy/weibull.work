@@ -4,8 +4,8 @@ import Markdown from 'react-markdown'
 import { LIBRARY_RENDERER_VERSION, processLibraryContent, getLibraryMarkdownOptions, getLibraryReferenceMarkdownOptions } from './library-markdown.ts'
 
 /** Render exactly the website's Markdown pipeline, without loading a browser. */
-export async function compileLibraryMarkdown(raw) {
-  const processed = processLibraryContent(raw)
+export async function compileLibraryMarkdown(raw, options = {}) {
+  const processed = processLibraryContent(raw, options)
   const observation = { diagnostics: [...processed.diagnostics], images: [], citations: [], counts: { math: 0, tables: 0, headings: 0 } }
   let html = renderToStaticMarkup(React.createElement(Markdown, {
     ...getLibraryMarkdownOptions(processed, observation), children: processed.body,

@@ -1,16 +1,12 @@
 "use client"
 
-import React, { useState } from 'react'
+import { Check, Info } from 'lucide-react'
+import { ProcessChart, ProcessFormula } from './CalculationProcessChart'
+import { MethodCalculationSteps } from '@/components/methods/MethodCalculationSteps'
+import { ProcessDetails } from '@/components/methods/CalculationSteps'
 import {
-  CartesianGrid, ComposedChart, Line, ReferenceDot, ReferenceLine,
-  ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis,
-} from 'recharts'
-import { Check, ChevronDown, Info } from 'lucide-react'
-import katex from 'katex'
-import 'katex/dist/katex.min.css'
-import {
-  type CalculationChart, type CalculationTrace,
-  calculationFocus, formatCalculationNumber, readCalculationTrace,
+  type CalculationChart,
+  formatCalculationNumber, readCalculationTrace,
 } from '@/lib/calculation-trace'
 
 interface CalculationProcessViewerProps {
@@ -18,127 +14,6 @@ interface CalculationProcessViewerProps {
   methodId?: string
   stale?: boolean
   isUpdating?: boolean
-}
-
-const SERIES_COLORS = ['#2563eb', '#7c3aed', '#059669', '#475569', '#db2777']
-const axisNumber = (value: number) => value !== 0 && (Math.abs(value) >= 1e5 || Math.abs(value) < 1e-3)
-  ? value.toExponential(2) : value.toLocaleString('zh-CN', { maximumSignificantDigits: 4, useGrouping: false })
-
-function ProcessFormula({ expression }: { expression: string }) {
-  return <div className="max-w-full overflow-x-auto py-2 text-base text-slate-700"
-    dangerouslySetInnerHTML={{ __html: katex.renderToString(expression, { throwOnError: false, strict: false, trust: false }) }} />
-}
-
-function ProcessChart({ chart }: { chart: CalculationChart }) {
-  const focus = calculationFocus(chart)
-  const values = chart.series.flatMap(series => series.points.map(point => point.y))
-  const fullSpan = values.length ? Math.max(...values) - Math.min(...values) : 0
-  const [focused, setFocused] = useState(!!focus && (chart.id === 'location-score'
-    || fullSpan > (focus.y[1] - focus.y[0]) * 100))
-  const domains = focused ? focus : null
-  // Restrict only SVG rendering to the chosen x viewport. Passing enormous
-  // offscreen coordinates to SVG can make the entire path disappear.
-  // These are references to the original points; the backend record stays complete.
-  const viewSeries = domains ? chart.series.map(series => ({ ...series,
-    points: series.points.filter(point => point.x >= domains.x[0] && point.x <= domains.x[1]),
-  })) : chart.series
-  const plottedPoints = [...viewSeries.flatMap(series => series.points), ...(chart.selected ?? [])]
-  const hasPoints = plottedPoints.length > 0
-  return (
-    <section className="min-w-0 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-4 sm:px-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 title={chart.description} className="text-lg font-semibold leading-snug text-slate-800">{chart.title}</h3>
-        {focus && <button type="button" onClick={() => setFocused(value => !value)} aria-pressed={focused}
-          className="rounded-lg px-2 py-1 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
-          {focused ? '显示全部范围' : '聚焦最终选择'}
-        </button>}
-      </div>
-      {chart.formula && <ProcessFormula expression={chart.formula} />}
-      <p className="mt-3 text-sm leading-relaxed text-slate-600">{chart.y.label}</p>
-      {hasPoints ? (
-        <div className="mt-1 h-[300px] w-full min-w-0" role="img" aria-label={`${chart.title}；横轴${chart.x.label}，纵轴${chart.y.label}`}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={plottedPoints} margin={{ top: 26, right: 18, bottom: 30, left: 2 }}>
-              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 4" vertical={false} />
-              <XAxis type="number" dataKey="x" domain={domains?.x ?? ['auto', 'auto']} allowDataOverflow={!!domains}
-                allowDuplicatedCategory={false}
-                tickFormatter={axisNumber} tick={{ fontSize: 14, fill: '#64748b' }}
-                axisLine={{ stroke: '#cbd5e1' }} tickLine={false} minTickGap={32}
-                label={{ value: chart.x.label, position: 'bottom', offset: 12, fontSize: 14, fill: '#475569' }} />
-              <YAxis type="number" dataKey="y" domain={domains?.y ?? ['auto', 'auto']} allowDataOverflow={!!domains} width={76}
-                tickFormatter={axisNumber} tick={{ fontSize: 14, fill: '#64748b' }}
-                axisLine={false} tickLine={false} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const entries = payload.filter(entry => Number.isFinite(entry.payload?.x) && Number.isFinite(entry.payload?.y))
-                  return <div className="max-w-[280px] rounded-xl border border-slate-200 bg-white/95 p-3 text-sm leading-relaxed shadow-sm">
-                    {entries.map((entry, index) => <div key={index} className={index > 0 ? 'mt-2 border-t border-slate-100 pt-2' : ''}>
-                      <p className="font-medium text-slate-700">{entry.name}</p>
-                      <p className="text-slate-500">{chart.x.label} = {formatCalculationNumber(entry.payload.x)}</p>
-                      <p className="text-slate-500">{chart.y.label} = {formatCalculationNumber(entry.payload.y)}</p>
-                    </div>)}
-                  </div>
-                }}
-                cursor={{ stroke: '#cbd5e1', strokeDasharray: '4 4' }}
-              />
-              {chart.references?.map((reference, index) => (
-                <ReferenceLine key={`${reference.axis}-${index}`}
-                  {...(reference.axis === 'x' ? { x: reference.value } : { y: reference.value })}
-                  stroke="#94a3b8" strokeDasharray="5 4" ifOverflow={domains ? 'hidden' : 'extendDomain'}
-                  label={{ value: reference.label, position: reference.axis === 'x' ? 'insideTopRight' : 'insideTopLeft', fill: '#64748b', fontSize: 14 }} />
-              ))}
-              {viewSeries.map((series, index) => {
-                const color = series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length]
-                return series.kind === 'line' ? (
-                  <Line key={series.id} data={series.points} type={series.interpolation ?? 'linear'} dataKey="y" name={series.label}
-                    stroke={color} strokeWidth={2} dot={series.points.length < 80 ? { r: 2, fill: color, strokeWidth: 0 } : false}
-                    strokeDasharray={series.role === 'virtual' ? '5 4' : undefined}
-                    activeDot={{ r: 4 }} isAnimationActive={false} connectNulls={false} />
-                ) : (
-                  <Scatter key={series.id} name={series.label} data={series.points} fill={color}
-                    fillOpacity={0.75} isAnimationActive={false} />
-                )
-              })}
-              {chart.selected?.map((point, index) => (
-                <ReferenceDot key={`selected-${index}`} x={point.x} y={point.y} r={6}
-                  fill="#b7791f" stroke="#fff" strokeWidth={2} ifOverflow="extendDomain"
-                  label={{ value: point.label ?? '最终选择', position: 'top', offset: 10, fill: '#9a670f', fontSize: 14 }} />
-              ))}
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      ) : <p className="py-8 text-center text-base text-slate-500">本次运行未得到可绘制的有限数值。</p>}
-      <div className="mt-2 flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-500">
-        {chart.series.map((series, index) => (
-          <span key={series.id} className="inline-flex items-center gap-1.5">
-            <span className={`inline-block h-2 w-2 shrink-0 ${series.kind === 'line' ? 'rounded-sm' : 'rounded-full'}`}
-              style={{ backgroundColor: series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length] }} />
-            {series.label}
-          </span>
-        ))}
-        {!!chart.selected?.length && Array.from(new Set(chart.selected.map(point => point.label ?? '最终选择'))).map(label => (
-          <span key={label} className="inline-flex items-center gap-1.5 text-amber-800"><span className="h-2 w-2 rounded-full bg-[#b7791f]" />{label}</span>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function RunRecords({ trace }: { trace: CalculationTrace }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <details className="group mt-4 rounded-xl border border-slate-200/80 bg-slate-50/60"
-      onToggle={event => setOpen(event.currentTarget.open)}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-base font-medium text-slate-600 hover:text-slate-900">
-        本次计算记录
-        <ChevronDown size={18} className="shrink-0 transition-transform group-open:rotate-180" />
-      </summary>
-      {open && <div className="border-t border-slate-200 px-4 py-3">
-        <pre className="max-h-[440px] overflow-auto whitespace-pre text-sm leading-relaxed text-slate-700" tabIndex={0}>{JSON.stringify(trace, null, 2)}</pre>
-      </div>}
-    </details>
-  )
 }
 
 function RootComparison({ chart }: { chart: CalculationChart }) {
@@ -171,6 +46,8 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
   const failed = typeof trace.selection.status === 'string' && trace.selection.status !== 'ok'
   const showSelection = failed || trace.selection.approximate === true || !trace.recovery?.length
   const mainCharts = trace.charts.filter(chart => chart.id !== 'candidate-residuals')
+  const viewKey = runId ?? `${trace.method}-${trace.selection.beta}-${trace.selection.gamma}`
+  const stepped = ['mle', 'wmle', 'mmle', 'lse', 'lre', 'mm'].includes(trace.method)
 
   return (
     <div className="min-w-0 space-y-4" data-calculation-method={trace.method}>
@@ -187,10 +64,11 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
           </dl>
         </div>
       </div>}
-      <div className={`grid min-w-0 grid-cols-1 items-start gap-4 ${mainCharts.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
+      {stepped ? <MethodCalculationSteps key={viewKey} trace={trace} />
+        : <div className={`grid min-w-0 grid-cols-1 items-start gap-4 ${mainCharts.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
         {mainCharts.map(chart => <ProcessChart key={`${runId ?? ''}-${chart.id}`} chart={chart} />)}
-      </div>
-      {!!trace.recovery?.length && <section aria-label="由判据确定参数" className="grid min-w-0 grid-cols-1 gap-0 rounded-2xl bg-slate-100/60 sm:grid-cols-3">
+      </div>}
+      {!stepped && !!trace.recovery?.length && <section aria-label="由判据确定参数" className="grid min-w-0 grid-cols-1 gap-0 rounded-2xl bg-slate-100/60 sm:grid-cols-3">
         {trace.recovery.map((step, index) => <div key={step.title} className="min-w-0 px-4 py-4 sm:px-5">
           <h3 className="text-base font-semibold text-slate-800"><span className="mr-2 text-slate-400">{index + 1}</span>{step.title}</h3>
           <ProcessFormula expression={step.formula} />
@@ -199,8 +77,7 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
           </dl>
         </div>)}
       </section>}
-      {trace.charts.filter(chart=>chart.id==='candidate-residuals').map(chart=><RootComparison key={chart.id} chart={chart} />)}
-      <RunRecords key={runId ?? `${trace.method}-${trace.selection.beta}-${trace.selection.gamma}`} trace={trace} />
+      {trace.charts.filter(chart=>chart.id==='candidate-residuals').map(chart=><ProcessDetails key={chart.id} title="查看候选数值"><RootComparison chart={chart} /></ProcessDetails>)}
     </div>
   )
 }

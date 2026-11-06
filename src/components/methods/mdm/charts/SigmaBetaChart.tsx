@@ -10,7 +10,7 @@
  */
 "use client"
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import {
   LineChart,
   Line,
@@ -20,11 +20,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   Label,
-  ComposedChart
+  ComposedChart,
+  Scatter
 } from 'recharts'
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatCalculationNumber as number } from '@/lib/calculation-trace'
 
 // 单条曲线数据类型
 export interface SigmaBetaCurvePoint {
@@ -87,6 +90,9 @@ interface SigmaBetaChartProps {
   xTicks?: number[]
   yTicks?: number[]
   referenceLines?: ReferenceLineConfig[]
+  selectedPoint?: { beta: number; sigma: number }
+  calculatedPoints?: { beta: number; sigma: number; evaluation?: number }[]
+  interpolation?: 'linear' | 'monotone'
 
   // 样式
   height?: number
@@ -121,6 +127,9 @@ export function SigmaBetaChart({
   xTicks = [1, 2, 3, 4, 5, 6],
   yTicks,
   referenceLines = [],
+  selectedPoint,
+  calculatedPoints = [],
+  interpolation = 'monotone',
   height = 300,
   showTitle = true,
   title,
@@ -128,6 +137,11 @@ export function SigmaBetaChart({
   className,
   noContainer = false
 }: SigmaBetaChartProps) {
+  const [hoveredPoint, setHoveredPoint] = useState<(SigmaBetaCurvePoint & { evaluation?: number }) | null>(null)
+  const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-shape-calculated-point"
+    cx={props.cx} cy={props.cy} r={2.7} fill="#2563eb" stroke="#fff" strokeWidth={0.5}
+    data-beta={props.payload.beta} data-sigma={props.payload.sigma}
+    onMouseEnter={() => setHoveredPoint(props.payload)} onMouseLeave={() => setHoveredPoint(null)} />, [])
 
   // 内部 γ 滑动条状态（仅在没有外部控制时使用）
   const [internalGammaIndex, setInternalGammaIndex] = useState(() => {
@@ -198,6 +212,7 @@ export function SigmaBetaChart({
   const filterData = (data: SigmaBetaCurvePoint[]) => {
     return data.filter(d => {
       if (d.sigma === null || d.sigma === undefined) return false
+      if (domain?.x && (d.beta < domain.x[0] || d.beta > domain.x[1])) return false
       if (yScale === 'log' && d.sigma <= 0) return false
       if (yDomain && (d.sigma < yDomain[0] || d.sigma > yDomain[1])) return false
       return true
@@ -216,21 +231,22 @@ export function SigmaBetaChart({
           dataKey="beta"
           type="number"
           domain={xDomain}
-          ticks={xTicks}
-          tickFormatter={(v) => v.toFixed(0)}
-          tick={{ fontSize: 10 }}
+          ticks={xTicks.length ? xTicks : undefined}
+          tickFormatter={(v) => Number(v.toPrecision(3)).toString()}
+          tick={{ fontSize: 14 }}
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '形状参数 β', position: 'bottom', offset: 0, fontSize: 11, fill: '#64748b' }}
+          label={{ value: '形状参数 β', position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
         <YAxis
+          dataKey="sigma"
           scale={yScale}
           domain={yDomain}
           ticks={yTicks || (yScale === 'log' ? [1, 10, 100, 1000] : undefined)}
           tickFormatter={(v) => yScale === 'log' ? v.toString() : v.toFixed(0)}
-          tick={{ fontSize: 10 }}
+          tick={{ fontSize: 14 }}
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
@@ -238,16 +254,23 @@ export function SigmaBetaChart({
             value: yScale === 'log' ? '标准差 σ_η (对数)' : '标准差 σ_η',
             angle: -90,
             position: 'insideLeft',
-            fontSize: 11,
+            fontSize: 14,
             fill: '#64748b'
           }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
-        <Tooltip
-          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-          labelFormatter={(v) => `β: ${Number(v).toFixed(2)}`}
-          formatter={(v: number, name: string) => [v.toFixed(2), name]}
-        />
+        <Tooltip content={({ active, payload, label }) => {
+          const entry = payload?.find(item => item.name === '本次求解计算点') ?? payload?.[0]
+          const point = hoveredPoint ?? displayCurves[0]?.data.find(point => point.beta === label) ?? entry?.payload
+          if ((!active && !hoveredPoint) || !Number.isFinite(point?.beta) || !Number.isFinite(point?.sigma)) return null
+          const actual = !!hoveredPoint || entry?.name === '本次求解计算点'
+            || calculatedPoints.some(p => p.beta === point.beta && p.sigma === point.sigma)
+          return <div className="rounded-xl border border-slate-200 bg-white/95 p-3 text-sm shadow-sm">
+            <p>{actual ? '本次求解计算点' : '函数计算值'}</p>
+            <p>β = {number(point.beta)}，σ = {number(point.sigma)}</p>
+            {typeof point.evaluation === 'number' && <p>求值序号：{point.evaluation}</p>}
+          </div>
+        }} />
 
         {/* 参考线 */}
         {referenceLines.map((ref, idx) => (
@@ -278,7 +301,7 @@ export function SigmaBetaChart({
             <Line
               key={curve.id}
               data={filterData(curve.data)}
-              type="monotone"
+              type={interpolation}
               dataKey="sigma"
               stroke={curve.color || '#3b82f6'}
               strokeWidth={curve.strokeWidth || 2}
@@ -286,19 +309,27 @@ export function SigmaBetaChart({
               name={curve.name || `#${curve.id}`}
               opacity={curve.opacity ?? 1}
               activeDot={{ r: 5 }}
+              isAnimationActive={false}
             />
           ))
         ) : (
           // 单曲线模式
           <Line
-            type="monotone"
+            type={interpolation}
             dataKey="sigma"
             stroke="#3b82f6"
             strokeWidth={3}
             dot={shapePointDot}
             activeDot={{ r: 6 }}
+            isAnimationActive={false}
           />
         )}
+        {!!calculatedPoints.length && <Scatter name="本次求解计算点" data={filterData(calculatedPoints)} fill="#2563eb"
+          shape={drawCalculatedPoint} isAnimationActive={false} />}
+        {selectedPoint && <ReferenceLine x={selectedPoint.beta} stroke="#b7791f" strokeDasharray="4 4" ifOverflow="extendDomain" />}
+        {selectedPoint && <ReferenceLine y={selectedPoint.sigma} stroke="#b7791f" strokeDasharray="4 4" ifOverflow="extendDomain" />}
+        {selectedPoint && <ReferenceDot x={selectedPoint.beta} y={selectedPoint.sigma} r={5}
+          fill="#b7791f" stroke="#fff" strokeWidth={2} ifOverflow="extendDomain" />}
       </ComposedChart>
     </ResponsiveContainer>
   )

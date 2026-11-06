@@ -121,11 +121,11 @@
       "primarySource": 2
     },
     {
-      "name": "位置搜索与 White 回归",
-      "description": "对给定 γ，拟合 log(t-γ) = α + βX 并计算 Fisher F 比",
+      "name": "逐个位置回归，比较 F 比",
+      "description": "每换一个位置γ，都平移样本、做一次White回归并计算F；比较后保留F最大的那组参数。",
       "formula": {
-        "expression": "\\begin{gathered}Y_i=\\ln(t_i-\\gamma)=a+bX_i\\\\[5pt] b=\\frac{\\sum(X_i-\\bar X)(Y_i-\\bar Y)}{\\sum(X_i-\\bar X)^2}\\\\[5pt] F=\\frac{\\sum(Y_i-\\bar Y)^2/(n-1)}{\\sum(Y_i-a-bX_i)^2/(n-2)}\\end{gathered}",
-        "explanation": "对给定 γ，拟合 log(t-γ) = α + βX 并计算 Fisher F 比",
+        "expression": "\\begin{gathered}Y_i=\\ln(t_i-\\gamma)=a+bX_i\\\\[5pt] b=\\frac{\\sum(X_i-\\bar X)(Y_i-\\bar Y)}{\\sum(X_i-\\bar X)^2}\\\\[5pt] F=\\frac{\\sum(Y_i-\\bar Y)^2/(n-1)}{\\sum(Y_i-a-bX_i)^2/(n-2)}\\end{gathered}\\qquad\\hat\\gamma=\\arg\\max_\\gamma F(\\gamma)",
+        "explanation": "每换一个位置γ，都平移样本、做一次White回归并计算F；比较后保留F最大的那组参数。",
         "symbols": [
           {
             "symbol": "a,b",
@@ -173,10 +173,15 @@
           "code": "s_y2 / s_res2",
           "symbol": "F",
           "meaning": "方差比"
+        },
+        {
+          "code": "best_mu",
+          "symbol": "\\hat\\gamma",
+          "meaning": "F最大时的位置"
         }
       ],
-      "basis": "White回归构造：斜率是1/β；F比的总方差用n−1、残差方差用n−2。",
-      "notes": "无正平移距离、近全等对数样本、非正斜率等返回None；零残差返回无穷F，外层仍有有效性检查。",
+      "basis": "Soman–Misra（1992）§2 Procedure步骤1–4：位置平移、White回归、F比比较；F的总方差除以n−1、残差方差除以n−2。",
+      "notes": "原文由最小观测附近逐减位置；现行程序以位置网格及邻域精化求同一F最大化目标。White顺序统计量期望由积分得到，未沿用原数表。",
       "sources": [
         {
           "file": "python/methods/lse.py",
@@ -195,46 +200,7 @@
         {
           "file": "python/methods/lse.py",
           "symbol": "LSE.run.white_fit"
-        }
-      ],
-      "id": 3,
-      "primarySource": 3
-    },
-    {
-      "name": "局部精化",
-      "description": "在最佳网格点邻域精化；再次调用相同White回归，改善目标时才更新。",
-      "formula": {
-        "expression": "\\hat{\\gamma} = \\arg\\max_{\\gamma \\in [\\gamma_{j+1}, \\gamma_{j-1}]} F(\\gamma)",
-        "symbols": [
-          {
-            "symbol": "\\hat{\\gamma}",
-            "meaning": "位置参数估计值"
-          }
-        ],
-        "explanation": "在最佳网格点邻域精化；再次调用相同White回归，改善目标时才更新。"
-      },
-      "inputs": [
-        {
-          "code": "mus",
-          "symbol": "\\gamma_j",
-          "meaning": "网格数组"
         },
-        {
-          "code": "best_idx",
-          "symbol": "j^*",
-          "meaning": "最优网格索引"
-        }
-      ],
-      "outputs": [
-        {
-          "code": "best_mu",
-          "symbol": "\\hat{\\gamma}",
-          "meaning": "精化后的位置参数"
-        }
-      ],
-      "basis": "数值策略：仅在最佳网格邻域精化；若不改善原目标，保留原网格结果。",
-      "notes": "最终white_fit失败时返回invalid_fit。几何网格与局部精化不构成全局最优证明。",
-      "sources": [
         {
           "file": "python/methods/lse.py",
           "symbol": "LSE.run",
@@ -243,8 +209,8 @@
           "until": "# @step: 6 | 反解参数 | 由回归系数反解形状与尺度参数（论文式(6)）"
         }
       ],
-      "id": 4,
-      "primarySource": 0
+      "id": 3,
+      "primarySource": 3
     },
     {
       "name": "反解参数",
@@ -307,7 +273,7 @@
           "until": "# @step: 7 | 计算拟合优度 R² | 评估模型与数据的拟合程度"
         }
       ],
-      "id": 5,
+      "id": 4,
       "primarySource": 0
     },
     {
@@ -377,7 +343,7 @@
           "after": "r2 = self._calculate_r2("
         }
       ],
-      "id": 6,
+      "id": 5,
       "primarySource": 0
     }
   ],
