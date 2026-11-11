@@ -8,7 +8,7 @@ Minimum Discrepancy Method
 
 from base import WeibullBase
 import numpy as np
-from scipy.optimize import minimize_scalar, root_scalar
+from scipy.optimize import minimize_scalar
 from .calculation_trace import plot_point, plot_series, plot_chart
 
 
@@ -31,7 +31,7 @@ def _build_geometric_gamma_grid(t_min, gamma_steps):
 
 
 def _find_offset_crossing(gammas, gradients, offset):
-    """Find the discrete bracket whose interpolated crossing is closest to t_min."""
+    """Interpolate the rightmost crossing between adjacent sampled gradients."""
     diffs = gradients - offset
     candidates = []
 
@@ -39,38 +39,35 @@ def _find_offset_crossing(gammas, gradients, offset):
         y1, y2 = diffs[i], diffs[i + 1]
         if not (np.isfinite(y1) and np.isfinite(y2)):
             continue
-        if y1 == 0 or y2 == 0 or y1 * y2 < 0:
+        if y1 == 0 or y2 == 0 or (y1 < 0) != (y2 < 0):
             candidates.append(i)
 
     if not candidates:
-        return None, diffs
+        return None
 
     idx = max(candidates, key=lambda i: max(gammas[i], gammas[i + 1]))
-    y1, y2 = diffs[idx], diffs[idx + 1]
-    x1, x2 = gammas[idx], gammas[idx + 1]
+    left, right = sorted((idx, idx + 1), key=lambda i: gammas[i])
+    y1, y2 = diffs[left], diffs[right]
+    x1, x2 = gammas[left], gammas[right]
 
-    if y1 == 0:
-        gamma = x1
-    elif y2 == 0:
+    if y2 == 0:
         gamma = x2
-    elif y2 != y1:
-        gamma = x1 - y1 * (x2 - x1) / (y2 - y1)
     else:
-        gamma = x1
+        gamma = x1 + (-y1 / (y2 - y1)) * (x2 - x1)
 
     bracket = {
         "left": {
             "gamma": _json_float(x1),
-            "gradient": _json_float(gradients[idx]),
+            "gradient": _json_float(gradients[left]),
             "diff": _json_float(y1),
         },
         "right": {
             "gamma": _json_float(x2),
-            "gradient": _json_float(gradients[idx + 1]),
+            "gradient": _json_float(gradients[right]),
             "diff": _json_float(y2),
         },
     }
-    return (float(gamma), bracket), diffs
+    return float(gamma), bracket
 
 
 class MDM(WeibullBase):
@@ -86,53 +83,32 @@ class MDM(WeibullBase):
 
         Returns:
             (beta, eta, gamma, r_squared, status) where status is True for either
-            an in-domain offset root or the gamma=0 constraint truncation. The
-            default engineering solver follows the S4.9.3 rule: probe g(0),
-            bracket near t_min, solve by Brent when possible, and use a right
-            edge fit when the fixed trace grid still misses the near-t_min root.
+            a bracketed interpolation, gamma=0 truncation, or a right-edge
+            fallback. If the grid has no crossing, probe near t_min for a bracket.
         """
         if offset is None:
             raise ValueError("offset parameter is required (e.g., offset=0.1)")
         self.calculation_trace = None
 
-        # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
-        # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
-        # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
-        # @inputs: data|t_i|原始失效时间样本
-        # @outputs: t|t|排序后数组, n|n|样本数量
         original_rank_method = self.rank_method
         self.rank_method = rank_method
         t = self.data
         n = self.n
 
-        # @step: 2 | 计算中位秩 | 使用 Bernard 公式计算经验累积分布函数值
-        # @formula: F(t_i) = \frac{i - 0.3}{n + 0.4}, \quad x_i = -\ln(1 - F(t_i))
-        # @symbols: F(t_i)|F(t_i)|第i个样本点的经验累积概率, x_i|x_i|变换后的中位秩
-        # @inputs: t|t|失效时间数组, n|n|样本数量
-        # @outputs: ranks|F(t_i)|中位秩数组, neg_ln_1_minus_F|x_i|变换数组
+        # @flow-anchor ranks
         ranks = self._median_ranks()
         neg_ln_1_minus_F = -np.log(1 - ranks)
 
-        # @step: 3 | 定义伪尺度参数计算函数 | 计算给定 β 和 γ 下每个样本点的伪尺度参数及其标准差
-        # @formula: \eta_i = \frac{t_i - \gamma}{x_i^{1/\beta}}, \quad \sigma_\eta = \text{std}(\eta_1, \eta_2, \ldots, \eta_n)
-        # @symbols: \eta_i|\eta_i|第i个伪尺度参数, \sigma_\eta|\sigma_\eta|伪尺度参数标准差, \beta|\beta|形状参数, \gamma|\gamma|位置参数
-        # @inputs: beta|\beta|形状参数, gamma|\gamma|位置参数, t|t|失效时间数组
-        # @outputs: \sigma_\eta|\sigma_\eta|标准差值
+        # @flow-anchor pseudo-scale-helper
         def calculate_eta_std(beta, gamma, current_t):
             if beta <= 0: return float('inf')
             denom = np.power(neg_ln_1_minus_F, 1.0/beta)
             etas = (current_t - gamma) / denom
             return np.std(etas, ddof=1)
 
-        # @step: 4 | 定义最优 β 搜索函数 | 对给定 γ，使用有界优化寻找使标准差最小的 β
-        # @formula: \beta^*(\gamma) = \arg\min_{\beta \in [0.1, 15.0]} \sigma_\eta(\beta, \gamma)
-        # @symbols: \beta^*(\gamma)|\beta^*(\gamma)|给定γ时的最优β
-        # @inputs: gamma|\gamma|位置参数候选值
-        # @outputs: best_beta|\beta^*|最优β值, min_sigma|\sigma_{min}|最小标准差
         beta_sigma_cache = {}
         profile_gradient_cache = {}
         beta_evaluations = {} if trace else None
-        root_evaluations = []
 
         def find_best_beta_for_gamma(gamma):
             if gamma >= t[0]:
@@ -220,6 +196,24 @@ class MDM(WeibullBase):
             gamma = max(0.0, t_min_float - min_gap)
             return gamma, float(profile_gradient(gamma))
 
+        def refine_crossing(bracket):
+            """Narrow the sampled bracket before estimating its crossing."""
+            left, right = bracket["left"]["gamma"], bracket["right"]["gamma"]
+            g_left, g_right = bracket["left"]["gradient"], bracket["right"]["gradient"]
+            max_width = float(t_min) * 1e-5
+            while right - left > max_width and g_left != offset and g_right != offset:
+                midpoint = left + (right - left) / 2.0
+                if not left < midpoint < right:
+                    break
+                g_midpoint = profile_gradient(midpoint)
+                if not np.isfinite(g_midpoint):
+                    break
+                if g_midpoint == offset or (g_left < offset) != (g_midpoint < offset):
+                    right, g_right = midpoint, g_midpoint
+                else:
+                    left, g_left = midpoint, g_midpoint
+            return _find_offset_crossing(np.array([left, right]), np.array([g_left, g_right]), offset)
+
         def fit_right_edge_root(anchor_gamma, anchor_gradient):
             """Return an interior root estimate when the sampled right edge is still below offset."""
             t_min_float = float(t_min)
@@ -237,18 +231,11 @@ class MDM(WeibullBase):
                 "model": "right_endpoint_asymptote",
             }
 
-        # @step: 5 | 初始化搜索范围 | 设置 γ 的离散候选网格，约束条件：0 <= γ < t_min
-        # @formula: \gamma_j = t_{\min} - d_j,\quad d_j \in \text{geomspace}(\epsilon, t_{\min})
-        # @symbols: t_{\min}|t_{\min}|最小失效时间, gamma_steps|N|搜索步数
-        # @inputs: t|t|失效时间数组
-        # @outputs: t_min|t_{\min}|最小失效时间
+        # @flow-anchor location-grid
         t_min = t[0]
 
-        # @step: 6 | 离散搜索 | 从接近 t_min 的位置向 0 展开几何加密网格，记录每个 γ 对应的最小标准差和最优 β
-        # @formula: \sigma_{\min}(\gamma) = \min_\beta \sigma_\eta(\beta, \gamma)
+        # @flow-anchor grid-scan
         # @loop: gamma_steps 次 (默认 60)
-        # @inputs: t_min|t_{\min}|最小失效时间, gamma_steps|N|搜索步数
-        # @outputs: gammas|\gamma|γ候选值数组, sigma_mins|\sigma_{min}|最小标准差数组, best_betas|\beta^*|最优β数组
         gammas = _build_geometric_gamma_grid(t_min, gamma_steps)
         sigma_mins = []
         best_betas = []
@@ -261,116 +248,63 @@ class MDM(WeibullBase):
         sigma_mins = np.array(sigma_mins, dtype=float)
         best_betas = np.array(best_betas, dtype=float)
 
-        # @step: 7 | 计算廓线梯度 | 使用与求解器相同的 profile_gradient 计算 g(gamma)
-        # @formula: g(\gamma) = \frac{\partial \sigma_{\min}(\gamma)}{\partial \gamma}
-        # @symbols: \nabla(\gamma)|\nabla|梯度值
-        # @inputs: sigma_mins|\sigma_{min}|标准差数组, gammas|\gamma|γ数组
-        # @outputs: grads|\nabla|梯度数组
         grads = np.array([profile_gradient(g) for g in gammas], dtype=float)
 
-        # @step: 8 | 离散曲线诊断 | 保留离散梯度曲线用于 trace，可视化和历史对照
-        # @formula: \nabla(\gamma^*) = \delta
-        # @symbols: \delta|\delta|偏移阈值(offset)
-        # @inputs: grads|\nabla|梯度数组, offset|\delta|偏移阈值
-        # @outputs: root_info|root|交点插值结果, diffs|\nabla-\delta|梯度差值数组
-        root_info, diffs = _find_offset_crossing(gammas, grads, offset)
-
-        # @step: 9 | 始终有解求解器 | 探测 g(0)，近 t_min 构造右端括弧，Brent 定根或边界截断
-        # @formula: g(0)\ge\delta \Rightarrow \hat{\gamma}=0;\quad g(0)<\delta \Rightarrow g(\hat{\gamma})=\delta
-        # @symbols: \gamma^*|\gamma^*|最优位置参数
-        # @inputs: root_info|root|交点结果, grads|\nabla|梯度数组, offset|\delta|偏移阈值
-        # @outputs: found_gamma|\gamma^*|最优γ值, solution_strategy|strategy|求解策略
+        # @flow-anchor crossing
+        root_info = _find_offset_crossing(gammas, grads, offset)
         probe_gradient_at_zero = float(profile_gradient(0.0))
+        at_zero = probe_gradient_at_zero >= offset
+        legacy_grid_crossing = root_info is not None
+        right_anchor_gamma = right_anchor_gradient = None
+
+        if root_info is None and not at_zero:
+            right_anchor_gamma, right_anchor_gradient = find_right_anchor()
+            trial_points = sorted(profile_gradient_cache.items())
+            trial_gammas, trial_gradients = map(np.asarray, zip(*trial_points))
+            root_info = _find_offset_crossing(trial_gammas, trial_gradients, offset)
+
+        if root_info is not None and not at_zero:
+            _, coarse_bracket = root_info
+            root_info = refine_crossing(coarse_bracket)
+
+        # @flow-anchor position
         root_bracket = None
         root_solver = None
-        root_solver_iterations = 0
-        right_anchor_gamma = None
-        right_anchor_gradient = None
         right_edge_extrapolation = None
-        legacy_grid_crossing = root_info is not None
 
-        if probe_gradient_at_zero >= offset:
+        if at_zero:
             found_gamma = 0.0
-            found_beta, _ = find_best_beta_for_gamma(found_gamma)
             solution_strategy = "truncated_at_zero"
+        elif root_info is not None:
+            found_gamma, root_bracket = root_info
+            solution_strategy = "interpolated_crossing"
+            root_solver = "linear_interpolation"
         else:
-            right_anchor_gamma, right_anchor_gradient = find_right_anchor()
-            right_diff = right_anchor_gradient - offset
-            left_diff = probe_gradient_at_zero - offset
+            right_edge_extrapolation = fit_right_edge_root(right_anchor_gamma, right_anchor_gradient)
+            found_gamma = right_edge_extrapolation["gamma"]
+            solution_strategy = root_solver = "right_edge_fit"
+            root_bracket = {
+                "left": {
+                    "gamma": _json_float(right_anchor_gamma),
+                    "gradient": _json_float(right_anchor_gradient),
+                    "diff": _json_float(right_anchor_gradient - offset),
+                },
+                "right": {
+                    "gamma": _json_float(found_gamma),
+                    "gradient": _json_float(offset),
+                    "diff": 0.0,
+                    "virtual": True,
+                },
+            }
 
-            if right_diff >= 0:
-                root_bracket = {
-                    "left": {
-                        "gamma": 0.0,
-                        "gradient": _json_float(probe_gradient_at_zero),
-                        "diff": _json_float(left_diff),
-                    },
-                    "right": {
-                        "gamma": _json_float(right_anchor_gamma),
-                        "gradient": _json_float(right_anchor_gradient),
-                        "diff": _json_float(right_diff),
-                    },
-                }
+        found_beta, _ = find_best_beta_for_gamma(found_gamma)
 
-                def root_objective(gamma):
-                    gradient = profile_gradient(gamma)
-                    if trace:
-                        root_evaluations.append(dict(gamma=float(gamma), gradient=float(gradient),
-                                                     residual=float(gradient - offset),
-                                                     evaluation=len(root_evaluations) + 1))
-                    return gradient - offset
-
-                root = root_scalar(
-                    root_objective,
-                    bracket=(0.0, float(right_anchor_gamma)),
-                    method="brentq",
-                    xtol=1e-8,
-                    rtol=1e-10,
-                    maxiter=80,
-                )
-                found_gamma = float(root.root)
-                found_gamma = min(max(found_gamma, 0.0), float(t_min) - 1e-12)
-                found_beta, _ = find_best_beta_for_gamma(found_gamma)
-                solution_strategy = "brent_root"
-                root_solver = "brent"
-                root_solver_iterations = int(root.iterations)
-            else:
-                right_edge_extrapolation = fit_right_edge_root(
-                    right_anchor_gamma,
-                    right_anchor_gradient,
-                )
-                found_gamma = right_edge_extrapolation["gamma"]
-                found_beta, _ = find_best_beta_for_gamma(found_gamma)
-                solution_strategy = "brent_root"
-                root_solver = "right_edge_fit"
-                root_bracket = {
-                    "left": {
-                        "gamma": _json_float(right_anchor_gamma),
-                        "gradient": _json_float(right_anchor_gradient),
-                        "diff": _json_float(right_diff),
-                    },
-                    "right": {
-                        "gamma": _json_float(found_gamma),
-                        "gradient": _json_float(offset),
-                        "diff": 0.0,
-                        "virtual": True,
-                    },
-                }
-
-        # @step: 11 | 计算最终尺度参数 η | 使用最优的 γ* 和 β* 计算所有伪尺度参数的均值
-        # @formula: \hat{\eta} = \frac{1}{n}\sum_{i=1}^n \frac{t_i - \hat{\gamma}}{x_i^{1/\hat{\beta}}}
-        # @symbols: \hat{\eta}|\hat{\eta}|尺度参数估计值
-        # @inputs: found_gamma|\hat{\gamma}|最优γ, found_beta|\hat{\beta}|最优β, t|t|失效时间数组
-        # @outputs: found_eta|\hat{\eta}|尺度参数估计值
+        # @flow-anchor scale
         denom = np.power(neg_ln_1_minus_F, 1.0/found_beta)
         etas = (t - found_gamma) / denom
         found_eta = np.mean(etas)
 
-        # @step: 12 | 计算拟合优度 R² | 评估模型与数据的拟合程度
-        # @formula: R^2 = 1 - \frac{\sum(F_i - \hat{F}_i)^2}{\sum(F_i - \bar{F})^2}
-        # @symbols: R^2|R^2|决定系数, F_i|F_i|经验累积概率, \hat{F}_i|\hat{F}_i|模型预测概率
-        # @inputs: found_beta|\hat{\beta}|形状参数, found_eta|\hat{\eta}|尺度参数, found_gamma|\hat{\gamma}|位置参数
-        # @outputs: r2|R^2|拟合优度
+        # @flow-anchor fit
         r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
 
         self.last_solution_info = {
@@ -383,7 +317,7 @@ class MDM(WeibullBase):
             "root_solver": root_solver,
             "right_anchor_gamma": right_anchor_gamma,
             "right_anchor_gradient": right_anchor_gradient,
-            "root_solver_iterations": root_solver_iterations,
+            "root_solver_iterations": 0,
             "legacy_grid_crossing": legacy_grid_crossing,
             "right_edge_extrapolation": right_edge_extrapolation,
             "gamma_steps": len(gammas),
@@ -391,9 +325,7 @@ class MDM(WeibullBase):
             "optimal_beta": found_beta,
         }
 
-        # @step: 13 | 生成追踪数据 | 若启用 trace，生成用于可视化的详细数据
-        # @inputs: found_gamma|\gamma^*|最优γ, found_beta|\beta^*|最优β, gammas|\gamma|γ数组, sigma_mins|\sigma_{min}|标准差数组, best_betas|\beta^*|最优β数组
-        # @outputs: trace_data|trace_{data}|可视化数据（σ-β曲线、梯度-γ曲线、3D曲面等）
+        # @flow-anchor trace
         if trace:
             # Freeze actual solver evaluations. Plotting must not run additional
             # objective evaluations or create a separate sampling grid.
@@ -404,23 +336,27 @@ class MDM(WeibullBase):
             beta_points = [plot_point(p['beta'], p['sigma'], beta=p['beta'],
                                       gamma=float(found_gamma), evaluation=i + 1)
                            for i, p in enumerate(beta_evaluations.get(float(found_gamma), []))]
-            gradient_values = list(root_evaluations)
-            if not gradient_values:
-                gradient_values = [dict(gamma=0., gradient=float(probe_gradient_at_zero))]
-                if right_anchor_gamma is not None:
-                    gradient_values.append(dict(gamma=float(right_anchor_gamma),
-                                                gradient=float(right_anchor_gradient)))
+            gradient_values = [
+                dict(gamma=g, gradient=v, residual=v - offset, evaluation=i)
+                for i, (g, v) in enumerate(solver_gradient_evaluations.items(), start=1)
+            ]
             gradient_points = [plot_point(p['gamma'], p['gradient'], **p) for p in gradient_values]
             selected_gradient = profile_gradient_cache.get(float(found_gamma))
             approximate = root_solver == 'right_edge_fit'
+            location_selection = []
+            location_formula = None
             if solution_strategy == 'truncated_at_zero':
                 selection_description = 'g(0)≥δ，按当前 γ≥0 工程约束选择 γ=0，再求对应 β 与 η。'
+                location_selection = [plot_point(found_gamma, selected_gradient, label='零位置')]
             elif approximate:
-                selection_description = ('右锚点梯度仍低于 δ，当前实现使用端点外推位置；'
-                                         '此位置不是实际求得的 g(γ)=δ 根。')
+                selection_description = '未找到夹住 δ 的相邻梯度点，按右端回退规则取靠近最小观测值的位置。'
             else:
-                selection_description = '用 Brent 在括弧内求 g(γ)=δ，再取该 γ 下使伪尺度标准差最小的 β。'
-            gradient_series = [plot_series('gradient', '实际求根函数求值', gradient_points)]
+                selection_description = '在夹住 δ 的两个相邻梯度点间线性插值取 γ，再求该位置的条件最优 β。'
+                location_selection = [plot_point(found_gamma, offset, label='线性插值交点', source='linear_interpolation')]
+                location_formula = r'\hat\gamma=\gamma_L+\frac{\delta-g_L}{g_R-g_L}(\gamma_R-\gamma_L)'
+                if any(point['diff'] == 0 for point in root_bracket.values()):
+                    location_formula = r'\hat\gamma=\gamma_i,\quad g_i=\delta'
+            gradient_series = [plot_series('gradient', '实际梯度求值', gradient_points)]
             if approximate:
                 gradient_series.append(plot_series(
                     'endpoint-fit', '端点外推目标（非函数值）',
@@ -439,9 +375,9 @@ class MDM(WeibullBase):
                         'location-criterion', '位置参数的梯度偏移判据',
                         '位置参数 γ', '剖面标准差梯度 g(γ)', gradient_series,
                         description=selection_description + ' 曲线按 γ 排列，详细记录保留真实求值次序。',
+                        formula=location_formula,
                         references=[dict(axis='y', value=float(offset), label='目标偏移量 δ')],
-                        selected=[plot_point(found_gamma, selected_gradient, label='最终位置参数')]
-                        if selected_gradient is not None and not approximate else []),
+                        selected=location_selection),
                 ],
                 selection=dict(description=selection_description, beta=float(found_beta),
                                eta=float(found_eta), gamma=float(found_gamma),
@@ -450,8 +386,8 @@ class MDM(WeibullBase):
                                approximate=approximate, strategy=solution_strategy, solver=root_solver),
                 details=dict(rank_method=rank_method, shape_search_bounds=[0.1, 15.0],
                              sigma_ddof=1, root_bracket=root_bracket,
-                             root_solver_iterations=root_solver_iterations,
-                             root_evaluations=root_evaluations,
+                             root_solver_iterations=0,
+                             root_evaluations=gradient_values,
                              gradient_scan=[dict(gamma=float(g), gradient=float(v))
                                             for g, v in zip(gammas, grads) if np.isfinite(v)],
                              pseudo_scales=[dict(observation=float(ti), rank=float(ri),
@@ -515,15 +451,12 @@ class MDM(WeibullBase):
                 add_gradient_point(g, gradient, source='solver_evaluation')
             for i in range(len(gammas)):
                 add_gradient_point(gammas[i], grads[i])
-            for p in root_evaluations:
+            for p in gradient_values:
                 add_gradient_point(p['gamma'], p['gradient'], source='solver_evaluation',
                                    evaluation=p.get('evaluation'))
 
-            if solution_strategy == "brent_root":
-                if root_solver == "right_edge_fit":
-                    add_gradient_point(found_gamma, offset, source="solver_root", virtual=True)
-                elif selected_gradient is not None:
-                    add_gradient_point(found_gamma, selected_gradient, source="solver_root")
+            if approximate:
+                add_gradient_point(found_gamma, offset, source="solver_root", virtual=True)
             elif solution_strategy == "truncated_at_zero":
                 add_gradient_point(0.0, probe_gradient_at_zero, source="solver_root")
 
@@ -541,3 +474,733 @@ class MDM(WeibullBase):
             }
 
         return float(found_beta), float(found_eta), float(found_gamma), float(r2), True
+
+
+# @method-flow
+# {
+#   "schemaVersion": 2,
+#   "methodId": "mdm",
+#   "methodName": "最小差异法 (MDM)",
+#   "description": "伪尺度离散度 → 条件形状优化 → 梯度偏移定位 → 尺度恢复。",
+#   "steps": [
+#     {
+#       "name": "准备样本",
+#       "description": "校验并排序失效样本，计算经验概率及其变换。",
+#       "formula": {
+#         "equations": [
+#           "F(t_i)=\\frac{i-0.3}{n+0.4}",
+#           "x_i=-\\ln(1-F(t_i))"
+#         ],
+#         "variants": {
+#           "exact": [
+#             "F(t_i)=I^{-1}_{0.5}(i,n+1-i)",
+#             "x_i=-\\ln(1-F(t_i))"
+#           ]
+#         },
+#         "symbols": [
+#           {
+#             "symbol": "F(t_i)",
+#             "meaning": "第i个样本点的经验累积概率"
+#           },
+#           {
+#             "symbol": "x_i",
+#             "meaning": "变换后的中位秩"
+#           }
+#         ],
+#         "explanation": "使用 Bernard 公式计算经验累积分布函数值"
+#       },
+#       "inputs": [
+#         {
+#           "code": "self.data",
+#           "symbol": "t_i",
+#           "meaning": "已排序样本"
+#         },
+#         {
+#           "code": "rank_method",
+#           "symbol": "p",
+#           "meaning": "本次绘图位置规则"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "t",
+#           "symbol": "t",
+#           "meaning": "排序后数组"
+#         },
+#         {
+#           "code": "ranks",
+#           "symbol": "F(t_i)",
+#           "meaning": "中位秩数组"
+#         },
+#         {
+#           "code": "neg_ln_1_minus_F",
+#           "symbol": "x_i",
+#           "meaning": "变换数组"
+#         }
+#       ],
+#       "basis": "原文式(3)以秩概率构造伪尺度；当前默认Bernard近似秩，精确秩分支见同一步源码。",
+#       "notes": "所示主公式为默认 Bernard；exact 分支使用 Beta 分布中位数，见绘图位置源码。",
+#       "sources": [
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase.__init__"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "if offset is None:",
+#           "until": "# @flow-anchor pseudo-scale-helper",
+#           "label": "读取样本并计算经验概率"
+#         },
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase._median_ranks"
+#         }
+#       ],
+#       "id": 1,
+#       "primarySource": 1
+#     },
+#     {
+#       "name": "试算各位置的最小差异",
+#       "description": "扫描位置网格，在每个试算位置上选出使伪尺度标准差最小的形状。",
+#       "formula": {
+#         "equations": [
+#           "\\beta^*(\\gamma)=\\arg\\min_{0.1\\le\\beta\\le15}\\sigma_\\eta(\\beta,\\gamma)",
+#           "s(\\gamma)=\\min_\\beta\\sigma_\\eta(\\beta,\\gamma)",
+#           "\\eta_i=\\frac{t_i-\\gamma}{[-\\ln(1-p_i)]^{1/\\beta}}",
+#           "\\sigma_\\eta=\\sqrt{\\frac{\\sum_i(\\eta_i-\\bar\\eta)^2}{n-1}}"
+#         ],
+#         "explanation": "每个试算位置的最小标准差组成 s(γ)，供下一步计算梯度。",
+#         "symbols": [
+#           {
+#             "symbol": "\\beta",
+#             "meaning": "横轴，形状参数"
+#           },
+#           {
+#             "symbol": "\\sigma_\\eta",
+#             "meaning": "纵轴，伪尺度的样本标准差"
+#           },
+#           {
+#             "symbol": "\\eta_i",
+#             "meaning": "第 i 个样本反算的伪尺度"
+#           },
+#           {
+#             "symbol": "\\bar\\eta",
+#             "meaning": "当前试算参数下的伪尺度均值"
+#           },
+#           {
+#             "symbol": "\\gamma_j",
+#             "meaning": "位置候选"
+#           },
+#           {
+#             "symbol": "\\beta^*(\\gamma)",
+#             "meaning": "给定γ时的最优β"
+#           }
+#         ]
+#       },
+#       "inputs": [
+#         {
+#           "code": "t",
+#           "symbol": "t_i",
+#           "meaning": "排序后的失效时间"
+#         },
+#         {
+#           "code": "neg_ln_1_minus_F",
+#           "symbol": "x_i",
+#           "meaning": "经验概率变换"
+#         },
+#         {
+#           "code": "gamma_steps",
+#           "symbol": "N",
+#           "meaning": "网格密度"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "gammas",
+#           "symbol": "\\gamma_j",
+#           "meaning": "试算位置"
+#         },
+#         {
+#           "code": "best_betas",
+#           "symbol": "\\beta^*(\\gamma_j)",
+#           "meaning": "各试算位置的条件形状"
+#         },
+#         {
+#           "code": "sigma_mins",
+#           "symbol": "s(\\gamma_j)",
+#           "meaning": "各试算位置的最小标准差"
+#         }
+#       ],
+#       "basis": "数值策略：每个位置候选调用有界标量优化并缓存结果。",
+#       "notes": "β∈[0.1,15]是当前工程搜索范围，不是所有MDM版本的普遍理论约束。",
+#       "sources": [
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "# @flow-anchor location-grid",
+#           "until": "grads = np.array",
+#           "label": "建立网格并扫描"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "_build_geometric_gamma_grid"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.find_best_beta_for_gamma"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.calculate_eta_std"
+#         }
+#       ],
+#       "id": 2,
+#       "primarySource": 0
+#     },
+#     {
+#       "name": "按梯度偏移求位置",
+#       "description": "用最小标准差的梯度与目标 δ 定位交点，确定位置 γ̂。",
+#       "formula": {
+#         "equations": [
+#           "g(\\hat\\gamma)=\\delta",
+#           "g(\\gamma)=\\frac{ds(\\gamma)}{d\\gamma}"
+#         ],
+#         "variants": {
+#           "zero": [
+#             "g(0)\\ge\\delta,\\quad\\hat\\gamma=0",
+#             "g(\\gamma)=\\frac{ds(\\gamma)}{d\\gamma}"
+#           ],
+#           "extrapolated": [
+#             "\\hat\\gamma=t_{(1)}-\\varepsilon",
+#             "\\varepsilon>0"
+#           ]
+#         },
+#         "explanation": "常规情况取夹住 δ 的两个梯度点之间的线性插值位置。",
+#         "symbols": [
+#           {
+#             "symbol": "\\gamma",
+#             "meaning": "横轴，位置参数"
+#           },
+#           {
+#             "symbol": "s(\\gamma)",
+#             "meaning": "该位置下的最小标准差"
+#           },
+#           {
+#             "symbol": "g(\\gamma)",
+#             "meaning": "最小标准差的数值梯度"
+#           },
+#           {
+#             "symbol": "\\delta",
+#             "meaning": "目标梯度"
+#           }
+#         ]
+#       },
+#       "inputs": [
+#         {
+#           "code": "profile_sigma",
+#           "symbol": "s(\\gamma)",
+#           "meaning": "各位置的条件最小标准差"
+#         },
+#         {
+#           "code": "offset",
+#           "symbol": "\\delta",
+#           "meaning": "偏移阈值"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "found_gamma",
+#           "symbol": "\\hat\\gamma",
+#           "meaning": "偏移判据选出的位置"
+#         },
+#         {
+#           "code": "solution_strategy",
+#           "symbol": "\\mathrm{strategy}",
+#           "meaning": "位置采纳方式"
+#         }
+#       ],
+#       "basis": "以梯度达到偏移量为取点判据。差分、缩小区间和线性插值可对照本步源码。",
+#       "notes": "零位置梯度达到目标时取零。网格及补探仍缺少夹区间时，标记为右端回退。",
+#       "sources": [
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "grads = np.array",
+#           "until": "found_beta, _ = find_best_beta_for_gamma(found_gamma)",
+#           "label": "确定位置"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.profile_gradient"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.profile_sigma"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.refine_crossing"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "_find_offset_crossing"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.find_right_anchor"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.fit_right_edge_root"
+#         }
+#       ],
+#       "id": 3,
+#       "primarySource": 0
+#     },
+#     {
+#       "name": "回代位置求形状",
+#       "description": "固定已选出的 γ̂，采纳在此位置使伪尺度标准差最小的形状。",
+#       "formula": {
+#         "equations": [
+#           "\\hat\\beta=\\beta^*(\\hat\\gamma)",
+#           "\\beta^*(\\hat\\gamma)=\\arg\\min_{0.1\\le\\beta\\le15}\\sigma_\\eta(\\beta,\\hat\\gamma)"
+#         ],
+#         "symbols": [
+#           {
+#             "symbol": "\\beta",
+#             "meaning": "横轴，形状参数"
+#           },
+#           {
+#             "symbol": "\\hat\\gamma",
+#             "meaning": "上一阶段采纳的位置"
+#           },
+#           {
+#             "symbol": "\\sigma_\\eta",
+#             "meaning": "伪尺度的样本标准差"
+#           }
+#         ],
+#         "explanation": "在 γ̂ 对应的标准差曲线上取最低点。"
+#       },
+#       "inputs": [
+#         {
+#           "code": "found_gamma",
+#           "symbol": "\\hat\\gamma",
+#           "meaning": "偏移判据选出的位置"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "found_beta",
+#           "symbol": "\\hat\\beta",
+#           "meaning": "在选定位置下采纳的形状"
+#         }
+#       ],
+#       "basis": "调用与试算阶段相同的条件形状寻优，位置固定为已采纳的 γ̂。",
+#       "notes": "若已在该位置完成寻优，程序会复用缓存的最小值。",
+#       "sources": [
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "found_beta, _ = find_best_beta_for_gamma(found_gamma)",
+#           "until": "# @flow-anchor scale",
+#           "label": "回代选定位置"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run.find_best_beta_for_gamma"
+#         }
+#       ],
+#       "primarySource": 0,
+#       "id": 4
+#     },
+#     {
+#       "name": "反算尺度",
+#       "description": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值",
+#       "formula": {
+#         "equations": [
+#           "\\hat\\eta=\\frac1n\\sum_{i=1}^n\\eta_i",
+#           "\\eta_i=\\frac{t_i-\\hat\\gamma}{x_i^{1/\\hat\\beta}}"
+#         ],
+#         "symbols": [
+#           {
+#             "symbol": "\\eta_i",
+#             "meaning": "第 i 个样本反算的伪尺度"
+#           },
+#           {
+#             "symbol": "x_i",
+#             "meaning": "经验概率变换 −ln(1−pᵢ)"
+#           },
+#           {
+#             "symbol": "n",
+#             "meaning": "失效样本数"
+#           },
+#           {
+#             "symbol": "\\hat{\\eta}",
+#             "meaning": "尺度参数估计值"
+#           }
+#         ],
+#         "explanation": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值"
+#       },
+#       "inputs": [
+#         {
+#           "code": "found_gamma",
+#           "symbol": "\\hat{\\gamma}",
+#           "meaning": "最优γ"
+#         },
+#         {
+#           "code": "found_beta",
+#           "symbol": "\\hat{\\beta}",
+#           "meaning": "最优β"
+#         },
+#         {
+#           "code": "t",
+#           "symbol": "t",
+#           "meaning": "失效时间数组"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "found_eta",
+#           "symbol": "\\hat{\\eta}",
+#           "meaning": "尺度参数估计值"
+#         }
+#       ],
+#       "basis": "方法构造：在选定β、γ后，以伪尺度的均值恢复η。",
+#       "notes": "",
+#       "sources": [
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "label": "本步实现",
+#           "from": "# @flow-anchor scale",
+#           "until": "# @flow-anchor fit"
+#         }
+#       ],
+#       "id": 5,
+#       "primarySource": 0
+#     },
+#     {
+#       "name": "汇总结果",
+#       "description": "汇总三个估计参数、概率图拟合优度和本次求解状态。",
+#       "formula": {
+#         "equations": [
+#           "R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}",
+#           "y_i=\\ln[-\\ln(1-p_i)]",
+#           "\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta"
+#         ],
+#         "explanation": "评估模型与数据的拟合程度",
+#         "symbols": [
+#           {
+#             "symbol": "R^2",
+#             "meaning": "概率图决定系数"
+#           },
+#           {
+#             "symbol": "p_i",
+#             "meaning": "绘图位置"
+#           },
+#           {
+#             "symbol": "y_i",
+#             "meaning": "变换后的经验值"
+#           },
+#           {
+#             "symbol": "\\hat y_i",
+#             "meaning": "参数预测值"
+#           }
+#         ]
+#       },
+#       "inputs": [
+#         {
+#           "code": "found_gamma",
+#           "symbol": "\\hat\\gamma",
+#           "meaning": "偏移判据选出的位置"
+#         },
+#         {
+#           "code": "found_beta",
+#           "symbol": "\\hat\\beta",
+#           "meaning": "在选定位置下采纳的形状"
+#         },
+#         {
+#           "code": "found_eta",
+#           "symbol": "\\hat{\\eta}",
+#           "meaning": "尺度参数估计值"
+#         }
+#       ],
+#       "outputs": [
+#         {
+#           "code": "return",
+#           "symbol": "R^2",
+#           "meaning": "概率图决定系数"
+#         },
+#         {
+#           "code": "return",
+#           "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)",
+#           "meaning": "本次三参数、拟合优度和状态"
+#         }
+#       ],
+#       "basis": "项目诊断：共用基础类的概率图 R²，不参与核心参数求解。",
+#       "notes": "γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。",
+#       "sources": [
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "r2 = self._calculate_r2(",
+#           "through": "r2 = self._calculate_r2("
+#         },
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase._calculate_r2"
+#         },
+#         {
+#           "file": "python/methods/mdm.py",
+#           "symbol": "MDM.run",
+#           "from": "return float(found_beta)",
+#           "through": "return float(found_beta)",
+#           "label": "返回三参数与状态"
+#         }
+#       ],
+#       "id": 6,
+#       "primarySource": 1
+#     }
+#   ],
+#   "presentation": "steps",
+#   "workflow": {
+#     "title": "MDM 计算流程",
+#     "description": "准备样本，试算各位置的最小差异，按梯度偏移求位置，回代求形状，反算尺度，汇总结果。",
+#     "targets": {
+#       "samples": 1,
+#       "trial": 2,
+#       "location": 3,
+#       "shape": 4,
+#       "scale": 5,
+#       "result": 6
+#     },
+#     "legacySourceSteps": [
+#       1,
+#       1,
+#       2,
+#       2,
+#       3,
+#       3,
+#       3,
+#       5,
+#       6,
+#       6
+#     ],
+#     "items": [
+#       {
+#         "kind": "group",
+#         "layout": "inputs",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "sample",
+#             "target": "samples",
+#             "direction": "input",
+#             "label": "失效样本 tᵢ",
+#             "text": {
+#               "default": [
+#                 "待输入"
+#               ],
+#               "ready": [
+#                 "n = {count}"
+#               ]
+#             }
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "offset",
+#             "target": "location",
+#             "direction": "input",
+#             "label": "梯度偏移 δ",
+#             "text": {
+#               "default": [
+#                 "{offset}"
+#               ]
+#             }
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "prepare",
+#         "children": [
+#           {
+#             "kind": "step",
+#             "step": 1,
+#             "anchor": "prepare",
+#             "target": "samples",
+#             "text": {
+#               "default": [
+#                 "排序并计算经验概率"
+#               ]
+#             }
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "search",
+#         "children": [
+#           {
+#             "kind": "group",
+#             "layout": "searchContent",
+#             "children": [
+#               {
+#                 "kind": "step",
+#                 "step": 2,
+#                 "anchor": "trial",
+#                 "target": "trial",
+#                 "text": {
+#                   "default": [
+#                     "固定各试算 γ 求最小差异"
+#                   ]
+#                 }
+#               },
+#               {
+#                 "kind": "group",
+#                 "layout": "module",
+#                 "children": [
+#                   {
+#                     "kind": "step",
+#                     "step": 3,
+#                     "anchor": "location",
+#                     "target": "location",
+#                     "text": {
+#                       "default": [
+#                         "由梯度和 δ 定位"
+#                       ],
+#                       "ready": [
+#                         "按梯度偏移采纳位置"
+#                       ],
+#                       "zero": [
+#                         "g(0) ≥ δ，取零位置"
+#                       ],
+#                       "extrapolated": [
+#                         "右端回退 · 近似"
+#                       ]
+#                     }
+#                   },
+#                   {
+#                     "kind": "port",
+#                     "anchor": "gamma",
+#                     "target": "location",
+#                     "direction": "output",
+#                     "label": "位置 γ̂"
+#                   }
+#                 ]
+#               }
+#             ]
+#           }
+#         ],
+#         "title": "位置搜索 · 2–3 步",
+#         "sideLabel": "换 γ 求值"
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "scale",
+#         "children": [
+#           {
+#             "kind": "group",
+#             "layout": "module",
+#             "children": [
+#               {
+#                 "kind": "step",
+#                 "step": 4,
+#                 "anchor": "shape",
+#                 "target": "shape",
+#                 "text": {
+#                   "default": [
+#                     "固定 γ̂ 取条件最小点"
+#                   ]
+#                 }
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "beta",
+#                 "target": "shape",
+#                 "direction": "output",
+#                 "label": "形状 β̂"
+#               }
+#             ]
+#           },
+#           {
+#             "kind": "group",
+#             "layout": "module",
+#             "children": [
+#               {
+#                 "kind": "step",
+#                 "step": 5,
+#                 "anchor": "scale",
+#                 "target": "scale",
+#                 "text": {
+#                   "default": [
+#                     "用 tᵢ、xᵢ、γ̂、β̂ 反算并取均值"
+#                   ]
+#                 }
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "eta",
+#                 "target": "scale",
+#                 "direction": "output",
+#                 "label": "尺度 η̂"
+#               }
+#             ]
+#           },
+#           {
+#             "kind": "step",
+#             "step": 6,
+#             "anchor": "result",
+#             "target": "result",
+#             "text": {
+#               "default": [
+#                 "用 γ̂、β̂、η̂ 计算 R²"
+#               ]
+#             }
+#           }
+#         ]
+#       }
+#     ],
+#     "connections": [
+#       {
+#         "from": "sample",
+#         "to": "prepare"
+#       },
+#       {
+#         "from": "prepare",
+#         "to": "trial",
+#         "label": "tᵢ、xᵢ"
+#       },
+#       {
+#         "from": "trial",
+#         "to": "location",
+#         "label": "(γⱼ, s(γⱼ))"
+#       },
+#       {
+#         "from": "offset",
+#         "to": "location",
+#         "route": "right-upper",
+#         "dashed": true
+#       },
+#       {
+#         "from": "location",
+#         "to": "trial",
+#         "route": "loop"
+#       },
+#       {
+#         "from": "gamma",
+#         "to": "shape"
+#       },
+#       {
+#         "from": "beta",
+#         "to": "scale"
+#       },
+#       {
+#         "from": "eta",
+#         "to": "result"
+#       }
+#     ]
+#   }
+# }
+# @end-method-flow

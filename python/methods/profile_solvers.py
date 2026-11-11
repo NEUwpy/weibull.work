@@ -35,7 +35,7 @@ def solve_mle_profile(data, *, trace=False):
         g = float(g)
         if g not in cache:
             values = [] if trace else None
-            cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values)
+            cache[g] = mle_profile(z, g, shape_lower=1., shape_evaluations=values, shape_diagnostics=False)
             if trace:
                 shape_records[g] = values
         return cache[g]
@@ -56,7 +56,7 @@ def solve_mle_profile(data, *, trace=False):
         if any(abs(g - c['gamma'] / unit) <= 1e-9 for c in candidates):
             return
         candidates.append(dict(beta=float(p['beta']), eta=float(p['eta'] * unit),
-                               gamma=gamma, ll=float(p['ll'] - len(x) * np.log(unit)),
+                               gamma=gamma, normalized_gamma=float(g), ll=float(p['ll'] - len(x) * np.log(unit)),
                                kind=kind, location_score=float(p['location_score'] / unit)))
 
     zero = points[0]
@@ -115,15 +115,20 @@ def solve_mle_profile(data, *, trace=False):
     if trace:
         # Cache insertion order is the order of actual conditional evaluations.
         # These are function evaluations, not outer optimizer iterations.
-        info['selected_shape_evaluations'] = shape_records[min(shape_records, key=lambda g: abs(g - best['gamma'] / unit))] if best else []
+        info['normalization_unit'] = unit
+        info['prepared_samples'] = [dict(index=i+1, observation=float(t), normalized=float(v))
+                                    for i, (t, v) in enumerate(zip(x, z))]
+        info['selected_shape_evaluations'] = shape_records[best['normalized_gamma']] if best else []
         info['profile_trace'] = [dict(
-            evaluation=i + 1, gamma=float(g * unit),
+            evaluation=i + 1, gamma=float(g * unit), normalized_gamma=float(g),
             beta=float(p['beta']), eta=float(p['eta'] * unit),
             log_likelihood=float(p['ll'] - len(x) * np.log(unit)),
             location_score=float(p['location_score'] / unit),
             shape_score=float(p['shape_score']),
             shape_at_lower_boundary=bool(p['shape_at_lower_boundary']),
         ) for i, (g, p) in enumerate(cache.items()) if p is not None]
+        info['profile_shape_evaluations'] = [dict(gamma=float(g * unit), normalized_gamma=float(g), values=shape_records[g])
+                                             for g, p in cache.items() if p is not None]
     return best, info
 
 

@@ -7,18 +7,24 @@ import vm from 'node:vm'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
-import { methodHref, methodTabFromPath } from '../../src/lib/method-navigation.ts'
+import { legacyProcessHref, methodHref, methodTabFromPath } from '../../src/lib/method-navigation.ts'
 import { workbookMatches, formatWorkbookCell } from '../../src/lib/monte-carlo.ts'
 const require = createRequire(import.meta.url)
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 
 test('independent method URLs retain the function, batch, sample and calculation deep links', () => {
   const query = new URLSearchParams({ batch: 'r00-test', n: '15', sample: '23', view: 'samples', data: '4,5,6', offset: '0.1' })
-  for (const [section, tab] of [['process', 'flow'], ['calculation', 'lab'], ['analysis', 'analysis'], ['applicability', 'examples'], ['verification', 'cases'], ['compare', 'compare']]) {
+  for (const [section, tab] of [['calculation', 'lab'], ['analysis', 'analysis'], ['applicability', 'examples'], ['verification', 'cases'], ['compare', 'compare']]) {
     assert.equal(methodTabFromPath('/methods/mdm/' + section), tab)
     assert.equal(methodHref('mle', tab, query), '/methods/mle/' + section + '?' + query)
   }
   assert.equal(methodHref('mdm', null), '/methods/mdm')
+  assert.equal(methodTabFromPath('/methods/mdm/process'), 'lab')
+  query.set('step', '3')
+  const redirected = new URL(legacyProcessHref('mdm', query), 'http://localhost')
+  assert.equal(redirected.pathname, '/methods/mdm/calculation')
+  assert.deepEqual([...redirected.searchParams], [...query].map(([key, value]) => [key === 'step' ? 'sourceStep' : key, value]))
+  assert.equal(legacyProcessHref('mdm', new URLSearchParams()), '/methods/mdm/calculation?sourceStep=1')
 })
 test('linked choices require the other two parameters, sample size, method and available data to match', () => {
   const card = { truth: [2, 1000, 500], ns: [7, 15, 30], methods: ['mdm', 'mle'] }

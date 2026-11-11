@@ -37,14 +37,6 @@ export const chartRegistry: ChartRegistry = {
       dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
       props: { methodId: method, source: 'calculation.details.scale_calculation', exampleOnly: method === 'mmle' },
     })),
-    {
-      id: 'mdm-scale-calculation',
-      label: 'MDM 逐样本伪尺度与平均值',
-      location: 'MDMScaleCalculation / shared ProcessChart',
-      description: '每个样本反算的伪尺度值与最终均值线；切换样本查看概率、位移和分母到伪尺度的实际代入。',
-      dataSource: { type: 'api', endpoint: 'POST /calculate' },
-      props: { methodId: 'mdm', x: '样本值 t₍ᵢ₎', y: '伪尺度 ηᵢ', mean: 'η̂', source: 'calculation.details.pseudo_scales' },
-    },
   ],
 
   // ============================================================

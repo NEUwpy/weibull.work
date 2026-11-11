@@ -24,14 +24,22 @@ def test_linked_position_frames_share_equations_and_exact_final_parameters(metho
     assert plain.run() == model.run(trace=True)
     record = model.calculation_trace
     frames = record['details']['reading_frames']
-    assert 3 < len(frames) < 30
+    if method is MLE:
+        assert len(frames) == len(record['details']['profile_values']) > 3
+        assert record['details']['actual_solver_views']
+        assert {p['source'] for p in record['details']['selected_shape_evaluations']} == {'solver'}
+    else:
+        assert 3 < len(frames) < 30
     final = next(frame for frame in frames if frame['final'])
     assert [final[p] for p in ('beta', 'eta', 'gamma')] == [record['selection'][p] for p in ('beta', 'eta', 'gamma')]
     x = np.asarray(SAMPLE)
     for frame in frames:
         points = frame['shape_chart']['series'][0]['points']
         gamma = frame['gamma']
-        logs = np.log(x - gamma)
+        unit = record['details']['normalization_unit'] if method is MLE else 1.
+        # MLE actually solves on x/unit. Preserve that input at ill-conditioned
+        # support endpoints instead of reconstructing it from rounded gamma.
+        logs = np.log(x / unit - frame['normalized_gamma']) if method is MLE else np.log(x - gamma)
         for point in points:
             beta = point['x']
             power = np.exp(beta * (logs - logs.max()))
@@ -39,9 +47,9 @@ def test_linked_position_frames_share_equations_and_exact_final_parameters(metho
             score = shape_weight / beta + logs.mean() - (power @ logs) / power.sum()
             assert point['y'] == pytest.approx(score, rel=5e-15, abs=2e-13)
         if method is MLE:
-            expected = mle_profile(x, gamma)
-            assert frame['log_likelihood'] == pytest.approx(expected['ll'], abs=2e-9)
-            assert frame['location_score'] == pytest.approx(expected['location_score'], abs=2e-9)
+            expected = mle_profile(x / unit, frame['normalized_gamma'])
+            assert frame['log_likelihood'] == pytest.approx(expected['ll'] - len(x)*np.log(unit), abs=2e-9)
+            assert frame['location_score'] == pytest.approx(expected['location_score'] / unit, abs=2e-9)
         else:
             first, second = wmle_residuals(x, frame['beta'], gamma, weights)
             assert frame['t1'] == pytest.approx(first, abs=2e-12)

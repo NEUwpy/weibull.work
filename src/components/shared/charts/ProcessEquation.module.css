@@ -1,0 +1,15 @@
+.equation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 0;
+  color: #334155;
+}
+.equation:not([data-equation-number]) { grid-template-columns: minmax(0, 1fr); }
+.math { min-width: 0; overflow-x: auto; text-align: left; }
+.math :global(.katex-display) { margin: 0; padding: 4px 0; text-align: left; }
+.math :global(.katex-display > .katex) { text-align: left; }
+.math :global(.katex-display > .katex > .katex-html) { display: block; width: auto; table-layout: auto; }
+.number { color: #64748b; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }

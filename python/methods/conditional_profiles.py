@@ -20,7 +20,7 @@ def _distances(data, gamma):
     return d
 
 
-def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
+def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None, diagnostic_curve=True):
     z = logd - logd.mean()
 
     def score(beta, source='solver'):
@@ -35,7 +35,7 @@ def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
         # Supplement the same score function around its returned shape so the
         # criterion is readable. These calls occur after selection, never enter
         # root finding, and are identified separately from solver evaluations.
-        if evaluations is not None:
+        if evaluations is not None and diagnostic_curve:
             actual_shapes = [p['beta'] for p in evaluations if p['source'] == 'solver']
             start = max(lower, min([beta*.5, *actual_shapes]), 1e-8)
             stop = max([beta*1.5, *actual_shapes])
@@ -63,7 +63,7 @@ def _shape(logd, weight=1.0, lower=0.0, upper=None, evaluations=None):
     return recorded_result(beta, score(beta), False)
 
 
-def mle_profile(data, gamma, *, shape_lower=1.0, shape_evaluations=None):
+def mle_profile(data, gamma, *, shape_lower=1.0, shape_evaluations=None, shape_diagnostics=True):
     """Maximize the standard likelihood at fixed gamma over beta>=shape_lower.
 
     shape_lower=1 is the R00 diagnostic domain. shape_lower=0 is an explicitly
@@ -74,7 +74,7 @@ def mle_profile(data, gamma, *, shape_lower=1.0, shape_evaluations=None):
         raise ValueError("shape_lower must be finite and nonnegative")
     d = _distances(data, gamma)
     t = np.log(d)
-    solution = _shape(t, lower=shape_lower, evaluations=shape_evaluations)
+    solution = _shape(t, lower=shape_lower, evaluations=shape_evaluations, diagnostic_curve=shape_diagnostics)
     if solution is None:
         return None
     beta, score, boundary = solution

@@ -137,6 +137,24 @@ def _profile_reading_frames(method, data, selected, weights=None, solver_shape_v
     return frames
 
 
+def _mle_solver_frames(info, selected):
+    """Link only conditional evaluations already executed by the MLE solver."""
+    shapes = {item['normalized_gamma']: item['values'] for item in info.get('profile_shape_evaluations', [])}
+    frames = []
+    for point in info.get('profile_trace', []):
+        values = shapes.get(point['normalized_gamma'], [])
+        frames.append(dict(**point, final=bool(selected and point['normalized_gamma'] == selected['normalized_gamma']),
+            shape_chart=plot_chart('linked-shape-equation', '固定位置下的形状求解',
+                '形状参数 β', '形状得分 Sβ',
+                [plot_series('shape-score', '实际形状求值连线',
+                    [plot_point(p['beta'], p['score']) for p in values]),
+                 plot_series('solver-points', '实际形状求值',
+                    [plot_point(p['beta'], p['score'], evaluation=i+1) for i, p in enumerate(values)], kind='scatter')],
+                references=[dict(axis='y', value=0., label='形状得分 = 0')],
+                selected=[plot_point(point['beta'], point['shape_score'], label='该位置的条件形状')])) )
+    return frames
+
+
 def modified_likelihood_plot(logs, iterations, beta, eta, initial_shape):
     """Single-sample form of Kundu–Raqab's modified profile likelihood."""
     import numpy as np
@@ -264,8 +282,8 @@ def profile_calculation(method, info, selected, *, data=None, weights=None):
             charts.append(plot_chart(
                 'conditional-shape-equation', '固定选中位置，求形状参数', '形状参数 β',
                 '形状得分 Sβ' if method == 'mle' else '形状方程残差 T₁',
-                [plot_series('shape-score', '同一形状方程的辅助采样',
-                             [plot_point(p['beta'], p['score']) for p in curve_values], role='diagnostic'),
+                [plot_series('shape-score', '实际形状求值连线' if method == 'mle' else '同一形状方程的辅助采样',
+                             [plot_point(p['beta'], p['score']) for p in curve_values], role='solver' if method == 'mle' else 'diagnostic'),
                  plot_series('solver-points', '本次求解计算点',
                              [plot_point(p['beta'], p['score'], evaluation=i+1)
                               for i, p in enumerate(shape_values) if p.get('source') == 'solver'], kind='scatter')],
@@ -280,7 +298,7 @@ def profile_calculation(method, info, selected, *, data=None, weights=None):
         scale_formula = (r'\hat\eta=\left[\frac{\sum(t_i-\hat\gamma)^{\hat\beta}}{n'
                          + (r'J_1' if method == 'wmle' else '') + r'}\right]^{1/\hat\beta}')
         recovery.append(calculation_step('幂均值恢复尺度', scale_formula, [('η̂', selected['eta'])]))
-    reading_frames = (_profile_reading_frames(method, data, selected, weights,
+    reading_frames = _mle_solver_frames(info, selected) if method == 'mle' else (_profile_reading_frames(method, data, selected, weights,
                       info.get('selected_shape_evaluations', []))
                       if data is not None and selected and
                       selected['kind'] != 'boundary_residual_tolerance' else [])
@@ -315,6 +333,10 @@ def profile_calculation(method, info, selected, *, data=None, weights=None):
                              support_boundary_limit=info.get('support_boundary_limit'),
                              boundary_limit_exceeds_selected=info.get('boundary_limit_exceeds_selected'),
                              selected_shape_evaluations=info.get('selected_shape_evaluations', []),
+                             candidates=candidates, profile_values=profiles,
+                             actual_solver_views=method == 'mle',
+                             normalization_unit=info.get('normalization_unit'),
+                             prepared_samples=info.get('prepared_samples', []),
                              reading_frames=reading_frames,
                              scale_calculation=scale_calculation, weight_values=weight_values,
                              equation_calculation=equation_calculation,

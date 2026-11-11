@@ -50,7 +50,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/mle.json",
+            "python/methods/mle.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -60,13 +60,14 @@
         "calculation": {
           "status": "done",
           "evidence": [
+            "python/tests/test_mle_process_records.py",
             "python/tests/test_calculation_provenance.py",
             "python/tests/test_likelihood_process_views.py",
-            "src/components/methods/LikelihoodProcessViewer.tsx",
-            "src/components/methods/PowerScaleCalculation.tsx",
-            "coworker/reports/2026-11-05-method-process-figures.md"
+            "src/components/methods/mle/visualizers/MLEVisualizer.tsx",
+            "src/components/methods/CalculationWorkspace.tsx",
+            "docs/method-reviews/mle.md"
           ],
-          "note": "位置与形状判据、最终方程代入及逐样本贡献到尺度已走通；原文对应范围不由页面验收扩大"
+          "note": "按MDM规范完成六步条件剖面展示，图像/代码共用Python流程与真实求解记录；Agent自查通过，待用户检查；原文对应范围未扩大"
         },
         "analysis": {
           "status": "todo",
@@ -514,7 +515,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/mdm.json",
+            "python/methods/mdm.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]

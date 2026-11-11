@@ -2,18 +2,20 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, BookOpen, GitBranch, Microscope, BarChart3, Gauge, FileCheck, Scale, LucideIcon } from 'lucide-react'
+import { ChevronDown, BookOpen, Microscope, BarChart3, Gauge, FileCheck, Scale, LucideIcon } from 'lucide-react'
 import { MethodNode } from '@/lib/methods'
 import MethodTree from '@/components/shared/MethodTree'
 import { methodHref, MethodTab } from '@/lib/method-navigation'
 import styles from './MethodNavigation.module.css'
 
 const tabs: { tab: MethodTab; label: string; icon: LucideIcon }[] = [
-  { tab: null, label: '方法原理', icon: BookOpen }, { tab: 'flow', label: '程序流程', icon: GitBranch }, { tab: 'lab', label: '计算过程', icon: Microscope },
+  { tab: null, label: '方法原理', icon: BookOpen }, { tab: 'lab', label: '计算过程', icon: Microscope },
   { tab: 'analysis', label: '结果分析', icon: BarChart3 }, { tab: 'examples', label: '适用范围', icon: Gauge }, { tab: 'cases', label: '可信性验证', icon: FileCheck }, { tab: 'compare', label: '方法对比', icon: Scale },
 ]
 export default function MethodNavigation({ method, activeTab }: { method: MethodNode; activeTab: MethodTab }) {
   const router = useRouter(), query = useSearchParams()
+  const navigationQuery = new URLSearchParams(query.toString())
+  navigationQuery.delete('sourceStep')
   const [open, setOpen] = useState(false)
   const switchRef = useRef<HTMLDivElement>(null), buttonRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -43,12 +45,12 @@ export default function MethodNavigation({ method, activeTab }: { method: Method
           <MethodTree selectedId={method.id} onSelect={id => {
             setOpen(false)
             buttonRef.current?.focus()
-            if (id !== method.id) router.push(methodHref(id, activeTab, query), { scroll: false })
+            if (id !== method.id) router.push(methodHref(id, activeTab, navigationQuery), { scroll: false })
           }} />
         </div>}
       </div>
     <nav aria-label="方法功能" className={styles.navigation}>
-      {tabs.map(({ tab, label, icon: Icon }) => <Link key={label} href={methodHref(method.id, tab, query)} scroll={false} aria-current={activeTab === tab ? 'page' : undefined}
+      {tabs.map(({ tab, label, icon: Icon }) => <Link key={label} href={methodHref(method.id, tab, navigationQuery)} scroll={false} aria-current={activeTab === tab ? 'page' : undefined}
         className={styles.link}><Icon size={17} strokeWidth={1.7} aria-hidden="true" />{label}</Link>)}
     </nav>
     </div>

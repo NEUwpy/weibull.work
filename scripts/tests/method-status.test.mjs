@@ -31,7 +31,7 @@ function completeMethod(id) {
       tests: completeItem(['python/tests/test_runner.py']),
       calculator: completeItem(['src/hooks/useWeibullCalculation.ts']),
       theory: completeItem(['src/content/algorithms/mdm.md']),
-      process: completeItem(['src/data/method_flows/mdm.json']),
+      process: completeItem(['python/methods/mdm.py']),
     },
     layer2: {
       calculation: completeItem(['src/components/methods/mdm']),

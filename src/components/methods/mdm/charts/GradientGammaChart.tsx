@@ -26,6 +26,7 @@ import {
 } from 'recharts'
 import { cn } from '@/lib/utils'
 import { formatCalculationNumber as number } from '@/lib/calculation-trace'
+import { processPlotAxes, processPlotFrame } from '@/components/shared/charts/ProcessPlot'
 
 // 单条曲线数据类型
 export interface GradientGammaPoint {
@@ -99,6 +100,7 @@ interface GradientGammaChartProps {
   // 容器样式
   className?: string
   noContainer?: boolean       // 不渲染外层容器，只渲染图表
+  workspacePlot?: boolean
 }
 
 export function GradientGammaChart({
@@ -127,7 +129,8 @@ export function GradientGammaChart({
   title,
   subtitle,
   className,
-  noContainer = false
+  noContainer = false,
+  workspacePlot = false,
 }: GradientGammaChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<GradientGammaPoint | null>(null)
   const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-gradient-calculated-point"
@@ -206,14 +209,15 @@ export function GradientGammaChart({
 
   // 图表渲染部分
   const chartContent = (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={workspacePlot ? '100%' : height}>
       <ComposedChart
         data={displayCurves[0]?.data || []}
-        margin={{ top: 20, right: 25, bottom: 45, left: 20 }}
+        margin={workspacePlot ? processPlotAxes.margin : { top: 20, right: 25, bottom: 45, left: 20 }}
       >
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
         <XAxis
           dataKey="gamma"
+          height={workspacePlot ? processPlotAxes.xAxisHeight : undefined}
           type="number"
           domain={xDomain}
           allowDataOverflow={!!domain?.x}
@@ -227,7 +231,7 @@ export function GradientGammaChart({
         />
         <YAxis
           dataKey="gradient"
-          width={68}
+          width={workspacePlot ? processPlotAxes.yAxisWidth : 68}
           domain={yDomain}
           allowDataOverflow={!!domain?.y}
           tickFormatter={(v) => v.toFixed(3)}
@@ -337,6 +341,8 @@ export function GradientGammaChart({
       </ComposedChart>
     </ResponsiveContainer>
   )
+
+  if (workspacePlot) return <div className={processPlotFrame} data-process-plot role="img" aria-label="位置参数与剖面梯度">{chartContent}</div>
 
   // noContainer 模式：只返回图表
   if (noContainer) {

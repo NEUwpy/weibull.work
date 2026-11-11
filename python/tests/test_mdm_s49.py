@@ -37,8 +37,8 @@ def test_default_mdm_truncates_negative_offset_root_to_zero():
     assert trace["probe_gradient_at_zero"] > trace["target_offset"]
 
 
-def test_default_mdm_uses_brent_root_when_zero_probe_is_below_offset():
-    """g(0) < offset 时应使用右端括弧 + Brent 定根，而不是离散网格插值。"""
+def test_default_mdm_interpolates_between_measured_gradient_endpoints():
+    """最终位置可由记录的两个梯度端点独立复算。"""
     sample = generate_sample(2.0, 100.0, 5.0, 30, 0)
 
     mdm = MDM(sample)
@@ -52,8 +52,8 @@ def test_default_mdm_uses_brent_root_when_zero_probe_is_below_offset():
 
     trace = mdm.trace_data
     assert trace["search_strategy"] == "geometric_from_tmin"
-    assert trace["solution_strategy"] == "brent_root"
-    assert trace["root_solver"] == "brent"
+    assert trace["solution_strategy"] == "interpolated_crossing"
+    assert trace["root_solver"] == "linear_interpolation"
     assert trace["gamma_steps"] == 30
     assert len(trace["grad_gamma_curve"]) >= 30
     assert trace["probe_gradient_at_zero"] < trace["target_offset"]
@@ -66,9 +66,12 @@ def test_default_mdm_uses_brent_root_when_zero_probe_is_below_offset():
     assert (left["gradient"] - trace["target_offset"]) * (
         right["gradient"] - trace["target_offset"]
     ) <= 0
-    assert trace["right_anchor_gamma"] == right["gamma"]
-    assert trace["right_anchor_gradient"] == right["gradient"]
-    assert trace["root_solver_iterations"] > 0
+    assert right["gamma"] - left["gamma"] <= min(sample) * 1e-5
+    assert gamma == pytest.approx(left["gamma"] + (
+        (trace["target_offset"] - left["gradient"]) / (right["gradient"] - left["gradient"])
+    ) * (right["gamma"] - left["gamma"]), abs=1e-12)
+    assert all(any(p["gamma"] == endpoint["gamma"] and p["gradient"] == endpoint["gradient"]
+                   for p in trace["grad_gamma_curve"]) for endpoint in (left, right))
 
 
 def test_default_mdm_fits_right_edge_when_anchor_is_still_below_offset():
@@ -85,7 +88,7 @@ def test_default_mdm_fits_right_edge_when_anchor_is_still_below_offset():
     assert r2 is not None
 
     trace = mdm.trace_data
-    assert trace["solution_strategy"] == "brent_root"
+    assert trace["solution_strategy"] == "right_edge_fit"
     assert trace["root_solver"] == "right_edge_fit"
     assert trace["root_bracket"] is not None
     assert trace.get("offset_diagnostic") is None
@@ -106,9 +109,13 @@ def test_default_mdm_trace_curve_matches_solver_gradient_function():
     zero_point = min(curve, key=lambda point: abs(point["gamma"]))
     assert zero_point["gradient"] == pytest.approx(trace["probe_gradient_at_zero"])
 
-    root_point = min(curve, key=lambda point: abs(point["gamma"] - gamma))
-    assert root_point["gamma"] == pytest.approx(gamma)
-    assert root_point["gradient"] == pytest.approx(trace["target_offset"], abs=1e-5)
+    assert all(point["gamma"] != gamma for point in curve)
+    location_chart = mdm.calculation_trace["charts"][1]
+    root_point = location_chart["selected"][0]
+    assert root_point["x"] == gamma
+    assert root_point["y"] == trace["target_offset"]
+    assert root_point["source"] == "linear_interpolation"
+    assert mdm.calculation_trace["selection"]["gradient"] is None
 
 
 def test_mdm_curves_only_use_actual_solver_evaluations(monkeypatch):
@@ -169,8 +176,8 @@ def test_default_mdm_records_lightweight_solution_info_without_trace():
     mdm.run(trace=False, offset=0.1, gamma_steps=30)
 
     info = mdm.last_solution_info
-    assert info["solution_strategy"] == "brent_root"
-    assert info["root_solver"] == "brent"
+    assert info["solution_strategy"] == "interpolated_crossing"
+    assert info["root_solver"] == "linear_interpolation"
     assert info["optimal_gamma"] > 0
     assert info["target_offset"] == pytest.approx(0.1)
 

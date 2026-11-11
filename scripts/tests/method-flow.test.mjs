@@ -39,7 +39,9 @@ test('all maintained flows resolve core helpers, original lines and current sour
 
 test('every formula, symbol and variable mapping renders, without accidental escaped control characters', () => {
   for (const id of methods) for (const step of loadMethodFlow(id).steps) {
-    const expressions = [step.formula.expression, ...step.formula.symbols.map(v => v.symbol), ...step.inputs.map(v => v.symbol), ...step.outputs.map(v => v.symbol)]
+    const expressions = [step.formula.expression, ...(step.formula.equations ?? []), ...Object.values(step.formula.variants ?? {}),
+      ...Object.values(step.formula.variantEquations ?? {}).flat(), ...step.formula.symbols.map(v => v.symbol),
+      ...step.inputs.map(v => v.symbol), ...step.outputs.map(v => v.symbol)]
     for (const expression of expressions) {
       assert.doesNotMatch(expression, /[\x00-\x08\x0b\x0c\x0e-\x1f]/, `${id} ${step.id}`)
       assert.doesNotThrow(() => katex.renderToString(expression, { throwOnError: true, strict: false }), `${id} ${step.id}: ${expression}`)
@@ -62,7 +64,13 @@ test('calculation stages retain the real source sequence and helper implementati
   assert.ok(position('solve_mle_profile') < position('_distances'))
   assert.ok(position('_distances') < position('_shape'))
   assert.ok(position('_shape') < mle.map(s => s.symbol).lastIndexOf('mle_profile'))
-  const mdm = loadMethodFlow('mdm').steps.flatMap(s => s.sources)
+  const mdmFlow = loadMethodFlow('mdm')
+  assert.deepEqual(mdmFlow.steps.map(step => step.name), [
+    '准备样本', '试算各位置的最小差异', '按梯度偏移求位置', '回代位置求形状', '反算尺度', '汇总结果',
+  ])
+  assert.deepEqual(mdmFlow.workflow.targets, { samples: 1, trial: 2, location: 3, shape: 4, scale: 5, result: 6 })
+  assert.deepEqual(mdmFlow.workflow.legacySourceSteps, [1, 1, 2, 2, 3, 3, 3, 5, 6, 6])
+  const mdm = mdmFlow.steps.flatMap(s => s.sources)
   const gridIndex = mdm.findIndex(s => s.symbol === '_build_geometric_gamma_grid')
   const stdIndex = mdm.findIndex(s => s.symbol === 'MDM.run.calculate_eta_std')
   assert.ok(gridIndex < stdIndex, 'explain pseudo-scale evaluation when called, not when defined')

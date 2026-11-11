@@ -309,7 +309,6 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
       { tab: '计算过程（LSE/LRE）', chart: '位置判据与最终回归', data: '分步读取最大F比或相关系数的位置，再由最终回归系数恢复参数；比较与逐样本变换在详情中', src: 'MethodCalculationSteps / shared ProcessChart' },
       { tab: '计算过程（MM）', chart: '经验生存阶梯面积', data: '经验生存函数的1、2、4次幂面积与区间贡献，形成三个Weibull矩后显式求参', src: 'MomentProcessViewer' },
       { tab: '计算过程（MDM）', chart: '形状寻优与位置梯度双图', data: '固定γ的伪尺度标准差及条件最小点、g(γ)与δ判据，位置切换联动', src: 'mdm SigmaBetaChart / GradientGammaChart' },
-      { tab: '计算过程（MDM详情）', chart: '伪尺度散点与均值线', data: '最终β、γ下每个样本与经验概率反算ηᵢ，再由全部伪尺度值平均得到η̂', src: 'mdm MDMScaleCalculation / shared ProcessChart' },
       { tab: '计算过程（MLE/WMLE/MMLE详情）', chart: '逐样本幂次贡献与平均值', data: '最终β、γ下的样本距离取幂，汇总并除以样本量（WMLE含J₁）后恢复尺度；大数使用等价归一化', src: 'PowerScaleCalculation / shared ProcessChart' },
       { tab: '适用范围', chart: '直方图', data: '当前方法、参数组合及n的完整估计差值分布', src: 'ai Histogram / MonteCarloWorkbookViewer' },
       { tab: '可信性验证', chart: '折线图', data: '梯度曲线（MDM）', src: 'mdm GradientGammaChart' },

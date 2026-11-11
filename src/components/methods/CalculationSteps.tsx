@@ -1,10 +1,9 @@
 "use client"
 
 import { type CSSProperties, type ReactNode, useEffect, useId, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { Info, X } from 'lucide-react'
 import { calculationSteps } from '@/lib/calculation-steps'
+import { CalculationSourceButton, useCalculationStage } from './CalculationSource'
 
 function StepExplanation({ title, children }: { title: string; children: ReactNode }) {
   const id = useId()
@@ -81,7 +80,7 @@ function StepExplanation({ title, children }: { title: string; children: ReactNo
   </div>
 }
 
-export function CalculationStepContent({ title, figure, axes, calculation, criterion, symbols, details, stacked = false }: {
+export function CalculationStepContent({ title, figure, axes, calculation, criterion, symbols, details, actions, stacked = false }: {
   title: string
   figure?: ReactNode
   axes?: { x: string; y: string }
@@ -89,6 +88,7 @@ export function CalculationStepContent({ title, figure, axes, calculation, crite
   criterion: ReactNode
   symbols: ReadonlyArray<readonly [string, string]>
   details?: ReactNode
+  actions?: ReactNode
   stacked?: boolean
 }) {
   const split = figure && !stacked
@@ -96,21 +96,24 @@ export function CalculationStepContent({ title, figure, axes, calculation, crite
   return <section className="min-w-0 space-y-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" data-step-content>
     <div className="flex items-start justify-between gap-3">
       <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
-      {(calculation || terms.length > 0 || details) && <StepExplanation title={title}>
-        {calculation && <section className="min-w-0" aria-label="计算说明">
-          <h5 className="font-semibold text-slate-800">计算说明</h5>
-          {calculation}
-        </section>}
-        {terms.length > 0 && <section className={`min-w-0 ${calculation ? 'border-t border-slate-200 pt-3' : ''}`} aria-label="符号说明">
-          <h5 className="font-semibold text-slate-800">符号说明</h5>
-          <dl className="mt-2 grid gap-2 text-base leading-relaxed text-slate-700">
-            {terms.map(([symbol, meaning]) => <div key={symbol} className="flex min-w-0 gap-2">
-              <dt className="shrink-0 font-medium text-slate-800">{symbol}</dt><dd className="min-w-0">{meaning}</dd>
-            </div>)}
-          </dl>
-        </section>}
-        {details}
-      </StepExplanation>}
+      <div className="flex flex-wrap items-center justify-end">
+        {actions}
+        {(calculation || terms.length > 0 || details) && <StepExplanation title={title}>
+          {calculation && <section className="min-w-0" aria-label="计算说明">
+            <h5 className="font-semibold text-slate-800">计算说明</h5>
+            {calculation}
+          </section>}
+          {terms.length > 0 && <section className={`min-w-0 ${calculation ? 'border-t border-slate-200 pt-3' : ''}`} aria-label="符号说明">
+            <h5 className="font-semibold text-slate-800">符号说明</h5>
+            <dl className="mt-2 grid gap-2 text-base leading-relaxed text-slate-700">
+              {terms.map(([symbol, meaning]) => <div key={symbol} className="flex min-w-0 gap-2">
+                <dt className="shrink-0 font-medium text-slate-800">{symbol}</dt><dd className="min-w-0">{meaning}</dd>
+              </div>)}
+            </dl>
+          </section>}
+          {details}
+        </StepExplanation>}
+      </div>
     </div>
     <div className={`grid min-w-0 items-start gap-5 ${split ? 'xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]' : ''}`}>
       {figure && <section className="min-w-0 space-y-2" aria-label="图示">
@@ -126,15 +129,6 @@ export function CalculationStepContent({ title, figure, axes, calculation, crite
   </section>
 }
 
-export function CalculationProgramLink({ method, programSteps }: { method: string; programSteps: number[] }) {
-  const searchParams = useSearchParams()
-  const params = new URLSearchParams(searchParams.toString())
-  params.set('step', String(programSteps[0]))
-  return <Link href={`/methods/${method}/process?${params}`} className="inline-block text-sm text-slate-500 underline decoration-slate-300 underline-offset-4">
-    对应程序流程：第 {programSteps.join('、')} 步
-  </Link>
-}
-
 export function ProcessDetails({ children, title = '查看计算细节' }: { children: ReactNode; title?: string }) {
   const [open, setOpen] = useState(false)
   return <details className="rounded-xl border border-slate-200 px-4 py-3" onToggle={event => setOpen(event.currentTarget.open)}>
@@ -143,23 +137,34 @@ export function ProcessDetails({ children, title = '查看计算细节' }: { chi
   </details>
 }
 
-export function CalculationSteps({ method, children }: { method: string; children: ReactNode[] }) {
+export function CalculationOverview({ method }: { method: string }) {
   const definitions = calculationSteps[method]
-  const [index, setIndex] = useState(0)
+  if (!definitions) return <CalculationSourceButton stage={-1} />
+  return <CalculationSteps method={method} />
+}
+
+export function CalculationSteps({ method, children }: { method: string; children?: ReactNode[] }) {
+  const definitions = calculationSteps[method]
+  const stage = useCalculationStage()
+  const [localIndex, setLocalIndex] = useState(0)
+  const index = stage?.activeStage ?? localIndex
+  const setIndex = stage?.selectStage ?? setLocalIndex
   const step = definitions[index]
   return <section className="min-w-0 space-y-4" aria-label="分步计算过程">
-    <nav aria-label="计算步骤" className="flex flex-wrap gap-2">
-      {definitions.map((item, i) => <button key={item.label} type="button" aria-current={i === index ? 'step' : undefined}
-        onClick={() => setIndex(i)} className={`rounded-lg border px-3 py-2 text-base ${i === index ? 'border-emerald-600 bg-emerald-50 font-medium text-emerald-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-        {i + 1}　{item.label}
-      </button>)}
-    </nav>
-    <CalculationProgramLink method={method} programSteps={step.programSteps} />
-    <div role="region" aria-label={`第 ${index + 1} 步：${step.label}`} className="min-w-0 space-y-4">{children[index]}</div>
-    <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <nav aria-label="计算步骤" className="flex flex-wrap gap-2">
+        {definitions.map((item, i) => <button key={item.label} type="button" aria-current={i === index ? 'step' : undefined}
+          onClick={() => setIndex(i)} className={`rounded-lg border px-3 py-2 text-base ${i === index ? 'border-emerald-600 bg-emerald-50 font-medium text-emerald-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          {i + 1}　{item.label}
+        </button>)}
+      </nav>
+      <CalculationSourceButton stage={index} label={step.label} />
+    </div>
+    {children && <div role="region" aria-label={`第 ${index + 1} 步：${step.label}`} className="min-w-0 space-y-4">{children[index]}</div>}
+    {children && <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
       <button type="button" aria-label="计算上一步" disabled={index === 0} onClick={() => setIndex(index - 1)} className="rounded-lg px-3 py-2 text-base text-slate-600 hover:bg-slate-100 disabled:opacity-30">上一步</button>
       <span className="text-sm tabular-nums text-slate-500">{index + 1} / {definitions.length}</span>
       <button type="button" aria-label="计算下一步" disabled={index === definitions.length - 1} onClick={() => setIndex(index + 1)} className="rounded-lg bg-emerald-50 px-3 py-2 text-base text-emerald-800 hover:bg-emerald-100 disabled:opacity-30">下一步</button>
-    </div>
+    </div>}
   </section>
 }

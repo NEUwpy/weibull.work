@@ -68,14 +68,76 @@ function hasExecutable(lines) {
   })
 }
 
+function readPythonFlow(source, methodId) {
+  const start = source.lines.indexOf('# @method-flow')
+  if (start === -1) return null
+  const end = source.lines.indexOf('# @end-method-flow', start + 1)
+  const declaration = source.lines.slice(start + 1, end)
+  if (end === -1 || source.lines.lastIndexOf('# @method-flow') !== start || declaration.some(line => !line.startsWith('# '))) {
+    fail(methodId + '：Python 流程标注范围无效')
+  }
+  try {
+    return JSON.parse(declaration.map(line => line.slice(2)).join('\n'))
+  } catch {
+    fail(methodId + '：Python 流程标注格式无效')
+  }
+}
+
+function validateWorkflow(workflow, steps, methodId) {
+  const invalid = reason => fail(`${methodId}：流程图${reason}`)
+  const stepIds = new Set(steps.map(step => step.id))
+  const anchors = new Set()
+  const depictedSteps = new Set()
+  if (!text(workflow.title) || !text(workflow.description) || !Array.isArray(workflow.items) || !workflow.targets) invalid('声明不完整')
+  for (const id of Object.values(workflow.targets)) if (!stepIds.has(id)) invalid('目标步骤不存在')
+  if (workflow.legacySourceSteps && (!Array.isArray(workflow.legacySourceSteps)
+    || workflow.legacySourceSteps.some(id => !stepIds.has(id)))) invalid('旧步骤定位无效')
+  function visit(items) {
+    for (const item of items) {
+      if (item.kind === 'group') {
+        if (!text(item.layout) || !Array.isArray(item.children)) invalid('分组无效')
+        visit(item.children)
+        continue
+      }
+      if (!text(item.anchor) || anchors.has(item.anchor)) invalid('节点锚点缺失或重复')
+      anchors.add(item.anchor)
+      if (item.target && !Object.hasOwn(workflow.targets, item.target)) invalid('节点目标不存在')
+      if (item.kind === 'step') {
+        if (!stepIds.has(item.step) || depictedSteps.has(item.step)) invalid('节点步骤无效或重复')
+        depictedSteps.add(item.step)
+      } else if (item.kind !== 'port' || !item.target || !text(item.label) || !['input', 'output'].includes(item.direction)) {
+        invalid('输入输出节点无效')
+      }
+    }
+  }
+  visit(workflow.items)
+  if (depictedSteps.size !== stepIds.size) invalid('未覆盖全部程序步骤')
+  if (!Array.isArray(workflow.connections) || workflow.connections.some(edge => !anchors.has(edge.from) || !anchors.has(edge.to))) invalid('连线端点不存在')
+}
+
+function normalizeFormula(formula, context) {
+  if (!formula) return formula
+  const validEquations = value => Array.isArray(value) && value.length > 0 && value.every(text)
+  const combined = equations => String.raw`\begin{aligned}&${equations.join(String.raw`\\[12pt]&`)}\end{aligned}`
+  if (formula.equations !== undefined && (!validEquations(formula.equations) || formula.expression !== undefined)) fail(context + '：逐条公式无效或重复声明')
+  if (formula.variants && (typeof formula.variants !== 'object' || Array.isArray(formula.variants))) fail(context + '：分支公式无效')
+  const variants = {}, variantEquations = {}
+  for (const [key, value] of Object.entries(formula.variants ?? {})) {
+    if (validEquations(value)) {
+      if (formula.equations && value.length !== formula.equations.length) fail(context + '：分支公式数量不一致')
+      variantEquations[key] = value
+      variants[key] = combined(value)
+    } else if (text(value)) variants[key] = value
+    else fail(context + '：分支公式无效')
+  }
+  return { ...formula, expression: formula.equations ? combined(formula.equations) : formula.expression,
+    ...(formula.variants && { variants, variantEquations }) }
+}
+
 /** Descriptions reference live Python; no copied code and no Python execution. */
 export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
   if (!/^[a-z][a-z0-9_]*$/.test(methodId)) return null
   const configPath = path.join(root, 'src/data/method_flows', methodId + '.json')
-  if (!fs.existsSync(configPath)) return null
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-  if (config.schemaVersion !== 2 || config.methodId !== methodId || !text(config.methodName) || !text(config.description) || !config.steps?.length) fail(methodId + '：流程说明版本、身份或步骤不完整')
-  if ('code' in config) fail(methodId + '：流程说明不得保存代码副本')
   const sources = new Map()
   function readSource(relative) {
     if (!sources.has(relative)) {
@@ -84,12 +146,25 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
     }
     return sources.get(relative)
   }
+  const pythonPath = `python/methods/${methodId}.py`
+  const pythonSource = fs.existsSync(path.join(root, pythonPath)) ? readSource(pythonPath) : null
+  const pythonFlow = pythonSource && readPythonFlow(pythonSource, methodId)
+  const hasJson = fs.existsSync(configPath)
+  if (pythonFlow && hasJson) fail(methodId + '：流程同时定义在 Python 和 JSON 中')
+  if (!pythonFlow && !hasJson) return null
+  const config = pythonFlow ?? JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  if (config.schemaVersion !== 2 || config.methodId !== methodId || !text(config.methodName) || !text(config.description) || !config.steps?.length) fail(methodId + '：流程说明版本、身份或步骤不完整')
+  if ('code' in config) fail(methodId + '：流程说明不得保存代码副本')
+  if (!pythonFlow) sources.clear()
+  if (config.workflow) validateWorkflow(config.workflow, config.steps, methodId)
   const counters = []
   const steps = config.steps.map((step, index) => {
     const context = `${methodId} / ${step.name || index + 1}`
+    step = { ...step, formula: normalizeFormula(step.formula, context) }
     for (const key of ['name', 'description', 'basis']) if (!text(step[key])) fail(context + '：缺少 ' + key)
     if ('code' in step || 'codeLines' in step) fail(context + '：步骤不得保存代码副本或固定行号')
     if (step.id !== index + 1 || !text(step.formula?.expression) || !text(step.formula?.explanation) || !step.formula.symbols?.length) fail(context + '：步骤序号或公式说明不完整')
+    if (step.formula.variants && (typeof step.formula.variants !== 'object' || Array.isArray(step.formula.variants) || Object.values(step.formula.variants).some(value => !text(value)))) fail(context + '：分支公式无效')
     if (step.formula.symbols.some(v => !text(v.symbol) || !text(v.meaning))) fail(context + '：公式符号说明不完整')
     for (const key of ['inputs', 'outputs']) {
       if (!step[key]?.length || step[key].some(v => !text(v.code) || !text(v.symbol) || !text(v.meaning))) fail(context + '：缺少输入输出映射')

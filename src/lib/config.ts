@@ -11,7 +11,7 @@
 export const getApiBaseUrl = (): string => {
   // 开发环境使用明确的 IPv4 回环地址
   if (process.env.NODE_ENV === 'development') {
-    return 'http://127.0.0.1:8001'
+    return process.env.NEXT_PUBLIC_WEIBULL_DEV_API_URL || 'http://127.0.0.1:8001'
   }
 
   // 生产环境使用 api 子域名

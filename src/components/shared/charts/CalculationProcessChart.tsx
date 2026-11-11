@@ -8,6 +8,7 @@ import {
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { type CalculationChart, type CalculationPoint, calculationFocus, formatCalculationNumber } from '@/lib/calculation-trace'
+import { processPlotAxes, processPlotFrame } from './ProcessPlot'
 
 const SERIES_COLORS = ['#2563eb', '#7c3aed', '#059669', '#475569', '#db2777']
 const axisNumber = (value: number) => value !== 0 && (Math.abs(value) >= 1e5 || Math.abs(value) < 1e-3)
@@ -37,7 +38,9 @@ export function ProcessPointLegend({ color, selectedLabel = '采纳值' }: { col
   </div>
 }
 
-export function ProcessChart({ chart, initiallyFocused, figureOnly = false }: { chart: CalculationChart; initiallyFocused?: boolean; figureOnly?: boolean }) {
+export function ProcessChart({ chart, initiallyFocused, figureOnly = false, showYAxisLabel = false, focusLabel = '聚焦最终选择', workspacePlot = false }: {
+  chart: CalculationChart; initiallyFocused?: boolean; figureOnly?: boolean; showYAxisLabel?: boolean; focusLabel?: string; workspacePlot?: boolean
+}) {
   const [hoveredPoint, setHoveredPoint] = useState<HoverPoint | null>(null)
   const focus = calculationFocus(chart)
   const values = chart.series.flatMap(series => series.points.map(point => point.y))
@@ -53,30 +56,34 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false }: { 
   })) : chart.series
   const plottedPoints = [...viewSeries.flatMap(series => series.points), ...(chart.selected ?? [])]
   const hasPoints = plottedPoints.length > 0
+  const focusButton = focus && <button type="button" onClick={() => setFocused(value => !value)} aria-pressed={focused}
+    className="rounded-lg px-2 py-1 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+    {focused ? '显示全部范围' : focusLabel}
+  </button>
   return (
     <section className={figureOnly ? 'min-w-0' : 'min-w-0 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-4 sm:px-5'}>
-      {(!figureOnly || focus) && <div className={`flex flex-wrap items-start gap-2 ${figureOnly ? 'justify-end' : 'justify-between'}`}>
+      {(!figureOnly || (focus && !workspacePlot)) && <div className={`flex flex-wrap items-start gap-2 ${figureOnly ? 'justify-end' : 'justify-between'}`}>
         {!figureOnly && <h3 title={chart.description} className="text-lg font-semibold leading-snug text-slate-800">{chart.title}</h3>}
-        {focus && <button type="button" onClick={() => setFocused(value => !value)} aria-pressed={focused}
-          className="rounded-lg px-2 py-1 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
-          {focused ? '显示全部范围' : '聚焦最终选择'}
-        </button>}
+        {!workspacePlot && focusButton}
       </div>}
       {!figureOnly && <p className="mt-3 text-base leading-relaxed text-slate-600">横轴：{chart.x.label}；纵轴：{chart.y.label}。{chart.description}</p>}
       {!figureOnly && chart.formula && <ProcessFormula expression={chart.formula} />}
       {hasPoints ? (
-        <div className="mt-1 h-[300px] w-full min-w-0" role="img" aria-label={`${chart.title}；横轴${chart.x.label}，纵轴${chart.y.label}`}>
+        <div className={workspacePlot ? processPlotFrame : 'mt-1 h-[300px] w-full min-w-0'} data-process-plot={workspacePlot || undefined}
+          role="img" aria-label={`${chart.title}；横轴${chart.x.label}，纵轴${chart.y.label}`}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={plottedPoints} margin={{ top: 26, right: 18, bottom: 30, left: 2 }}>
+            <ComposedChart data={plottedPoints} margin={workspacePlot ? processPlotAxes.margin : { top: 26, right: 18, bottom: 30, left: 2 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 4" vertical={false} />
               <XAxis type="number" dataKey="x" domain={domains?.x ?? ['auto', 'auto']} allowDataOverflow={!!domains}
                 allowDuplicatedCategory={false}
+                height={workspacePlot ? processPlotAxes.xAxisHeight : undefined}
                 tickFormatter={axisNumber} tick={{ fontSize: 14, fill: '#64748b' }}
                 axisLine={{ stroke: '#cbd5e1' }} tickLine={false} minTickGap={32}
-                label={{ value: chart.x.label, position: 'bottom', offset: 12, fontSize: 14, fill: '#475569' }} />
-              <YAxis type="number" dataKey="y" domain={domains?.y ?? ['auto', 'auto']} allowDataOverflow={!!domains} width={76}
+                label={{ value: chart.x.label, position: 'bottom', offset: workspacePlot ? 8 : 12, fontSize: 14, fill: '#475569' }} />
+              <YAxis type="number" dataKey="y" domain={domains?.y ?? ['auto', 'auto']} allowDataOverflow={!!domains} width={workspacePlot ? processPlotAxes.yAxisWidth : 76}
                 tickFormatter={axisNumber} tick={{ fontSize: 14, fill: '#64748b' }}
-                axisLine={false} tickLine={false} />
+                axisLine={workspacePlot ? { stroke: '#cbd5e1' } : false} tickLine={false}
+                label={showYAxisLabel ? { value: chart.y.label, angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' } : undefined} />
               <Tooltip
                 content={({ active, payload }) => {
                   if ((!active || !payload?.length) && !hoveredPoint) return null
@@ -142,6 +149,7 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false }: { 
           <span key={label} title={label} className="inline-flex items-center gap-1.5 text-amber-800"><span className="h-2 w-2 rounded-full bg-[#b7791f]" />采纳值</span>
         ))}
       </div>
+      {workspacePlot && <div className="flex min-h-7 justify-end">{focusButton}</div>}
     </section>
   )
 }

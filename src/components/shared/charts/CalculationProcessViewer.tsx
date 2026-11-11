@@ -3,7 +3,9 @@
 import { Check, Info } from 'lucide-react'
 import { ProcessChart, ProcessFormula } from './CalculationProcessChart'
 import { MethodCalculationSteps } from '@/components/methods/MethodCalculationSteps'
-import { ProcessDetails } from '@/components/methods/CalculationSteps'
+import { CalculationOverview, ProcessDetails } from '@/components/methods/CalculationSteps'
+import { useCalculationStage } from '@/components/methods/CalculationSource'
+import { calculationSteps } from '@/lib/calculation-steps'
 import {
   type CalculationChart,
   formatCalculationNumber, readCalculationTrace,
@@ -14,6 +16,7 @@ interface CalculationProcessViewerProps {
   methodId?: string
   stale?: boolean
   isUpdating?: boolean
+  showOverview?: boolean
 }
 
 function RootComparison({ chart }: { chart: CalculationChart }) {
@@ -31,7 +34,9 @@ function RootComparison({ chart }: { chart: CalculationChart }) {
   </section>
 }
 
-export function CalculationProcessViewer({ calculation, methodId, stale = false, isUpdating = false }: CalculationProcessViewerProps) {
+export function CalculationProcessViewer({ calculation, methodId, stale = false, isUpdating = false, showOverview = true }: CalculationProcessViewerProps) {
+  const stage = useCalculationStage()
+  const canReadSource = showOverview && !!stage?.openSource
   const { trace, error } = readCalculationTrace(calculation, methodId)
   if (!trace) {
     const message = error === 'method_mismatch'
@@ -39,7 +44,10 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
       : error === 'invalid'
         ? '本次计算记录不完整，暂时无法展示过程图。请重新计算。'
         : '这份结果尚无真实计算过程记录，请重新计算后查看。'
-    return <div role="status" className="flex items-start gap-2 rounded-xl bg-slate-100/70 px-4 py-4 text-base leading-relaxed text-slate-600"><Info size={19} className="mt-0.5 shrink-0" />{message}</div>
+    return <div className="space-y-4">
+      <div role="status" className="flex items-start gap-2 rounded-xl bg-slate-100/70 px-4 py-4 text-base leading-relaxed text-slate-600"><Info size={19} className="mt-0.5 shrink-0" />{message}</div>
+      {canReadSource && methodId && <CalculationOverview method={methodId} />}
+    </div>
   }
 
   const runId = trace.run && typeof trace.run === 'object' && 'id' in trace.run ? String(trace.run.id) : undefined
@@ -47,7 +55,7 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
   const showSelection = failed || trace.selection.approximate === true || !trace.recovery?.length
   const mainCharts = trace.charts.filter(chart => chart.id !== 'candidate-residuals')
   const viewKey = runId ?? `${trace.method}-${trace.selection.beta}-${trace.selection.gamma}`
-  const stepped = ['mle', 'wmle', 'mmle', 'lse', 'lre', 'mm'].includes(trace.method)
+  const stepped = trace.method !== 'mdm' && !!calculationSteps[trace.method]
 
   return (
     <div className="min-w-0 space-y-4" data-calculation-method={trace.method}>
@@ -64,6 +72,7 @@ export function CalculationProcessViewer({ calculation, methodId, stale = false,
           </dl>
         </div>
       </div>}
+      {canReadSource && (!stepped || failed) && <CalculationOverview method={trace.method} />}
       {stepped ? <MethodCalculationSteps key={viewKey} trace={trace} />
         : <div className={`grid min-w-0 grid-cols-1 items-start gap-4 ${mainCharts.length === 3 ? 'xl:grid-cols-3' : 'xl:grid-cols-2'}`}>
         {mainCharts.map(chart => <ProcessChart key={`${runId ?? ''}-${chart.id}`} chart={chart} />)}

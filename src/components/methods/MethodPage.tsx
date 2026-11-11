@@ -18,6 +18,8 @@ import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
 import { calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
 import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
+import { CalculationOverview } from '@/components/methods/CalculationSteps'
+import { CalculationStageProvider } from '@/components/methods/CalculationSource'
 import mmleProcessExample from '@/data/method-process-examples/mmle.json'
 import { getMethodCapability } from '@/lib/method-status'
 import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption } from '@/lib/calculator-state'
@@ -25,7 +27,7 @@ import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 
 // Dynamic imports for heavy visualizers
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const VariableFlowViewer = dynamic(() => import('@/components/methods/VariableFlowViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MonteCarloWorkbookViewer = dynamic(() => import('@/components/methods/shared/studies/MonteCarloWorkbookViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MethodCompareViewer = dynamic(() => import('@/components/methods/shared/compare/MethodCompareViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -127,6 +129,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (href.split('?')[0] !== pathname) router.push(href, { scroll: false })
   }, [method.id, pathname, router, searchParams])
   const capability = getMethodCapability(method.id)
+  const sourceAvailable = capability?.layer1.process.status === 'done'
 
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<WeibullResult | undefined>(undefined)
@@ -147,6 +150,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const handledDataParamRef = useRef<string | null>(null)
   const offsetRecalculationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const offsetRecalculationRequestRef = useRef(0)
+  const showCalculation = !!(calculation || dataSources?.some(source => source.calculation)) && (!isCalculating || method.id === 'mdm')
   const invalidateCalculation = () => {
     offsetRecalculationRequestRef.current += 1
     if (offsetRecalculationTimerRef.current) clearTimeout(offsetRecalculationTimerRef.current)
@@ -543,21 +547,9 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                />
              )}
           </div>
-        ) : activeTab === 'flow' ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {capability && capability.layer1.process.status === 'done' ? (
-              <VariableFlowViewer methodId={method.id} />
-            ) : (
-              <MethodBuildStatus
-                label="程序流程"
-                status={capability?.layer1.process.status ?? 'todo'}
-                reason={capability?.layer1.process.reason}
-                evidence={capability?.layer1.process.evidence}
-              />
-            )}
-          </div>
         ) : activeTab === 'lab' ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <CalculationStageProvider key={method.id} method={method.id} sourceAvailable={sourceAvailable}>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {method.id.toLowerCase() === 'mmle' ? <div className="space-y-6" data-method-calculation-example="mmle">
               <section className="rounded-2xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
                 <h2 className="text-lg font-semibold text-slate-800">计算示例 · n = {mmleProcessExample.sample.length}</h2>
@@ -600,30 +592,36 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             {!(dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation) &&
               (dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError) &&
               <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError}</p>}
-            {(calculation || dataSources?.some(source => source.calculation)) && (!isCalculating || method.id.toLowerCase() === 'mdm') && (
-              method.id.toLowerCase() === 'mdm' ? <MDMVisualizer
+            {method.id === 'mdm' ? <MDMVisualizer
                 traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
                 calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
+                rSquared={(dataSources?.length ? dataSources[activeSourceIndex]?.result : result)?.rSquared}
                 mdmOffset={mdmOffset}
                 onMdmOffsetChange={handleMdmOffsetChange}
                 offsetStale={isCalculating}
                 isOffsetUpdating={isCalculating}
-              /> : <CalculationProcessViewer
+              /> : method.id === 'mle' ? <MLEVisualizer
+                traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
+                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
+                rSquared={(dataSources?.length ? dataSources[activeSourceIndex]?.result : result)?.rSquared}
+                isUpdating={isCalculating}
+              /> : showCalculation ? <CalculationProcessViewer
                 calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
                 methodId={method.id}
-              />
-            )}
+              /> : sourceAvailable && <CalculationOverview method={method.id} />}
 
               </div>
-            ) : (
+            ) : <div className="space-y-4">
+              {sourceAvailable && <CalculationOverview method={method.id} />}
               <MethodBuildStatus
                 label="计算过程"
                 status={capability?.layer2.calculation.status ?? 'todo'}
                 reason={capability?.layer2.calculation.reason}
                 evidence={capability?.layer2.calculation.evidence}
               />
-            )}
-          </div>
+            </div>}
+            </div>
+          </CalculationStageProvider>
         ) : activeTab === 'analysis' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {capability && capability.layer2.analysis.status === 'done' ? (

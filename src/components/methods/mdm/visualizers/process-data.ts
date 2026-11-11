@@ -70,7 +70,8 @@ export function mdmProcessData(value: unknown, calculation: CalculationTrace) {
       evaluation: finite(point.evaluation) ? point.evaluation : undefined }))
     .sort((left, right) => left.gamma - right.gamma)
   const gradientMap = new Map(legacyGradients.map(point => [point.gamma, point]))
-  for (const series of calculation.charts.find(chart => chart.id === 'location-criterion')?.series ?? []) {
+  const locationChart = calculation.charts.find(chart => chart.id === 'location-criterion')
+  for (const series of locationChart?.series ?? []) {
     if (series.role !== 'solver') continue
     for (const point of series.points) {
       if (point.virtual === true || !finite(point.x) || !finite(point.y)) continue
@@ -108,6 +109,16 @@ export function mdmProcessData(value: unknown, calculation: CalculationTrace) {
   const byGamma = new Map(slices.map(slice => [slice.gamma, slice]))
   byGamma.set(selectedGamma, finalSlice)
   const details = record(calculation.details) ? calculation.details : null
+  const bracket = details?.root_bracket
+  const interpolation = calculation.selection.solver === 'linear_interpolation' && record(bracket)
+    && record(bracket.left) && record(bracket.right) && finite(bracket.left.gamma) && finite(bracket.left.gradient)
+    && finite(bracket.right.gamma) && finite(bracket.right.gradient)
+    ? {
+      left: { gamma: bracket.left.gamma, gradient: bracket.left.gradient },
+      right: { gamma: bracket.right.gamma, gradient: bracket.right.gradient },
+      point: locationChart?.selected?.find(point => point.source === 'linear_interpolation' && point.x === selectedGamma),
+      formula: locationChart?.formula,
+    } : undefined
   const rawScales = details && Array.isArray(details.pseudo_scales) ? details.pseudo_scales : []
   const pseudoScales: PseudoScaleValue[] = rawScales.every(point => record(point)
     && finite(point.observation) && finite(point.rank) && point.rank > 0 && point.rank < 1 && finite(point.eta))
@@ -117,6 +128,6 @@ export function mdmProcessData(value: unknown, calculation: CalculationTrace) {
       denominator: finite(point.denominator) ? point.denominator : undefined })) : []
   const scaleSum = details && finite(details.pseudo_scale_sum) ? details.pseudo_scale_sum : null
   return { gradients, gradientEvaluations, slices: Array.from(byGamma.values()).sort((left, right) => left.gamma - right.gamma),
-    finalSlice, offset: offset as number, pseudoScales, scaleSum,
+    finalSlice, offset: offset as number, pseudoScales, scaleSum, interpolation,
     rankMethod: typeof details?.rank_method === 'string' ? details.rank_method : null }
 }

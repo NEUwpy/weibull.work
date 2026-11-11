@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { ProcessChart, ProcessFormula } from '@/components/shared/charts/CalculationProcessChart'
 import { CalculationStepContent, ProcessDetails } from './CalculationSteps'
+import { ProcessEquation } from '@/components/shared/charts/ProcessEquation'
+import { ProcessValueTable } from '@/components/shared/charts/ProcessValueTable'
 import { type CalculationChart, type CalculationTrace, readPowerScaleCalculation, formatCalculationNumber as number } from '@/lib/calculation-trace'
 
 const math = (value: unknown) => number(value).replace(/e([+-]?\d+)/, String.raw`\times10^{$1}`)
 
-export function PowerScaleCalculation({ trace }: { trace: CalculationTrace }) {
+export function PowerScaleCalculation({ trace, view = 'full' }: { trace: CalculationTrace; view?: 'full' | 'table' | 'details' }) {
   const data = readPowerScaleCalculation(trace)
   const [index, setIndex] = useState<number | null>(null)
   if (!data) return trace.selection.status === 'ok' ? <p className="text-base text-amber-800">这份记录缺少逐样本的尺度计算，请重新计算后查看。</p> : null
@@ -40,6 +42,22 @@ export function PowerScaleCalculation({ trace }: { trace: CalculationTrace }) {
     + (scaled ? String.raw`=d_{\max}A^{1/\hat\beta}\\&\approx${math(data.reference_distance)}\times${math(data.scale_factor)}` : String.raw`=A^{1/\hat\beta}\\&\approx${math(mean)}^{1/${math(data.beta)}}`)
     + String.raw`\approx${math(data.eta)}\end{aligned}`
 
+  if (view === 'table') return <ProcessValueTable label="逐样本尺度贡献" minColumnWidth={440}
+    columns={[{ label: '序号 i' }, { label: '样本 tᵢ', align: 'right' }, { label: '距离 dᵢ', align: 'right' },
+      { label: scaled ? '归一化幂 cᵢ' : '幂次 cᵢ', align: 'right' }]}
+    rows={data.samples.map(point => [point.index, number(point.observation), number(point.distance), number(scaled ? point.scaled_power : point.power)])}
+    footer={<><span>Σcᵢ = {number(total)}</span><span>n = {data.count}</span></>} />
+  if (view === 'details') return <div className="min-w-0 space-y-4" aria-label="尺度数值代入">
+    <ProcessEquation expression={String.raw`\begin{aligned}&A\approx\frac{${math(total)}}{${data.count}${weighted ? String.raw`\times${math(data.normalizer)}` : ''}}\approx${math(mean)}\\[10pt]&\hat\eta\approx${scaled ? String.raw`${math(data.reference_distance)}\times` : ''}${math(mean)}^{1/${math(data.beta)}}\\[10pt]&\approx${math(data.eta)}\end{aligned}`} />
+    <details><summary className="cursor-pointer text-sm text-slate-600">逐样本计算</summary>
+      <div className="mt-3 space-y-2">
+        <p className="text-sm text-slate-600">第 {sample.index} 个样本</p>
+        <input aria-label="查看每个样本的尺度贡献" type="range" min={0} max={data.samples.length - 1} step={1}
+          value={current} onChange={event => setIndex(Number(event.target.value))} className="w-full accent-emerald-600" />
+        <ProcessEquation expression={substitution} />
+      </div>
+    </details>
+  </div>
   return <CalculationStepContent title="由样本的幂次贡献求尺度 η"
       figure={<ProcessChart chart={chart} initiallyFocused={false} figureOnly />}
       axes={{ x: '参与尺度计算的样本序号 i', y: scaled ? '归一化后的幂次贡献 cᵢ' : '平移距离的幂次 cᵢ' }}

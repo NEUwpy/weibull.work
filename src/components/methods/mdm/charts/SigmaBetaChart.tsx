@@ -28,6 +28,7 @@ import {
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCalculationNumber as number } from '@/lib/calculation-trace'
+import { processPlotAxes, processPlotFrame } from '@/components/shared/charts/ProcessPlot'
 
 // 单条曲线数据类型
 export interface SigmaBetaCurvePoint {
@@ -103,6 +104,7 @@ interface SigmaBetaChartProps {
   // 容器样式
   className?: string
   noContainer?: boolean       // 不渲染外层容器，只渲染图表
+  workspacePlot?: boolean
 }
 
 export function SigmaBetaChart({
@@ -135,7 +137,8 @@ export function SigmaBetaChart({
   title,
   subtitle,
   className,
-  noContainer = false
+  noContainer = false,
+  workspacePlot = false,
 }: SigmaBetaChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<(SigmaBetaCurvePoint & { evaluation?: number }) | null>(null)
   const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-shape-calculated-point"
@@ -221,14 +224,15 @@ export function SigmaBetaChart({
 
   // 图表渲染部分
   const chartContent = (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={workspacePlot ? '100%' : height}>
       <ComposedChart
         data={filterData(displayCurves[0]?.data || [])}
-        margin={{ top: 20, right: 25, bottom: 45, left: yScale === 'log' ? 60 : 55 }}
+        margin={workspacePlot ? processPlotAxes.margin : { top: 20, right: 25, bottom: 45, left: yScale === 'log' ? 60 : 55 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
         <XAxis
           dataKey="beta"
+          height={workspacePlot ? processPlotAxes.xAxisHeight : undefined}
           type="number"
           domain={xDomain}
           ticks={xTicks.length ? xTicks : undefined}
@@ -242,6 +246,7 @@ export function SigmaBetaChart({
         />
         <YAxis
           dataKey="sigma"
+          width={workspacePlot ? processPlotAxes.yAxisWidth : undefined}
           scale={yScale}
           domain={yDomain}
           ticks={yTicks || (yScale === 'log' ? [1, 10, 100, 1000] : undefined)}
@@ -333,6 +338,8 @@ export function SigmaBetaChart({
       </ComposedChart>
     </ResponsiveContainer>
   )
+
+  if (workspacePlot) return <div className={processPlotFrame} data-process-plot role="img" aria-label="形状参数与伪尺度标准差">{chartContent}</div>
 
   // noContainer 模式：只返回图表
   if (noContainer) {

@@ -4,7 +4,7 @@
  * 展示 MDM 方法中 MSE(δ) 曲线的数学性质研究结果：
  * 1. 曲线概览 — 选择案例查看 MSE(δ) 曲线 + 分量
  * 2. 跨案例汇总 — 所有案例的关键指标表
- * 3. MDM 右端补交点分析 — max(∇σ) 与 β 的关系（S4.9.3：Brent 定根与右端拟合）
+ * 3. MDM 右端回退分析 — max(∇σ) 与 β 的关系
  * 4. 搜索策略对比 — 效率 vs 精度
  * 5. 结论与建议
  */
@@ -410,15 +410,14 @@ function FailureAnalysis({
         {/* Explanation */}
         <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <h4 className="text-sm font-bold text-amber-800 mb-2">梯度上限与 S4.9.3 求解策略</h4>
+            <h4 className="text-sm font-bold text-amber-800 mb-2">梯度与位置采纳规则</h4>
             <p className="text-sm text-amber-700 leading-relaxed">
-              max(∇σ_min) 是梯度曲线的观测上限，增大 <code className="bg-amber-100 px-1 rounded">gamma_steps</code> 无法改变这一上限。
-              S4.9.3 依据 gamma=0 处的梯度值和右端锚点决定求解策略：
+              max(∇σ_min) 是试算点的最大梯度。位置采纳依据零位置梯度和相邻试算点。
             </p>
             <ul className="text-sm text-amber-700 mt-2 space-y-1">
-              <li>• <strong>brent_root / brent</strong>：g(0)&lt;offset 且右端括弧成立，Brent 定根得到 γ̂</li>
-              <li>• <strong>truncated_at_zero</strong>：g(0)≥offset，无约束根在负半轴，被 γ≥0 约束切除</li>
-              <li>• <strong>brent_root / right_edge_fit</strong>：右端锚点仍低于 offset，向 t_min 近端补出内点解</li>
+              <li>• g(0)≥offset 时取 γ̂=0。</li>
+              <li>• g(0)&lt;offset 且相邻梯度点夹住目标时，缩小区间后线性插值。</li>
+              <li>• 补探后仍缺少区间时，取靠近最小观测值的右端回退位置。</li>
             </ul>
           </div>
 
@@ -435,9 +434,8 @@ function FailureAnalysis({
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <h4 className="text-sm font-bold text-blue-800 mb-2">b2_n20 实例（S4.9.3 后）</h4>
             <p className="text-sm text-blue-700">
-              当离散 trace 或当前右端锚点仍低于 offset 时，默认 MDM 不再返回失败诊断。
-              S4.9.3 会标记 <code className="bg-blue-100 px-1 rounded">root_solver=right_edge_fit</code>，
-              并在 <code className="bg-blue-100 px-1 rounded">[0, t_min)</code> 内补出 near-t_min 解。
+              网格和右端探测都缺少夹住目标的相邻点时，程序在
+              <code className="bg-blue-100 px-1 rounded">[0, t_min)</code> 内返回靠近最小观测值的回退位置。
             </p>
           </div>
         </div>
