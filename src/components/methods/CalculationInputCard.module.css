@@ -1,0 +1,39 @@
+.inputCard { position: relative; min-width: 0; }
+.archiveCard {
+  height: 340px;
+  margin-block: 16px 32px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 1px 2px #0f172a0d;
+}
+.switchButton {
+  position: absolute;
+  top: 50%;
+  z-index: 20;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 1px solid #d7e3dc;
+  border-radius: 50%;
+  background: white;
+  color: #345448;
+  box-shadow: 0 2px 6px #0f172a12;
+  transition: opacity 150ms ease;
+}
+.switchButton[data-direction='next'] { right: -12px; }
+.switchButton[data-direction='previous'] { left: -12px; }
+.inputCard:has([data-stacked]) .switchButton[data-direction='next'] { top: auto; bottom: 16px; transform: none; }
+.switchButton:hover { background: #ecf5ef; }
+.switchButton:focus-visible { outline: 2px solid #398362; outline-offset: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .switchButton { opacity: 0; pointer-events: none; }
+  .inputCard:is(:hover, :focus-within) .switchButton { opacity: 1; pointer-events: auto; }
+}
+@media (max-width: 767px) {
+  .archiveCard { height: auto; }
+}

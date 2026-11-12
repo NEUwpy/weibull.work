@@ -23,6 +23,7 @@ const nextConfig = {
         './python/methods/*.py',
         './python/methods/j3_weights.tsv',
       ],
+      '/api/monte-carlo/*/process': ['./python/methods/mdm.py'],
     },
   },
   env: {

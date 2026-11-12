@@ -15,7 +15,7 @@ import AnalysisCard from '@/components/calculator/AnalysisCard'
 import DataEditor from '@/components/calculator/DataEditor'
 import { ChartCard } from '@/components/shared/charts/ChartCard'
 import { calculateWeibull } from '@/hooks/useWeibullCalculation'
-import { createManualParameterResult, MDM_DEFAULT_OFFSET } from '@/lib/calculator-state'
+import { createManualParameterResult, MDM_DEFAULT_OFFSET, type CalculatorParameters } from '@/lib/calculator-state'
 import {
   compareMdmOptimization,
   formatSigned,
@@ -25,6 +25,8 @@ import {
   optimizeMdmOffset,
 } from '@/lib/mdm-process-optimization'
 import { calculateMedianRanks, DataPoint, WeibullResult } from '@/lib/weibull'
+import type { DataSource } from '@/lib/weibull'
+import { estimateSampleSources, type BatchProgress } from '@/lib/calculator-batch'
 
 const DEFAULT_SAMPLE = [1314.68, 1509.32, 1672.86, 1832.55, 2005.13, 2215.02, 2536.73]
 
@@ -48,12 +50,16 @@ function MDMProcessOptimizationContent() {
     return parsed.length > 0 ? parsed : DEFAULT_SAMPLE
   }, [queryData])
   const [data, setData] = useState<DataPoint[]>(() => toDataPoints(initialValues))
+  const [generatedFrom, setGeneratedFrom] = useState<CalculatorParameters>()
+  const [dataSources, setDataSources] = useState<DataSource[]>()
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [progress, setProgress] = useState<BatchProgress>()
   const [result, setResult] = useState<WeibullResult>(() => (
     createManualParameterResult(toDataPoints(initialValues), true, calculateMedianRanks)
   ))
-  const [optimization, setOptimization] = useState<MdmProcessOptimizationResult | null>(null)
-  const [aiEstimate, setAiEstimate] = useState<WeibullResult | null>(null)
-  const [fixedEstimate, setFixedEstimate] = useState<WeibullResult | null>(null)
+  const [singleOptimization, setOptimization] = useState<MdmProcessOptimizationResult | null>(null)
+  const [singleAiEstimate, setAiEstimate] = useState<WeibullResult | null>(null)
+  const [singleFixedEstimate, setFixedEstimate] = useState<WeibullResult | null>(null)
   const [mdmOffset, setMdmOffset] = useState(MDM_DEFAULT_OFFSET)
   const [mdmOffsetMode, setMdmOffsetMode] = useState<MdmOffsetMode>('ai')
   const [fitMode, setFitMode] = useState<'fit' | 'manual'>('manual')
@@ -62,6 +68,7 @@ function MDMProcessOptimizationContent() {
   const [error, setError] = useState<string | null>(null)
   const handledQueryRef = useRef<string | null>(null)
   const calculationRequestRef = useRef(0)
+  useEffect(() => () => { calculationRequestRef.current += 1; handledQueryRef.current = null }, [])
 
   const clearOptimization = useCallback(() => {
     setOptimization(null)
@@ -155,7 +162,11 @@ function MDMProcessOptimizationContent() {
     void runOptimization(points)
   }, [initialValues, queryData, runOptimization])
 
-  const values = data.filter(point => point.status === 'F').map(point => point.value)
+  const activeSource = dataSources?.[activeIndex]
+  const optimization = activeSource ? activeSource.mdmOptimization : singleOptimization
+  const aiEstimate = activeSource ? activeSource.result ?? null : singleAiEstimate
+  const fixedEstimate = activeSource ? activeSource.fixedComparison ?? null : singleFixedEstimate
+  const values = (activeSource?.data ?? data).filter(point => point.status === 'F').map(point => point.value)
   const curveData = optimization?.delta_grid.map((delta, index) => ({
     x: delta,
     y: optimization.predicted_loss_curve[index],
@@ -175,9 +186,13 @@ function MDMProcessOptimizationContent() {
       })
     : null
 
-  const handleDataChange = useCallback((newData: DataPoint[]) => {
+  const handleDataChange = useCallback((newData: DataPoint[], generatedFrom?: CalculatorParameters) => {
     calculationRequestRef.current += 1
     setData(newData)
+    setGeneratedFrom(generatedFrom)
+    setDataSources(undefined)
+    setActiveIndex(0)
+    setProgress(undefined)
     setResult(previous => {
       const gamma = previous?.gamma ?? 1000
       return {
@@ -192,41 +207,80 @@ function MDMProcessOptimizationContent() {
     setError(null)
   }, [clearOptimization])
 
-  const handleParamsUpdate = useCallback((updates: Partial<WeibullResult>, mode: 'fit' | 'manual' = 'manual') => {
-    setResult(previous => {
-      const base = previous ?? createManualParameterResult(data, true, calculateMedianRanks)
-      const gamma = updates.gamma ?? base.gamma
-      return {
-        ...base,
-        ...updates,
-        points: updates.points ?? calculateMedianRanks(data, gamma),
-      }
-    })
-    setFitMode(mode)
-  }, [data])
+  const handleDataSourcesChange = useCallback((sources: DataSource[], origin?: CalculatorParameters, activeIndex = 0) => {
+    if (!sources.length) return
+    calculationRequestRef.current += 1
+    setData(sources[0].data)
+    setDataSources(sources)
+    setGeneratedFrom(origin)
+    setActiveIndex(activeIndex)
+    setProgress(undefined)
+    setLoading(false)
+    setFitMode('fit')
+    setError(null)
+    clearOptimization()
+  }, [clearOptimization])
+
+  const handleBatchCalculate = useCallback(async (offset = mdmOffset, mode = mdmOffsetMode) => {
+    if (!dataSources?.length) return
+    const requestId = ++calculationRequestRef.current
+    setLoading(true)
+    setError(null)
+    try {
+      await estimateSampleSources(dataSources, async source => {
+        const values = source.data.filter(point => point.status === 'F').map(point => point.value)
+        const selected = mode === 'ai' ? await optimizeMdmOffset(values) : undefined
+        const usedOffset = selected?.selected_delta ?? offset
+        const calculation = await calculateWeibull({ methodId: 'mdm', data: source.data, trace: true, offset: usedOffset })
+        const fixed = selected ? await calculateWeibull({ methodId: 'mdm', data: source.data, offset: selected.default_delta }) : undefined
+        return { ...calculation, calculationOffset: usedOffset, mdmOptimization: selected, fixedComparison: fixed?.result }
+      }, {
+        isCurrent: () => requestId === calculationRequestRef.current,
+        onProgress: (updated, progress) => {
+          if (requestId !== calculationRequestRef.current) return
+          setDataSources(updated)
+          setProgress(progress)
+          setFitMode('fit')
+        },
+      })
+    } finally {
+      if (requestId === calculationRequestRef.current) setLoading(false)
+    }
+  }, [dataSources, mdmOffset, mdmOffsetMode])
 
   const handleMdmOffsetModeChange = useCallback(async (mode: MdmOffsetMode) => {
     setMdmOffsetMode(mode)
+    if (fitMode !== 'fit') return
+    if (dataSources?.length) {
+      if (dataSources.some(source => source.result || source.calculationError)) await handleBatchCalculate(mdmOffset, mode)
+      return
+    }
     if (mode === 'ai') {
       await runOptimization(data)
     } else {
       await runFixedCalculation(mdmOffset, data)
     }
-  }, [data, mdmOffset, runFixedCalculation, runOptimization])
+  }, [data, dataSources, mdmOffset, fitMode, handleBatchCalculate, runFixedCalculation, runOptimization])
 
   const handleMdmOffsetChange = useCallback(async (offset: number) => {
     setMdmOffset(offset)
     setMdmOffsetMode('fixed')
+    if (fitMode !== 'fit') return
+    if (dataSources?.length) {
+      if (dataSources.some(source => source.result || source.calculationError)) await handleBatchCalculate(offset, 'fixed')
+      return
+    }
     await runFixedCalculation(offset, data)
-  }, [data, runFixedCalculation])
+  }, [data, dataSources, fitMode, handleBatchCalculate, runFixedCalculation])
 
   const handleCalculate = useCallback(async () => {
+    if (dataSources?.length) { await handleBatchCalculate(); return }
     if (mdmOffsetMode === 'ai') {
       await runOptimization(data)
     } else {
       await runFixedCalculation(mdmOffset, data)
     }
-  }, [data, mdmOffset, mdmOffsetMode, runFixedCalculation, runOptimization])
+  }, [data, dataSources, handleBatchCalculate, mdmOffset, mdmOffsetMode, runFixedCalculation, runOptimization])
 
   return (
     <>
@@ -266,6 +320,12 @@ function MDMProcessOptimizationContent() {
           id="ai-mdm-process-optimization"
           index={0}
           data={data}
+          generatedFrom={generatedFrom}
+          dataSources={dataSources}
+          activeDataSourceIndex={activeIndex}
+          onActiveDataSourceChange={setActiveIndex}
+          onDataSourcesChange={handleDataSourcesChange}
+          calculationProgress={progress}
           result={result}
           methodId="mdm"
           mdmOffset={mdmOffset}
@@ -280,7 +340,6 @@ function MDMProcessOptimizationContent() {
           onMdmOffsetModeChange={handleMdmOffsetModeChange}
           onDataClick={() => setIsDataEditorOpen(true)}
           onDataChange={handleDataChange}
-          onParamsUpdate={handleParamsUpdate}
           onCalculate={handleCalculate}
           hideCalculationProcessButton={true}
           hideMdmOptimizationDetailsLink={true}

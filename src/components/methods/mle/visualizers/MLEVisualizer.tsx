@@ -9,6 +9,7 @@ import { ProcessValueTable } from '@/components/shared/charts/ProcessValueTable'
 import { embeddedCalculationTrace, readCalculationTrace, formatCalculationNumber as number, type CalculationChart, type CalculationTrace } from '@/lib/calculation-trace'
 import type { FlowChartTarget } from '@/lib/method-flow'
 import { mleProcessData, type MLEFrame } from './process-data'
+import { useCalculationBatch } from '../../CalculationBatch'
 
 type Model = NonNullable<ReturnType<typeof mleProcessData>>
 
@@ -45,11 +46,23 @@ export default function MLEVisualizer({ traceData, calculation, rSquared, isUpda
     renderDetails={(_, target) => trace && model ? <MLERuntimeDetails target={target} trace={trace} model={model} viewed={viewed} /> : null} />
 }
 
-function ShapeFigure({ frame }: { frame: MLEFrame }) {
+function shapeReadingChart(frame: MLEFrame) {
   const actual = frame.shape_chart.series.find(series => series.id === 'solver-points')?.points
-  const chart = { ...frame.shape_chart, series: frame.shape_chart.series.filter(series => series.id === 'shape-score')
+  return { ...frame.shape_chart, series: frame.shape_chart.series.filter(series => series.id === 'shape-score')
     .map(series => ({ ...series, points: actual ? [...actual].sort((a, b) => a.x - b.x) : series.points })) }
-  return <ProcessChart key={frame.evaluation} chart={chart} figureOnly workspacePlot initiallyFocused={false} showYAxisLabel focusLabel="聚焦条件形状" />
+}
+
+function ShapeFigure({ frame, final = false }: { frame: MLEFrame; final?: boolean }) {
+  const batch = useCalculationBatch()
+  const charts = useMemo(() => batch?.records.flatMap(({ source, trace }) => {
+    const model = mleProcessData(trace)
+    if (!model?.frames.length) return []
+    const selected = final ? model.final : model.frames.reduce((nearest, item) =>
+      Math.abs(item.normalized_gamma - frame.normalized_gamma) < Math.abs(nearest.normalized_gamma - frame.normalized_gamma) ? item : nearest)
+    return selected ? [{ sourceId: source.id, label: source.name + ' · γ=' + number(selected.gamma), chart: shapeReadingChart(selected) }] : []
+  }), [batch, frame, final])
+  return <ProcessChart key={frame.evaluation} chart={shapeReadingChart(frame)} batchCharts={charts}
+    figureOnly workspacePlot initiallyFocused={false} showYAxisLabel focusLabel="聚焦条件形状" />
 }
 
 function MLEFigure({ target, trace, model, viewed, index, setIndex, rSquared }: {
@@ -84,7 +97,7 @@ function MLEFigure({ target, trace, model, viewed, index, setIndex, rSquared }: 
       rows={model.candidates.map(candidate => [number(candidate.gamma), number(candidate.beta), number(candidate.eta), number(candidate.ll)])} />}
   </div>
   if (target === 'shape') return model.final ? <div className="space-y-3"><p className="text-slate-600">固定 γ̂ = {number(model.final.gamma)}</p>
-    <ShapeFigure frame={model.final} />
+    <ShapeFigure frame={model.final} final />
     {model.final.shape_at_lower_boundary && <p className="text-sm text-slate-600">β̂ = 1，按形状下界采纳。</p>}
   </div> : <p className="text-slate-500">未采纳有限候选，本步没有形状估计。</p>
   if (target === 'scale') return model.scale ? <PowerScaleCalculation trace={trace} view="table" />

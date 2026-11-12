@@ -8,8 +8,7 @@ import {
   DataPoint,
   WeibullResult,
   DataSource,
-  MULTI_CURVE_COLORS,
-  calculateMedianRanks
+  MULTI_CURVE_COLORS
 } from '@/lib/weibull'
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
@@ -18,16 +17,16 @@ import { calculateWeibull } from '@/hooks/useWeibullCalculation'
 import { CalculationError, getCalculationNotice, type CalculationNotice } from '@/lib/calculation-feedback'
 import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
 import { createLatestRequestTracker } from '@/lib/latest-request'
+import { estimateSampleSources, inheritSampleSources, type BatchProgress } from '@/lib/calculator-batch'
 import {
-  createDefaultParameterResult,
-  createManualParameterResult,
-  generateWeibullSample,
   getDefaultParameters,
   getEstimateFailure,
   getEstimationModeFailure,
   MDM_DEFAULT_OFFSET,
   parseMdmOffsetOption,
   toggleParameterMode,
+  type CalculatorParameters,
+  type CalculatorCardType,
 } from '@/lib/calculator-state'
 import {
   MdmOffsetMode,
@@ -42,10 +41,12 @@ const CHART_COLORS = MULTI_CURVE_COLORS.slice(0, 5)
 // Define a simple type for our card data
 type CardData = {
   id: string
-  type: 'blank' | 'method' | 'params' | 'chart' | 'data'
+  type: CalculatorCardType
   sourceId?: string
   data?: DataPoint[]
   result?: WeibullResult
+  generationParameters?: CalculatorParameters
+  generatedFrom?: CalculatorParameters
   methodId?: string // 'mle' | 'rrx' | 'rry' etc.
   mdmOffset: number
   mdmOffsetMode: MdmOffsetMode
@@ -56,14 +57,12 @@ type CardData = {
   last3PGamma?: number
   // 多数据源模式
   dataSources?: DataSource[] // 多选案例时的数据源列表
+  activeDataSourceIndex?: number
+  direction?: 'estimate' | 'generate'
+  calculationProgress?: BatchProgress
 }
 
-function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardData {
-  const result = card.result || createManualParameterResult(
-    nextData,
-    card.is3P !== false,
-    (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
-  )
+function replaceSampleData(card: CardData, nextData: DataPoint[], generatedFrom?: CalculatorParameters): CardData {
   const failureCount = nextData.filter(point => point.status === 'F').length
   const mdmOffsetMode = card.mdmOffsetMode === 'ai' && !isMdmAiSampleSizeSupported(failureCount)
     ? 'fixed'
@@ -71,13 +70,14 @@ function preserveParametersForData(card: CardData, nextData: DataPoint[]): CardD
   return {
     ...card,
     data: nextData,
-    result: {
-      ...result,
-      points: calculateMedianRanks(nextData, result.gamma, card.methodId),
-    },
-    fitMode: 'manual',
+    result: undefined,
+    generatedFrom,
+    dataSources: undefined,
+    activeDataSourceIndex: 0,
+    fitMode: 'fit',
     mdmOffsetMode,
     mdmOptimization: undefined,
+    calculationProgress: undefined,
   }
 }
 
@@ -99,16 +99,6 @@ function CalculatorContent() {
     })
   }
   useEffect(() => () => calculationRequests.current.clear(), [])
-
-  // Global render count to detect infinite loops
-  const renderCountRef = React.useRef(0)
-  renderCountRef.current += 1
-  if (renderCountRef.current % 50 === 0) {
-    console.warn('[page.tsx] Render count:', renderCountRef.current)
-  }
-  if (renderCountRef.current > 200) {
-    console.error('[page.tsx] INFINITE LOOP DETECTED!')
-  }
 
   // Initialize cards from URL or default
   useEffect(() => {
@@ -157,16 +147,6 @@ function CalculatorContent() {
         }
       }
 
-      // Fallback if no case found or error
-      if (initialData.length === 0) {
-        initialData = generateWeibullSample(20, getDefaultParameters(true))
-      }
-
-      const initialResult: WeibullResult = createDefaultParameterResult(
-        initialData,
-        (points, gamma) => calculateMedianRanks(points, gamma, selectedMethodId),
-      )
-
       const requestedMdmOffsetMode = parseMdmOffsetMode(searchParams.get('mdmOffsetMode'))
       const initialFailureCount = initialData.filter(point => point.status === 'F').length
       setCards([
@@ -174,11 +154,11 @@ function CalculatorContent() {
           id: '1',
           type: 'chart',
           data: initialData,
-          result: initialResult,
+          generationParameters: getDefaultParameters(true),
           color: CHART_COLORS[0],
-          fitMode: 'manual',
+          fitMode: 'fit',
           is3P: true,
-          last3PGamma: initialResult.gamma,
+          last3PGamma: getDefaultParameters(true).gamma,
           methodId: selectedMethodId,
           mdmOffset: parseMdmOffsetOption(searchParams.get('offset')),
           mdmOffsetMode: requestedMdmOffsetMode === 'ai' && isMdmAiSampleSizeSupported(initialFailureCount)
@@ -194,8 +174,11 @@ function CalculatorContent() {
   }, [])
 
   // Handle adding new cards
-  const handleAddCard = (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string) => {
+  const handleAddCard = (type: CalculatorCardType, sourceId: string) => {
     const sourceCard = cards.find(c => c.id === sourceId)
+    const source = sourceCard?.dataSources?.[sourceCard.activeDataSourceIndex ?? 0]
+    const sourceData = source?.data ?? sourceCard?.data
+    const sourceResult = source ? source.result : sourceCard?.result
     
     let newData: DataPoint[] | undefined = undefined
     let newResult: WeibullResult | undefined = undefined
@@ -206,6 +189,11 @@ function CalculatorContent() {
     let newMdmOffset = MDM_DEFAULT_OFFSET
     let newMdmOffsetMode: MdmOffsetMode = 'fixed'
     let newMdmOptimization: MdmProcessOptimizationResult | undefined
+    let generationParameters = getDefaultParameters(true)
+    let generatedFrom: CalculatorParameters | undefined
+    let inheritedSources: DataSource[] | undefined
+    let inheritedIndex = 0
+    if (type === 'data-group' && (!sourceCard?.dataSources || sourceCard.dataSources.length < 2)) return
 
     if (type === 'blank') {
       newData = undefined
@@ -220,43 +208,51 @@ function CalculatorContent() {
       newLast3PGamma = sourceCard.last3PGamma ?? sourceCard.result?.gamma ?? newLast3PGamma
       newMdmOffset = sourceCard.mdmOffset
       newMdmOffsetMode = sourceCard.mdmOffsetMode
-      newMdmOptimization = sourceCard.mdmOptimization
+      newMdmOptimization = type === 'chart' ? sourceCard.mdmOptimization : undefined
+      generationParameters = { ...sourceCard.generationParameters ?? getDefaultParameters(newIs3P) }
 
       if (type === 'data') {
-        if (sourceCard.data && sourceCard.data.length > 0) {
-          newData = sourceCard.data.map(d => ({ ...d }))
+        if (sourceData && sourceData.length > 0) {
+          newData = sourceData.map(d => ({ ...d }))
+          generatedFrom = source ? source.generatedFrom : sourceCard.generatedFrom
         }
         newResult = undefined
+      } else if (type === 'data-group') {
+        inheritedSources = inheritSampleSources(sourceCard.dataSources!)
+        inheritedIndex = Math.max(0, Math.min(inheritedSources.length - 1, sourceCard.activeDataSourceIndex ?? 0))
+        newData = inheritedSources[0].data
+        generatedFrom = sourceCard.generatedFrom ? { ...sourceCard.generatedFrom } : undefined
       } else if (type === 'params') {
         newData = undefined
-        if (sourceCard.result) {
-          newResult = { ...sourceCard.result }
+        if (sourceCard.direction !== 'generate' && sourceResult?.beta != null && sourceResult.eta != null && sourceCard.fitMode === 'fit') {
+          generationParameters = { beta: sourceResult.beta, eta: sourceResult.eta, gamma: sourceResult.gamma }
         }
       } else if (type === 'method') {
         newData = undefined
         newResult = undefined
       } else if (type === 'chart') {
-        if (sourceCard.data && sourceCard.data.length > 0) {
-          newData = sourceCard.data.map(d => ({ ...d }))
+        if (sourceData && sourceData.length > 0) {
+          newData = sourceData.map(d => ({ ...d }))
+          generatedFrom = source ? source.generatedFrom : sourceCard.generatedFrom
         }
-        if (sourceCard.result) {
-          newResult = { ...sourceCard.result }
+        if (sourceResult) {
+          newResult = { ...sourceResult }
         }
       }
     }
 
-    if (!newResult) {
-      newResult = createManualParameterResult(newData || [], newIs3P, (points, gamma) => calculateMedianRanks(points, gamma, newMethodId))
-      newFitMode = 'manual'
-    }
+    if (!newResult) newFitMode = 'fit'
 
     const nextColorIndex = (cards.length) % CHART_COLORS.length
     const newCard: CardData = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       type,
       sourceId: type === 'blank' ? undefined : sourceId,
       data: newData,
       result: newResult,
+      generationParameters,
+      generatedFrom,
+      direction: type === 'params' ? 'generate' : 'estimate',
       methodId: newMethodId,
       color: CHART_COLORS[nextColorIndex],
       fitMode: newFitMode,
@@ -265,6 +261,8 @@ function CalculatorContent() {
       mdmOffset: newMdmOffset,
       mdmOffsetMode: newMdmOffsetMode,
       mdmOptimization: newMdmOptimization,
+      dataSources: inheritedSources,
+      activeDataSourceIndex: inheritedIndex,
     }
     
     const sourceIndex = cards.findIndex(c => c.id === sourceId)
@@ -295,7 +293,7 @@ function CalculatorContent() {
       ...currentCard,
       mdmOffset,
       mdmOptimization: undefined,
-      fitMode: 'manual',
+      fitMode: currentCard.fitMode,
     }
     setCards(prev => prev.map(card => {
       if (card.id !== cardId) return card
@@ -303,10 +301,10 @@ function CalculatorContent() {
         ...card,
         mdmOffset,
         mdmOptimization: undefined,
-        fitMode: 'manual',
+        fitMode: card.fitMode,
       }
     }))
-    if (nextCard.data?.length || nextCard.dataSources?.length) {
+    if ((currentCard.result && currentCard.fitMode === 'fit') || currentCard.dataSources?.some(source => source.result)) {
       void recalculateMdmCard(nextCard)
     }
   }
@@ -319,7 +317,7 @@ function CalculatorContent() {
       ...currentCard,
       mdmOffsetMode,
       mdmOptimization: undefined,
-      fitMode: 'manual',
+      fitMode: currentCard.fitMode,
     }
     setCards(prev => prev.map(card => {
       if (card.id !== cardId) return card
@@ -327,10 +325,10 @@ function CalculatorContent() {
         ...card,
         mdmOffsetMode,
         mdmOptimization: undefined,
-        fitMode: 'manual',
+        fitMode: card.fitMode,
       }
     }))
-    if (nextCard.data?.length || nextCard.dataSources?.length) {
+    if ((currentCard.result && currentCard.fitMode === 'fit') || currentCard.dataSources?.some(source => source.result)) {
       void recalculateMdmCard(nextCard)
     }
   }
@@ -344,24 +342,20 @@ function CalculatorContent() {
           if (card.id === activeCardId) {
             console.log('[handleMethodSelect] updating card:', card.id, 'old methodId:', card.methodId, 'new methodId:', methodId)
             if (card.methodId === methodId) return card
-            const redraw = (data: DataPoint[] = [], result?: WeibullResult): WeibullResult | undefined => (
-              result ? {
-                ...result,
-                points: calculateMedianRanks(data, result.gamma, methodId),
-                rSquared: null,
-              } : undefined
-            )
             return {
               ...card,
               methodId,
-              result: redraw(card.data, card.result),
+              result: undefined,
               dataSources: card.dataSources?.map(source => ({
                 ...source,
-                result: redraw(source.data, source.result),
+                result: undefined,
                 traceData: undefined,
+                calculation: undefined, calculationError: undefined, calculationOffset: undefined,
+                mdmOptimization: undefined, fixedComparison: undefined, archive: undefined,
               })),
-              fitMode: 'manual' as const,
+              fitMode: 'fit' as const,
               mdmOptimization: undefined,
+              calculationProgress: undefined,
             }
           }
           return card
@@ -379,7 +373,7 @@ function CalculatorContent() {
       setCards(prev => prev.map(card => {
         if (card.id === activeCardId) {
           return {
-            ...preserveParametersForData(card, newData),
+            ...replaceSampleData(card, newData),
             dataSources: undefined // 单选时清空多数据源
           }
         }
@@ -407,7 +401,7 @@ function CalculatorContent() {
     setCards(prev => prev.map(card => {
       if (card.id === activeCardId) {
         return {
-          ...preserveParametersForData(card, firstSource.data),
+          ...replaceSampleData(card, firstSource.data),
           dataSources: dataSourcesWithResults
         }
       }
@@ -428,93 +422,43 @@ function CalculatorContent() {
       return sources
     }
 
-    let sourceName: string | undefined
-    try {
-      const calculations: { result: WeibullResult; optimization?: MdmProcessOptimizationResult; selectedOffset: number }[] = []
-      for (const source of sources) {
-        if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
-        sourceName = source.name
-        const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
-        const optimization = card.methodId!.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
-          ? await optimizeMdmOffset(failureValues)
-          : undefined
-        const selectedOffset = optimization?.selected_delta ?? card.mdmOffset
-        const { result } = await calculateWeibull({
-          methodId: card.methodId!,
-          data: source.data,
-          offset: card.methodId!.toLowerCase() === 'mdm' ? selectedOffset : undefined,
-        })
-        const failure = getEstimateFailure(result)
-        if (failure) throw new CalculationError(failure, undefined, undefined, { kind: 'solver' })
-        calculations.push({ result, optimization, selectedOffset })
-      }
-
-      const results = calculations.map(calculation => calculation.result)
-      const primaryOptimization = calculations[0]?.optimization
-
-      if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
-      setCards(prev => prev.map(c => {
-        if (c.id !== cardId || !c.dataSources || !calculationRequests.current.isCurrent(cardId, requestTicket)) return c
-        return {
-          ...c,
-          result: results[0],
-          mdmOptimization: primaryOptimization,
-          dataSources: c.dataSources.map((source, index) => ({
-            ...source,
-            result: results[index],
-            calculationOffset: calculations[index].selectedOffset,
-          })),
-          fitMode: 'fit',
-          last3PGamma: results[0].gamma,
-        }
-      }))
-    } catch (err) {
-      if (!calculationRequests.current.isCurrent(cardId, requestTicket)) return sources
-      setCalculationNotice(getCalculationNotice(err, card.methodId, sourceName))
-    }
-
-    return sources
+    return await estimateSampleSources(sources, async source => {
+      const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
+      const optimization = card.methodId!.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
+        ? await optimizeMdmOffset(failureValues) : undefined
+      const offset = optimization?.selected_delta ?? card.mdmOffset
+      const calculation = await calculateWeibull({
+        methodId: card.methodId!, data: source.data, trace: true,
+        offset: card.methodId!.toLowerCase() === 'mdm' ? offset : undefined,
+      })
+      return { ...calculation, calculationOffset: offset, mdmOptimization: optimization }
+    }, {
+      isCurrent: () => calculationRequests.current.isCurrent(cardId, requestTicket),
+      onProgress: (updated, progress) => setCards(previous => previous.map(item =>
+        item.id === cardId && calculationRequests.current.isCurrent(cardId, requestTicket) ? {
+          ...item, dataSources: updated, result: updated[0].result, fitMode: 'fit',
+          mdmOptimization: updated[0].mdmOptimization, calculationProgress: progress,
+        } : item)),
+    })
   }
 
-  const handleDataChange = (cardId: string, newData: DataPoint[]) => {
+  const handleDataChange = (cardId: string, newData: DataPoint[], generatedFrom?: CalculatorParameters) => {
     invalidateCalculation(cardId)
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        return preserveParametersForData(card, newData)
+        return replaceSampleData(card, newData, generatedFrom)
       }
       return card
     }))
   }
 
-  const handleParamsUpdate = (cardId: string, updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
+  const handleDataSourcesChange = (cardId: string, sources: DataSource[], generatedFrom?: CalculatorParameters, activeIndex = 0) => {
+    if (!sources.length) return
     invalidateCalculation(cardId)
-    setCards(prev => prev.map(card => {
-      if (card.id === cardId) {
-        const baseResult = card.result || createManualParameterResult(
-          card.data || [],
-          card.is3P !== false,
-          (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
-        )
-        const newResult = { ...baseResult, ...updates }
-        let newPoints = card.result?.points || []
-        // Only recalculate points if gamma changed AND points not already provided in updates
-        if (updates.gamma !== undefined && !updates.points && card.data) {
-           newPoints = calculateMedianRanks(card.data, updates.gamma, card.methodId)
-        } else if (updates.points !== undefined) {
-          newPoints = updates.points
-        }
-        const nextLast3PGamma = card.is3P !== false && updates.gamma !== undefined && Number.isFinite(updates.gamma)
-          ? updates.gamma
-          : card.last3PGamma
-        return {
-          ...card,
-          result: { ...newResult, points: newPoints },
-          fitMode: mode || card.fitMode,
-          last3PGamma: nextLast3PGamma,
-        }
-      }
-      return card
-    }))
+    setCards(previous => previous.map(card => card.id === cardId ? {
+      ...replaceSampleData(card, sources[0].data, generatedFrom), dataSources: sources,
+      result: sources[0].result, activeDataSourceIndex: activeIndex,
+    } : card))
   }
 
   const calculateCardSnapshot = async (card: CardData, requestTicket: number) => {
@@ -602,26 +546,22 @@ function CalculatorContent() {
     invalidateCalculation(cardId)
     setCards(prev => prev.map(card => {
       if (card.id === cardId) {
-        const result = card.result || createManualParameterResult(
-          card.data || [],
-          card.is3P !== false,
-          (points, gamma) => calculateMedianRanks(points, gamma, card.methodId),
-        )
         const mode = toggleParameterMode({
           is3P: card.is3P !== false,
-          currentGamma: result.gamma,
+          currentGamma: card.generationParameters?.gamma ?? card.result?.gamma,
           last3PGamma: card.last3PGamma ?? getDefaultParameters(true).gamma,
         })
         return {
           ...card,
           is3P: mode.is3P,
           last3PGamma: mode.last3PGamma,
-          fitMode: 'manual',
-          result: {
-            ...result,
-            gamma: mode.gamma,
-            points: calculateMedianRanks(card.data || [], mode.gamma, card.methodId),
-          },
+          fitMode: 'fit',
+          result: undefined,
+          dataSources: card.dataSources?.map(source => ({ ...source, result: undefined, traceData: undefined,
+            calculation: undefined, calculationError: undefined, calculationOffset: undefined,
+            mdmOptimization: undefined, fixedComparison: undefined, archive: undefined })),
+          mdmOptimization: undefined,
+          calculationProgress: undefined,
         }
       }
       return card
@@ -655,6 +595,12 @@ function CalculatorContent() {
             id={card.id}
             index={index}
             data={card.data}
+            initialDirection={card.direction ?? (card.type === 'params' ? 'generate' : 'estimate')}
+            onDirectionChange={direction => setCards(previous => previous.map(item =>
+              item.id === card.id ? { ...item, direction } : item))}
+            generationParameters={card.generationParameters}
+            generatedFrom={card.generatedFrom}
+            calculationProgress={card.calculationProgress}
             result={card.result}
             methodId={card.methodId}
             mdmOffset={card.mdmOffset}
@@ -664,18 +610,23 @@ function CalculatorContent() {
             fitMode={card.fitMode || 'manual'}
             is3P={!!card.is3P}
             dataSources={card.dataSources}
+            activeDataSourceIndex={card.activeDataSourceIndex ?? 0}
+            onActiveDataSourceChange={index => setCards(previous => previous.map(item =>
+              item.id === card.id ? { ...item, activeDataSourceIndex: index } : item))}
             availableLayers={cards
               .map((c, i) => ({ ...c, originalIndex: i }))
-              .filter(c => c.id !== card.id && c.result)
+              .filter(c => c.id !== card.id && c.result && c.fitMode === 'fit')
               .map(c => ({ id: c.id, name: `卡片 #${c.originalIndex + 1}`, color: c.color, result: c.result! }))
             }
-            onAdd={(type, sid) => handleAddCard(type as any, sid)}
+            onAdd={handleAddCard}
             onMethodClick={() => handleMethodClick(card.id)}
             onMdmOffsetChange={(offset) => handleMdmOffsetChange(card.id, offset)}
             onMdmOffsetModeChange={(mode) => handleMdmOffsetModeChange(card.id, mode)}
             onDataClick={() => handleDataClick(card.id)}
-            onDataChange={(newData) => handleDataChange(card.id, newData)}
-            onParamsUpdate={(updates, mode) => handleParamsUpdate(card.id, updates, mode)}
+            onDataChange={(newData, generatedFrom) => handleDataChange(card.id, newData, generatedFrom)}
+            onDataSourcesChange={(sources, generatedFrom, activeIndex) => handleDataSourcesChange(card.id, sources, generatedFrom, activeIndex)}
+            onGenerationParametersChange={parameters => setCards(previous => previous.map(item =>
+              item.id === card.id ? { ...item, generationParameters: parameters } : item))}
             onToggle3P={() => handleToggle3P(card.id)}
             onCalculate={() => handleCalculate(card.id)}
             onDelete={() => handleDeleteCard(card.id)}

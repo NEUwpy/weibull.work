@@ -13,6 +13,9 @@ import { ProcessValueTable } from '@/components/shared/charts/ProcessValueTable'
 import { SigmaBetaChart, GradientGammaChart } from '../charts'
 import { mdmGradientDomain, mdmProcessData, type ShapeSlice } from './process-data'
 import { MDMScaleCalculation, MDMScaleValues } from './MDMScaleCalculation'
+import { useCalculationBatch } from '../../CalculationBatch'
+import { ArchivedMDMWorkspace } from '../ArchivedMDMWorkspace'
+import { liveMDMBatch } from './batch-process-data'
 
 type ProcessData = NonNullable<ReturnType<typeof mdmProcessData>>
 interface MDMVisualizerProps {
@@ -28,6 +31,8 @@ interface MDMVisualizerProps {
 export default function MDMVisualizer({ traceData, calculation, rSquared, mdmOffset, onMdmOffsetChange,
   offsetStale = false, isOffsetUpdating = false }: MDMVisualizerProps) {
   const record = calculation ?? embeddedCalculationTrace(traceData)
+  const batch = useCalculationBatch()
+  const batchProcess = useMemo(() => batch ? liveMDMBatch(batch.sources, batch.origin, mdmOffset) : null, [batch, mdmOffset])
   const { trace } = readCalculationTrace(record, 'mdm')
   const model = useMemo(() => trace ? mdmProcessData(traceData, trace) : null, [traceData, trace])
   const [manualIndex, setManualIndex] = useState<number | null>(null)
@@ -38,6 +43,8 @@ export default function MDMVisualizer({ traceData, calculation, rSquared, mdmOff
   const selected = model ? model.slices[manualIndex ?? (finalIndex > 0 ? finalIndex - 1 : 1)] ?? model.finalSlice : undefined
   const shownOffset = model && !isOffsetUpdating ? model.offset : mdmOffset
   const branch = trace?.selection.approximate === true ? 'extrapolated' : trace?.selection.strategy === 'truncated_at_zero' ? 'zero' : 'ready'
+  if (batch && batchProcess?.runs.length) return <ArchivedMDMWorkspace process={batchProcess}
+    selectedRun={batch.activeIndex + 1} onSelect={id => { if (id !== null) batch.onSelect(id - 1) }} />
   return <CalculationWorkspace methodId="mdm" ready={!!model} updating={isOffsetUpdating} revision={model}
     values={model ? { n: String(model.pseudoScales.length), offset: number(shownOffset), found_gamma: number(model.finalSlice.gamma),
       found_beta: number(model.finalSlice.beta), found_eta: number(model.finalSlice.eta) } : {}}

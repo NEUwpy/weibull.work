@@ -8,7 +8,8 @@ import {
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import { type CalculationChart, type CalculationPoint, calculationFocus, formatCalculationNumber } from '@/lib/calculation-trace'
-import { processPlotAxes, processPlotFrame } from './ProcessPlot'
+import { processPlotAxes, processPlotFrame, ProcessYAxisLabel } from './ProcessPlot'
+import { useCalculationBatch } from '@/components/methods/CalculationBatch'
 
 const SERIES_COLORS = ['#2563eb', '#7c3aed', '#059669', '#475569', '#db2777']
 const axisNumber = (value: number) => value !== 0 && (Math.abs(value) >= 1e5 || Math.abs(value) < 1e-3)
@@ -38,13 +39,30 @@ export function ProcessPointLegend({ color, selectedLabel = '采纳值' }: { col
   </div>
 }
 
-export function ProcessChart({ chart, initiallyFocused, figureOnly = false, showYAxisLabel = false, focusLabel = '聚焦最终选择', workspacePlot = false }: {
+export function ProcessChart({ chart: givenChart, initiallyFocused, figureOnly = false, showYAxisLabel = false, focusLabel = '聚焦最终选择', workspacePlot = false, overlay: givenOverlay, batchCharts }: {
   chart: CalculationChart; initiallyFocused?: boolean; figureOnly?: boolean; showYAxisLabel?: boolean; focusLabel?: string; workspacePlot?: boolean
+  overlay?: { activeId?: string; activeLabel?: string; label: string; adoptedLabel?: string }
+  batchCharts?: { sourceId: string; label: string; chart: CalculationChart }[]
 }) {
+  const batch = useCalculationBatch()
+  let chart = givenChart
+  let overlay = givenOverlay
+  const rows = batchCharts ?? batch?.records.flatMap(({ source, trace }) => {
+    const item = source.id === batch.sources[batch.activeIndex]?.id ? givenChart : trace.charts.find(item => item.id === givenChart.id)
+    return item ? [{ sourceId: source.id, label: source.name, chart: item }] : []
+  })
+  if (batch && !overlay && rows && rows.length > 1) {
+    chart = { ...givenChart, series: rows.flatMap(row => row.chart.series.map(series => ({
+      ...series, id: row.sourceId + '/' + series.id, label: row.label + ' · ' + series.label,
+    }))) }
+    overlay = { activeId: batch.sources[batch.activeIndex]?.id, activeLabel: batch.sources[batch.activeIndex]?.name, label: '各组实际计算' }
+  }
+  const activeSeries = (id: string) => id === overlay?.activeId || !!overlay?.activeId && id.startsWith(overlay.activeId + '/')
   const [hoveredPoint, setHoveredPoint] = useState<HoverPoint | null>(null)
-  const focus = calculationFocus(chart)
+  const focus = overlay ? null : calculationFocus(chart)
   const values = chart.series.flatMap(series => series.points.map(point => point.y))
-  const fullSpan = values.length ? Math.max(...values) - Math.min(...values) : 0
+  const extent = values.reduce(([min, max], value) => [Math.min(min, value), Math.max(max, value)], [Infinity, -Infinity])
+  const fullSpan = values.length ? extent[1] - extent[0] : 0
   const [focused, setFocused] = useState(initiallyFocused ?? (!!focus && (chart.id === 'location-score'
     || fullSpan > (focus.y[1] - focus.y[0]) * 100)))
   const domains = focused ? focus : null
@@ -83,12 +101,15 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false, show
               <YAxis type="number" dataKey="y" domain={domains?.y ?? ['auto', 'auto']} allowDataOverflow={!!domains} width={workspacePlot ? processPlotAxes.yAxisWidth : 76}
                 tickFormatter={axisNumber} tick={{ fontSize: 14, fill: '#64748b' }}
                 axisLine={workspacePlot ? { stroke: '#cbd5e1' } : false} tickLine={false}
-                label={showYAxisLabel ? { value: chart.y.label, angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' } : undefined} />
+                label={showYAxisLabel ? { value: chart.y.label, content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
+                  angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' } : undefined} />
               <Tooltip
                 content={({ active, payload }) => {
                   if ((!active || !payload?.length) && !hoveredPoint) return null
                   const entries = hoveredPoint ? [{ name: hoveredPoint.name, payload: hoveredPoint.point }]
                     : (payload ?? []).filter(entry => Number.isFinite(entry.payload?.x) && Number.isFinite(entry.payload?.y))
+                      .filter(entry => !overlay || chart.series.some(series => activeSeries(series.id) && series.label === entry.name))
+                  if (!entries.length) return null
                   return <div className="max-w-[280px] rounded-xl border border-slate-200 bg-white/95 p-3 text-sm leading-relaxed shadow-sm">
                     {entries.map((entry, index) => <div key={index} className={index > 0 ? 'mt-2 border-t border-slate-100 pt-2' : ''}>
                       <p className="font-medium text-slate-700">{entry.name}</p>
@@ -114,12 +135,15 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false, show
                   label={{ value: formatCalculationNumber(point.y), position: 'insideTopLeft', fill: '#9a670f', fontSize: 14 }} />] : []),
               ])}
               {viewSeries.map((series, index) => {
-                const color = series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length]
+                const highlighted = !overlay || activeSeries(series.id)
+                const color = overlay ? series.role === 'candidate' ? '#b7791f' : highlighted ? '#2563eb' : '#64748b'
+                  : series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length]
                 return series.kind === 'line' ? (
                   <Line key={series.id} data={series.points} type={series.interpolation ?? 'linear'} dataKey="y" name={series.label}
-                    stroke={color} strokeWidth={2} dot={series.role === 'solver' ? <CalculatedPoint color={color} label={series.label} onHover={setHoveredPoint} /> : false}
+                    stroke={color} strokeWidth={highlighted ? 2 : 1} strokeOpacity={highlighted ? 1 : .22}
+                    dot={series.role === 'solver' && highlighted ? <CalculatedPoint color={color} label={series.label} onHover={setHoveredPoint} /> : false}
                     strokeDasharray={series.role === 'virtual' ? '5 4' : undefined}
-                    activeDot={{ r: 4 }} isAnimationActive={false} connectNulls={false} />
+                    activeDot={highlighted ? { r: 4 } : false} isAnimationActive={false} connectNulls={false} />
                 ) : (
                   <Scatter key={series.id} name={series.label} data={series.points} fill={color}
                     shape={series.role === 'solver' ? <CalculatedPoint color={color} label={series.label} onHover={setHoveredPoint} /> : undefined}
@@ -136,7 +160,13 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false, show
         </div>
       ) : <p className="py-8 text-center text-base text-slate-500">本次运行未得到可绘制的有限数值。</p>}
       <div className="mt-2 flex flex-wrap items-start gap-x-4 gap-y-1 text-sm text-slate-500">
-        {chart.series.map((series, index) => (
+        {overlay ? <>
+          <span className="inline-flex items-center gap-1.5"><span className="h-px w-4 bg-slate-400" />{overlay.label}</span>
+          {overlay.activeId && <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-4 bg-blue-600" />
+            {overlay.activeLabel ?? chart.series.find(series => activeSeries(series.id))?.label}</span>}
+          {overlay.adoptedLabel && <span className="inline-flex items-center gap-1.5 text-amber-800">
+            <span className="h-2 w-2 rounded-full bg-[#b7791f]" />{overlay.adoptedLabel}</span>}
+        </> : chart.series.map((series, index) => (
           <span key={series.id} title={series.label} className="inline-flex items-center gap-1.5">
             <span className={`inline-block h-2 w-2 shrink-0 ${series.kind === 'line' && series.role !== 'solver' ? 'rounded-sm' : 'rounded-full'}`}
               style={{ backgroundColor: series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length] }} />
@@ -145,11 +175,11 @@ export function ProcessChart({ chart, initiallyFocused, figureOnly = false, show
               : series.label.includes('补充采样') || series.label.includes('辅助采样') ? '函数曲线' : series.label}
           </span>
         ))}
-        {!!chart.selected?.length && Array.from(new Set(chart.selected.map(point => point.label ?? '最终选择'))).map(label => (
+        {!overlay && !!chart.selected?.length && Array.from(new Set(chart.selected.map(point => point.label ?? '最终选择'))).map(label => (
           <span key={label} title={label} className="inline-flex items-center gap-1.5 text-amber-800"><span className="h-2 w-2 rounded-full bg-[#b7791f]" />采纳值</span>
         ))}
       </div>
-      {workspacePlot && <div className="flex min-h-7 justify-end">{focusButton}</div>}
+      {workspacePlot && !overlay && <div className="flex min-h-7 justify-end">{focusButton}</div>}
     </section>
   )
 }

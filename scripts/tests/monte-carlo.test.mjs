@@ -9,6 +9,7 @@ import { createRequire } from 'node:module'
 import ts from 'typescript'
 import { legacyProcessHref, methodHref, methodTabFromPath } from '../../src/lib/method-navigation.ts'
 import { workbookMatches, formatWorkbookCell } from '../../src/lib/monte-carlo.ts'
+import { loadMethodFlow } from '../../src/lib/server/method-flow.mjs'
 const require = createRequire(import.meta.url)
 const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 
@@ -53,7 +54,11 @@ function fixture(run) {
     if (modules.has(file)) return modules.get(file).exports
     const module = { exports: {} }; modules.set(file, module)
     const compiled = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText
-    const localRequire = name => name === '@/content/monte-carlo/research00.json' ? index : name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : require(name)
+    const localRequire = name => {
+      if (name === '@/content/monte-carlo/research00.json') return index
+      if (name === './method-flow.mjs') return { loadMethodFlow }
+      return name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : require(name)
+    }
     const context = vm.createContext({ process: { env: { WEIBULL_DATA_ROOT: data }, cwd: () => process.cwd() }, console, Buffer })
     vm.runInContext('(function(require,module,exports){' + compiled + '\n})', context, { filename: file })(localRequire, module, module.exports)
     return module.exports
@@ -83,4 +88,144 @@ test('registered code cannot escape the monte-carlo namespace through a link', (
   fs.symlinkSync(privateDir, path.join(root, 'link'), process.platform === 'win32' ? 'junction' : 'dir')
   manifest.files['link/secret.py'] = { sha256: sha(Buffer.from('private')), bytes: 7, role: 'code' }; seal()
   assert.throws(() => api.registeredWorkbookFile('fixture', 'link/secret.py'), /文件缺失/)
+}))
+
+function archivedProcessFixture(run) {
+  return fixture(context => {
+    const { entry, write, seal, raw } = context
+    entry.mdmProcess = { n: 3, delta: .1, records: 'source/estimates.jsonl', source: 'source/mdm.py', base: 'source/base.py',
+      replay: { path: 'fixture/replay.json' } }
+    const book = {
+      schemaVersion: 1, id: 'fixture', sha256: sha(raw), title: 'W(2,1000,500)', truth: [2, 1000, 500], sheets: [], source: {},
+      groups: { 3: {
+        samples: [[1, 510, 530, 600], [2, 515, 540, 610]],
+        resultRows: [[1, 2, 1000, 500], [2, 2.1, 1010, 501]],
+        blocks: [{ method: 'mdm', delta: .1, column: 1 }],
+      } },
+    }
+    const records = book.groups[3].resultRows.map(([id, beta_hat, eta_hat, gamma_hat]) => ({
+      id, n: 3, delta: .1, method_id: 'mdm', beta_hat, eta_hat, gamma_hat, r_squared: .95, converged: true,
+      criterion_curve: [{ gamma: 0, gradient: -.01 }, { gamma: 509, gradient: .2 }],
+      extra: { solution_info: { root_solver: 'brent', target_offset: .1, optimal_gamma: gamma_hat,
+        root_bracket: { left: { gamma: 0 }, right: { gamma: 509 } } } },
+    }))
+    const source = Buffer.from(String.raw`class MDM:
+    def run(self):
+        # @step: 1 | 排序
+        t = self.data
+        # @step: 2 | 秩
+        ranks = self._median_ranks()
+        # @step: 3 | 计算标准差
+        def calculate_eta_std(beta, gamma, t):
+            return 5
+        # @step: 4 | 搜索
+        def find_best_beta_for_gamma(gamma):
+            return beta, 5
+        def profile_sigma(gamma):
+            return find_best_beta_for_gamma(gamma)[1]
+        def profile_gradient(gamma):
+            return profile_sigma(gamma + h) - profile_sigma(gamma - h)
+        def find_right_anchor():
+            return 509
+        # @step: 5 | 网格
+        gammas = (0, 509)
+        # @step: 6 | 位置试算
+        sigmas = [profile_sigma(g) for g in gammas]
+        # @step: 7 | 计算梯度
+        grads = [profile_gradient(g) for g in gammas]
+        # @step: 9 | 求位置 | 按梯度偏移定位
+        # @formula: g(0)\ge\delta\Rightarrow\hat\gamma=0;\quad g(\hat\gamma)=\delta
+        # @symbols: \gamma|\gamma|位置
+        # @inputs: offset|\delta|偏移量
+        # @outputs: found_gamma|\hat\gamma|位置
+        root = root_scalar(objective, method="brentq")
+        found_gamma = float(root.root)
+        found_beta, _ = find_best_beta_for_gamma(found_gamma)
+        solution_strategy = "brent_root"
+        # @step: 11 | 算尺度 | 均值
+        found_eta = np.mean(etas)
+        # @step: 12 | 计算 R²
+        r2 = self._calculate_r2(found_beta, found_eta, found_gamma)
+        return float(found_beta), found_eta, found_gamma, r2, True
+`)
+    const base = Buffer.from('def __init__(self):\n    self.data = sorted(data)\n' +
+      'def log_step(self):\n    pass\n' +
+      'def _median_ranks(self):\n    return (i - 0.3) / (n + 0.4)\n' +
+      'def _cdf_3p(self):\n    pass\n' +
+      'def _calculate_r2(self):\n    return 1 - (ss_res / ss_tot)\n')
+    const traces = book.groups[3].resultRows.map(([id, beta, eta]) => ({
+      id, profile: [[0, 100, beta], [509, 50, beta]], shape: [[beta, 45], [beta + 1, 140]],
+      trialShapes: [[[beta, 100], [beta + 1, 160]], [[beta, 50], [beta + 1, 145]]],
+      pseudoScales: [[.9, eta - 1], [1, eta], [1.1, eta + 1]], scaleSum: eta * 3,
+    }))
+    const save = () => {
+      write('workbook.json', Buffer.from(JSON.stringify(book)), 'view')
+      write(entry.mdmProcess.records, Buffer.from(records.map(row => JSON.stringify(row)).join('\n')), 'input')
+      write(entry.mdmProcess.source, source, 'code')
+      write(entry.mdmProcess.base, base, 'code')
+      seal()
+      const replay = Buffer.from(JSON.stringify({ manifestSha256: entry.manifestSha256, n: 3, delta: .1, runs: traces }))
+      entry.mdmProcess.replay.sha256 = sha(replay)
+      write('replay.json', replay)
+    }
+    save()
+    return run({ ...context, book, records, source, traces, save })
+  })
+}
+
+test('archived process binds all curves to workbook rows and exposes the frozen solver source', () => archivedProcessFixture(({ api, source }) => {
+  const result = api.registeredWorkbookProcess('fixture', 3, .1)
+  assert.equal(result.runs.length, 2)
+  assert.equal(result.runs[1].gamma, 501)
+  assert.equal(result.runs[1].sample.join(','), '515,540,610')
+  assert.equal(result.runs[0].curve.length, 2)
+  assert.equal(result.flow.sources[0].sha256, sha(source))
+  assert.equal(result.flow.artifacts[0].path, 'source/estimates.jsonl')
+  assert.equal(result.flow.artifacts[1].path, 'workbook.json')
+  assert.equal(result.flow.artifacts[2].path, 'fixture/replay.json')
+  assert.deepEqual(Array.from(result.flow.steps, step => step.name), loadMethodFlow('mdm').steps.map(step => step.name))
+  assert.equal(result.flow.workflow.targets.scale, 5)
+  assert.equal(result.runs[1].trace.pseudoScales[0][1], 1009)
+  assert.equal(result.runs[1].rSquared, .95)
+  assert.equal(api.registeredWorkbookTrialShapes('fixture', 3, .1, 2)[1][0][1], 50)
+  assert.equal(api.registeredWorkbookTrialShapes('fixture', 3, .1, 3), null)
+  assert.equal(result.flow.steps[2].formula.equations.length, 2)
+  const reference = result.flow.steps[2].sources[0]
+  const code = result.flow.sources[0].lines.slice(reference.start, reference.end).join('\n')
+  assert.match(code, /method="brentq"/)
+  assert.doesNotMatch(code, /found_eta = np.mean/)
+  assert.equal(api.registeredWorkbookProcess('fixture', 7, .1), null)
+  assert.equal(api.registeredWorkbookProcess('fixture', 3, .2), null)
+  assert.equal(api.registeredWorkbookProcess('../fixture', 3, .1), null)
+}))
+
+test('archived process rejects partial, duplicated or mismatched estimation records', () => {
+  for (const mutate of [
+    ({ records }) => { records.pop() },
+    ({ records }) => { records.push(structuredClone(records[0])) },
+    ({ book }) => { book.groups[3].samples.push([...book.groups[3].samples[0]]) },
+    ({ records }) => { records[0].gamma_hat = 499 },
+    ({ records }) => { records[0].extra.solution_info.target_offset = .2 },
+    ({ records }) => { records[0].extra.solution_info.optimal_gamma = 499 },
+    ({ records }) => { records[0].extra.solution_info.root_solver = 'linear_interpolation' },
+    ({ records }) => { records[0].criterion_curve = [] },
+    ({ traces }) => { traces[0].profile[0][0] = 1 },
+    ({ traces }) => { traces[0].shape = [[1, 50]] },
+    ({ traces }) => { traces[0].scaleSum++ },
+  ]) archivedProcessFixture(context => {
+    mutate(context)
+    context.save()
+    assert.throws(() => context.api.registeredWorkbookProcess('fixture', 3, .1), /不一致|全部重复|不唯一/)
+  })
+})
+
+test('archived process rejects changed curve and source files before displaying a batch', () => archivedProcessFixture(({ api, entry, write, source, save }) => {
+  write(entry.mdmProcess.records, Buffer.from('changed'))
+  assert.throws(() => api.registeredWorkbookProcess('fixture', 3, .1), /身份已变化/)
+  save()
+  write(entry.mdmProcess.source, Buffer.concat([source, Buffer.from('\n# changed')]))
+  assert.throws(() => api.registeredWorkbookProcess('fixture', 3, .1), /身份已变化/)
+  save()
+  write('replay.json', Buffer.from('changed'))
+  assert.throws(() => api.registeredWorkbookProcess('fixture', 3, .1), /补录计算记录的身份已变化/)
 }))

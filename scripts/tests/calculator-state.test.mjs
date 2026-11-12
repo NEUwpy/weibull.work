@@ -39,6 +39,15 @@ test('sample generation uses the current parameters', () => {
   ])
 })
 
+test('sample generation rejects incomplete settings before creating observations', () => {
+  for (const parameters of [
+    { beta: Infinity, eta: 1000, gamma: 0 },
+    { beta: 2, eta: NaN, gamma: 0 },
+    { beta: 2, eta: 1000, gamma: Infinity },
+  ]) assert.throws(() => generateWeibullSample(7, parameters))
+  assert.throws(() => generateWeibullSample(7.5, getDefaultParameters(true)))
+})
+
 test('invalid and non-converged estimates return explicit failures', () => {
   assert.equal(
     getEstimateFailure({ beta: null, eta: 100, gamma: 0 }),

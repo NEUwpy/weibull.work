@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 interface ValueColumn { label: string; align?: 'left' | 'right' }
+const TABLE_COLUMN_GAP = 48
 
 /** Split consecutive rows into balanced columns without changing their order. */
 export function ProcessValueTable({ label, columns, rows, minColumnWidth = 260, footer }: {
@@ -15,7 +16,7 @@ export function ProcessValueTable({ label, columns, rows, minColumnWidth = 260, 
     const element = container.current
     if (!element) return
     const measure = () => setColumnCount(Math.max(1, Math.min(3, Math.ceil(rows.length / 3),
-      Math.floor((element.clientWidth + 24) / (minColumnWidth + 24)))))
+      Math.floor((element.clientWidth + TABLE_COLUMN_GAP) / (minColumnWidth + TABLE_COLUMN_GAP)))))
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(element)
@@ -28,8 +29,9 @@ export function ProcessValueTable({ label, columns, rows, minColumnWidth = 260, 
     return { start, rows: rows.slice(start, start + length) }
   })
 
-  return <div ref={container} className="min-w-0" role="group" aria-label={label} data-table-columns={columnCount}>
-    <div className="grid items-start gap-6" style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
+  return <div className="min-w-0 px-[clamp(8px,3%,28px)]" role="group" aria-label={label} data-table-columns={columnCount}>
+    <div ref={container} className="grid items-start"
+      style={{ columnGap: TABLE_COLUMN_GAP, gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}>
       {groups.map(group => <div key={group.start} className="min-w-0 overflow-x-auto">
         <table className="w-full text-base tabular-nums text-slate-700"
           aria-label={columnCount > 1 ? `${label}（${group.start + 1}–${group.start + group.rows.length}）` : label}>

@@ -2,11 +2,12 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { LineChart, Code2, PanelLeft, PanelRight } from 'lucide-react'
-import type { FlowChartTarget, FlowStep } from '@/lib/method-flow'
+import type { FlowChartTarget, FlowStep, MethodFlow } from '@/lib/method-flow'
 import { useCalculationStage } from './CalculationSource'
 import { useMethodFlow } from './useMethodFlow'
 import { FlowStepCode, FlowStepDetails } from './VariableFlowViewer'
 import { MethodWorkflow } from './MethodWorkflow'
+import { BatchStepFigure, useCalculationBatch } from './CalculationBatch'
 import styles from './CalculationWorkspace.module.css'
 
 const views = [{ id: 'charts', label: '图像', icon: LineChart }, { id: 'program', label: '代码', icon: Code2 }] as const
@@ -56,6 +57,7 @@ function SidebarDivider({ side, controls, width, maxWidth, onResize }: {
 
 interface WorkspaceProps {
   methodId: string
+  recordedFlow?: MethodFlow
   ready: boolean
   updating?: boolean
   revision?: unknown
@@ -69,9 +71,11 @@ interface WorkspaceProps {
   emptyContent?: ReactNode
 }
 
-export function CalculationWorkspace({ methodId, ready, updating = false, revision, values, workflowValues,
+export function CalculationWorkspace({ methodId, recordedFlow, ready, updating = false, revision, values, workflowValues,
   workflowBranch = 'ready', formulaVariant, renderFigure, renderDetails, notice, emptyContent }: WorkspaceProps) {
-  const { flow, loading, error, retry } = useMethodFlow(methodId)
+  const batch = useCalculationBatch()
+  const { flow: currentFlow, loading, error, retry } = useMethodFlow(recordedFlow ? null : methodId)
+  const flow = recordedFlow ?? currentFlow
   const [view, setView] = useState<View>('charts')
   const [activeId, setActiveId] = useState<number>()
   const [leftOpenOverride, setLeftOpenOverride] = useState<boolean>()
@@ -143,7 +147,7 @@ export function CalculationWorkspace({ methodId, ready, updating = false, revisi
   }, [view, flow, leftOpen, rightOpen])
 
   useEffect(() => {
-    if (!sourceRequest || !flow) return
+    if (!sourceRequest || !flow || recordedFlow) return
     const requested = sourceRequest.fromUrl && sourceRequest.step
       ? diagram?.legacySourceSteps?.[sourceRequest.step - 1] ?? sourceRequest.step : sourceRequest.step
     const step = flow.steps.find(item => item.id === requested) ?? flow.steps[0]
@@ -153,7 +157,7 @@ export function CalculationWorkspace({ methodId, ready, updating = false, revisi
       setActiveId(step.id)
       setView('program')
     }
-  }, [sourceRequest, flow, diagram])
+  }, [sourceRequest, flow, diagram, recordedFlow])
 
   useEffect(() => {
     const container = reader.current
@@ -250,6 +254,9 @@ export function CalculationWorkspace({ methodId, ready, updating = false, revisi
       </div>
     </div>
     {notice}
+    {batch?.sources[batch.activeIndex]?.calculationError && <p role="status" className="py-2 text-sm text-amber-700">
+      第 {batch.activeIndex + 1} 组 · {batch.sources[batch.activeIndex].calculationError}
+    </p>}
     <div ref={layout} className={styles.layout}>
       <div ref={leftPane} className={styles.leftPane} id={`${id}-flow`} hidden={!leftOpen}>
         <MethodWorkflow methodId={methodId} diagram={diagram} steps={flow.steps} values={workflowValues}
@@ -266,8 +273,9 @@ export function CalculationWorkspace({ methodId, ready, updating = false, revisi
             onPointerEnter={() => setActiveId(step.id)} onFocusCapture={() => setActiveId(step.id)}>
             <h3 className={styles.stepHeading}><span>{step.id}</span>{step.name}</h3>
             {view === 'program' ? <FlowStepCode flow={flow} step={step} continuous />
-              : !ready && step.id === flow.steps[0].id && emptyContent ? emptyContent
-              : renderFigure(step, target) ?? <p className="text-sm text-slate-500">计算后显示本步数据。</p>}
+              : !batch && !ready && step.id === flow.steps[0].id && emptyContent ? emptyContent
+              : <BatchStepFigure target={target}>{renderFigure(step, target) ??
+                <p className="text-sm text-slate-500">计算后显示本步数据。</p>}</BatchStepFigure>}
             {rightOpen && <div className={styles.mobileExplanation}>{explanation(step)}</div>}
           </section>
         })}</div>

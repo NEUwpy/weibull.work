@@ -21,7 +21,7 @@ export interface FlowDiagramConnection {
 }
 export interface FlowDiagram {
   title: string; description: string
-  targets: Record<FlowChartTarget, number>
+  targets: Partial<Record<FlowChartTarget, number>>
   legacySourceSteps?: number[]
   items: FlowDiagramItem[]; connections: FlowDiagramConnection[]
 }

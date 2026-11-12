@@ -1,3 +1,5 @@
+export type CalculatorCardType = 'blank' | 'method' | 'params' | 'chart' | 'data' | 'data-group'
+
 export type CalculatorParameters = {
   beta: number
   eta: number
@@ -91,9 +93,10 @@ export function generateWeibullSample(
   random: () => number = Math.random,
 ) {
   if (!Number.isInteger(n) || n <= 0) throw new Error('样本数必须为正整数')
-  if (!(parameters.beta > 0) || !(parameters.eta > 0)) {
+  if (!Number.isFinite(parameters.beta) || !Number.isFinite(parameters.eta) || !(parameters.beta > 0) || !(parameters.eta > 0)) {
     throw new Error('beta 和 eta 必须大于 0')
   }
+  if (!Number.isFinite(parameters.gamma)) throw new Error('位置参数必须为有限数值')
 
   return Array.from({ length: n }, (_, id) => {
     const u = Math.min(Math.max(random(), Number.EPSILON), 1 - Number.EPSILON)

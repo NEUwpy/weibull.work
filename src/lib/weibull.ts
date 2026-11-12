@@ -51,6 +51,10 @@ export type DataSource = {
   sourceType: 'case' | 'group-subcase' | 'custom'
   groupId?: string              // Parent group ID if it's a subcase
   visible?: boolean             // Curve visibility (for legend toggle)
+  generatedFrom?: import('./calculator-state').CalculatorParameters
+  archive?: { id: string; n: number; delta: number; runId: number }
+  mdmOptimization?: import('./mdm-process-optimization').MdmProcessOptimizationResult
+  fixedComparison?: WeibullResult
 }
 
 /**

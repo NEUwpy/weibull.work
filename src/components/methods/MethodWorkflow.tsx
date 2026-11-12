@@ -109,6 +109,7 @@ export function MethodWorkflow({ methodId, diagram, steps, values = {}, ready, b
       ? liveLines : variants?.default
     const caption = lines?.map((line, i) => <span key={i}>{line.replace(/\{(\w+)\}/g, (_, key: string) => number(values[key]))}</span>)
     const step = item.kind === 'step' ? item.step : diagram.targets[item.target]
+    if (step === undefined) return null
     const select = () => onSelect(step)
     if (item.kind === 'step') return <ProgramBlock key={item.anchor} anchor={item.anchor} step={step} name={names.get(step)!}
       active={activeProgramStep === step} onClick={select}>{caption}</ProgramBlock>

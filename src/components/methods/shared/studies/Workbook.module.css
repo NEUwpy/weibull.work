@@ -19,3 +19,40 @@
 .dialog{width:min(940px,94vw);max-height:90vh;padding:0;border:1px solid #e2e8f0;border-radius:12px;background:#fff;color:#334155}.dialog::backdrop{background:#0f172a55}.dialog header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e2e8f0}.dialog h2{margin:0;font-size:18px}.dialog header button{border:0;background:none;font-size:24px;color:#64748b}.dialogBody{padding:16px 20px}.observations{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;font-size:14px;font-variant-numeric:tabular-nums;margin-bottom:20px;overflow-wrap:anywhere}.observations span{color:#94a3b8;margin-right:10px}@media(max-width:1100px){.settings{gap:16px}.controls{gap:16px}.parameters{gap:14px}.sampleControl{padding-left:16px}.distributions{grid-template-columns:1fr}}
 @media(max-width:767px){.settings{flex-wrap:wrap;gap:12px}.settingsTitle{padding-right:0;border-right:0;flex-basis:100%}.controls{gap:14px}.parameters{gap:12px 18px}.sampleControl{padding-left:0;border-left:0;flex-basis:100%;padding-top:12px;border-top:1px solid #dce5ee}.sheetFooter{gap:0;padding-right:0}.tabs button{padding-left:15px;padding-right:15px}.footerMeta{flex-basis:100%;padding:3px 10px;border-top:1px solid #e2e8f0}.workbook th,.workbook td{padding:8px 10px}.truth{display:block;margin:0;font-size:14px}.estimates thead tr:first-child th{height:60px}.estimates thead tr:nth-child(2) th{top:60px}}
 @media(pointer:coarse){.tabs button,.download{min-height:44px}.download{min-width:44px}.workbook tbody th button{min-height:28px}}
+.workbook[data-process-picker] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.workbook[data-process-picker] .settings { margin-bottom: 10px; padding: 8px 12px; gap: 12px; }
+.workbook[data-process-picker] .controls,
+.workbook[data-process-picker] .parameters { gap: 10px; }
+.workbook[data-process-picker] .sampleControl { padding-left: 10px; }
+.workbook[data-process-picker] > [role='tabpanel'] {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+.workbook[data-process-picker] .grid { flex: 1; min-height: 0; scroll-padding-top: 80px; }
+.workbook[data-process-picker] table { display: table; max-width: none; }
+.showProcess {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 1px solid #a5c4b3;
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: white;
+  color: #2d634b;
+  font-size: 14px;
+}
+.showProcess:not(:disabled):hover { background: #e8f4ed; }
+.showProcess:disabled { border-color: #dce5e0; color: #64748b; }
+.showProcess:focus-visible { outline: 2px solid #398362; outline-offset: 2px; }
+@media (max-width: 767px) {
+  .workbook[data-process-picker] .settingsTitle { flex-basis: auto; }
+  .workbook[data-process-picker] .controls { order: 1; flex-basis: 100%; }
+  .workbook[data-process-picker] .parameters { display: contents; }
+  .workbook[data-process-picker] .sampleControl { flex-basis: auto; padding: 0; border: 0; }
+  .workbook[data-process-picker] .grid { flex: none; height: 200px; scroll-padding-top: 96px; }
+}

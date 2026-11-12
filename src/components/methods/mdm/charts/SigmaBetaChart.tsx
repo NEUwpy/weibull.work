@@ -28,7 +28,7 @@ import {
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCalculationNumber as number } from '@/lib/calculation-trace'
-import { processPlotAxes, processPlotFrame } from '@/components/shared/charts/ProcessPlot'
+import { processPlotAxes, processPlotFrame, ProcessYAxisLabel } from '@/components/shared/charts/ProcessPlot'
 
 // 单条曲线数据类型
 export interface SigmaBetaCurvePoint {
@@ -257,6 +257,7 @@ export function SigmaBetaChart({
           strokeWidth={1}
           label={{
             value: yScale === 'log' ? '标准差 σ_η (对数)' : '标准差 σ_η',
+            content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
             angle: -90,
             position: 'insideLeft',
             fontSize: 14,

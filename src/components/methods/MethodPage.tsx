@@ -15,15 +15,20 @@ import AnalysisCard from '@/components/calculator/AnalysisCard'
 import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
-import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS, calculateMedianRanks, calculateWeibullParameters } from '@/lib/weibull'
+import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
 import { calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
 import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
 import { CalculationOverview } from '@/components/methods/CalculationSteps'
 import { CalculationStageProvider } from '@/components/methods/CalculationSource'
+import { CalculationInputCard } from '@/components/methods/CalculationInputCard'
 import mmleProcessExample from '@/data/method-process-examples/mmle.json'
 import { getMethodCapability } from '@/lib/method-status'
-import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption } from '@/lib/calculator-state'
+import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption, getDefaultParameters, type CalculatorParameters } from '@/lib/calculator-state'
 import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
+import { estimateSampleSources, readCalculationBatch, type BatchProgress } from '@/lib/calculator-batch'
+import { CalculationBatch } from './CalculationBatch'
+import { ArchivedMDMWorkspace } from './mdm/ArchivedMDMWorkspace'
+import type { ArchivedMDMProcess } from '@/lib/monte-carlo'
 
 // Dynamic imports for heavy visualizers
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -134,7 +139,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<WeibullResult | undefined>(undefined)
   const [fitMode, setFitMode] = useState<'fit' | 'manual'>('fit')
-  const [is3P, setIs3P] = useState(false)
+  const [generationParameters, setGenerationParameters] = useState<CalculatorParameters>(() => getDefaultParameters(true))
+  const [generatedFrom, setGeneratedFrom] = useState<CalculatorParameters>()
+  const [calculationProgress, setCalculationProgress] = useState<BatchProgress>()
+  const [archivedBatch, setArchivedBatch] = useState<ArchivedMDMProcess | null>(null)
+  const [is3P, setIs3P] = useState(true)
   const [dataSources, setDataSources] = useState<DataSource[] | undefined>(undefined)
   const [traceData, setTraceData] = useState<any>(null)
   const [calculation, setCalculation] = useState<unknown>(null)
@@ -148,17 +157,22 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       : MDM_DEFAULT_OFFSET
   ))
   const handledDataParamRef = useRef<string | null>(null)
+  const handledBatchRef = useRef<string | null>(null)
   const offsetRecalculationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const offsetRecalculationRequestRef = useRef(0)
   const showCalculation = !!(calculation || dataSources?.some(source => source.calculation)) && (!isCalculating || method.id === 'mdm')
+  const activeCalculationError = dataSources?.[activeSourceIndex]?.calculationError ?? calculationError
   const invalidateCalculation = () => {
+    setArchivedBatch(null)
+    setCalculationProgress(undefined)
     offsetRecalculationRequestRef.current += 1
     if (offsetRecalculationTimerRef.current) clearTimeout(offsetRecalculationTimerRef.current)
     setTraceData(null)
     setCalculation(null)
     setCalculationError(null)
     setIsCalculating(false)
-    setDataSources(previous => previous?.map(source => ({ ...source, result: undefined, traceData: undefined, calculation: undefined })))
+    setDataSources(previous => previous?.map(source => ({ ...source, result: undefined, traceData: undefined, calculation: undefined,
+      calculationError: undefined, calculationOffset: undefined, mdmOptimization: undefined, fixedComparison: undefined, archive: undefined })))
   }
   const recordFailure = (error: unknown) => {
     setResult({ beta: null, eta: null, gamma: 0, rSquared: null, points: [], converged: false,
@@ -169,6 +183,9 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }
 
   useEffect(() => () => {
+    offsetRecalculationRequestRef.current += 1
+    handledBatchRef.current = null
+    handledDataParamRef.current = null
     if (offsetRecalculationTimerRef.current) {
       clearTimeout(offsetRecalculationTimerRef.current)
     }
@@ -178,44 +195,21 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     const betaParam = searchParams.get('trueBeta')
     const etaParam = searchParams.get('trueEta')
     const gammaParam = searchParams.get('trueGamma')
+    if (activeTab === null || activeTab === 'analysis') setIs3P(searchParams.get('model') !== '2p')
 
     if (betaParam && etaParam && gammaParam && (activeTab === null || activeTab === 'analysis')) {
       const beta = parseFloat(betaParam)
       const eta = parseFloat(etaParam)
       const gamma = parseFloat(gammaParam)
+      setGenerationParameters({ beta, eta, gamma })
 
-      setResult({
-        beta,
-        eta,
-        gamma,
-        rSquared: null,
-        points: [],
-        converged: true
-      })
-      setFitMode('manual')
-      setIs3P(gamma !== 0)
       setActiveTab('analysis')
     }
   }, [searchParams])
 
   useEffect(() => {
-    if (activeTab === 'analysis' && !result) {
-      setResult({
-        beta: 2,
-        eta: 1000,
-        gamma: 1000,
-        rSquared: null,
-        points: [],
-        converged: true
-      })
-      setFitMode('manual')
-      setIs3P(true)
-    }
-  }, [activeTab, result])
-
-  useEffect(() => {
     const dataParam = searchParams.get('data')
-    const requestKey = `${method.id}|${dataParam ?? ''}|${searchParams.get('offset') ?? ''}`
+    const requestKey = `${method.id}|${dataParam ?? ''}|${searchParams.get('offset') ?? ''}|${searchParams.get('model') ?? '3p'}`
     if (!dataParam || handledDataParamRef.current === requestKey || (activeTab !== null && activeTab !== 'lab')) return
     handledDataParamRef.current = requestKey
 
@@ -229,12 +223,25 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
 
     setActiveTab('lab')
     setData(points)
-    setIs3P(true)
+    const samplingValues = ['trueBeta', 'trueEta', 'trueGamma'].map(name => searchParams.get(name))
+    const [beta, eta, gamma] = samplingValues.map(Number)
+    const origin = samplingValues.every(value => value !== null) && [beta, eta, gamma].every(Number.isFinite) && beta > 0 && eta > 0
+      ? { beta, eta, gamma } : undefined
+    setGeneratedFrom(origin)
+    if (origin) setGenerationParameters(origin)
+    const requestedIs3P = searchParams.get('model') !== '2p'
+    setIs3P(requestedIs3P)
     setMdmOffset(requestedOffset)
-    setIsCalculating(true)
     setCalculation(null)
     setCalculationError(null)
     const requestId = ++offsetRecalculationRequestRef.current
+    if (!requestedIs3P) {
+      setResult(undefined)
+      setTraceData(null)
+      setIsCalculating(false)
+      return
+    }
+    setIsCalculating(true)
 
     calculateWeibull({
       methodId: method.id,
@@ -261,6 +268,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const handleDataSave = (newData: DataPoint[]) => {
     invalidateCalculation()
     setData(newData)
+    setGeneratedFrom(undefined)
     setResult(undefined)
     setFitMode('fit')
     setDataSources(undefined)
@@ -280,6 +288,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     }))
 
     setData(firstSource.data)
+    setGeneratedFrom(undefined)
     setResult(undefined)
     setFitMode('fit')
     setDataSources(dataSourcesWithResults)
@@ -287,100 +296,120 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setIsDataEditorOpen(false)
   }
 
-  const handleBatchCalculate = async (dataSourcesParam?: DataSource[]) => {
+  const handleBatchCalculate = async (dataSourcesParam?: DataSource[], offset = mdmOffset) => {
     const sourcesToCalculate = dataSourcesParam || dataSources
     if (!sourcesToCalculate || sourcesToCalculate.length === 0) return
 
     setIsCalculating(true)
+    setArchivedBatch(null)
     setCalculation(null)
     setCalculationError(null)
     const requestId = ++offsetRecalculationRequestRef.current
-    let updatedSources = [...sourcesToCalculate]
-    setResult(undefined)
-    setTraceData(null)
-
     try {
-      for (let i = 0; i < updatedSources.length; i++) {
-        if (requestId !== offsetRecalculationRequestRef.current) return
-        const source = updatedSources[i]
-        try {
-          const { result, traceData, calculation } = await calculateWeibull({
-            methodId: method.id,
-            data: source.data,
-            trace: true,
-            offset: method.id.toLowerCase() === 'mdm' ? mdmOffset : undefined,
-          })
-
-          updatedSources[i] = {
-            ...updatedSources[i],
-            result,
-            traceData,
-            calculation,
-            calculationError: undefined,
-          }
-        } catch (err) {
-          updatedSources[i] = { ...source, result: { beta: null, eta: null, gamma: 0, rSquared: null, points: [], converged: false,
-              failureReason: err instanceof Error ? err.message : String(err) },
-            calculation: err instanceof CalculationError ? err.calculation : undefined,
-            traceData: err instanceof CalculationError ? err.traceData : undefined,
-            calculationError: err instanceof Error ? err.message : String(err) }
-        }
-      }
-
-      if (requestId !== offsetRecalculationRequestRef.current) return
-      setDataSources(updatedSources)
-      setActiveSourceIndex(0)
-      setCalculation(updatedSources[0]?.calculation ?? null)
-
-      if (updatedSources.length > 0 && updatedSources[0].traceData) {
-        setTraceData(updatedSources[0].traceData)
-      }
-
-      if (updatedSources.length > 0 && updatedSources[0].result) {
-        setResult(updatedSources[0].result)
-        setFitMode('fit')
-      }
-
-    } catch (err: any) {
-      console.error(err)
-      alert(`后端计算错误: ${err.message}`)
+      const updated = await estimateSampleSources(sourcesToCalculate, async source => {
+        const calculation = await calculateWeibull({
+          methodId: method.id, data: source.data, trace: true,
+          offset: method.id.toLowerCase() === 'mdm' ? offset : undefined,
+        })
+        return { ...calculation, calculationOffset: offset }
+      }, {
+        isCurrent: () => requestId === offsetRecalculationRequestRef.current,
+        onProgress: (updated, progress) => {
+          if (requestId !== offsetRecalculationRequestRef.current) return
+          setDataSources(updated)
+          setCalculationProgress(progress)
+          setResult(updated[0].result)
+          setTraceData(updated[0].traceData)
+          setCalculation(updated[0].calculation ?? null)
+          setFitMode('fit')
+        },
+      })
+      return updated
     } finally {
       if (requestId === offsetRecalculationRequestRef.current) setIsCalculating(false)
     }
   }
 
-  const handleDataChange = (newData: DataPoint[]) => {
+  const handleDataSourcesChange = (sources: DataSource[], origin?: CalculatorParameters, activeIndex = 0) => {
+    if (!sources.length) return
+    invalidateCalculation()
+    setData(sources[0].data)
+    setDataSources(sources)
+    setGeneratedFrom(origin)
+    setResult(sources[0].result)
+    setActiveSourceIndex(activeIndex)
+    setCalculationProgress(undefined)
+    setFitMode('fit')
+  }
+
+  const loadArchivedSources = async (sources: DataSource[], origin: CalculatorParameters | undefined, offset: number) => {
+    handleDataSourcesChange(sources, origin)
+    setMdmOffset(offset)
+    setIs3P(true)
+    const archive = sources[0]?.archive
+    if (!archive || method.id !== 'mdm') return
+    const requestId = offsetRecalculationRequestRef.current
+    try {
+      const query = new URLSearchParams({ n: String(archive.n), delta: String(archive.delta) })
+      const response = await fetch('/api/monte-carlo/' + encodeURIComponent(archive.id) + '/process?' + query)
+      if (requestId !== offsetRecalculationRequestRef.current) return
+      if (!response.ok) {
+        setCalculationError('这批归档保留了样本和估计值，尚无完整计算记录；点击参数估计可按当前算法复算。')
+        return
+      }
+      const process: ArchivedMDMProcess = await response.json()
+      if (requestId !== offsetRecalculationRequestRef.current) return
+      setArchivedBatch(process)
+      const restored = sources.map(source => {
+        const run = process.runs.find(run => run.id === source.archive?.runId)
+        return !run ? source : { ...source, result: { beta: run.beta, eta: run.eta, gamma: run.gamma,
+          rSquared: run.rSquared, points: [], converged: true } }
+      })
+      setDataSources(restored)
+      setResult(restored[0]?.result)
+    } catch {
+      if (requestId === offsetRecalculationRequestRef.current) setCalculationError('归档计算记录读取失败，可重新载入。')
+    }
+  }
+
+  useEffect(() => {
+    const id = searchParams.get('sampleBatch')
+    const key = method.id + '|' + id
+    if (!id || handledBatchRef.current === key || activeTab !== 'lab') return
+    handledBatchRef.current = key
+    let batch: ReturnType<typeof readCalculationBatch>
+    try { batch = readCalculationBatch(id, method.id, true) } catch { batch = null }
+    if (!batch) {
+      setCalculationError('这批样本在当前会话中不可用，请从原卡片重新打开。')
+      return
+    }
+    setIs3P(searchParams.get('model') !== '2p')
+    if (batch.sources[0]?.archive) {
+      void loadArchivedSources(batch.sources, batch.generatedFrom, batch.offset)
+      setActiveSourceIndex(batch.activeIndex)
+    } else {
+      handleDataSourcesChange(batch.sources, batch.generatedFrom, batch.activeIndex)
+      setMdmOffset(batch.offset)
+      if (searchParams.get('model') !== '2p' && !batch.sources.every(source => source.calculation || source.calculationError)) {
+        void handleBatchCalculate(batch.sources, batch.offset)
+      }
+    }
+  }, [searchParams, method.id, activeTab])
+
+  const handleDataChange = (newData: DataPoint[], generatedFrom?: CalculatorParameters) => {
     invalidateCalculation()
     setData(newData)
+    setGeneratedFrom(generatedFrom)
     setDataSources(undefined)
     setActiveSourceIndex(0)
     setResult(undefined)
     setFitMode('fit')
   }
 
-  const handleParamsUpdate = (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => {
-    const selectedSource = dataSources?.[activeSourceIndex]
-    const selectedData = selectedSource?.data ?? data
-    const selectedResult = selectedSource?.result ?? result
-    invalidateCalculation()
-    setData(selectedData)
-    setDataSources(undefined)
-    setActiveSourceIndex(0)
-    const baseResult = selectedResult || { beta: 1, eta: 100, gamma: 0, rSquared: 0, points: [] }
-    const newResult = { ...baseResult, ...updates }
-    let newPoints = selectedResult?.points || []
-    if (updates.gamma !== undefined && !updates.points) {
-      newPoints = calculateMedianRanks(selectedData, updates.gamma, method.id)
-    } else if (updates.points !== undefined) {
-      newPoints = updates.points
-    }
-    setResult({ ...newResult, points: newPoints })
-    if (mode) setFitMode(mode)
-  }
-
   const handleMdmOffsetChange = (offset: number) => {
     if (offset === mdmOffset) return
     setMdmOffset(offset)
+    if ((!result || fitMode !== 'fit') && !dataSources?.some(source => source.result)) return
     setIs3P(true)
     setCalculationError(null)
     setIsCalculating(true)
@@ -398,27 +427,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     offsetRecalculationTimerRef.current = setTimeout(async () => {
       try {
         if (dataSources && dataSources.length > 0) {
-          const updatedSources = await Promise.all(dataSources.map(async source => {
-            const calculation = await calculateWeibull({
-              methodId: method.id,
-              data: source.data,
-              trace: true,
-              offset,
-            })
-            return {
-              ...source,
-              result: calculation.result,
-              traceData: calculation.traceData,
-              calculation: calculation.calculation,
-            }
-          }))
-
           if (requestId !== offsetRecalculationRequestRef.current) return
-          setDataSources(updatedSources)
-          const activeSource = updatedSources[activeSourceIndex] ?? updatedSources[0]
-          if (activeSource?.result) setResult(activeSource.result)
-          if (activeSource?.traceData) setTraceData(activeSource.traceData)
-          setCalculation(activeSource?.calculation ?? null)
+          await handleBatchCalculate(dataSources, offset)
         } else if (data.length > 0) {
           const calculation = await calculateWeibull({
             methodId: method.id,
@@ -492,25 +502,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }
 
   const handleToggle3P = () => {
-    const selectedSource = dataSources?.[activeSourceIndex]
-    const selectedData = selectedSource?.data ?? data
-    const selectedResult = selectedSource?.result ?? result
     invalidateCalculation()
-    setData(selectedData)
-    setDataSources(undefined)
-    setActiveSourceIndex(0)
-    const nextIs3P = !is3P
-    let updates: Partial<WeibullResult> = {}
-    let newPoints = selectedResult?.points || []
-
-    if (!nextIs3P) {
-      updates = { gamma: 0 }
-      if (selectedData) {
-        newPoints = calculateMedianRanks(selectedData, 0, method.id)
-      }
-    }
-    setResult(selectedResult ? { ...selectedResult, ...updates, points: newPoints } : undefined)
-    setIs3P(nextIs3P)
+    setResult(undefined)
+    setFitMode('fit')
+    setIs3P(previous => !previous)
   }
 
   return (
@@ -561,8 +556,15 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               <CalculationProcessViewer calculation={mmleProcessExample.calculation} methodId="mmle" />
             </div> : capability && ['done', 'in_progress'].includes(capability.layer2.calculation.status) ? (
               <div className="space-y-8">
+            <CalculationInputCard allowArchive={method.id === 'mdm'} onLoadSources={loadArchivedSources} sampleCard={
             <AnalysisCard
               id="lab"
+              initialDirection="estimate"
+              generationParameters={generationParameters}
+              generatedFrom={generatedFrom}
+              calculationProgress={calculationProgress}
+              onDataSourcesChange={handleDataSourcesChange}
+              onGenerationParametersChange={setGenerationParameters}
               index={0}
               calculationActionLabel="计算并展示过程"
               data={data}
@@ -579,7 +581,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               onAdd={() => {}}
               onDelete={() => {}}
               onDataChange={handleDataChange}
-              onParamsUpdate={handleParamsUpdate}
               onToggle3P={handleToggle3P}
               onCalculate={handleCalculate}
               onMdmOffsetChange={handleMdmOffsetChange}
@@ -587,12 +588,16 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               onDataClick={handleDataClick}
               hideCalculationProcessButton={true}
               isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
-            />
+            />}>
 
             {!(dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation) &&
-              (dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError) &&
-              <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{dataSources?.length ? dataSources[activeSourceIndex]?.calculationError : calculationError}</p>}
-            {method.id === 'mdm' ? <MDMVisualizer
+              activeCalculationError &&
+              <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{activeCalculationError}</p>}
+            <CalculationBatch methodId={method.id} sources={dataSources} activeIndex={activeSourceIndex}
+              onSelect={setActiveSourceIndex} origin={generatedFrom}>
+            {archivedBatch ? <ArchivedMDMWorkspace process={archivedBatch}
+              selectedRun={dataSources?.[activeSourceIndex]?.archive?.runId ?? null}
+              onSelect={id => { const index = dataSources?.findIndex(source => source.archive?.runId === id); if (index != null && index >= 0) setActiveSourceIndex(index) }} /> : method.id === 'mdm' ? <MDMVisualizer
                 traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
                 calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
                 rSquared={(dataSources?.length ? dataSources[activeSourceIndex]?.result : result)?.rSquared}
@@ -609,6 +614,8 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
                 methodId={method.id}
               /> : sourceAvailable && <CalculationOverview method={method.id} />}
+            </CalculationBatch>
+            </CalculationInputCard>
 
               </div>
             ) : <div className="space-y-4">
@@ -628,6 +635,12 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               <div className="space-y-8">
             <AnalysisCard
               id="analysis"
+              initialDirection="generate"
+              generationParameters={generationParameters}
+              generatedFrom={generatedFrom}
+              calculationProgress={calculationProgress}
+              onDataSourcesChange={handleDataSourcesChange}
+              onGenerationParametersChange={setGenerationParameters}
               index={0}
               data={data}
               result={result}
@@ -637,11 +650,12 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               fitMode={fitMode}
               is3P={is3P}
               dataSources={dataSources}
+              activeDataSourceIndex={activeSourceIndex}
+              onActiveDataSourceChange={setActiveSourceIndex}
               availableLayers={[]}
               onAdd={() => {}}
               onDelete={() => {}}
               onDataChange={handleDataChange}
-              onParamsUpdate={handleParamsUpdate}
               onToggle3P={handleToggle3P}
               onCalculate={handleCalculate}
               onMdmOffsetChange={handleMdmOffsetChange}
@@ -651,13 +665,13 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
             />
 
-            {result && result.beta !== null && result.eta !== null && (
+            {generationParameters.beta > 0 && generationParameters.eta > 0 && (
               <div className="bg-slate-50 rounded-3xl p-8 max-[767px]:p-4 border border-slate-200">
                 <ResultAnalysisLab
                   methodId={method.id}
-                  trueBeta={result.beta}
-                  trueEta={result.eta}
-                  trueGamma={result.gamma}
+                  trueBeta={generationParameters.beta}
+                  trueEta={generationParameters.eta}
+                  trueGamma={is3P ? generationParameters.gamma : 0}
                 />
               </div>
             )}

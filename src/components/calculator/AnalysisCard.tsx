@@ -2,8 +2,15 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import './analysis-responsive.css'
+import { GenerationButton } from './GenerationButton'
+import { BatchResultTable } from './BatchResultTable'
+import { SampleCardStack } from './SampleCardStack'
+import { useCardSequence } from './useCardSequence'
+import { generateSampleSources, storeCalculationBatch, type BatchProgress } from '@/lib/calculator-batch'
+import { CalculationNoticeDialog } from './CalculationNoticeDialog'
+import { CalculationError, getCalculationNotice, type CalculationNotice } from '@/lib/calculation-feedback'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { 
   Settings2, 
   FileText, 
@@ -14,6 +21,9 @@ import {
   Layers,
   Check,
   ArrowRight,
+  ArrowRightLeft,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   Edit3,
   Sliders,
@@ -44,14 +54,14 @@ import {
   DataSource,
   MULTI_CURVE_COLORS,
   generatePDFPoints,
-  generateCDFPoints,
-  calculateMedianRanks
+  generateCDFPoints
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
 import {
-  createManualParameterResult,
-  generateWeibullSample,
   getDefaultParameters,
+  getEstimationModeFailure,
+  type CalculatorParameters,
+  type CalculatorCardType,
   MDM_DEFAULT_OFFSET,
   MDM_OFFSET_GRID,
 } from '@/lib/calculator-state'
@@ -82,20 +92,26 @@ interface AnalysisCardProps {
   mdmOptimization?: MdmProcessOptimizationResult
   color: string
   fitMode: 'fit' | 'manual'
+  generationParameters?: CalculatorParameters
+  generatedFrom?: CalculatorParameters
+  initialDirection?: 'estimate' | 'generate'
+  onDirectionChange?: (direction: 'estimate' | 'generate') => void
   is3P: boolean
   availableLayers: LayerInfo[]
   // 多数据源模式
   dataSources?: DataSource[]
   activeDataSourceIndex?: number
   onActiveDataSourceChange?: (index: number) => void
-  onAdd: (type: 'method' | 'data' | 'params' | 'chart' | 'blank', sourceId: string, currentData?: DataPoint[]) => void
+  onAdd: (type: CalculatorCardType, sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onMdmOffsetChange?: (offset: number) => void | Promise<void>
   onMdmOffsetModeChange?: (mode: MdmOffsetMode) => void | Promise<void>
   onToggle3P?: () => void
   onDataClick?: () => void
-  onDataChange?: (newData: DataPoint[]) => void
-  onParamsUpdate?: (updates: Partial<WeibullResult>, mode?: 'fit' | 'manual') => void
+  onDataChange?: (newData: DataPoint[], generatedFrom?: CalculatorParameters) => void
+  onDataSourcesChange?: (sources: DataSource[], generatedFrom?: CalculatorParameters, activeIndex?: number) => void
+  calculationProgress?: BatchProgress
+  onGenerationParametersChange?: (parameters: CalculatorParameters) => void
   onCalculate?: () => Promise<void>
   calculationActionLabel?: string
   onDelete?: () => void
@@ -116,6 +132,10 @@ export default function AnalysisCard({
   mdmOptimization,
   color,
   fitMode,
+  generationParameters,
+  generatedFrom,
+  initialDirection,
+  onDirectionChange,
   is3P,
   availableLayers,
   dataSources,
@@ -128,7 +148,9 @@ export default function AnalysisCard({
   onToggle3P,
   onDataClick,
   onDataChange,
-  onParamsUpdate,
+  onDataSourcesChange,
+  calculationProgress,
+  onGenerationParametersChange,
   onCalculate,
   calculationActionLabel = '参数估计',
   onDelete,
@@ -146,84 +168,87 @@ export default function AnalysisCard({
   const [xAxisRange, setXAxisRange] = useState<{ min: number; max: number; isAuto: boolean }>({ min: 0, max: 0, isAuto: true })
   const [localSourceIndex, setLocalSourceIndex] = useState(0)
   const activeSourceIndex = activeDataSourceIndex ?? localSourceIndex
-  const setActiveSourceIndex = (sourceIndex: number) => {
+  const applySourceIndex = (sourceIndex: number) => {
     setLocalSourceIndex(sourceIndex)
     onActiveDataSourceChange?.(sourceIndex)
   }
+  const batchIdentity = dataSources?.[0]?.groupId ?? dataSources?.[0]?.id ?? id
+  const sequenceIdentity = `${methodId}|${is3P}|${batchIdentity}`
+  const playback = useCardSequence(sequenceIdentity, applySourceIndex, !!useReducedMotion())
+  const setActiveSourceIndex = (sourceIndex: number) => { playback.cancel(); applySourceIndex(sourceIndex) }
+  const progressRun = useRef<string>()
+  const { start: startSequence, ready: readySequence } = playback
+  useEffect(() => {
+    if (!calculationProgress) { progressRun.current = undefined; return }
+    const key = calculationProgress.runId ?? 'current'
+    if (progressRun.current !== key) {
+      progressRun.current = key
+      setShowBatchTable(false)
+      startSequence('calculate', calculationProgress.total, sequenceIdentity)
+    }
+    readySequence(calculationProgress.completed, 'calculate')
+  }, [calculationProgress, sequenceIdentity, startSequence, readySequence])
+  const selectedSource = dataSources?.[activeSourceIndex]
+  const activeOptimization = selectedSource ? selectedSource.mdmOptimization : mdmOptimization
+  const currentData = selectedSource?.data ?? data
+  const sourceOrigin = selectedSource ? selectedSource.generatedFrom : generatedFrom
+  const stacked = !!dataSources && dataSources.length > 1
+  const [showBatchTable, setShowBatchTable] = useState(false)
+  const [generationCount, setGenerationCount] = useState(1)
+  useEffect(() => {
+    if (dataSources && dataSources.length > 1) setGenerationCount(dataSources.length)
+    setShowBatchTable(false)
+  }, [dataSources?.[0]?.groupId, dataSources?.length])
   const failureValues = useMemo(
-    () => (data || []).filter(point => point.status === 'F').map(point => point.value),
-    [data],
+    () => (selectedSource?.data ?? data ?? []).filter(point => point.status === 'F').map(point => point.value),
+    [data, selectedSource?.data],
   )
   const isMdmAiSupported = isMdmAiSampleSizeSupported(failureValues.length)
 
   const [sampleText, setSampleText] = useState("")
   const [simN, setSimN] = useState(20)
-
-  // 根据 activeSourceIndex 决定显示哪个 result
-  const displayResult = React.useMemo<WeibullResult>(() => {
-    if (dataSources && dataSources.length > 0 && dataSources[activeSourceIndex]?.result) {
-      return dataSources[activeSourceIndex].result
-    }
-    if (result) return result
-    const fallbackData = dataSources?.[activeSourceIndex]?.data || data || []
-    return createManualParameterResult(fallbackData, is3P, (points, gamma) => calculateMedianRanks(points, gamma, methodId))
-  }, [dataSources, activeSourceIndex, result, data, is3P, methodId])
+  const [direction, setDirection] = useState<'estimate' | 'generate'>(() =>
+    initialDirection ?? (fitMode === 'manual' && result && !data?.length ? 'generate' : 'estimate'))
+  const generating = direction === 'generate'
+  const changeDirection = (next: 'estimate' | 'generate') => {
+    setDirection(next)
+    onDirectionChange?.(next)
+  }
+  const [localParameters, setLocalParameters] = useState<CalculatorParameters>(() =>
+    generationParameters ?? (fitMode === 'manual' && result?.beta && result.eta
+      ? { beta: result.beta, eta: result.eta, gamma: result.gamma } : getDefaultParameters(is3P)))
+  const draft = generationParameters ?? localParameters
+  const samplingParameters = useMemo(() => ({ ...draft, gamma: is3P ? draft.gamma : 0 }), [draft, is3P])
+  const [generationError, setGenerationError] = useState('')
+  const [notice, setNotice] = useState<CalculationNotice | null>(null)
+  const savedSampleText = useRef('')
+  const busy = isCalculating || isMdmOffsetUpdating || playback.active
+  const showSequenceProgress = playback.active || !!calculationProgress && calculationProgress.completed < calculationProgress.total
+  const estimate = selectedSource ? selectedSource.result : fitMode === 'fit' ? result : undefined
+  const displayResult = generating ? samplingParameters
+    : estimate?.converged === false || estimate?.converged === 'unbounded' ? undefined : estimate
+  const chartResult = displayResult
+  const referenceParameters = !generating ? sourceOrigin : undefined
+  const currentSampleMatches = sourceOrigin && sourceOrigin.beta === samplingParameters.beta
+    && sourceOrigin.eta === samplingParameters.eta && sourceOrigin.gamma === samplingParameters.gamma
+    && currentData?.length === simN
 
   const menuRef = useRef<HTMLDivElement>(null)
   const addMenuRef = useRef<HTMLDivElement>(null)
   // Use useMemo to prevent object reference changes on every render
   const methodInfo = React.useMemo(() => getMethodInfo(methodId), [methodId])
   const router = useRouter()
-  const renderCountRef = useRef(0)
-
-  // Detect infinite loops - track WHY we're re-rendering
-  const prevRenderProps = useRef<{ methodId?: string; dataLength?: number; hasResult?: boolean; is3P?: boolean }>({})
-
   useEffect(() => {
-    renderCountRef.current += 1
-    const current = { methodId, dataLength: data?.length, hasResult: !!result, is3P }
-    const prev = prevRenderProps.current
-
-    // Only log when something actually changes (reduce noise)
-    const changes: string[] = []
-    if (prev.methodId !== methodId) changes.push(`methodId: ${prev.methodId} → ${methodId}`)
-    if (prev.dataLength !== data?.length) changes.push(`dataLength: ${prev.dataLength} → ${data?.length}`)
-    if (prev.hasResult !== current.hasResult) changes.push(`hasResult: ${prev.hasResult} → ${current.hasResult}`)
-    if (prev.is3P !== is3P) changes.push(`is3P: ${prev.is3P} → ${is3P}`)
-
-    if (changes.length > 0 || renderCountRef.current % 50 === 0) {
-      console.log(`[AnalysisCard] Render #${renderCountRef.current}`, changes.length > 0 ? changes.join(', ') : '(no changes)')
-    }
-
-    if (renderCountRef.current > 100) {
-      console.error('[AnalysisCard] INFINITE LOOP! Last 100 renders had no prop changes')
-    }
-
-    prevRenderProps.current = current
-  })
-
-  // Debug log when methodId changes
-  useEffect(() => {
-    console.log('[AnalysisCard] methodId changed:', methodId, 'method:', methodInfo?.name, 'renderCount:', renderCountRef.current)
-    renderCountRef.current = 0 // Reset on methodId change
-  }, [methodId])
-
-  useEffect(() => {
-    // 优先使用 dataSources（多选模式）
-    if (dataSources && dataSources.length > 0) {
-      const groups = dataSources.map(ds =>
-        ds.data.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
-      )
-      const text = groups.join('\n---\n')
+    if (currentData) {
+      const text = currentData.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
       setSampleText(text)
-      // 设置 simN 为第一组的大小（用于参数栏显示）
-      setSimN(dataSources[0].data.length)
-    } else if (data) {
-      const text = data.map(d => `${d.value}${d.status === 'S' ? ' S' : ''}`).join('\n')
-      setSampleText(text)
-      if (data.length > 0) setSimN(data.length)
+      savedSampleText.current = text
+      if (currentData.length > 0) setSimN(currentData.length)
+    } else {
+      setSampleText('')
+      savedSampleText.current = ''
     }
-  }, [data, dataSources])
+  }, [currentData])
 
   // 计算样本统计信息
   const sampleStats = useMemo(() => {
@@ -250,66 +275,51 @@ export default function AnalysisCard({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Calculate unified X-axis range for all charts (current + overlays + dataSources)
+  const groupCurveParameters = useMemo(() => {
+    if (generating || !dataSources || dataSources.length < 2) return []
+    const candidates = dataSources.flatMap(source => [
+      source.result?.converged === false || source.result?.converged === 'unbounded' ? undefined : source.result,
+      source.generatedFrom,
+    ]).filter((value): value is CalculatorParameters => !!value && value.beta !== null && value.eta !== null
+      && Number.isFinite(value.beta) && Number.isFinite(value.eta) && Number.isFinite(value.gamma) && value.beta > 0 && value.eta > 0)
+    return Array.from(new Map(candidates.map(value => [[value.beta, value.eta, value.gamma].join(','), value])).values())
+  }, [generating, dataSources])
+
+  // Every group uses the same union as an overlaid comparison.
   const unifiedXRange = useMemo(() => {
-    if (!result || result.beta === null || result.eta === null) return null
-
-    const defaultMinT = result.gamma
-    const defaultMaxT = result.gamma + result.eta * 2.5
-
-    let overlayMaxT = defaultMaxT
-    let overlayMinT = defaultMinT
-
-    selectedOverlayIds.forEach(overlayId => {
-      const layer = availableLayers.find(l => l.id === overlayId)
-      if (layer?.result && layer.result.beta !== null && layer.result.eta !== null) {
-        const layerMaxT = layer.result.gamma + layer.result.eta * 2.5
-        const layerMinT = layer.result.gamma
-        overlayMaxT = Math.max(overlayMaxT, layerMaxT)
-        overlayMinT = Math.min(overlayMinT, layerMinT)
-      }
-    })
-
-    // 新增: 考虑 dataSources 中的曲线范围
-    if (dataSources && dataSources.length > 0) {
-      dataSources.forEach(ds => {
-        if (ds.result && ds.result.beta !== null && ds.result.eta !== null) {
-          const dsMaxT = ds.result.gamma + ds.result.eta * 2.5
-          const dsMinT = ds.result.gamma
-          overlayMaxT = Math.max(overlayMaxT, dsMaxT)
-          overlayMinT = Math.min(overlayMinT, dsMinT)
-        }
-      })
-    }
-
-    const unionMinT = Math.min(defaultMinT, overlayMinT)
-    const unionMaxT = Math.max(defaultMaxT, overlayMaxT)
-
-    return { min: unionMinT, max: unionMaxT }
-  }, [result, selectedOverlayIds, availableLayers, dataSources])
+    const parameters = [
+      chartResult,
+      referenceParameters,
+      ...groupCurveParameters,
+      ...selectedOverlayIds.map(id => availableLayers.find(layer => layer.id === id)?.result),
+    ].filter((value): value is CalculatorParameters => !!value && value.beta !== null && value.eta !== null
+      && Number.isFinite(value.beta) && Number.isFinite(value.eta) && Number.isFinite(value.gamma) && value.beta > 0 && value.eta > 0)
+    if (!parameters.length) return null
+    return { min: Math.min(...parameters.map(value => value.gamma)),
+      max: Math.max(...parameters.map(value => value.gamma + value.eta * 2.5)) }
+  }, [chartResult, referenceParameters, groupCurveParameters, selectedOverlayIds, availableLayers])
 
   const chartData = useMemo(() => {
-    if (!result || result.beta === null || result.eta === null || !unifiedXRange) return []
+    if (!chartResult || chartResult.beta === null || chartResult.eta === null || !(chartResult.beta > 0) || !(chartResult.eta > 0) || !unifiedXRange) return []
 
     // Use auto range (union of all) or custom range
     const minT = xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min
     const maxT = xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max
 
     if (chartMode === 'pdf') {
-      return generatePDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
+      return generatePDFPoints(chartResult.beta, chartResult.eta, chartResult.gamma, minT, maxT, 100)
     } else {
-      return generateCDFPoints(result.beta, result.eta, result.gamma, minT, maxT, 100)
+      return generateCDFPoints(chartResult.beta, chartResult.eta, chartResult.gamma, minT, maxT, 100)
     }
-  }, [result, chartMode, xAxisRange, unifiedXRange])
+  }, [chartResult, chartMode, xAxisRange, unifiedXRange])
 
-  // Update default range when result changes
+  // A shared range changes only when the batch or comparison extent changes.
+  // Flipping between groups keeps a manually selected viewport.
   useEffect(() => {
-    if (result && result.beta !== null && result.eta !== null) {
-      const defaultMinT = result.gamma
-      const defaultMaxT = result.gamma + result.eta * 2.5
-      setXAxisRange({ min: defaultMinT, max: defaultMaxT, isAuto: true })
+    if (unifiedXRange) {
+      setXAxisRange({ min: unifiedXRange.min, max: unifiedXRange.max, isAuto: true })
     }
-  }, [result?.beta, result?.eta, result?.gamma])
+  }, [unifiedXRange?.min, unifiedXRange?.max])
 
   const overlayCurves = useMemo(() => {
     if (!unifiedXRange) return []
@@ -334,42 +344,83 @@ export default function AnalysisCard({
     }).filter(Boolean)
   }, [selectedOverlayIds, availableLayers, chartMode, unifiedXRange, xAxisRange])
 
-  // Calculate unified Y-axis range for all charts (current + overlays)
+  const referencePoints = useMemo(() => {
+    if (!referenceParameters || !unifiedXRange) return []
+    const min = xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min
+    const max = xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max
+    return (chartMode === 'pdf' ? generatePDFPoints : generateCDFPoints)(
+      referenceParameters.beta, referenceParameters.eta, referenceParameters.gamma, min, max, 100)
+  }, [referenceParameters, unifiedXRange, xAxisRange, chartMode])
+
+  const sourceCurves = useMemo(() => {
+    if (generating || !unifiedXRange) return []
+    const min = xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min
+    const max = xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max
+    return (selectedSource ? [selectedSource] : []).filter(source => source.visible !== false && source.result?.beta != null && source.result.eta != null)
+      .map(source => ({ ...source, points: (chartMode === 'pdf' ? generatePDFPoints : generateCDFPoints)(
+        source.result!.beta!, source.result!.eta!, source.result!.gamma, min, max, 100) }))
+  }, [generating, selectedSource, unifiedXRange, xAxisRange, chartMode])
+  const primaryCurveColor = sourceCurves[0]?.color ?? color
+
+  const plotMin = xAxisRange.isAuto ? unifiedXRange?.min : xAxisRange.min
+  const plotMax = xAxisRange.isAuto ? unifiedXRange?.max : xAxisRange.max
+  // Cache the group extent; paging does not redraw every background curve.
+  const groupYRange = useMemo(() => {
+    if (plotMin === undefined || plotMax === undefined) return null
+    let min = Infinity, max = -Infinity
+    const draw = chartMode === 'pdf' ? generatePDFPoints : generateCDFPoints
+    for (const parameters of groupCurveParameters) {
+      for (const point of draw(parameters.beta, parameters.eta, parameters.gamma, plotMin, plotMax, 100)) {
+        if (!Number.isFinite(point.y)) continue
+        min = Math.min(min, point.y)
+        max = Math.max(max, point.y)
+      }
+    }
+    return min === Infinity ? null : { min, max }
+  }, [groupCurveParameters, plotMin, plotMax, chartMode])
+
+  // Include the whole group even though only the selected curve is drawn.
   const unifiedYRange = useMemo(() => {
-    if (chartData.length === 0) return null
+    const points = [...chartData, ...referencePoints, ...sourceCurves.flatMap(curve => curve.points),
+      ...overlayCurves.flatMap(curve => curve?.points ?? [])]
+    if (!points.length && !groupYRange) return null
 
-    let minY = Infinity
-    let maxY = -Infinity
+    let minY = groupYRange?.min ?? Infinity
+    let maxY = groupYRange?.max ?? -Infinity
 
-    // Check current chart data
-    chartData.forEach(point => {
+    points.forEach(point => {
+      if (!Number.isFinite(point.y)) return
       if (point.y < minY) minY = point.y
       if (point.y > maxY) maxY = point.y
     })
-
-    // Check all overlay curves
-    overlayCurves.forEach(layer => {
-      if (!layer) return
-      layer.points.forEach(point => {
-        if (point.y < minY) minY = point.y
-        if (point.y > maxY) maxY = point.y
-      })
-    })
+    if (minY === Infinity) return null
 
     // Add some padding (10% on each side)
     const padding = (maxY - minY) * 0.1
     return { min: Math.max(0, minY - padding), max: maxY + padding }
-  }, [chartData, overlayCurves])
+  }, [chartData, overlayCurves, referencePoints, sourceCurves, groupYRange])
 
+  const updateSamplingParameters = (parameters: CalculatorParameters) => {
+    setLocalParameters(parameters)
+    onGenerationParametersChange?.(parameters)
+    setGenerationError('')
+  }
   const handleParamChange = (key: 'beta' | 'eta' | 'gamma', value: string) => {
     const val = parseFloat(value)
-    if (!isNaN(val) && onParamsUpdate) {
-      onParamsUpdate({ [key]: val }, 'manual')
-    }
+    if (Number.isFinite(val)) updateSamplingParameters({ ...draft, [key]: val })
+  }
+
+  const commitSample = (newData: DataPoint[]) => {
+    if (dataSources && onDataSourcesChange) {
+      onDataSourcesChange(dataSources.map((source, index) => index === activeSourceIndex ? {
+        ...source, data: newData, generatedFrom: undefined, result: undefined, traceData: undefined,
+        calculation: undefined, calculationError: undefined, calculationOffset: undefined, archive: undefined,
+      } : source), generatedFrom, activeSourceIndex)
+    } else onDataChange?.(newData)
   }
 
   const handleSampleTextBlur = () => {
-    if (!onDataChange) return
+    if (!onDataChange || generating || sampleText === savedSampleText.current) return
     const lines = sampleText.split('\n').filter(line => line.trim())
     const newData: DataPoint[] = []
     lines.forEach((line, idx) => {
@@ -380,39 +431,164 @@ export default function AnalysisCard({
         newData.push({ id: idx, value: val, status })
       }
     })
-    if (newData.length > 0) onDataChange(newData)
+    savedSampleText.current = sampleText
+    commitSample(newData)
   }
 
   const handleGenerateSample = () => {
-    if (!onDataChange || displayResult.beta === null || displayResult.eta === null) return
-    const newSample = generateWeibullSample(simN, {
-      beta: displayResult.beta,
-      eta: displayResult.eta,
-      gamma: displayResult.gamma,
-    })
-    onDataChange(newSample)
+    if (!onDataChange) return
+    const parameters = generating ? samplingParameters : displayResult
+    if (!parameters || parameters.beta === null || parameters.eta === null) return
+    const source = { beta: parameters.beta, eta: parameters.eta, gamma: parameters.gamma }
+    const count = generating ? simN : selectedSource?.data.length ?? data?.length ?? simN
+    try {
+      if (generationCount > 1 && !onDataSourcesChange) throw new Error('当前页面尚未接入多组样本')
+      const sources = generateSampleSources(generationCount, count, source)
+      setGenerationError('')
+      if (!generating) {
+        updateSamplingParameters(source)
+        changeDirection('generate')
+      }
+      if (generationCount > 1) onDataSourcesChange!(sources, source, 0)
+      else onDataChange(sources[0].data, source)
+      startSequence('generate', sources.length, `${methodId}|${is3P}|${sources.length > 1 ? sources[0].groupId ?? sources[0].id : id}`)
+      readySequence(sources.length, 'generate')
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : '抽样设置无效')
+    }
   }
 
   const handleResetToDefault = () => {
     const defaults = getDefaultParameters(is3P)
-    const newPoints = data ? calculateMedianRanks(data, defaults.gamma, methodId) : []
-    onParamsUpdate?.({
-      ...defaults,
-      points: newPoints,
-      converged: true
-    }, 'manual')
+    updateSamplingParameters({ ...defaults, gamma: is3P ? defaults.gamma : draft.gamma })
+  }
+
+  const handleParameterModeChange = (nextIs3P: boolean) => {
+    if (nextIs3P === is3P || !onToggle3P) return
+    if (is3P && displayResult?.beta != null && displayResult.eta != null) {
+      updateSamplingParameters({ beta: displayResult.beta, eta: displayResult.eta, gamma: displayResult.gamma })
+    }
+    onToggle3P()
   }
 
   const handleEstimation = async (e: React.MouseEvent) => {
     e.stopPropagation()
     if (!onCalculate) return
+    const modeFailure = getEstimationModeFailure(is3P)
+    if (modeFailure) {
+      setNotice(getCalculationNotice(new CalculationError(modeFailure, undefined, undefined, { kind: 'input' })))
+      return
+    }
+    if (generating) changeDirection('estimate')
     setIsCalculating(true)
+    const singleSample = !dataSources?.length && !!currentData?.length
     try {
+      if (singleSample) startSequence('calculate', 1, sequenceIdentity)
       await onCalculate()
+      if (singleSample) readySequence(1, 'calculate')
     } finally {
       setIsCalculating(false)
     }
   }
+
+
+  const directionSwitch = <button type="button" className="analysis-direction-switch" disabled={busy}
+    aria-label={generating ? '切换为参数估计' : '切换为生成样本'}
+    title={generating ? '切换为参数估计' : '切换为生成样本'}
+    onClick={() => { changeDirection(generating ? 'estimate' : 'generate'); setGenerationError('') }}>
+    <ArrowRightLeft size={16} aria-hidden="true" />
+  </button>
+
+  const samplePanel = <div key="sample" className="analysis-sample relative w-1/4 flex flex-col bg-white h-full">
+    {!generating && directionSwitch}
+    <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
+      <div className="flex items-center gap-2">
+        <div className="p-1 bg-emerald-50 text-emerald-600 rounded"><FileText size={16} /></div>
+        <span className="text-base font-black tracking-wider">样本</span>
+      </div>
+      {!generating && <button onClick={onDataClick} disabled={busy}
+        className="h-7 px-2 text-slate-400 hover:text-emerald-600 rounded flex items-center gap-1">
+        <BookOpen size={14} /><span className="text-sm font-black">案例库</span>
+      </button>}
+    </div>
+    <div className="flex-1 min-h-0 p-4 flex flex-col overflow-hidden">
+      {generating && sampleStats.total > 0 && !currentSampleMatches &&
+        <p className="mb-2 shrink-0 text-xs text-slate-500">点击生成样本可按当前设置更新</p>}
+      <div className="relative w-full flex-1 min-h-0" data-stack-content>
+        <textarea disabled={busy} readOnly={generating} aria-label="样本数据"
+          className="w-full h-full text-xs font-mono p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 text-slate-600 leading-relaxed"
+          placeholder={generating ? '点击生成样本' : '输入或导入样本'}
+          value={sampleText} onChange={event => setSampleText(event.target.value)} onBlur={handleSampleTextBlur} />
+        <div className="absolute bottom-2 right-2 text-xs font-black text-slate-400 bg-white/90 px-1.5 py-0.5 rounded border border-slate-100">
+          N={currentData?.length ?? 0}
+        </div>
+      </div>
+    </div>
+    <div className="analysis-card-footer h-12 flex items-center gap-2 px-4">
+      <button type="button" disabled={busy} onClick={handleEstimation}
+        className="flex-1 h-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center justify-center gap-1.5 text-sm font-bold disabled:opacity-50">
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
+        <span>{playback.active && playback.phase === 'generate' ? '生成中…' : busy ? '计算中…' : calculationActionLabel}</span>
+      </button>
+      <button type="button" disabled={busy} onClick={() => { setSampleText(''); commitSample([]) }}
+        className="h-full px-3 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 rounded-md flex items-center gap-1.5 text-sm font-bold">
+        <Trash2 size={14} /><span>清除样本</span>
+      </button>
+    </div>
+  </div>
+
+  const parameterPanel = <div key="parameters" className="analysis-parameters relative w-1/4 flex flex-col bg-white h-full">
+    {generating && directionSwitch}
+    <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
+      <div className="flex items-center gap-2">
+        <div className="p-1 bg-indigo-50 text-indigo-600 rounded"><Sliders size={16} /></div>
+        <span className="text-base font-black tracking-wider">参数</span>
+      </div>
+      <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 h-8">
+        <button type="button" disabled={lockParameterMode || busy} onClick={() => handleParameterModeChange(false)}
+          className={cn('px-2.5 h-full rounded-full text-sm font-black', !is3P ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400')}>2P</button>
+        <button type="button" disabled={lockParameterMode || busy} onClick={() => handleParameterModeChange(true)}
+          className={cn('px-2.5 h-full rounded-full text-sm font-black', is3P ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400')}>3P</button>
+      </div>
+    </div>
+    <div className="flex-1 p-4 flex flex-col overflow-y-auto">
+      <div className="space-y-3">
+        <ParamInput label="β 形状" value={displayResult?.beta ?? null}
+          onChange={value => handleParamChange('beta', value)} readOnly={!generating || busy} color="text-indigo-600" decimals={3} />
+        <ParamInput label="η 尺度" value={displayResult?.eta ?? null}
+          onChange={value => handleParamChange('eta', value)} readOnly={!generating || busy} color="text-indigo-600" decimals={3} />
+        <ParamInput label="γ 位置" value={is3P ? displayResult?.gamma ?? null : 0}
+          onChange={value => handleParamChange('gamma', value)} readOnly={!generating || !is3P || busy} color="text-blue-600" decimals={3} />
+        {!stacked && !generating && dataSources && dataSources.length > 1 && <div className="flex flex-wrap justify-center items-center gap-2">
+          {dataSources.map((source, index) => <button key={source.id} type="button" disabled={busy}
+            aria-label={'查看' + source.name + '估计结果'} aria-pressed={index === activeSourceIndex}
+            onClick={() => setActiveSourceIndex(index)}
+            className={cn('w-3 h-3 rounded-full', index === activeSourceIndex ? 'bg-indigo-500' : 'bg-slate-300')}
+            title={source.name} />)}
+          <span className="text-xs text-slate-400">({activeSourceIndex + 1}/{dataSources.length}) {selectedSource?.name}</span>
+        </div>}
+        <div className="pt-2 border-t border-slate-100">
+          <ParamInput label="N 样本数" value={generating ? simN : selectedSource?.data.length ?? data?.length ?? 0}
+            onChange={value => setSimN(Number(value))} readOnly={!generating || busy}
+            color="text-slate-500" step={1} decimals={0} />
+        </div>
+        {!generating && estimate?.converged === false && <p className="text-sm text-orange-700" role="status">
+          {estimate.failureReason || '未得到可采纳结果'}</p>}
+        {!generating && estimate?.converged === 'unbounded' && <p className="text-sm text-orange-700" role="status">未找到有限极大值</p>}
+        {generating && generationError && <p role="alert" className="text-sm text-orange-700">{generationError}</p>}
+      </div>
+    </div>
+    <div className="analysis-card-footer h-12 flex items-center gap-2 px-4">
+      {generating && <>
+        <GenerationButton count={generationCount} onCountChange={setGenerationCount} onGenerate={handleGenerateSample}
+          disabled={busy} />
+        <button type="button" onClick={handleResetToDefault} disabled={busy}
+          className="analysis-reset-parameters h-full px-3 bg-slate-50 text-slate-500 border border-slate-200 rounded-md flex items-center gap-1.5 text-sm font-bold">
+          <Eraser size={14} /><span>重置参数</span>
+        </button>
+      </>}
+    </div>
+  </div>
 
   return (
     <motion.div
@@ -421,12 +597,33 @@ export default function AnalysisCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="analysis-card w-full relative group/card pb-4 mb-4 mt-4"
+      data-calculation-direction={direction}
+      data-stacked={stacked || undefined}
+      data-card-playback={playback.active ? playback.phase : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {stacked && <div className="analysis-stack-controls" role="group" aria-label="切换样本组">
+        {showSequenceProgress ? <span role="status" className="analysis-icon-button analysis-stack-progress" data-running>
+          <span className="sr-only">{playback.active && playback.phase === 'generate' ? `生成 ${playback.shown}/${playback.total}`
+            : `已完成 ${calculationProgress?.completed ?? 0}/${calculationProgress?.total ?? playback.total}`}</span>
+          <StackCount label={playback.active && playback.phase === 'generate' ? '生成中' : '已完成'}
+            value={playback.active && playback.phase === 'generate' ? playback.shown : calculationProgress?.completed ?? 0}
+            total={calculationProgress?.total ?? playback.total} />
+        </span> : <button type="button" aria-label={showBatchTable ? '返回样本卡片' : '查看整组结果'}
+          aria-expanded={showBatchTable} onClick={() => setShowBatchTable(value => !value)}
+          className="analysis-icon-button analysis-stack-counter" title={`当前第 ${activeSourceIndex + 1} 组，共 ${dataSources.length} 组`}>
+          <StackCount label="当前组" value={activeSourceIndex + 1} total={dataSources.length} /></button>}
+        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="previous" aria-label="上一组样本" disabled={activeSourceIndex === 0}
+          onClick={() => setActiveSourceIndex(activeSourceIndex - 1)}><ChevronLeft size={18} /></button>
+        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="next" aria-label="下一组样本" disabled={activeSourceIndex === dataSources.length - 1}
+          onClick={() => setActiveSourceIndex(activeSourceIndex + 1)}><ChevronRight size={18} /></button>
+      </div>}
+      {notice && <CalculationNoticeDialog notice={notice} onClose={() => setNotice(null)} />}
       {/* Action Buttons (Moved Outside - Right Side) */}
       <div className="analysis-actions absolute top-0 -right-10 flex flex-col gap-2 z-30">
-         <button aria-label="删除分析卡片" onClick={onDelete} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 opacity-0 group-hover/card:opacity-100">
+         <button aria-label="删除分析卡片" onClick={onDelete} data-variant="delete"
+           className="analysis-icon-button opacity-0 group-hover/card:opacity-100">
             <Trash2 size={18} />
          </button>
          
@@ -434,11 +631,10 @@ export default function AnalysisCard({
            <button 
              aria-label="添加分析卡片"
              aria-expanded={isAddMenuOpen}
-             onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-             className={cn(
-               "p-2 rounded-full transition-all duration-200 opacity-0 group-hover/card:opacity-100",
-               isAddMenuOpen ? "text-blue-600 bg-blue-50" : "text-slate-300 hover:text-blue-500 hover:bg-blue-50"
-             )}
+             aria-haspopup="menu"
+             onClick={() => { playback.cancel(); setIsAddMenuOpen(!isAddMenuOpen) }}
+             data-active={isAddMenuOpen || undefined}
+             className="analysis-icon-button opacity-0 group-hover/card:opacity-100"
            >
               <Plus size={18} />
            </button>
@@ -448,6 +644,7 @@ export default function AnalysisCard({
                  initial={{ opacity: 0, x: 10, scale: 0.9 }}
                  animate={{ opacity: 1, x: 0, scale: 1 }}
                  exit={{ opacity: 0, x: 10, scale: 0.9 }}
+                 role="menu" aria-label="添加分析卡片选项"
                  className="absolute right-full top-0 mr-2 w-36 bg-white rounded-xl shadow-xl border border-slate-100 p-1.5 z-50 flex flex-col gap-1"
                >
                  <button onClick={() => { onAdd('method', id); setIsAddMenuOpen(false); }} className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded-lg text-xs font-black text-slate-600 hover:text-blue-600 transition-colors text-left group">
@@ -457,6 +654,12 @@ export default function AnalysisCard({
                  <button onClick={() => { onAdd('data', id); setIsAddMenuOpen(false); }} className="flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 rounded-lg text-xs font-black text-slate-600 hover:text-indigo-600 transition-colors text-left group">
                    <Copy size={12} className="text-indigo-400 group-hover:text-indigo-600" />
                    <span>继承样本</span>
+                 </button>
+                 <button disabled={!dataSources || dataSources.length < 2}
+                   onClick={() => { onAdd('data-group', id); setIsAddMenuOpen(false); }}
+                   className="flex items-center gap-2 px-3 py-2 enabled:hover:bg-indigo-50 rounded-lg text-xs font-black text-slate-600 enabled:hover:text-indigo-600 transition-colors text-left group disabled:opacity-40 disabled:cursor-not-allowed">
+                   <Layers size={12} className="text-indigo-400" />
+                   <span>继承样本组</span>
                  </button>
                  <button onClick={() => { onAdd('params', id); setIsAddMenuOpen(false); }} className="flex items-center gap-2 px-3 py-2 hover:bg-indigo-50 rounded-lg text-xs font-black text-slate-600 hover:text-indigo-600 transition-colors text-left group">
                    <Copy size={12} className="text-indigo-400 group-hover:text-indigo-600" />
@@ -478,12 +681,18 @@ export default function AnalysisCard({
       </div>
 
       {/* Main Card Container */}
-      <div className={cn(
-        "analysis-surface relative bg-white rounded-xl border transition-all duration-300 overflow-hidden shadow-sm h-[340px]",
+      <SampleCardStack face={selectedSource?.id ?? id} batch={dataSources?.[0]?.groupId ?? dataSources?.[0]?.id ?? id}
+        index={activeSourceIndex} stacked={stacked} total={dataSources?.length ?? 1} onSelect={setActiveSourceIndex}
+        playbackMotion={playback.motion} playbackActive={playback.active}
+        duration={playback.active ? playback.duration : .22} onSettled={playback.settled}>
+      <div data-show-table={showBatchTable && stacked || undefined} className={cn(
+        "analysis-surface relative bg-white rounded-xl border transition-all duration-300 shadow-sm h-[340px]",
         isHovered ? "border-blue-400 shadow-md ring-1 ring-blue-100" : "border-slate-200"
       )}>
 
-        <div className="analysis-grid flex h-full divide-x divide-slate-100 relative z-10 bg-white pt-2 pb-2">
+        {showBatchTable && stacked ? <BatchResultTable sources={dataSources} activeIndex={activeSourceIndex}
+          onSelect={index => { setActiveSourceIndex(index); setShowBatchTable(false) }} />
+          : <div className="analysis-grid flex h-full divide-x divide-slate-100 relative z-10 bg-white pt-2 pb-2 rounded-xl">
           
           {/* Column 1: 方法栏 */}
           <div className="analysis-method w-[12.5%] bg-slate-50/30 flex flex-col group/col cursor-pointer hover:bg-blue-50/30 transition-colors h-full" onClick={onMethodClick}>
@@ -554,8 +763,8 @@ export default function AnalysisCard({
                          <div className="rounded-md border border-violet-200 bg-white px-2 py-1.5">
                            <div className="flex items-center gap-1 text-[9px] font-black text-violet-600">
                              <Sparkles size={10} />
-                             {mdmOptimization
-                               ? `AI建议 δ=${mdmOptimization.selected_delta.toFixed(2)}`
+                             {activeOptimization
+                               ? `AI建议 δ=${activeOptimization.selected_delta.toFixed(2)}`
                                : '估计时自动选择'}
                            </div>
                            {!hideMdmOptimizationDetailsLink && (
@@ -590,19 +799,34 @@ export default function AnalysisCard({
             </div>
             {/* 底栏 - 计算过程按钮 */}
             {!hideCalculationProcessButton && methodId && data && data.length > 0 && (
-               <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/col:opacity-100 transition-opacity">
+               <div className="analysis-card-footer h-12 flex items-end justify-center px-4 opacity-0 group-hover/col:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!methodId || !data) return;
+                      if (stacked) {
+                        try {
+                          const batch = storeCalculationBatch(dataSources, methodId, activeSourceIndex, mdmOffset, generatedFrom)
+                          router.push('/methods/' + methodId + '/calculation?' + new URLSearchParams({ sampleBatch: batch, model: is3P ? '3p' : '2p' }))
+                        } catch {
+                          setNotice(getCalculationNotice(new CalculationError('这批样本暂时无法传入计算过程。', undefined, undefined, { kind: 'input' })))
+                        }
+                        return
+                      }
                       const selectedData = dataSources?.[activeSourceIndex]?.data ?? data;
                       const params = new URLSearchParams({
                         data: selectedData.filter(d => d.status === 'F').map(d => d.value).join(','),
+                        model: is3P ? '3p' : '2p',
                       });
                       if (methodId.toLowerCase() === 'mdm') {
                         const selectedSource = dataSources?.[activeSourceIndex];
-                        const usedOffset = selectedSource?.calculationOffset ?? (mdmOffsetMode === 'ai' ? mdmOptimization?.selected_delta ?? mdmOffset : mdmOffset);
+                        const usedOffset = selectedSource?.calculationOffset ?? (mdmOffsetMode === 'ai' ? activeOptimization?.selected_delta ?? mdmOffset : mdmOffset);
                         params.set('offset', usedOffset.toFixed(2));
+                      }
+                      if (generatedFrom && !dataSources?.length) {
+                        params.set('trueBeta', String(generatedFrom.beta))
+                        params.set('trueEta', String(generatedFrom.eta))
+                        params.set('trueGamma', String(generatedFrom.gamma))
                       }
                       router.push(`/methods/${methodId}/calculation?${params.toString()}`);
                     }}
@@ -615,142 +839,8 @@ export default function AnalysisCard({
             )}
           </div>
 
-          {/* Column 2: 样本 */}
-          <div className="analysis-sample w-1/4 flex flex-col bg-white h-full">
-            {/* 标题栏 */}
-            <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
-              <div className="flex items-center gap-2">
-                 <div className="p-1 bg-emerald-50 text-emerald-600 rounded"><FileText size={16} /></div>
-                 <span className="text-base font-black uppercase tracking-wider">样本</span>
-              </div>
-              <button onClick={onDataClick} className="h-7 px-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors flex items-center gap-1 border border-transparent hover:border-emerald-100">
-                <BookOpen size={14} />
-                <span className="text-sm font-black">案例库</span>
-              </button>
-            </div>
-            {/* 内容栏 */}
-            <div className="flex-1 p-4 overflow-hidden">
-              <div className="relative w-full h-full">
-                <textarea
-                  disabled={isCalculating || isMdmOffsetUpdating}
-                  aria-label="样本数据"
-                  className="w-full h-full text-xs font-mono p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 transition-all text-slate-600 leading-relaxed"
-                  placeholder="数据..."
-                  value={sampleText}
-                  onChange={(e) => setSampleText(e.target.value)}
-                  onBlur={handleSampleTextBlur}
-                />
-                <div className="absolute bottom-2 right-2 text-xs font-black text-slate-400 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-100">
-                  {sampleStats.groupCount > 1
-                    ? `N=${sampleStats.groupSize}×${sampleStats.groupCount}`
-                    : `N=${sampleStats.total}`
-                  }
-                </div>
-              </div>
-            </div>
-            {/* 底栏 */}
-            <div className="h-12 flex items-center gap-2 px-4">
-               <button onClick={handleEstimation} disabled={isCalculating} className="flex-1 h-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm disabled:opacity-50">
-                 {isCalculating ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
-                 <span>{isCalculating ? '计算中…' : calculationActionLabel}</span>
-               </button>
-               <button onClick={() => { setSampleText(""); onDataChange?.([]); }} className="flex-1 h-full bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm group">
-                 <Trash2 size={14} className="group-hover:rotate-12 transition-transform" />
-                 <span>清除样本</span>
-               </button>
-            </div>
-          </div>
+          {generating ? <>{parameterPanel}{samplePanel}</> : <>{samplePanel}{parameterPanel}</>}
 
-                      {/* Column 3: 参数 */}
-                    <div className="analysis-parameters w-1/4 flex flex-col bg-white h-full">
-                                              {/* 标题栏 */}
-                                              <div className="h-12 flex items-center justify-between px-4 text-slate-500 border-b border-slate-100/50">
-                                                 <div className="flex items-center gap-2">
-                                                   <div className="p-1 bg-indigo-50 text-indigo-600 rounded"><Sliders size={16} /></div>
-                                                   <span className="text-base font-black uppercase tracking-wider">参数</span>
-                                                 </div>
-                                                 <div className="flex bg-slate-100 p-0.5 rounded-full border border-slate-200 h-8">
-                                                    <button disabled={lockParameterMode} onClick={() => is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center disabled:cursor-not-allowed", !is3P ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>2P</button>
-                                                    <button disabled={lockParameterMode} onClick={() => !is3P && onToggle3P?.()} className={cn("px-2.5 h-full rounded-full text-sm font-black transition-all flex items-center disabled:cursor-not-allowed", is3P ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-500")}>3P</button>
-                                                 </div>
-                                              </div>                                  {/* 内容栏 */}
-                                  <div className="flex-1 p-4 flex flex-col overflow-y-auto">
-                                    <div className="space-y-3">
-                                        <ParamInput label="β 形状" value={displayResult.beta} onChange={(v) => handleParamChange('beta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
-                                        <ParamInput label="η 尺度" value={displayResult.eta} onChange={(v) => handleParamChange('eta', v)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-orange-600" : "text-indigo-600"} decimals={3} />
-                                        <ParamInput label="γ 位置" value={displayResult.converged === false ? null : displayResult.gamma} onChange={(v) => handleParamChange('gamma', v)} readOnly={!is3P || displayResult.converged === false || displayResult.converged === 'unbounded'} color={(!is3P || displayResult.converged === false || displayResult.converged === 'unbounded') ? "text-slate-300" : "text-blue-600"} decimals={3} />
-                                        {/* 多数据源切换器 - 放在 γ 下面 */}
-                                        {dataSources && dataSources.length > 1 && (
-                                          <div className="flex items-center justify-center gap-2">
-                                            <div className="flex items-center gap-1.5">
-                                              {dataSources.map((ds, idx) => (
-                                                <button
-                                                  key={idx}
-                                                  onClick={() => setActiveSourceIndex(idx)}
-                                                  className={cn(
-                                                    "w-3 h-3 rounded-full transition-all",
-                                                    idx === activeSourceIndex
-                                                      ? "bg-indigo-500 scale-110"
-                                                      : "bg-slate-300 hover:bg-slate-400"
-                                                  )}
-                                                  title={ds.name || `样本 ${idx + 1}`}
-                                                />
-                                              ))}
-                                            </div>
-                                            <span className="text-xs text-slate-400 ml-2">
-                                              ({activeSourceIndex + 1}/{dataSources.length}) {dataSources[activeSourceIndex]?.name || ''}
-                                            </span>
-                                          </div>
-                                        )}
-                                        <div className="pt-2 border-t border-slate-100 mt-2">
-                                          <ParamInput label="N 样本数" value={simN} onChange={(v) => setSimN(parseInt(v) || 0)} readOnly={displayResult.converged === false || displayResult.converged === 'unbounded'} color={displayResult.converged === false || displayResult.converged === 'unbounded' ? "text-slate-400" : "text-slate-500"} step={1} decimals={0} />
-                                        </div>
-                                        {displayResult.converged === 'unbounded' && (
-                                          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div className="flex items-center gap-2 text-xs">
-                                                <span className="font-black text-orange-600">⚠️ 无解</span>
-                                                <span className="text-orange-700">Smith (1985) 无界问题</span>
-                                              </div>
-                                              <button
-                                                onClick={handleResetToDefault}
-                                                className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-black rounded transition-colors"
-                                              >
-                                                确定
-                                              </button>
-                                            </div>
-                                          </div>
-                                        )}
-                                        {displayResult.converged === false && (
-                                          <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <div className="min-w-0 text-sm leading-relaxed">
-                                                <span className="font-semibold text-orange-600">未得到可采纳结果</span>
-                                                {displayResult.failureReason && <p className="mt-1 text-orange-700">{displayResult.failureReason}</p>}
-                                              </div>
-                                              <button
-                                                onClick={handleResetToDefault}
-                                                className="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs font-black rounded transition-colors"
-                                              >
-                                                确定
-                                              </button>
-                                            </div>
-                                          </div>
-                                        )}
-                                    </div>
-                                  </div>            {/* 底栏 */}
-            <div className="h-12 flex items-center gap-2 px-4">
-                <button onClick={handleGenerateSample} className="flex-1 h-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm">
-                  <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-                  <span>生成样本</span>
-                </button>
-                <button onClick={handleResetToDefault} className="flex-1 h-full bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-black transition-all active:scale-95 shadow-sm group">
-                  <Eraser size={14} className="group-hover:rotate-12 transition-transform" />
-                  <span>重置参数</span>
-                </button>
-            </div>
-                    </div>
-          
                               {/* Column 4: 图像 */}
           
                               <div className="analysis-chart w-[37.5%] flex flex-col bg-white h-full relative group/chart">
@@ -770,7 +860,7 @@ export default function AnalysisCard({
                                     <div className="flex items-center gap-2">
 
                                       {/* X-axis Range Slider */}
-                                      {result && result.eta !== null && (
+                                      {unifiedXRange && (
                                         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
                                           <button
                                             onClick={() => setXAxisRange(prev => ({ ...prev, isAuto: true }))}
@@ -782,10 +872,10 @@ export default function AnalysisCard({
                                             自动
                                           </button>
                                           <DualSlider
-                                            min={result.gamma}
-                                            max={result.gamma + result.eta * 3}
-                                            valueMin={xAxisRange.isAuto ? result.gamma : xAxisRange.min}
-                                            valueMax={xAxisRange.isAuto ? result.gamma + result.eta * 2.5 : xAxisRange.max}
+                                            min={unifiedXRange.min}
+                                            max={unifiedXRange.max}
+                                            valueMin={xAxisRange.isAuto ? unifiedXRange.min : xAxisRange.min}
+                                            valueMax={xAxisRange.isAuto ? unifiedXRange.max : xAxisRange.max}
                                             onChange={(min, max) => setXAxisRange({ min, max, isAuto: false })}
                                             width={100}
                                           />
@@ -825,25 +915,36 @@ export default function AnalysisCard({
                 </div>
              </div>
              {/* 内容栏 */}
-             <div className="analysis-plot flex-1 px-4 pt-4 pb-2">
-               {result ? (
+             <div className="analysis-plot relative flex-1 px-4 pt-4 pb-2" data-stack-content>
+             {(sourceCurves.length > 1 || overlayCurves.length > 0 || (chartData.length > 0 && referencePoints.length > 0)) &&
+             <div className="analysis-chart-legend">
+               {(generating || !dataSources?.length) && chartResult && <CurveLegend
+                 label={generating ? '抽样分布' : '估计分布'} color={color} />}
+               {referenceParameters && <CurveLegend label="抽样分布" color="#94a3b8" />}
+               {sourceCurves.map(source =>
+                 <CurveLegend key={source.id} label={source.name} color={source.color} />)}
+               {overlayCurves.map(layer => layer && <CurveLegend key={layer.id} label={layer.name} color={layer.color} />)}
+             </div>}
+               {unifiedXRange ? (
                  <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
                       <defs>
                         <linearGradient id={`color-${id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={color} stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                          <stop offset="5%" stopColor={primaryCurveColor} stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor={primaryCurveColor} stopOpacity={0}/>
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis
                         dataKey="x"
                         type="number"
-                        domain={unifiedXRange ? [unifiedXRange.min, unifiedXRange.max] : ['auto', 'auto']}
+                        allowDataOverflow
+                        domain={xAxisRange.isAuto ? [unifiedXRange.min, unifiedXRange.max] : [xAxisRange.min, xAxisRange.max]}
                         tick={{ fontSize: 9, fill: '#94a3b8' }}
                         tickFormatter={(v) => v.toFixed(0)}
                       />
                       <YAxis
+                        allowDataOverflow
                         domain={unifiedYRange ? [unifiedYRange.min, unifiedYRange.max] : ['auto', 'auto']}
                         tick={{ fontSize: 9, fill: '#94a3b8' }}
                         width={30}
@@ -861,32 +962,16 @@ export default function AnalysisCard({
                         }}
                       />
                       {/* 主曲线 - 仅在没有多数据源时渲染 */}
-                      {!(dataSources && dataSources.length > 0) && (
+                      {(generating || !dataSources?.length) && (
                         <Area type="monotone" dataKey="y" stroke={color} strokeWidth={2} fillOpacity={1} fill={`url(#color-${id})`} isAnimationActive={false} />
                       )}
+                      {!!referencePoints.length && <Area type="monotone" data={referencePoints} dataKey="y"
+                        name="抽样分布" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" fill="none" isAnimationActive={false} />}
                       {overlayCurves.map(layer => layer && (
                          <Area key={layer.id} type="monotone" data={layer.points} dataKey="y" stroke={layer.color} strokeWidth={1.5} strokeDasharray="4 4" fill="none" isAnimationActive={false} />
                       ))}
-                      {/* dataSources curves - 多选案例叠加显示 */}
-                      {dataSources && unifiedXRange && dataSources
-                        .filter(ds => ds.result && ds.result.beta !== null && ds.result.eta !== null && ds.visible !== false)
-                        .map(ds => {
-                          const points = chartMode === 'pdf'
-                            ? generatePDFPoints(ds.result!.beta!, ds.result!.eta!, ds.result!.gamma, unifiedXRange.min, unifiedXRange.max, 100)
-                            : generateCDFPoints(ds.result!.beta!, ds.result!.eta!, ds.result!.gamma, unifiedXRange.min, unifiedXRange.max, 100)
-                          return (
-                            <Area
-                              key={ds.id}
-                              type="monotone"
-                              data={points}
-                              dataKey="y"
-                              stroke={ds.color}
-                              strokeWidth={2}
-                              fill="none"
-                              isAnimationActive={false}
-                            />
-                          )
-                        })}
+                      {sourceCurves.map(source => <Area key={source.id} type="monotone" data={source.points}
+                        dataKey="y" stroke={source.color} strokeWidth={2} fillOpacity={1} fill={`url(#color-${id})`} isAnimationActive={false} />)}
                     </AreaChart>
                  </ResponsiveContainer>
                ) : (
@@ -897,32 +982,51 @@ export default function AnalysisCard({
              </div>
 
              {/* 底栏 - Result Analysis Button */}
-             {result && result.beta !== null && result.eta !== null && methodId && (
-                <div className="h-12 flex items-end justify-center px-4 opacity-0 group-hover/chart:opacity-100 transition-opacity">
+                <div className="analysis-card-footer h-12 flex items-end justify-center px-4">
                    <button
+                     disabled={!methodId}
                      onClick={(e) => {
                        e.stopPropagation();
-                       if (!methodId || displayResult.beta === null || displayResult.eta === null) return;
-                       // Pass true parameters and estimated parameters
-                       const params = new URLSearchParams({
-                         trueBeta: displayResult.beta.toString(),
-                         trueEta: displayResult.eta.toString(),
-                         trueGamma: displayResult.gamma.toString(),
-                       });
+                       if (!methodId) return;
+                       const parameters = referenceParameters ?? chartResult
+                       const params = new URLSearchParams({ model: is3P ? '3p' : '2p' });
+                       if (parameters && parameters.beta !== null && parameters.eta !== null) {
+                         params.set('trueBeta', parameters.beta.toString());
+                         params.set('trueEta', parameters.eta.toString());
+                         params.set('trueGamma', parameters.gamma.toString());
+                       }
                        router.push(`/methods/${methodId}/analysis?${params.toString()}`);
                      }}
-                     className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm"
+                     className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                      <BarChart3 size={14} />
                      结果分析
                    </button>
                 </div>
-             )}
           </div>
-        </div>
+        </div>}
       </div>
+      </SampleCardStack>
     </motion.div>
   )
+}
+
+function StackCount({ label, value, total }: { label: string; value: number; total: number }) {
+  return <span className="analysis-stack-count" aria-hidden="true">
+    <span className="analysis-stack-count-label">{label}</span>
+    <span className="analysis-stack-count-value">{value}</span>
+    <span className="analysis-stack-count-divider" />
+    <span className="analysis-stack-count-total">{total}</span>
+  </span>
+}
+
+function CurveLegend({ label, color }: {
+  label: string; color: string
+}) {
+  return <p className="flex flex-wrap items-center gap-x-2" data-curve-label={label}>
+    <span className="inline-block h-0.5 w-3" style={{ backgroundColor: color }} />
+    <span>{label}</span>
+  </p>
 }
 
 function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decimals = 2 }: { label: string, value: number | null, onChange: (v: string) => void, readOnly: boolean, color: string, step?: number, decimals?: number }) {
@@ -946,18 +1050,6 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
     setCurrentStep(availableSteps[nextIndex])
   }
 
-  // Show placeholder for null values (not converged)
-  if (value === null) {
-    return (
-      <div className="analysis-param-input flex items-center justify-center gap-2 text-sm h-8">
-        <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
-        <div className="w-28 h-8 flex items-center justify-center text-slate-300 text-sm font-mono">
-          --
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="analysis-param-input flex items-center justify-center gap-2 text-sm h-8">
       <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
@@ -968,9 +1060,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
         disabled={readOnly}
         className={cn(
           "min-w-[42px] px-1.5 py-0.5 rounded-md text-base font-mono font-black border transition-all active:scale-90 shadow-sm",
-          readOnly
-            ? "bg-slate-50 border-slate-100 text-slate-300"
-            : "bg-white border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50"
+          "bg-white border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50"
         )}
         title="点击切换步进位数"
       >
@@ -993,13 +1083,17 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
   )
 }
 
-function StepperInput({ label, value, onChange, step = 1, readOnly, color, decimals = 0 }: { label: string, value: number, onChange: (val: number) => void, step?: number, readOnly?: boolean, color?: string, decimals?: number }) {
+function StepperInput({ label, value, onChange, step = 1, readOnly, color, decimals = 0 }: { label: string, value: number | null, onChange: (val: number) => void, step?: number, readOnly?: boolean, color?: string, decimals?: number }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [inputValue, setInputValue] = useState(value.toFixed(decimals))
+  const [inputValue, setInputValue] = useState(value?.toFixed(decimals) ?? '')
 
   // Sync with external value changes, but only if not currently focused (to avoid conflict)
   // Or better: only update if the numeric value is significantly different to avoid formatting loops
   useEffect(() => {
+    if (value === null) {
+      setInputValue('')
+      return
+    }
     // Check if the current input value parses to the same number
     const currentNum = parseFloat(inputValue)
     if (Math.abs(currentNum - value) > 1e-10 || isNaN(currentNum)) {
@@ -1010,7 +1104,7 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (readOnly) return
-    const newValue = parseFloat((value + step).toFixed(decimals))
+    const newValue = parseFloat(((value ?? 0) + step).toFixed(decimals))
     onChange(newValue)
     setInputValue(newValue.toFixed(decimals))
   }
@@ -1018,7 +1112,7 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
   const handleDecrement = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (readOnly) return
-    const newValue = parseFloat((value - step).toFixed(decimals))
+    const newValue = parseFloat(((value ?? 0) - step).toFixed(decimals))
     onChange(newValue)
     setInputValue(newValue.toFixed(decimals))
   }
@@ -1036,22 +1130,23 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
 
   const handleBlur = () => {
     // On blur, force format to standard precision
-    setInputValue(value.toFixed(decimals))
+    setInputValue(value?.toFixed(decimals) ?? '')
   }
 
   return (
     <div className={cn(
       "flex items-stretch border rounded-lg overflow-hidden h-8 transition-all",
-      readOnly ? "bg-slate-50 border-slate-100" : "bg-white border-slate-200 hover:border-blue-300"
+      "bg-white border-slate-200 hover:border-blue-300"
     )}>
       <input 
         ref={inputRef}
+        data-stack-content
         type="text" 
         aria-label={label}
         inputMode="decimal"
         className={cn(
           "w-full bg-transparent text-left text-sm font-black focus:outline-none pl-3 pr-1",
-          readOnly ? "text-slate-400 cursor-default" : "text-slate-700"
+          "text-slate-700"
         )} 
         value={inputValue} 
         readOnly={readOnly}
@@ -1059,9 +1154,9 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
         onBlur={handleBlur}
         onClick={(e) => e.stopPropagation()}
       />
-      {!readOnly && (
         <div className="flex flex-col border-l border-slate-100 w-5 bg-slate-50">
           <button 
+            disabled={readOnly}
             aria-label={`增加${label}`}
             onClick={handleIncrement} 
             className="flex-1 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 border-b border-slate-100 transition-colors"
@@ -1069,6 +1164,7 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
             <Plus size={10} strokeWidth={4} />
           </button>
           <button 
+            disabled={readOnly}
             aria-label={`减少${label}`}
             onClick={handleDecrement} 
             className="flex-1 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
@@ -1076,7 +1172,6 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
             <div className="w-1.5 h-[2px] bg-current rounded-full" />
           </button>
         </div>
-      )}
     </div>
   )
 }

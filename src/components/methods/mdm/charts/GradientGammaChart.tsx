@@ -26,7 +26,7 @@ import {
 } from 'recharts'
 import { cn } from '@/lib/utils'
 import { formatCalculationNumber as number } from '@/lib/calculation-trace'
-import { processPlotAxes, processPlotFrame } from '@/components/shared/charts/ProcessPlot'
+import { processPlotAxes, processPlotFrame, ProcessYAxisLabel } from '@/components/shared/charts/ProcessPlot'
 
 // 单条曲线数据类型
 export interface GradientGammaPoint {
@@ -47,6 +47,7 @@ export interface GradientCurveData {
   name?: string
   opacity?: number
 }
+interface AdoptedLocation { id: number; gamma: number; selected: boolean }
 
 // γ 参考线类型
 export interface GammaReferenceLine {
@@ -89,6 +90,8 @@ interface GradientGammaChartProps {
   gammaReferenceLines?: GammaReferenceLine[]  // 额外的 γ 参考线
   selectedPoint?: { gamma: number; gradient: number }
   calculatedPoints?: GradientGammaPoint[]
+  adoptedLocations?: AdoptedLocation[]
+  onSelectLocation?: (id: number) => void
   interpolation?: 'linear' | 'monotone'
 
   // 样式
@@ -123,6 +126,8 @@ export function GradientGammaChart({
   gammaReferenceLines = [],
   selectedPoint,
   calculatedPoints = [],
+  adoptedLocations = [],
+  onSelectLocation,
   interpolation = 'monotone',
   height = 300,
   showTitle = true,
@@ -239,11 +244,12 @@ export function GradientGammaChart({
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '梯度 ∇(γ)', angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' }}
+          label={{ value: '梯度 ∇(γ)', content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
+            angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
         <Tooltip content={({ active, payload, label }) => {
-          const entry = payload?.find(item => item.name === '本次求解计算点') ?? payload?.[0]
+          const entry = payload?.find(item => item.name === '本次求解计算点') ?? payload?.find(item => item.name !== '采纳位置')
           const point = hoveredPoint ?? displayCurves[0]?.data.find(point => point.gamma === label) ?? entry?.payload
           if ((!active && !hoveredPoint) || !Number.isFinite(point?.gamma) || !Number.isFinite(point?.gradient)) return null
           const actual = !!hoveredPoint || entry?.name === '本次求解计算点' || ['trace_grid', 'solver_root', 'solver_evaluation'].includes(point.source)
@@ -336,6 +342,17 @@ export function GradientGammaChart({
         )}
         {!!visibleCalculatedPoints.length && <Scatter name="本次求解计算点" data={visibleCalculatedPoints} fill="#ef4444"
           shape={drawCalculatedPoint} isAnimationActive={false} />}
+        {!!adoptedLocations.length && <Scatter name="采纳位置" isAnimationActive={false}
+          data={adoptedLocations.map(location => ({ ...location, gradient: yDomain[0] }))}
+          shape={(props: unknown) => {
+            const { cx, cy, payload } = props as { cx: number; cy: number; payload: AdoptedLocation }
+            return <g data-adopted-location={payload.id} onClick={() => onSelectLocation?.(payload.id)} className="cursor-pointer">
+              <title>{`第 ${payload.id} 次，γ̂ = ${number(payload.gamma)}`}</title>
+              <rect x={cx - 4} y={cy - 12} width={8} height={12} fill="transparent" />
+              <line x1={cx} x2={cx} y1={cy} y2={cy - (payload.selected ? 12 : 7)}
+                stroke={payload.selected ? '#b7791f' : '#64748b'} strokeWidth={payload.selected ? 3 : 1.5} />
+            </g>
+          }} />}
         {selectedPoint && <ReferenceDot x={selectedPoint.gamma} y={selectedPoint.gradient} r={5}
           fill="#b7791f" stroke="#fff" strokeWidth={2} ifOverflow="extendDomain" />}
       </ComposedChart>
