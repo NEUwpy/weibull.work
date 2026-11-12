@@ -11,19 +11,21 @@ try {
 } catch {}
 
 /** @type {import('next').NextConfig} */
+const methodFlowFiles = [
+  './src/data/method_flows/*.json',
+  './src/content/algorithms/*.md',
+  './python/base.py',
+  './python/methods/*.py',
+  './python/methods/j3_weights.tsv',
+]
 const nextConfig = {
   output: 'standalone',
   experimental: {
     instrumentationHook: true,
     outputFileTracingIncludes: {
-      '/api/method-flow/*': [
-        './src/data/method_flows/*.json',
-        './src/content/algorithms/*.md',
-        './python/base.py',
-        './python/methods/*.py',
-        './python/methods/j3_weights.tsv',
-      ],
-      '/api/monte-carlo/*/process': ['./python/methods/mdm.py'],
+      '/api/method-flow/*': methodFlowFiles,
+      '/api/calculation-records/*': methodFlowFiles,
+      '/api/monte-carlo/*/process': methodFlowFiles,
     },
   },
   env: {

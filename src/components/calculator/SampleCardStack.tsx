@@ -5,15 +5,15 @@ import { motion, useDragControls, useReducedMotion } from 'framer-motion'
 import { useCarouselNavigation } from './useCarouselNavigation'
 
 type Movement = {
-  face: string; batch: string; index: number
+  face: string; batch: string; index: number; position: number
   kind: 'idle' | 'generate' | 'switch'; direction: number
 }
 
 export function SampleCardStack({ face, batch, index, stacked, total, onSelect, playbackMotion = 0,
-  playbackActive = false, duration = .22, onSettled, children }: {
+  playbackActive = false, navigationDirection = 0, duration = .22, onSettled, children }: {
   face: string; batch: string; index: number; stacked: boolean; total: number
-  onSelect: (index: number) => void; children: ReactNode
-  playbackMotion?: number; playbackActive?: boolean; duration?: number; onSettled: (motion: number) => void
+  onSelect: (index: number, direction: number) => void; children: ReactNode
+  playbackMotion?: number; playbackActive?: boolean; navigationDirection?: number; duration?: number; onSettled: (motion: number) => void
 }) {
   const reduced = !!useReducedMotion()
   const drag = useDragControls()
@@ -35,10 +35,16 @@ export function SampleCardStack({ face, batch, index, stacked, total, onSelect, 
   }, [])
   const angle = Math.atan(3 / Math.max(frame.width / 2, frame.height, 1)) * 180 / Math.PI
   const displayedFace = face + ':' + playbackMotion
-  const [movement, setMovement] = useState<Movement>({ face: displayedFace, batch, index, kind: 'idle', direction: 0 })
+  const [movement, setMovement] = useState<Movement>({ face: displayedFace, batch, index, position: index, kind: 'idle', direction: 0 })
   if (movement.face !== displayedFace || movement.batch !== batch) {
-    setMovement({ face: displayedFace, batch, index, kind: movement.batch !== batch ? 'generate' : 'switch',
-      direction: playbackActive ? 1 : Math.sign(index - movement.index) })
+    // Keep the visible edge identities continuous across the last/first boundary.
+    let step = index - movement.index
+    if (Math.abs(step) > total / 2) step += step > 0 ? -total : total
+    if (playbackActive) step = (index - movement.index + total) % total || 1
+    else if (navigationDirection && step) step = navigationDirection
+    const newBatch = movement.batch !== batch
+    setMovement({ face: displayedFace, batch, index, position: newBatch ? index : movement.position + step,
+      kind: newBatch ? 'generate' : 'switch', direction: newBatch ? 1 : Math.sign(step) })
   }
   const lastFace = useRef(displayedFace)
   const transition = useRef({ direction: movement.direction, duration, step: frame.step, angle, onSettled })
@@ -72,22 +78,22 @@ export function SampleCardStack({ face, batch, index, stacked, total, onSelect, 
     })
     return () => { cancelled = true; animations.forEach(animation => animation.cancel()) }
   }, [displayedFace, playbackMotion, reduced])
-  const slots = [-2, -1, 1, 2].filter(offset => index + offset >= 0 && index + offset < total)
+  const slots = [-2, -1, 1, 2].filter(offset => Math.abs(offset) <= Math.min(2, total - 1))
   const interactive = 'input, textarea, button, select, a, summary, [contenteditable], [role="slider"], [role="dialog"], svg, .analysis-chart, .analysis-method'
   const move = (direction: number) => {
-    const next = index + direction
-    if (stacked && next >= 0 && next < total) onSelect(next)
+    if (stacked) onSelect(index + direction, direction)
   }
   return <div ref={navigation} className="analysis-stack-stage" data-stacked={stacked || undefined}
     style={{ '--stack-angle': frame.height ? angle + 'deg' : '0deg' } as CSSProperties}
     data-stack-motion={movement.kind} data-stack-direction={movement.direction}
-    data-stack-index={index + 1} data-stack-frame={playbackMotion}
+    data-stack-index={index + 1} data-stack-frame={playbackMotion} data-stack-position={movement.position}
     role={stacked ? 'region' : undefined} aria-roledescription={stacked ? '轮播' : undefined}
     aria-label={stacked ? '样本卡片轮播' : undefined} tabIndex={stacked ? 0 : undefined}>
     {stacked && <motion.div key={batch} className="analysis-carousel-edges" aria-hidden="true"
       initial={{ '--stack-reveal': reduced ? 1 : 0, opacity: reduced ? 1 : 0 }}
       animate={{ '--stack-reveal': 1, opacity: 1 }} transition={{ duration: reduced ? 0 : .28, ease: 'easeOut' }}>
-      {slots.map(offset => <motion.div key={index + offset} className="analysis-stack-sheet" data-stack-offset={offset}
+      {slots.map(offset => <motion.div key={movement.position + offset} className="analysis-stack-sheet" data-stack-offset={offset}
+        data-stack-group={(index + offset + total) % total + 1}
         initial={false} animate={{ '--stack-offset': offset }}
         transition={{ duration: reduced ? 0 : duration, ease: [.22, 1, .36, 1] }}
         style={{ zIndex: 2 - Math.abs(offset) }} />)}

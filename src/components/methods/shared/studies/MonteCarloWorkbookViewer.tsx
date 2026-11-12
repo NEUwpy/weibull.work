@@ -97,7 +97,7 @@ export default function MonteCarloWorkbookViewer({ methodId, process }: { method
       <div className={styles.sampleControl}><ChoiceSelect tone="sample" label="样本量" displayLabel="样本量 n" value={n} options={Array.from(new Set(cards.flatMap(c => c.ns))).sort((a, b) => a - b).map(value => ({ value, disabled: !card.ns.includes(value) }))} onChange={v => navigate({ n: v, sample: null })} /></div>
     </div>
       {process && <button type="button" className={styles.showProcess} disabled={!processAvailable || process.loading}
-        onClick={() => process.show({ id: card.id, n, delta })}>
+        onClick={() => process.show({ id: card.id, n, delta, recordId: card.mdmProcess!.recordId })}>
         {process.loading ? '读取中…' : processAvailable ? '显示这组过程' : '暂无整组过程'}
       </button>}
       {process?.loadSources && <button type="button" className={styles.showProcess} disabled={!currentBook || !group || !block || loading}

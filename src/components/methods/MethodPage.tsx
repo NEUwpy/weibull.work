@@ -27,8 +27,8 @@ import { MDM_DEFAULT_OFFSET, parseMdmOffsetOption, getDefaultParameters, type Ca
 import MethodBuildStatus from '@/components/methods/MethodBuildStatus'
 import { estimateSampleSources, readCalculationBatch, type BatchProgress } from '@/lib/calculator-batch'
 import { CalculationBatch } from './CalculationBatch'
-import { ArchivedMDMWorkspace } from './mdm/ArchivedMDMWorkspace'
-import type { ArchivedMDMProcess } from '@/lib/monte-carlo'
+import { MDMBatchWorkspace } from './mdm/MDMBatchWorkspace'
+import type { MDMProcessBatch } from '@/lib/calculation-records'
 
 // Dynamic imports for heavy visualizers
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -142,7 +142,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const [generationParameters, setGenerationParameters] = useState<CalculatorParameters>(() => getDefaultParameters(true))
   const [generatedFrom, setGeneratedFrom] = useState<CalculatorParameters>()
   const [calculationProgress, setCalculationProgress] = useState<BatchProgress>()
-  const [archivedBatch, setArchivedBatch] = useState<ArchivedMDMProcess | null>(null)
+  const [archivedBatch, setArchivedBatch] = useState<MDMProcessBatch | null>(null)
   const [is3P, setIs3P] = useState(true)
   const [dataSources, setDataSources] = useState<DataSource[] | undefined>(undefined)
   const [traceData, setTraceData] = useState<any>(null)
@@ -357,7 +357,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
         setCalculationError('这批归档保留了样本和估计值，尚无完整计算记录；点击参数估计可按当前算法复算。')
         return
       }
-      const process: ArchivedMDMProcess = await response.json()
+      const process: MDMProcessBatch = await response.json()
       if (requestId !== offsetRecalculationRequestRef.current) return
       setArchivedBatch(process)
       const restored = sources.map(source => {
@@ -595,7 +595,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{activeCalculationError}</p>}
             <CalculationBatch methodId={method.id} sources={dataSources} activeIndex={activeSourceIndex}
               onSelect={setActiveSourceIndex} origin={generatedFrom}>
-            {archivedBatch ? <ArchivedMDMWorkspace process={archivedBatch}
+            {archivedBatch ? <MDMBatchWorkspace process={archivedBatch}
               selectedRun={dataSources?.[activeSourceIndex]?.archive?.runId ?? null}
               onSelect={id => { const index = dataSources?.findIndex(source => source.archive?.runId === id); if (index != null && index >= 0) setActiveSourceIndex(index) }} /> : method.id === 'mdm' ? <MDMVisualizer
                 traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}

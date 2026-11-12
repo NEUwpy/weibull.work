@@ -42,7 +42,23 @@ NAS更新程序时还须同步对应外部展示数据与文献、配置只读�
 
 新实验自动保存完整样本并生成网页索引仍待接通。本机展示已接入，NAS部署须另同步索引对应批次；原Compose完整data只读挂载可继续使用。单独更新软件Git不会获得数据。
 
-整组计算过程试点读取已登记的 MDM `r00-w2-1000-500`、`n=30`、`δ=0.10`，共 50 次。工作簿提供样本和估计值，归档记录提供梯度曲线、Brent 区间和拟合优度。形状试算与逐样本伪尺度由 [离线补录工具](../../scripts/replay-archived-mdm-process.py)运行冻结 Python 获取，逐次核对三参数、R²、梯度点及 Brent 记录后写入数据根的 `monte-carlo/research00/process-replays/`。补录文件在 `mdmProcess.replay` 登记 SHA-256，原始批次保持独立。`/api/monte-carlo/{id}/process` 只读取并核对身份和重复编号；同步此功能的数据时须同时复制补录文件。
+工作簿仅通过计算记录编号关联[独立计算记录集](#计算记录)。载入时核对每组样本、编号、估计值和设置，不在工作簿适配层构造计算过程。
+
+## 计算记录
+
+计算记录属于 Weibull 软件，独立于研究项目及工作簿。记录格式由 `src/lib/calculation-records.ts` 唯一声明，保存于外部数据根的 `calculation-records/<方法>/<内容SHA-256>.json`，编号为 `<方法>-<内容SHA-256>`。软件 Git 保存格式、读写程序及需要关联的记录编号，完整数据不进 Git。
+
+- `CalculationRecordSet` 保存格式版本、方法/模型、设置、可选已知参数、算法源文件及哈希和各组记录。每组 `CalculationRecord` 保存实际样本、估计结果与状态，以及同次运行的完整计算证据。失败记录也保留。
+- 实时记录直接使用统一 `studies.common.runner.run_method(..., trace=True)` 产出的 `calculation`、`trace_data` 和运行身份；不为绘图重新求解或补取函数点。MDM 的阶段数据由同一个适配器转换，实时与已保存记录共用 `MDMBatchWorkspace`。
+- 已保存的 MDM 阶段记录包含位置扫描、梯度、各位置实际形状试算、位置求值区间、最终形状和逐样本伪尺度。算法版本不同则保留实际求解器及源码快照，不用当前算法替换旧计算。格式不保存研究项目名称、项目目录或项目专属登记结构。
+- `GET /api/calculation-records/{记录编号}` 独立读取完整记录集；`?view=process` 读取过程视图，`?trialRun={组号}` 按需读取该组各位置的形状试算点。读取先核对内容哈希，再检查样本、结果、算法身份及过程量的对应关系；缺失或不一致直接报错。页面只渲染记录，不依靠工作簿目录或外部研究程序。
+- `scripts/export-calculation-records.py` 是通用生成入口，支持单组、多组和方法设置：输入 JSON 的 `samples` 为样本数组列表，可附 `truth`、`title`；调用同一估计引擎后直接写入上述格式。后续产生、导入或迁移计算过程都使用该格式，不再维护逐项目的过程补充文件。
+
+```powershell
+.\python\.venv\Scripts\python.exe scripts/export-calculation-records.py mdm samples.json --offset 0.10 --data-root D:\weibull-data
+```
+
+现有 `n=30`、`δ=0.10` 的 50 组 MDM 完整过程已纳入该格式，保留原样本、参数、全部计算点、实际 Brent 求解和算法身份。部署时须同步 `calculation-records/`；软件版本发布和 Git 同步不代替外部数据部署。
 
 ## 案例材料提取与核查
 

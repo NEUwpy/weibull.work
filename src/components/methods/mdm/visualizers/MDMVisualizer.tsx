@@ -14,7 +14,7 @@ import { SigmaBetaChart, GradientGammaChart } from '../charts'
 import { mdmGradientDomain, mdmProcessData, type ShapeSlice } from './process-data'
 import { MDMScaleCalculation, MDMScaleValues } from './MDMScaleCalculation'
 import { useCalculationBatch } from '../../CalculationBatch'
-import { ArchivedMDMWorkspace } from '../ArchivedMDMWorkspace'
+import { MDMBatchWorkspace } from '../MDMBatchWorkspace'
 import { liveMDMBatch } from './batch-process-data'
 
 type ProcessData = NonNullable<ReturnType<typeof mdmProcessData>>
@@ -43,7 +43,7 @@ export default function MDMVisualizer({ traceData, calculation, rSquared, mdmOff
   const selected = model ? model.slices[manualIndex ?? (finalIndex > 0 ? finalIndex - 1 : 1)] ?? model.finalSlice : undefined
   const shownOffset = model && !isOffsetUpdating ? model.offset : mdmOffset
   const branch = trace?.selection.approximate === true ? 'extrapolated' : trace?.selection.strategy === 'truncated_at_zero' ? 'zero' : 'ready'
-  if (batch && batchProcess?.runs.length) return <ArchivedMDMWorkspace process={batchProcess}
+  if (batch && batchProcess?.runs.length) return <MDMBatchWorkspace process={batchProcess}
     selectedRun={batch.activeIndex + 1} onSelect={id => { if (id !== null) batch.onSelect(id - 1) }} />
   return <CalculationWorkspace methodId="mdm" ready={!!model} updating={isOffsetUpdating} revision={model}
     values={model ? { n: String(model.pseudoScales.length), offset: number(shownOffset), found_gamma: number(model.finalSlice.gamma),

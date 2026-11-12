@@ -1,11 +1,11 @@
-import type { DataSource } from '@/lib/weibull'
-import type { CalculatorParameters } from '@/lib/calculator-state'
-import type { ArchivedMDMProcess, ArchivedMDMRun } from '@/lib/monte-carlo'
-import { readCalculationTrace } from '@/lib/calculation-trace'
+import type { DataSource } from '../../../../lib/weibull'
+import type { CalculatorParameters } from '../../../../lib/calculator-state'
+import type { MDMProcessBatch, MDMProcessRun } from '../../../../lib/calculation-records'
+import { readCalculationTrace } from '../../../../lib/calculation-trace'
 import { mdmProcessData } from './process-data'
 
 export function liveMDMBatch(sources: DataSource[], origin: CalculatorParameters | undefined, offset: number) {
-  const runs = sources.flatMap((source, index): ArchivedMDMRun[] => {
+  const runs = sources.flatMap((source, index): MDMProcessRun[] => {
     const { trace } = readCalculationTrace(source.calculation, 'mdm')
     const model = trace && mdmProcessData(source.traceData, trace)
     const result = source.result
@@ -34,5 +34,5 @@ export function liveMDMBatch(sources: DataSource[], origin: CalculatorParameters
     selection: { id: sources[0]?.groupId ?? sources[0]?.id ?? 'current', n: sources[0]?.data.length ?? 0, delta: offset },
     title: origin ? 'W(' + [origin.beta, origin.eta, origin.gamma].join(',') + ')' : '本批样本',
     truth: origin ? [origin.beta, origin.eta, origin.gamma] : [], runs,
-  } satisfies Omit<ArchivedMDMProcess, 'flow'>
+  } satisfies Omit<MDMProcessBatch, 'flow'>
 }

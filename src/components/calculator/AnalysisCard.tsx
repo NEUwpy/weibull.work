@@ -174,8 +174,15 @@ export default function AnalysisCard({
   }
   const batchIdentity = dataSources?.[0]?.groupId ?? dataSources?.[0]?.id ?? id
   const sequenceIdentity = `${methodId}|${is3P}|${batchIdentity}`
-  const playback = useCardSequence(sequenceIdentity, applySourceIndex, !!useReducedMotion())
-  const setActiveSourceIndex = (sourceIndex: number) => { playback.cancel(); applySourceIndex(sourceIndex) }
+  const reducedMotion = !!useReducedMotion()
+  const playback = useCardSequence(sequenceIdentity, applySourceIndex, reducedMotion)
+  const [navigationDirection, setNavigationDirection] = useState(0)
+  const setActiveSourceIndex = (sourceIndex: number, direction = 0) => {
+    const total = dataSources?.length ?? 1
+    playback.cancel()
+    setNavigationDirection(direction)
+    applySourceIndex((sourceIndex % total + total) % total)
+  }
   const progressRun = useRef<string>()
   const { start: startSequence, ready: readySequence } = playback
   useEffect(() => {
@@ -491,11 +498,19 @@ export default function AnalysisCard({
     }
   }
 
+  const handleDirectionSwitch = () => {
+    if (!generating && displayResult?.beta != null && displayResult.eta != null) {
+      updateSamplingParameters({ beta: displayResult.beta, eta: displayResult.eta, gamma: displayResult.gamma })
+      if (currentData?.length) setSimN(currentData.length)
+    }
+    changeDirection(generating ? 'estimate' : 'generate')
+    setGenerationError('')
+  }
 
   const directionSwitch = <button type="button" className="analysis-direction-switch" disabled={busy}
     aria-label={generating ? '切换为参数估计' : '切换为生成样本'}
     title={generating ? '切换为参数估计' : '切换为生成样本'}
-    onClick={() => { changeDirection(generating ? 'estimate' : 'generate'); setGenerationError('') }}>
+    onClick={handleDirectionSwitch}>
     <ArrowRightLeft size={16} aria-hidden="true" />
   </button>
 
@@ -554,11 +569,11 @@ export default function AnalysisCard({
     <div className="flex-1 p-4 flex flex-col overflow-y-auto">
       <div className="space-y-3">
         <ParamInput label="β 形状" value={displayResult?.beta ?? null}
-          onChange={value => handleParamChange('beta', value)} readOnly={!generating || busy} color="text-indigo-600" decimals={3} />
+          onChange={value => handleParamChange('beta', value)} readOnly={!generating || busy} showControls={generating} color="text-indigo-600" decimals={3} />
         <ParamInput label="η 尺度" value={displayResult?.eta ?? null}
-          onChange={value => handleParamChange('eta', value)} readOnly={!generating || busy} color="text-indigo-600" decimals={3} />
+          onChange={value => handleParamChange('eta', value)} readOnly={!generating || busy} showControls={generating} color="text-indigo-600" decimals={3} />
         <ParamInput label="γ 位置" value={is3P ? displayResult?.gamma ?? null : 0}
-          onChange={value => handleParamChange('gamma', value)} readOnly={!generating || !is3P || busy} color="text-blue-600" decimals={3} />
+          onChange={value => handleParamChange('gamma', value)} readOnly={!generating || !is3P || busy} showControls={generating} color="text-blue-600" decimals={3} />
         {!stacked && !generating && dataSources && dataSources.length > 1 && <div className="flex flex-wrap justify-center items-center gap-2">
           {dataSources.map((source, index) => <button key={source.id} type="button" disabled={busy}
             aria-label={'查看' + source.name + '估计结果'} aria-pressed={index === activeSourceIndex}
@@ -569,7 +584,7 @@ export default function AnalysisCard({
         </div>}
         <div className="pt-2 border-t border-slate-100">
           <ParamInput label="N 样本数" value={generating ? simN : selectedSource?.data.length ?? data?.length ?? 0}
-            onChange={value => setSimN(Number(value))} readOnly={!generating || busy}
+            onChange={value => setSimN(Number(value))} readOnly={!generating || busy} showControls={generating}
             color="text-slate-500" step={1} decimals={0} />
         </div>
         {!generating && estimate?.converged === false && <p className="text-sm text-orange-700" role="status">
@@ -579,14 +594,18 @@ export default function AnalysisCard({
       </div>
     </div>
     <div className="analysis-card-footer h-12 flex items-center gap-2 px-4">
-      {generating && <>
+      {generating ? <>
         <GenerationButton count={generationCount} onCountChange={setGenerationCount} onGenerate={handleGenerateSample}
           disabled={busy} />
         <button type="button" onClick={handleResetToDefault} disabled={busy}
           className="analysis-reset-parameters h-full px-3 bg-slate-50 text-slate-500 border border-slate-200 rounded-md flex items-center gap-1.5 text-sm font-bold">
           <Eraser size={14} /><span>重置参数</span>
         </button>
-      </>}
+      </> : <button type="button" onClick={handleDirectionSwitch}
+        disabled={busy}
+        className="flex-1 h-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-md flex items-center justify-center gap-1.5 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+        <RefreshCw size={14} /><span>用参数生成样本</span>
+      </button>}
     </div>
   </div>
 
@@ -604,20 +623,27 @@ export default function AnalysisCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       {stacked && <div className="analysis-stack-controls" role="group" aria-label="切换样本组">
-        {showSequenceProgress ? <span role="status" className="analysis-icon-button analysis-stack-progress" data-running>
+        <div className={cn('analysis-icon-button', showSequenceProgress ? 'analysis-stack-progress' : 'analysis-stack-counter')}
+          data-running={showSequenceProgress || undefined}>
+        <AnimatePresence initial={false}>
+        {showSequenceProgress ? <motion.span key="progress" role="status" className="absolute inset-0 grid place-items-center"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : .16 }}>
           <span className="sr-only">{playback.active && playback.phase === 'generate' ? `生成 ${playback.shown}/${playback.total}`
             : `已完成 ${calculationProgress?.completed ?? 0}/${calculationProgress?.total ?? playback.total}`}</span>
           <StackCount label={playback.active && playback.phase === 'generate' ? '生成中' : '已完成'}
             value={playback.active && playback.phase === 'generate' ? playback.shown : calculationProgress?.completed ?? 0}
             total={calculationProgress?.total ?? playback.total} />
-        </span> : <button type="button" aria-label={showBatchTable ? '返回样本卡片' : '查看整组结果'}
+        </motion.span> : <motion.button key="counter" type="button" aria-label={showBatchTable ? '返回样本卡片' : '查看整组结果'}
           aria-expanded={showBatchTable} onClick={() => setShowBatchTable(value => !value)}
-          className="analysis-icon-button analysis-stack-counter" title={`当前第 ${activeSourceIndex + 1} 组，共 ${dataSources.length} 组`}>
-          <StackCount label="当前组" value={activeSourceIndex + 1} total={dataSources.length} /></button>}
-        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="previous" aria-label="上一组样本" disabled={activeSourceIndex === 0}
-          onClick={() => setActiveSourceIndex(activeSourceIndex - 1)}><ChevronLeft size={18} /></button>
-        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="next" aria-label="下一组样本" disabled={activeSourceIndex === dataSources.length - 1}
-          onClick={() => setActiveSourceIndex(activeSourceIndex + 1)}><ChevronRight size={18} /></button>
+          className="absolute inset-0 grid place-items-center rounded-xl" title={`当前第 ${activeSourceIndex + 1} 组，共 ${dataSources.length} 组`}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : .16 }}>
+          <StackCount label="当前组" value={activeSourceIndex + 1} total={dataSources.length} /></motion.button>}
+        </AnimatePresence>
+        </div>
+        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="previous" aria-label="上一组样本"
+          onClick={() => setActiveSourceIndex(activeSourceIndex - 1, -1)}><ChevronLeft size={18} /></button>
+        <button type="button" className="analysis-icon-button analysis-stack-arrow" data-side="next" aria-label="下一组样本"
+          onClick={() => setActiveSourceIndex(activeSourceIndex + 1, 1)}><ChevronRight size={18} /></button>
       </div>}
       {notice && <CalculationNoticeDialog notice={notice} onClose={() => setNotice(null)} />}
       {/* Action Buttons (Moved Outside - Right Side) */}
@@ -683,7 +709,7 @@ export default function AnalysisCard({
       {/* Main Card Container */}
       <SampleCardStack face={selectedSource?.id ?? id} batch={dataSources?.[0]?.groupId ?? dataSources?.[0]?.id ?? id}
         index={activeSourceIndex} stacked={stacked} total={dataSources?.length ?? 1} onSelect={setActiveSourceIndex}
-        playbackMotion={playback.motion} playbackActive={playback.active}
+        playbackMotion={playback.motion} playbackActive={playback.active} navigationDirection={navigationDirection}
         duration={playback.active ? playback.duration : .22} onSettled={playback.settled}>
       <div data-show-table={showBatchTable && stacked || undefined} className={cn(
         "analysis-surface relative bg-white rounded-xl border transition-all duration-300 shadow-sm h-[340px]",
@@ -1029,7 +1055,7 @@ function CurveLegend({ label, color }: {
   </p>
 }
 
-function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decimals = 2 }: { label: string, value: number | null, onChange: (v: string) => void, readOnly: boolean, color: string, step?: number, decimals?: number }) {
+function ParamInput({ label, value, onChange, readOnly, showControls, color, step = 0.1, decimals = 2 }: { label: string, value: number | null, onChange: (v: string) => void, readOnly: boolean, showControls: boolean, color: string, step?: number, decimals?: number }) {
   // Define available magnitudes based on decimal precision
   const allSteps = [10, 1, 0.1, 0.01, 0.001]
   const availableSteps = allSteps.filter(s => {
@@ -1054,8 +1080,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
     <div className="analysis-param-input flex items-center justify-center gap-2 text-sm h-8">
       <span className={cn("font-black w-20 shrink-0 truncate text-left", color)}>{label}</span>
 
-      {/* Step Toggle Badge - More professional look */}
-      <button
+      {showControls && <button
         onClick={cycleStep}
         disabled={readOnly}
         className={cn(
@@ -1066,7 +1091,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
       >
         <span className="opacity-50 mr-0.5">±</span>
         {currentStep >= 1 ? currentStep : currentStep.toString().replace('0.', '.')}
-      </button>
+      </button>}
 
       <div className="w-28 shrink-0">
         <StepperInput
@@ -1075,6 +1100,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
           onChange={(v) => onChange(v.toString())}
           step={currentStep}
           readOnly={readOnly}
+          showControls={showControls}
           color={color}
           decimals={decimals}
         />
@@ -1083,7 +1109,7 @@ function ParamInput({ label, value, onChange, readOnly, color, step = 0.1, decim
   )
 }
 
-function StepperInput({ label, value, onChange, step = 1, readOnly, color, decimals = 0 }: { label: string, value: number | null, onChange: (val: number) => void, step?: number, readOnly?: boolean, color?: string, decimals?: number }) {
+function StepperInput({ label, value, onChange, step = 1, readOnly, showControls, color, decimals = 0 }: { label: string, value: number | null, onChange: (val: number) => void, step?: number, readOnly?: boolean, showControls: boolean, color?: string, decimals?: number }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputValue, setInputValue] = useState(value?.toFixed(decimals) ?? '')
 
@@ -1154,7 +1180,7 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
         onBlur={handleBlur}
         onClick={(e) => e.stopPropagation()}
       />
-        <div className="flex flex-col border-l border-slate-100 w-5 bg-slate-50">
+        {showControls && <div className="flex flex-col border-l border-slate-100 w-5 bg-slate-50">
           <button 
             disabled={readOnly}
             aria-label={`增加${label}`}
@@ -1171,7 +1197,7 @@ function StepperInput({ label, value, onChange, step = 1, readOnly, color, decim
           >
             <div className="w-1.5 h-[2px] bg-current rounded-full" />
           </button>
-        </div>
+        </div>}
     </div>
   )
 }

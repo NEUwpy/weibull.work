@@ -9,15 +9,15 @@ import { ProcessSampleChart } from '@/components/shared/charts/ProcessSampleChar
 import { ProcessValueTable } from '@/components/shared/charts/ProcessValueTable'
 import { formatCalculationNumber as number, type CalculationPoint, type CalculationSeries } from '@/lib/calculation-trace'
 import type { FlowChartTarget } from '@/lib/method-flow'
-import type { ArchivedMDMProcess, ArchivedMDMRun, ArchivedMDMTrace, WorkbookProcessSelection } from '@/lib/monte-carlo'
+import type { MDMProcessBatch, MDMProcessRun, MDMProcessTrace } from '@/lib/calculation-records'
 import type { MethodFlow } from '@/lib/method-flow'
 import { useCalculationBatch } from '../CalculationBatch'
 
-function adoptedShape(run: ArchivedMDMRun) {
+function adoptedShape(run: MDMProcessRun) {
   return { x: run.beta, y: run.trace.shape.find(([beta]) => beta === run.beta)![1] }
 }
 
-function batchSeries(runs: ArchivedMDMRun[], points: (run: ArchivedMDMRun) => CalculationPoint[]): CalculationSeries[] {
+function batchSeries(runs: MDMProcessRun[], points: (run: MDMProcessRun) => CalculationPoint[]): CalculationSeries[] {
   return runs.map(run => ({ id: String(run.id), label: '第 ' + run.id + ' 次', kind: 'line', role: 'solver', points: points(run) }))
 }
 
@@ -25,18 +25,18 @@ const runColumn = { label: '重复' }
 const numeric = (label: string) => ({ label, align: 'right' as const })
 
 function ConditionalShape({ selection, run, index }: {
-  selection: WorkbookProcessSelection; run: ArchivedMDMRun; index: number
+  selection: MDMProcessBatch['selection']; run: MDMProcessRun; index: number
 }) {
   const [open, setOpen] = useState(false)
-  const [curves, setCurves] = useState<ArchivedMDMTrace['shape'][]>()
+  const [curves, setCurves] = useState<MDMProcessTrace['shape'][]>()
   const [error, setError] = useState('')
   const { id, n, delta } = selection
   useEffect(() => {
     if (!open || curves || run.trace.trialShapes) return
     const controller = new AbortController()
-    const query = new URLSearchParams({ n: String(n), delta: String(delta), trialRun: String(run.id) })
+    const query = new URLSearchParams({ trialRun: String(run.id) })
     setError('')
-    fetch('/api/monte-carlo/' + encodeURIComponent(id) + '/process?' + query, { signal: controller.signal })
+    fetch('/api/calculation-records/' + encodeURIComponent(id) + '?' + query, { signal: controller.signal })
       .then(async response => {
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || '形状试算点读取失败')
@@ -61,8 +61,8 @@ function ConditionalShape({ selection, run, index }: {
   </details>
 }
 
-export function ArchivedMDMWorkspace({ process, selectedRun, onSelect }: {
-  process: Omit<ArchivedMDMProcess, 'flow'> & { flow?: MethodFlow }; selectedRun: number | null; onSelect: (id: number | null) => void
+export function MDMBatchWorkspace({ process, selectedRun, onSelect }: {
+  process: Omit<MDMProcessBatch, 'flow'> & { flow?: MethodFlow }; selectedRun: number | null; onSelect: (id: number | null) => void
 }) {
   const batch = useCalculationBatch()
   const { runs } = process
@@ -73,7 +73,7 @@ export function ArchivedMDMWorkspace({ process, selectedRun, onSelect }: {
   const mixedSampleSizes = runs.some(run => run.sample.length !== n)
   const shownDelta = selected?.offset ?? delta
   const knownTruth = process.truth.length === 3
-  const solverLabel = (run?: ArchivedMDMRun) => !run && batch ? '位置判据' : run?.branch === 'zero' ? '零位置'
+  const solverLabel = (run?: MDMProcessRun) => !run && batch ? '位置判据' : run?.branch === 'zero' ? '零位置'
     : run?.branch === 'extrapolated' ? '右端回退' : run?.solver === 'linear_interpolation' ? '线性插值' : 'Brent 求根'
   const activeId = selected && String(selected.id)
   const [trial, setTrial] = useState<{ id: number; index: number }>()
@@ -117,7 +117,7 @@ export function ArchivedMDMWorkspace({ process, selectedRun, onSelect }: {
           role: 'candidate', points: plots.adopted }] : ordered }} />
   }
 
-  function runButton(run: ArchivedMDMRun) {
+  function runButton(run: MDMProcessRun) {
     return <button type="button" aria-pressed={selected === run} aria-label={'查看第 ' + run.id + ' 次计算'}
       className={selected === run ? 'font-semibold text-blue-700' : 'text-slate-700 hover:text-blue-700'}
       onClick={() => onSelect(selected === run && !batch ? null : run.id)}>{run.id}</button>

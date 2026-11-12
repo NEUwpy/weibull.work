@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { ArchivedMDMWorkspace } from './mdm/ArchivedMDMWorkspace'
-import type { ArchivedMDMProcess, WorkbookProcessSelection } from '@/lib/monte-carlo'
+import { MDMBatchWorkspace } from './mdm/MDMBatchWorkspace'
+import type { MDMProcessBatch } from '@/lib/calculation-records'
+import type { WorkbookProcessSelection } from '@/lib/monte-carlo'
 import styles from './CalculationInputCard.module.css'
 import type { CalculatorParameters } from '@/lib/calculator-state'
 import type { DataSource } from '@/lib/weibull'
@@ -19,7 +20,7 @@ export function CalculationInputCard({ sampleCard, children, allowArchive, onLoa
 }) {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [archiveVisited, setArchiveVisited] = useState(false)
-  const [process, setProcess] = useState<ArchivedMDMProcess | null>(null)
+  const [process, setProcess] = useState<MDMProcessBatch | null>(null)
   const [selectedRun, setSelectedRun] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -34,14 +35,13 @@ export function CalculationInputCard({ sampleCard, children, allowArchive, onLoa
     setLoading(false)
   }
 
-  async function show({ id, n, delta }: WorkbookProcessSelection) {
+  async function show({ recordId }: WorkbookProcessSelection) {
     reset()
     const controller = new AbortController()
     request.current = controller
     setLoading(true)
     try {
-      const query = new URLSearchParams({ n: String(n), delta: String(delta) })
-      const response = await fetch(`/api/monte-carlo/${encodeURIComponent(id)}/process?${query}`, { signal: controller.signal })
+      const response = await fetch(`/api/calculation-records/${encodeURIComponent(recordId)}?view=process`, { signal: controller.signal })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || '归档计算过程读取失败')
       if (!controller.signal.aborted) setProcess(result)
@@ -74,6 +74,6 @@ export function CalculationInputCard({ sampleCard, children, allowArchive, onLoa
       </button>
     </div>
     {archiveOpen ? error ? <p role="alert" className="text-sm text-red-700">{error}</p>
-      : process && <ArchivedMDMWorkspace process={process} selectedRun={selectedRun} onSelect={setSelectedRun} /> : children}
+      : process && <MDMBatchWorkspace process={process} selectedRun={selectedRun} onSelect={setSelectedRun} /> : children}
   </>
 }

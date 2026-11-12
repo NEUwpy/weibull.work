@@ -15,7 +15,7 @@ function scrollableWithin(target: Element, card: HTMLElement) {
 }
 
 export function useCarouselNavigation({ enabled, index, total, onSelect }: {
-  enabled: boolean; index: number; total: number; onSelect: (index: number) => void
+  enabled: boolean; index: number; total: number; onSelect: (index: number, direction: number) => void
 }) {
   const region = useRef<HTMLDivElement | null>(null)
   const latest = useRef({ index, total, onSelect })
@@ -31,8 +31,7 @@ export function useCarouselNavigation({ enabled, index, total, onSelect }: {
     if (card.matches(':hover')) hoveredCard = card
 
     const destination = (direction: number) => {
-      const next = latest.current.index + direction
-      return next >= 0 && next < latest.current.total ? next : null
+      return latest.current.total > 1 ? latest.current.index + direction : null
     }
     const roll = (event: WheelEvent) => {
       const target = event.target instanceof Element ? event.target : null
@@ -42,7 +41,6 @@ export function useCarouselNavigation({ enabled, index, total, onSelect }: {
         * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? card.clientHeight : 1)
       if (!delta) return
       const direction = Math.sign(delta), next = destination(direction)
-      // At either end the page can continue scrolling normally.
       if (next === null) { wheel.delta = 0; return }
       event.preventDefault()
       const now = performance.now()
@@ -54,7 +52,7 @@ export function useCarouselNavigation({ enabled, index, total, onSelect }: {
       if (Math.abs(wheel.delta) < 40) return
       wheel.delta = 0
       wheel.lastChange = now
-      latest.current.onSelect(next)
+      latest.current.onSelect(next, direction)
     }
     const key = (event: KeyboardEvent) => {
       const direction = ['ArrowLeft', 'ArrowUp'].includes(event.key) ? -1
@@ -72,7 +70,7 @@ export function useCarouselNavigation({ enabled, index, total, onSelect }: {
       const next = destination(direction)
       if (next === null) return
       lastKey = now
-      latest.current.onSelect(next)
+      latest.current.onSelect(next, direction)
     }
 
     card.addEventListener('pointerenter', enter)

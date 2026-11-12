@@ -28,7 +28,7 @@
 
 卡片叠层共用 `calculator-batch.ts` 的生成、顺序估计和工作簿导入。`AnalysisCard` 管理当前组与表格视图，各入口保留整批状态并使旧请求失效。`CalculationBatch` 提供同一批记录，`CalculationWorkspace` 保留方法的全部步骤；MDM 直接适配实际梯度、形状求值与伪尺度，MLE 的条件形状比较取各组实际试算帧。跨页优先复用内存中的完整记录，sessionStorage 只备份样本及来源；刷新后用相同观测补算记录。交互规则归属[计算器规范](../建设规范/01-威布尔计算器.md#批量生成与卡片叠放)。
 
-MDM 是首个接入示例。`CalculationInputCard` 在顶部切换样本卡片与紧凑工作簿，`ArchivedMDMWorkspace` 复用 `CalculationWorkspace` 和 Python 声明的六步结构，各步骤定位到冻结源码，位置判据读取归档的 Brent 分支。组合改变或浏览器历史切换时清除旧组过程，切回样本卡片保留已输入的样本。试点数据及只读接口归属[数据说明](../data/README.md#research00-工作簿登记2026-11-02)。
+MDM 是首个接入示例。`CalculationInputCard` 在顶部切换样本卡片与紧凑工作簿，过程通过独立的计算记录编号读取。实时与已保存记录共用 `MDMBatchWorkspace`、`CalculationWorkspace` 和六步结构；源码和求解器按该次记录的算法身份展示。组合改变或浏览器历史切换时清除旧组过程，切回样本卡片保留已输入的样本。记录格式、生成和读取入口唯一归属[计算记录规范](../data/README.md#计算记录)。
 
 未迁移方法的`src/lib/calculation-steps.ts`维护阶段及源码引用，`CalculationStageProvider`打开`VariableFlowViewer`；MDM与MLE直接读取 Python 流程声明。旧`/process?step=…`链接转到`/calculation?sourceStep=…`，保留样本、偏移量等查询参数并打开对应源码。`CalculationProcessViewer`用本次计算记录绘制判据图和采纳点。
 

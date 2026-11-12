@@ -1,5 +1,3 @@
-import type { MethodFlow } from './method-flow'
-
 export type WorkbookCell = string | number | boolean | null
 export type WorkbookView = 'samples' | 'results'
 export interface WorkbookBlock { method: string; delta: number | null; label: string; column: number; parameterLabels: string[] }
@@ -17,31 +15,9 @@ export interface MonteCarloWorkbook {
 export interface WorkbookCard {
   id: string; title: string; truth: number[]; ns: number[]; methods: string[]; offsets: number[]
   protocol: string; filename: string; workbookSha256: string; available?: boolean; error?: string
-  mdmProcess?: { n: number; delta: number }
+  mdmProcess?: { n: number; delta: number; recordId: string }
 }
-export interface WorkbookProcessSelection { id: string; n: number; delta: number }
-export interface ArchivedMDMTrace {
-  profile: [gamma: number, sigma: number, beta: number][]
-  shape: [beta: number, sigma: number][]
-  pseudoScales: [denominator: number, eta: number][]
-  scaleSum: number
-  trialShapes?: [beta: number, sigma: number][][]
-}
-export interface ArchivedMDMRun {
-  id: number; sample: number[]; beta: number; eta: number; gamma: number
-  rSquared: number
-  curve: { gamma: number; gradient: number }[]
-  bracket: [number, number]
-  trace: ArchivedMDMTrace
-  solver?: string
-  branch?: 'ready' | 'zero' | 'extrapolated'
-  offset?: number
-  sampleRanks?: number[]
-  rankMethod?: string
-}
-export interface ArchivedMDMProcess {
-  selection: WorkbookProcessSelection; title: string; truth: number[]; flow: MethodFlow; runs: ArchivedMDMRun[]
-}
+export interface WorkbookProcessSelection { id: string; n: number; delta: number; recordId: string }
 export const WORKBOOK_VIEWS: WorkbookView[] = ['samples', 'results']
 export function workbookMatches(card: WorkbookCard, truth: number[], n: number, method: string): boolean {
   return card.available !== false && card.ns.includes(n) && card.methods.includes(method) && card.truth.every((v, i) => v === truth[i])

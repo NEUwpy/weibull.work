@@ -16,7 +16,7 @@ class MLE(WeibullBase):
         except (ValueError, FloatingPointError, RuntimeError) as error:
             self.last_solution_info = dict(status='profile_solver_failed', error=str(error))
             return [None, None, None, 0., 'profile_solver_failed']
-        self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations', 'profile_shape_evaluations', 'prepared_samples')}
+        self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations', 'profile_shape_evaluations', 'prepared_samples', 'normalization_unit')}
         if trace:
             self.calculation_trace = profile_calculation('mle', info, selected, data=self.data)
             for candidate in info.get('candidates', []):
