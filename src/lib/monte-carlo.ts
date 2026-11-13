@@ -1,5 +1,10 @@
 export type WorkbookCell = string | number | boolean | null
 export type WorkbookView = 'samples' | 'results'
+export type WorkbookRunStatus = 'success' | 'failure' | 'pending'
+export interface WorkbookRun {
+  status: WorkbookRunStatus
+  error?: string | null
+}
 export interface WorkbookBlock { method: string; delta: number | null; label: string; column: number; parameterLabels: string[] }
 export interface WorkbookSheet { name: string; rows: WorkbookCell[][]; formats: string[][]; merges: [number, number, number, number][] }
 export interface WorkbookGroup { samples: WorkbookCell[][]; resultRows: WorkbookCell[][]; blocks: WorkbookBlock[]; sampleSheet: string; resultSheet: string }

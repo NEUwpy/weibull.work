@@ -45,10 +45,10 @@ export const chartRegistry: ChartRegistry = {
   Histogram: [
     ...['β', 'η', 'γ'].map((symbol, index) => ({
       id: `workbook-error-${index}`,
-      label: `研究工作簿 ${symbol} 估计差值分布`,
-      location: 'MonteCarloWorkbookViewer',
-      description: '以当前批次、n和方法的三参数完整估计计算估计值减真值；表下直接展示。',
-      dataSource: { type: 'api' as const, endpoint: '/api/monte-carlo/{id}' },
+      label: `结果分析 ${symbol} 估计差值分布`,
+      location: 'WorkbookResults',
+      description: '按当前批次、样本量与方法设置显示估计值减真值。归档取完整估计，现场取有效估计。',
+      dataSource: { type: 'api' as const, endpoint: '/api/monte-carlo/{id} / POST /calculate' },
       props: { xLabel: `${symbol}̂ − ${symbol}`, yLabel: '频数', color: '#b58a45', axisFontSize: 14 },
     })),
     {
@@ -80,14 +80,6 @@ export const chartRegistry: ChartRegistry = {
       description: '同一位置下的伪尺度标准差曲线与条件最小点，联动标记位置梯度判据；外推位置不画作真实交点。',
       dataSource: { type: 'api', endpoint: 'POST /calculate' },
       props: { contract: 'calculation/schema_version=1 + trace_data', methodId: 'mdm', source: 'backend-owned', interpolation: 'linear display only' },
-    },
-    {
-      id: 'methods-analysis-rmse',
-      label: '现场模拟参数 RMSE 趋势',
-      location: 'ResultAnalysisLab',
-      description: '分别展示 β、η、γ 的后端有效估计 RMSE，横轴为样本量或偏移量',
-      dataSource: { type: 'api', endpoint: 'POST /api/studies/simulate' },
-      props: { xLabel: '样本量 n / 偏移量 δ', yLabel: '参数 RMSE', showDots: true },
     },
     {
       id: 'mdm-process-optimization-loss-curve',
@@ -187,14 +179,6 @@ export const chartRegistry: ChartRegistry = {
   // DensityChart (shared)
   // ============================================================
   DensityChart: [
-    {
-      id: 'methods-analysis-density',
-      label: '现场模拟估计分布',
-      location: 'ResultAnalysisLab',
-      description: '已完成组合的有效估计 KDE 分布，失败数在相邻统计表单列',
-      dataSource: { type: 'api', endpoint: 'POST /api/studies/simulate' },
-      props: { paramId: 'beta', displayDimension: { id: 'sampleSize', name: '样本量', symbol: 'n' }, trueValue: 2, color: 'blue' },
-    },
     {
       id: 'methods-study-density',
       label: '适用范围密度图',

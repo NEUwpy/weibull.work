@@ -8,6 +8,8 @@ export interface LibraryChatAnswer {
   queries?: string[]
   error?: string
   stopped?: boolean
+  coverage?: string
+  sections?: string[]
 }
 export interface LibraryChatSession {
   request: LibraryChatRequest

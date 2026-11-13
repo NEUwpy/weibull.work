@@ -28,6 +28,7 @@ export interface LibraryReference {
 export interface ProcessedLibraryContent {
   frontmatter: Record<string, any>
   body: string
+  abstract?: string
   referenceTitle: string
   referenceList: string[]
   referenceEntries: LibraryReference[]
@@ -139,8 +140,12 @@ export function processLibraryContent(rawMarkdown: string, options: { requireAbs
   // The reader already presents the public title and credits above the article.
   // Keep source positions stable while starting article reading at its abstract.
   const abstract = tree.children.find((node: any) => node.type === 'heading' && isAbstractTitle(nodeText(node)))
+  let abstractText: string | undefined
   if (abstract && !['书籍', '软件文档', '技术资料'].includes(data.type)) {
     const start = abstract.position.start.offset
+    const after = tree.children.slice(tree.children.indexOf(abstract) + 1)
+    const next = after.find((node: any) => node.type === 'heading' || isKeywordsTitle(nodeText(node)))
+    abstractText = content.slice(abstract.position.end.offset, next?.position.start.offset ?? content.length).trim()
     body = body.slice(0, start).replace(/[^\r\n]/g, '') + body.slice(start)
   }
 
@@ -152,7 +157,7 @@ export function processLibraryContent(rawMarkdown: string, options: { requireAbs
     const slug = slugger.slug(nodeText(node).trim())
     if (node.depth <= 3) headings.push({ level: node.depth, text, slug })
   })
-  return { frontmatter: data, body, referenceTitle, referenceList: referenceEntries.map(entry => entry.raw), referenceEntries, headings, diagnostics, bodyLineOffset }
+  return { frontmatter: data, body, abstract: abstractText, referenceTitle, referenceList: referenceEntries.map(entry => entry.raw), referenceEntries, headings, diagnostics, bodyLineOffset }
 }
 
 function nodeText(node: any): string {

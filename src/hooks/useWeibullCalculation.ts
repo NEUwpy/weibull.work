@@ -9,6 +9,7 @@ import { DataPoint, WeibullResult, calculateMedianRanks } from '@/lib/weibull'
 import { getApiBaseUrl } from '@/lib/config'
 import { MDM_DEFAULT_OFFSET, isMdmOffsetOption } from '@/lib/calculator-state'
 import { CalculationError, requestCalculationJson } from '@/lib/calculation-feedback'
+import { optimizeMdmOffset, type MdmOffsetMode } from '@/lib/mdm-process-optimization'
 
 export { CalculationError } from '@/lib/calculation-feedback'
 
@@ -24,6 +25,16 @@ export interface CalculateResponse {
   traceData?: any
   calculation?: unknown
   methodId: string
+}
+
+export async function calculateSampleEstimate(options: CalculateOptions, offsetMode: MdmOffsetMode = 'fixed') {
+  const mdm = options.methodId.toLowerCase() === 'mdm'
+  const optimization = mdm && offsetMode === 'ai'
+    ? await optimizeMdmOffset(options.data.filter(point => point.status === 'F').map(point => point.value))
+    : undefined
+  const offset = optimization?.selected_delta ?? options.offset
+  const response = await calculateWeibull({ ...options, offset: mdm ? offset : undefined })
+  return { ...response, calculationOffset: offset, mdmOptimization: optimization }
 }
 
 /**

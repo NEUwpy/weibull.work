@@ -26,16 +26,11 @@
 .library-document-dialog-scroll { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; }
 .library-document-dialog .library-reader { min-height: 100%; }
 .library-document-dialog .library-entry-shell { padding-inline: 32px; }
-.library-document-dialog .reader-layout { gap: 28px; }
-.library-document-dialog .reader-layout > aside { top: 20px; max-height: calc(100dvh - 200px); width: 220px; }
 .library-document-dialog .reader-paper { padding: 28px; border-radius: 18px; }
 .library-document-dialog .library-document :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 24px; }
 @keyframes library-document-enter { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
 @media (max-width: 1279px) {
   .library-document-dialog { width: calc(100vw - 48px); }
-  .library-document-dialog .reader-layout > aside { display: none; }
-  .library-document-dialog .reader-mobile-toc { display: block; }
-  .library-document-dialog .reader-layout { flex-wrap: wrap; }
 }
 @media (max-width: 767px) {
   .library-document-dialog { inset: 0; width: 100vw; height: 100dvh; margin: 0; border: 0; border-radius: 0; box-shadow: none; }

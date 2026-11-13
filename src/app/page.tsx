@@ -13,7 +13,7 @@ import {
 import MethodSelector from '@/components/calculator/MethodSelector'
 import DataEditor from '@/components/calculator/DataEditor'
 import { CalculationNoticeDialog } from '@/components/calculator/CalculationNoticeDialog'
-import { calculateWeibull } from '@/hooks/useWeibullCalculation'
+import { calculateSampleEstimate, calculateWeibull } from '@/hooks/useWeibullCalculation'
 import { CalculationError, getCalculationNotice, type CalculationNotice } from '@/lib/calculation-feedback'
 import { isCalculatorEnabled, getEnabledMethodIds } from '@/lib/method-status'
 import { createLatestRequestTracker } from '@/lib/latest-request'
@@ -422,17 +422,10 @@ function CalculatorContent() {
       return sources
     }
 
-    return await estimateSampleSources(sources, async source => {
-      const failureValues = source.data.filter(point => point.status === 'F').map(point => point.value)
-      const optimization = card.methodId!.toLowerCase() === 'mdm' && card.mdmOffsetMode === 'ai'
-        ? await optimizeMdmOffset(failureValues) : undefined
-      const offset = optimization?.selected_delta ?? card.mdmOffset
-      const calculation = await calculateWeibull({
-        methodId: card.methodId!, data: source.data, trace: true,
-        offset: card.methodId!.toLowerCase() === 'mdm' ? offset : undefined,
-      })
-      return { ...calculation, calculationOffset: offset, mdmOptimization: optimization }
-    }, {
+    const methodId = card.methodId
+    return await estimateSampleSources(sources, source => calculateSampleEstimate(
+      { methodId, data: source.data, trace: true, offset: card.mdmOffset }, card.mdmOffsetMode,
+    ), {
       isCurrent: () => calculationRequests.current.isCurrent(cardId, requestTicket),
       onProgress: (updated, progress) => setCards(previous => previous.map(item =>
         item.id === cardId && calculationRequests.current.isCurrent(cardId, requestTicket) ? {

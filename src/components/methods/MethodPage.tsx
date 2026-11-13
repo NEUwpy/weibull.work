@@ -12,11 +12,10 @@ import { ArrowLeft, ExternalLink, Info, Sigma, BookOpen, Microscope, FileText, B
 import { cn } from '@/lib/utils'
 import { AlgorithmDetail } from '@/components/methods/AlgorithmDetail'
 import AnalysisCard from '@/components/calculator/AnalysisCard'
-import ResultAnalysisLab from '@/components/methods/ResultAnalysisLab'
 import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
-import { calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
+import { calculateSampleEstimate, calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
 import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
 import { CalculationOverview } from '@/components/methods/CalculationSteps'
 import { CalculationStageProvider } from '@/components/methods/CalculationSource'
@@ -34,7 +33,7 @@ import type { MDMProcessBatch } from '@/lib/calculation-records'
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
-const MonteCarloWorkbookViewer = dynamic(() => import('@/components/methods/shared/studies/MonteCarloWorkbookViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const MethodResultAnalysis = dynamic(() => import('@/components/methods/MethodResultAnalysis'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MethodCompareViewer = dynamic(() => import('@/components/methods/shared/compare/MethodCompareViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 import 'katex/dist/katex.min.css'
 import katex from 'katex'
@@ -192,20 +191,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   }, [])
 
   useEffect(() => {
-    const betaParam = searchParams.get('trueBeta')
-    const etaParam = searchParams.get('trueEta')
-    const gammaParam = searchParams.get('trueGamma')
-    if (activeTab === null || activeTab === 'analysis') setIs3P(searchParams.get('model') !== '2p')
-
-    if (betaParam && etaParam && gammaParam && (activeTab === null || activeTab === 'analysis')) {
-      const beta = parseFloat(betaParam)
-      const eta = parseFloat(etaParam)
-      const gamma = parseFloat(gammaParam)
-      setGenerationParameters({ beta, eta, gamma })
-
-      setActiveTab('analysis')
-    }
-  }, [searchParams])
+    if (activeTab !== null) return
+    setIs3P(searchParams.get('model') !== '2p')
+    if (['trueBeta', 'trueEta', 'trueGamma'].every(name => searchParams.has(name))) setActiveTab('analysis')
+  }, [activeTab, searchParams, setActiveTab])
 
   useEffect(() => {
     const dataParam = searchParams.get('data')
@@ -306,13 +295,9 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     setCalculationError(null)
     const requestId = ++offsetRecalculationRequestRef.current
     try {
-      const updated = await estimateSampleSources(sourcesToCalculate, async source => {
-        const calculation = await calculateWeibull({
-          methodId: method.id, data: source.data, trace: true,
-          offset: method.id.toLowerCase() === 'mdm' ? offset : undefined,
-        })
-        return { ...calculation, calculationOffset: offset }
-      }, {
+      const updated = await estimateSampleSources(sourcesToCalculate, source => calculateSampleEstimate({
+        methodId: method.id, data: source.data, trace: true, offset,
+      }), {
         isCurrent: () => requestId === offsetRecalculationRequestRef.current,
         onProgress: (updated, progress) => {
           if (requestId !== offsetRecalculationRequestRef.current) return
@@ -519,10 +504,10 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
       />
 
       <section className="page-shell w-full max-w-[95%] xl:max-w-[1800px] mx-auto pl-[4.5rem] pr-[4rem] py-12">
-        <MethodNavigation method={method} activeTab={activeTab} />
+        <MethodNavigation method={method} activeTab={activeTab} canCalculate={capability?.calculatorEnabled === true} />
 
       {/* Content Area */}
-      <div className={cn("min-h-[500px] min-w-0", activeTab !== "examples" && "max-[1279px]:[&_table]:block max-[1279px]:[&_table]:max-w-full max-[1279px]:[&_table]:overflow-x-auto max-[1279px]:[&_pre]:max-w-full max-[1279px]:[&_pre]:overflow-x-auto")}>
+      <div className={cn("min-h-[500px] min-w-0", activeTab !== "analysis" && "max-[1279px]:[&_table]:block max-[1279px]:[&_table]:max-w-full max-[1279px]:[&_table]:overflow-x-auto max-[1279px]:[&_pre]:max-w-full max-[1279px]:[&_pre]:overflow-x-auto")}>
         {activeTab === null ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
              {capability && capability.layer1.theory.status === 'done' ? (
@@ -578,8 +563,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
               activeDataSourceIndex={activeSourceIndex}
               onActiveDataSourceChange={setActiveSourceIndex}
               availableLayers={[]}
-              onAdd={() => {}}
-              onDelete={() => {}}
               onDataChange={handleDataChange}
               onToggle3P={handleToggle3P}
               onCalculate={handleCalculate}
@@ -630,63 +613,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
             </div>
           </CalculationStageProvider>
         ) : activeTab === 'analysis' ? (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {capability && capability.layer2.analysis.status === 'done' ? (
-              <div className="space-y-8">
-            <AnalysisCard
-              id="analysis"
-              initialDirection="generate"
-              generationParameters={generationParameters}
-              generatedFrom={generatedFrom}
-              calculationProgress={calculationProgress}
-              onDataSourcesChange={handleDataSourcesChange}
-              onGenerationParametersChange={setGenerationParameters}
-              index={0}
-              data={data}
-              result={result}
-              methodId={method.id}
-              mdmOffset={mdmOffset}
-              color="#10b981"
-              fitMode={fitMode}
-              is3P={is3P}
-              dataSources={dataSources}
-              activeDataSourceIndex={activeSourceIndex}
-              onActiveDataSourceChange={setActiveSourceIndex}
-              availableLayers={[]}
-              onAdd={() => {}}
-              onDelete={() => {}}
-              onDataChange={handleDataChange}
-              onToggle3P={handleToggle3P}
-              onCalculate={handleCalculate}
-              onMdmOffsetChange={handleMdmOffsetChange}
-              onMethodClick={undefined}
-              onDataClick={handleDataClick}
-              hideCalculationProcessButton={true}
-              isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
-            />
-
-            {generationParameters.beta > 0 && generationParameters.eta > 0 && (
-              <div className="bg-slate-50 rounded-3xl p-8 max-[767px]:p-4 border border-slate-200">
-                <ResultAnalysisLab
-                  methodId={method.id}
-                  trueBeta={generationParameters.beta}
-                  trueEta={generationParameters.eta}
-                  trueGamma={is3P ? generationParameters.gamma : 0}
-                />
-              </div>
-            )}
-              </div>
-            ) : (
-              <MethodBuildStatus
-                label="结果分析"
-                status={capability?.layer2.analysis.status ?? 'todo'}
-                reason={capability?.layer2.analysis.reason}
-                evidence={capability?.layer2.analysis.evidence}
-              />
-            )}
-          </div>
-        ) : activeTab === 'examples' ? (
-          <MonteCarloWorkbookViewer methodId={method.id} />
+          <MethodResultAnalysis methodId={method.id} capability={capability} />
         ) : activeTab === 'cases' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {capability && capability.layer3.verification.status === 'done' ? (

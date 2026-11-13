@@ -85,7 +85,7 @@ function LibraryDocumentDialog({ href, backLabel, onNavigate, onClose, onLeave }
   const url = new URL(href, 'http://library.local')
   const slug = decodeURIComponent(url.pathname.split('/')[2])
 
-  useEffect(() => { scroll.current?.scrollTo(0, 0) }, [href])
+  useEffect(() => { scroll.current?.scrollTo(0, 0) }, [slug])
 
   return <dialog {...dialog} className="library-document-dialog" data-has-parent={Boolean(backLabel) || undefined} aria-label="文献资料">
     <div className="library-document-dialog-bar">

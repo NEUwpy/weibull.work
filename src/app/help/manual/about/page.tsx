@@ -21,7 +21,7 @@ const CORE_FEATURES = [
   {
     icon: Search,
     title: '深入研究参数估计方法',
-    desc: '原理文档、程序流程、计算过程、结果分析、适用范围、可信性验证',
+    desc: '原理文档、计算过程、结果分析、可信性验证、方法对比',
     color: 'bg-amber-100 text-amber-600',
   },
   {
@@ -55,7 +55,7 @@ const MODULES = [
   {
     icon: Settings2,
     name: '参数估计方法',
-    desc: '25+ 种估计方法的全方位分析：原理、流程、过程、分析、适用范围、验证',
+    desc: '查看估计方法原理和计算过程，并通过预计算结果与蒙特卡洛模拟分析估计表现',
     color: 'border-amber-200 bg-amber-50/50',
   },
   {

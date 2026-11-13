@@ -7,8 +7,13 @@ import { Loader2, Square } from 'lucide-react'
 import { consumeLibraryChatStream } from '@/lib/chat-stream'
 import { cacheLibraryChatAnswer, readLibraryChatSession, type LibraryChatAnswer, type LibraryChatRequest } from '@/lib/library-chat-session'
 
-function Answer({ message }: { message: LibraryChatAnswer }) {
+export function LibraryChatAnswerView({ message }: { message: LibraryChatAnswer }) {
   return <>
+    {message.coverage && <p className="mb-2 text-xs leading-5 text-slate-500">{message.coverage}</p>}
+    {!!message.sections?.length && <details className="mb-2 text-xs leading-5 text-slate-500">
+      <summary className="cursor-pointer">本次参考章节</summary>
+      <ul className="pl-4">{message.sections.map(section => <li key={section}>{section}</li>)}</ul>
+    </details>}
     {message.content && <div className="chat-answer prose prose-sm prose-slate max-w-none">
       <LibraryMathMarkdown evidence={message.evidence}>{message.content}</LibraryMathMarkdown>
     </div>}
@@ -104,7 +109,7 @@ export function ChatDialog({ request }: { request: LibraryChatRequest }) {
     </div>
     <div className="min-w-0 p-5 sm:p-6">
       <p className="mb-5 border-b border-slate-100 pb-4 text-sm leading-6 text-slate-700">{request.question}</p>
-      <Answer message={answer} />
+      <LibraryChatAnswerView message={answer} />
       {isLoading && <p role="status" className="mt-2 flex items-center gap-2 text-xs leading-5 text-slate-500"><Loader2 size={14} className="shrink-0 animate-spin" />{progress || '正在生成回答…'}</p>}
     </div>
   </section>

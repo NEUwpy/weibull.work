@@ -15,10 +15,11 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 
 test('independent method URLs retain the function, batch, sample and calculation deep links', () => {
   const query = new URLSearchParams({ batch: 'r00-test', n: '15', sample: '23', view: 'samples', data: '4,5,6', offset: '0.1' })
-  for (const [section, tab] of [['calculation', 'lab'], ['analysis', 'analysis'], ['applicability', 'examples'], ['verification', 'cases'], ['compare', 'compare']]) {
+  for (const [section, tab] of [['calculation', 'lab'], ['analysis', 'analysis'], ['verification', 'cases'], ['compare', 'compare']]) {
     assert.equal(methodTabFromPath('/methods/mdm/' + section), tab)
     assert.equal(methodHref('mle', tab, query), '/methods/mle/' + section + '?' + query)
   }
+  assert.equal(methodTabFromPath('/methods/mdm/applicability'), 'analysis')
   assert.equal(methodHref('mdm', null), '/methods/mdm')
   assert.equal(methodTabFromPath('/methods/mdm/process'), 'lab')
   query.set('step', '3')

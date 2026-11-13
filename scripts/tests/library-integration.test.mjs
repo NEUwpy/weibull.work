@@ -91,6 +91,68 @@ test('grounded chat receives actual external paragraph evidence without paid API
   assert.match(stream, /audit-paper/)
 }))
 
+test('single-article chat guards private reading and sends the overview, quote and short Markdown in one call', () => withFixture(async root => {
+  const file = path.join(root, 'content/audit-paper-pdf翻译.md')
+  fs.writeFileSync(file, '---\ntitle: 外挂测试文献\nsummary: PUBLIC_OVERVIEW_731\n---\n## 摘要\n\nAUTHOR_ABSTRACT_731\n\n## 方法\n\nMETHOD_731\n\n## 结果\n\nRESULT_731\n')
+  fs.writeFileSync(path.join(root, 'content/audit-paper-pdf原文.md'), '---\ntitle: Article original\n---\n## Abstract\n\nORIGINAL_ABSTRACT_731\n\n## Methods\n\nORIGINAL_METHOD_731\n\n## Results\n\nORIGINAL_RESULT_731\n')
+  fs.writeFileSync(path.join(root, 'content/other-paper-pdf翻译.md'), '---\ntitle: 其他文献\n---\n## 结果\n\nOTHER_PAPER_731\n')
+  const calls = []
+  const client = { chat: { completions: { create: async request => {
+    calls.push(request)
+    return (async function* () { yield { choices: [{ delta: { content: '本篇回答' } }] } })()
+  } } } }
+  const chat = load('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record() {}, flush: async () => {} }) },
+    '@/lib/server/library-auth': { requireLibraryLogin: request => request.authenticated ? null : new Response(null, { status: 401 }) },
+    '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
+      getDeepSeekSettings: () => ({ model: 'deepseek-flash', baseURL: 'https://api.deepseek.com' }) },
+  })
+  const json = async () => ({ question: 'RESULT_731', article: { slug: 'audit-paper', version: '翻译',
+    quotes: [{ text: 'SELECTED_QUOTE_731', version: '翻译', anchor: 'passage-8' }], history: [{ question: '上一轮问题', answer: '上一轮回答' }] } })
+  assert.equal((await chat.POST({ json })).status, 401)
+  assert.equal(calls.length, 0)
+  const response = await chat.POST({ json, authenticated: true })
+  const stream = await response.text()
+  assert.match(stream, /本篇回答/)
+  assert.match(stream, /已提供本篇全文/)
+  assert.equal(calls.length, 1)
+  const context = calls[0].messages[1].content
+  assert.match(context, /文献总览.*PUBLIC_OVERVIEW_731.*ORIGINAL_ABSTRACT_731.*目录.*Methods/)
+  for (const marker of ['ORIGINAL_METHOD_731', 'ORIGINAL_RESULT_731', 'SELECTED_QUOTE_731', '上一轮问题']) assert.ok(context.includes(marker))
+  assert.doesNotMatch(context, /AUTHOR_ABSTRACT_731/)
+  assert.match(calls[0].messages[0].content, /以用户当前问题所用的语言回答/)
+  const sourceEvent = stream.split('\n\n').filter(Boolean).map(frame => JSON.parse(frame.slice(6))).find(event => event.evidence)
+  assert.ok(sourceEvent.evidence.every(hit => hit.version === '原文'))
+  assert.doesNotMatch(context, /OTHER_PAPER_731/)
+}))
+
+test('a long article supplements evidence at most once without reading unrelated papers', () => withFixture(async root => {
+  const file = path.join(root, 'content/audit-paper-pdf翻译.md')
+  const filler = 'This paragraph describes a different reliability background. '.repeat(30)
+  const body = Array.from({ length: 36 }, (_, index) => `## Chapter ${index + 1}\n\n${filler}\n\nPART_${index + 1}`).join('\n\n')
+  fs.appendFileSync(file, `\n\n${body}\n\n## Notes\n\nSUPPLEMENT_MARKER_731 provides the missing condition.\n`)
+  fs.writeFileSync(path.join(root, 'content/other-paper-pdf翻译.md'), '---\ntitle: 其他文献\n---\n## 结果\n\nSUPPLEMENT_MARKER_731 OTHER_PAPER_731\n')
+  const articleChat = load('src/lib/server/library-article-chat.ts')
+  const calls = [], events = []
+  const client = { chat: { completions: { create: async request => {
+    calls.push(request)
+    if (!request.stream) return { choices: [{ message: { content: '批次记录' }, finish_reason: 'stop' }] }
+    return (async function* () {
+      yield { choices: [{ delta: request.tools
+        ? { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ query: 'SUPPLEMENT_MARKER_731' }) } }] }
+        : { content: '单篇结果' } }] }
+    })()
+  } } } }
+  const parameters = { client, question: 'EXTERNAL_RESULT_739', model: 'fixture', baseURL: 'https://example.invalid',
+    instructions: 'test', signal: new AbortController().signal, send: event => events.push(event) }
+  const scope = { slug: 'audit-paper', quotes: [], history: [] }
+  assert.equal(await articleChat.answerArticleQuestion({ ...parameters, article: articleChat.readArticleQuestion(scope) }), true)
+  assert.equal(calls.length, 2)
+  assert.match(calls[1].messages[1].content, /SUPPLEMENT_MARKER_731 provides the missing condition/)
+  assert.doesNotMatch(calls[1].messages[1].content, /OTHER_PAPER_731/)
+  assert.ok(events.some(event => event.coverage?.startsWith('长文')))
+}))
+
 test('export preserves bytes, checks conflicts before overwrite, and verifies corruption', async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-library-export-'))
   try {

@@ -1,5 +1,6 @@
 export { LibraryPageClient } from './LibraryPageClient'
 export { LibraryArticle } from './LibraryArticle'
+export { LibraryArticleChat } from './LibraryArticleChat'
 export { LibraryDocumentLink, LibraryDocumentProvider } from './LibraryDocumentDialog'
 export { LibraryAuthors } from './LibraryAuthors'
 export { LibraryInstitutions } from './LibraryInstitutions'

@@ -6,6 +6,8 @@ export interface LibraryChatEvent {
   content?: string
   evidence?: LibraryEvidence[]
   queries?: string[]
+  coverage?: string
+  sections?: string[]
   error?: string
   done?: boolean
 }

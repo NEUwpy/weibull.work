@@ -10,6 +10,16 @@
 .link[aria-current="page"]::after{content:"";position:absolute;bottom:0;left:8px;right:8px;height:2px;background:#c89442;border-radius:2px}
 .menu{position:absolute;top:calc(100% + 8px);left:0;width:1120px;max-width:calc(100vw - 48px);max-height:min(600px,calc(100dvh - 180px));overflow:auto;overscroll-behavior:contain;padding:20px;background:#fff;border:1px solid #e7ebf0;border-radius:12px;box-shadow:0 12px 36px #0f172a16;z-index:30}
 .title:focus-visible,.link:focus-visible{outline:2px solid #d39b3e;outline-offset:3px;border-radius:4px}
+.analysisNav{position:relative;z-index:13}
+.analysisNav>.link{border:0;background:transparent;cursor:pointer}
+.analysisNav>.link>svg:last-child{margin-left:-3px;transition:transform 150ms ease}
+.analysisNav>.link[aria-expanded="true"]>svg:last-child{transform:rotate(180deg)}
+.analysisOptions{position:absolute;top:calc(100% + 7px);right:0;min-width:154px;padding:4px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;box-shadow:0 6px 18px #0f172a14}
+.analysisOptions>a{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:6px 10px;border-radius:5px;color:#475569;font-size:14px;line-height:20px;white-space:nowrap}
+.analysisOptions>a[aria-current]{color:#94600c;background:#fff6e6}
+.analysisOptions>a:hover{background:#f1f5f9}
+.analysisOptions>a:focus-visible{outline:2px solid #d39b3e;outline-offset:-2px}
 @media(max-width:1199px) and (min-width:768px){.navigation{display:grid;grid-template-columns:repeat(4,max-content);gap:0 2px}}
-@media(max-width:767px){.row{grid-template-columns:minmax(0,1fr);gap:12px}.navigation{justify-self:start;justify-content:flex-start;gap:0 2px}.link{padding:9px 6px;gap:5px}.title{font-size:26px}.menu{width:calc(100vw - 48px);max-height:calc(100dvh - 180px);padding:16px}.header{margin-bottom:20px}}
-@media(prefers-reduced-motion:reduce){.title>svg,.link{transition:none}}
+@media(max-width:767px){.row{grid-template-columns:minmax(0,1fr);gap:12px}.navigation{justify-self:start;justify-content:flex-start;gap:0 2px}.link{padding:9px 6px;gap:5px}.title{font-size:26px}.menu{width:calc(100vw - 48px);max-height:calc(100dvh - 180px);padding:16px}.header{margin-bottom:20px}.analysisOptions>a{min-height:44px}}
+@media(max-width:359px){.analysisOptions{left:0;right:auto}}
+@media(prefers-reduced-motion:reduce){.title>svg,.link,.analysisNav>.link>svg:last-child{transition:none}}

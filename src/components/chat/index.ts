@@ -1,1 +1,1 @@
-export { ChatDialog } from './ChatDialog'
+export { ChatDialog, LibraryChatAnswerView } from './ChatDialog'

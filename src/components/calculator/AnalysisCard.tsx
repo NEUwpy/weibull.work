@@ -57,6 +57,8 @@ import {
   generateCDFPoints
 } from '@/lib/weibull'
 import { getMethodInfo } from '@/lib/methods'
+import { samplingTruth } from '@/lib/analysis-workbook'
+import { methodHref } from '@/lib/method-navigation'
 import {
   getDefaultParameters,
   getEstimationModeFailure,
@@ -95,6 +97,8 @@ interface AnalysisCardProps {
   generationParameters?: CalculatorParameters
   generatedFrom?: CalculatorParameters
   initialDirection?: 'estimate' | 'generate'
+  initialSampleSize?: number
+  initialGenerationCount?: number
   onDirectionChange?: (direction: 'estimate' | 'generate') => void
   is3P: boolean
   availableLayers: LayerInfo[]
@@ -102,7 +106,7 @@ interface AnalysisCardProps {
   dataSources?: DataSource[]
   activeDataSourceIndex?: number
   onActiveDataSourceChange?: (index: number) => void
-  onAdd: (type: CalculatorCardType, sourceId: string, currentData?: DataPoint[]) => void
+  onAdd?: (type: CalculatorCardType, sourceId: string, currentData?: DataPoint[]) => void
   onMethodClick?: () => void
   onMdmOffsetChange?: (offset: number) => void | Promise<void>
   onMdmOffsetModeChange?: (mode: MdmOffsetMode) => void | Promise<void>
@@ -113,11 +117,14 @@ interface AnalysisCardProps {
   calculationProgress?: BatchProgress
   onGenerationParametersChange?: (parameters: CalculatorParameters) => void
   onCalculate?: () => Promise<void>
+  canCalculate?: boolean
   calculationActionLabel?: string
   onDelete?: () => void
   hideCalculationProcessButton?: boolean
+  hideResultAnalysisButton?: boolean
   hideMdmOptimizationDetailsLink?: boolean
   lockParameterMode?: boolean
+  lockSampleEditing?: boolean
   isMdmOffsetUpdating?: boolean
 }
 
@@ -135,6 +142,8 @@ export default function AnalysisCard({
   generationParameters,
   generatedFrom,
   initialDirection,
+  initialSampleSize = 20,
+  initialGenerationCount = 1,
   onDirectionChange,
   is3P,
   availableLayers,
@@ -152,11 +161,14 @@ export default function AnalysisCard({
   calculationProgress,
   onGenerationParametersChange,
   onCalculate,
+  canCalculate = true,
   calculationActionLabel = '参数估计',
   onDelete,
   hideCalculationProcessButton,
+  hideResultAnalysisButton,
   hideMdmOptimizationDetailsLink = false,
   lockParameterMode = false,
+  lockSampleEditing = false,
   isMdmOffsetUpdating = false
 }: AnalysisCardProps) {
   const [isHovered, setIsHovered] = useState(false)
@@ -197,11 +209,12 @@ export default function AnalysisCard({
   }, [calculationProgress, sequenceIdentity, startSequence, readySequence])
   const selectedSource = dataSources?.[activeSourceIndex]
   const activeOptimization = selectedSource ? selectedSource.mdmOptimization : mdmOptimization
+  const selectedAiOffset = activeOptimization?.selected_delta ?? selectedSource?.calculationOffset
   const currentData = selectedSource?.data ?? data
   const sourceOrigin = selectedSource ? selectedSource.generatedFrom : generatedFrom
   const stacked = !!dataSources && dataSources.length > 1
   const [showBatchTable, setShowBatchTable] = useState(false)
-  const [generationCount, setGenerationCount] = useState(1)
+  const [generationCount, setGenerationCount] = useState(initialGenerationCount)
   useEffect(() => {
     if (dataSources && dataSources.length > 1) setGenerationCount(dataSources.length)
     setShowBatchTable(false)
@@ -213,7 +226,7 @@ export default function AnalysisCard({
   const isMdmAiSupported = isMdmAiSampleSizeSupported(failureValues.length)
 
   const [sampleText, setSampleText] = useState("")
-  const [simN, setSimN] = useState(20)
+  const [simN, setSimN] = useState(initialSampleSize)
   const [direction, setDirection] = useState<'estimate' | 'generate'>(() =>
     initialDirection ?? (fitMode === 'manual' && result && !data?.length ? 'generate' : 'estimate'))
   const generating = direction === 'generate'
@@ -521,7 +534,7 @@ export default function AnalysisCard({
         <div className="p-1 bg-emerald-50 text-emerald-600 rounded"><FileText size={16} /></div>
         <span className="text-base font-black tracking-wider">样本</span>
       </div>
-      {!generating && <button onClick={onDataClick} disabled={busy}
+      {!generating && onDataClick && <button onClick={onDataClick} disabled={busy}
         className="h-7 px-2 text-slate-400 hover:text-emerald-600 rounded flex items-center gap-1">
         <BookOpen size={14} /><span className="text-sm font-black">案例库</span>
       </button>}
@@ -530,7 +543,7 @@ export default function AnalysisCard({
       {generating && sampleStats.total > 0 && !currentSampleMatches &&
         <p className="mb-2 shrink-0 text-xs text-slate-500">点击生成样本可按当前设置更新</p>}
       <div className="relative w-full flex-1 min-h-0" data-stack-content>
-        <textarea disabled={busy} readOnly={generating} aria-label="样本数据"
+        <textarea disabled={busy} readOnly={generating || lockSampleEditing} aria-label="样本数据"
           className="w-full h-full text-xs font-mono p-3 bg-slate-50 border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 text-slate-600 leading-relaxed"
           placeholder={generating ? '点击生成样本' : '输入或导入样本'}
           value={sampleText} onChange={event => setSampleText(event.target.value)} onBlur={handleSampleTextBlur} />
@@ -540,12 +553,16 @@ export default function AnalysisCard({
       </div>
     </div>
     <div className="analysis-card-footer h-12 flex items-center gap-2 px-4">
-      <button type="button" disabled={busy} onClick={handleEstimation}
+      <button type="button" disabled={busy || !canCalculate} onClick={handleEstimation}
         className="flex-1 h-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-md flex items-center justify-center gap-1.5 text-sm font-bold disabled:opacity-50">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Calculator size={14} />}
         <span>{playback.active && playback.phase === 'generate' ? '生成中…' : busy ? '计算中…' : calculationActionLabel}</span>
       </button>
-      <button type="button" disabled={busy} onClick={() => { setSampleText(''); commitSample([]) }}
+      <button type="button" disabled={busy} onClick={() => {
+        setSampleText('')
+        if (lockSampleEditing) onDataChange?.([])
+        else commitSample([])
+      }}
         className="h-full px-3 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 rounded-md flex items-center gap-1.5 text-sm font-bold">
         <Trash2 size={14} /><span>清除样本</span>
       </button>
@@ -612,7 +629,7 @@ export default function AnalysisCard({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="analysis-card w-full relative group/card pb-4 mb-4 mt-4"
@@ -647,13 +664,13 @@ export default function AnalysisCard({
       </div>}
       {notice && <CalculationNoticeDialog notice={notice} onClose={() => setNotice(null)} />}
       {/* Action Buttons (Moved Outside - Right Side) */}
-      <div className="analysis-actions absolute top-0 -right-10 flex flex-col gap-2 z-30">
-         <button aria-label="删除分析卡片" onClick={onDelete} data-variant="delete"
+      {(onAdd || onDelete) && <div className="analysis-actions absolute top-0 -right-10 flex flex-col gap-2 z-30">
+         {onDelete && <button aria-label="删除分析卡片" onClick={onDelete} data-variant="delete"
            className="analysis-icon-button opacity-0 group-hover/card:opacity-100">
             <Trash2 size={18} />
-         </button>
+         </button>}
          
-         <div className="relative" ref={addMenuRef}>
+         {onAdd && <div className="relative" ref={addMenuRef}>
            <button 
              aria-label="添加分析卡片"
              aria-expanded={isAddMenuOpen}
@@ -703,8 +720,8 @@ export default function AnalysisCard({
                </motion.div>
              )}
            </AnimatePresence>
-         </div>
-      </div>
+         </div>}
+      </div>}
 
       {/* Main Card Container */}
       <SampleCardStack face={selectedSource?.id ?? id} batch={dataSources?.[0]?.groupId ?? dataSources?.[0]?.id ?? id}
@@ -746,7 +763,7 @@ export default function AnalysisCard({
                        <div className="mb-1.5 grid grid-cols-2 rounded-md border border-emerald-200 bg-white p-0.5">
                          <button
                            type="button"
-                           disabled={isMdmOffsetUpdating}
+                           disabled={busy}
                            onClick={() => { void onMdmOffsetModeChange?.('fixed') }}
                            className={cn(
                              'h-6 rounded text-[9px] font-black transition-colors',
@@ -759,7 +776,7 @@ export default function AnalysisCard({
                          </button>
                          <button
                            type="button"
-                           disabled={!isMdmAiSupported || isMdmOffsetUpdating}
+                           disabled={!isMdmAiSupported || busy}
                            onClick={() => { void onMdmOffsetModeChange?.('ai') }}
                            className={cn(
                              'h-6 rounded text-[9px] font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40',
@@ -776,7 +793,7 @@ export default function AnalysisCard({
                          <select
                            id={`mdm-offset-${id}`}
                            value={mdmOffset}
-                           disabled={isMdmOffsetUpdating}
+                           disabled={busy}
                            onChange={(event) => { void onMdmOffsetChange?.(Number(event.target.value)) }}
                            className="h-8 w-full rounded-md border border-emerald-200 bg-white px-2 text-xs font-black text-emerald-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                            aria-label="MDM 固定偏移量"
@@ -789,8 +806,8 @@ export default function AnalysisCard({
                          <div className="rounded-md border border-violet-200 bg-white px-2 py-1.5">
                            <div className="flex items-center gap-1 text-[9px] font-black text-violet-600">
                              <Sparkles size={10} />
-                             {activeOptimization
-                               ? `AI建议 δ=${activeOptimization.selected_delta.toFixed(2)}`
+                             {selectedAiOffset !== undefined
+                               ? `AI建议 δ=${selectedAiOffset.toFixed(2)}`
                                : '估计时自动选择'}
                            </div>
                            {!hideMdmOptimizationDetailsLink && (
@@ -1008,27 +1025,37 @@ export default function AnalysisCard({
              </div>
 
              {/* 底栏 - Result Analysis Button */}
-                <div className="analysis-card-footer h-12 flex items-end justify-center px-4">
+                {!hideResultAnalysisButton && <div className="analysis-card-footer h-12 flex items-end justify-center px-4">
                    <button
                      disabled={!methodId}
                      onClick={(e) => {
                        e.stopPropagation();
                        if (!methodId) return;
-                       const parameters = referenceParameters ?? chartResult
+                       const batchTruth = stacked ? samplingTruth(dataSources) : undefined
+                       const parameters = batchTruth ?? referenceParameters ?? chartResult
                        const params = new URLSearchParams({ model: is3P ? '3p' : '2p' });
                        if (parameters && parameters.beta !== null && parameters.eta !== null) {
                          params.set('trueBeta', parameters.beta.toString());
                          params.set('trueEta', parameters.eta.toString());
                          params.set('trueGamma', parameters.gamma.toString());
+                         params.set('source', 'simulation')
                        }
-                       router.push(`/methods/${methodId}/analysis?${params.toString()}`);
+                       if (batchTruth && dataSources) {
+                         params.set('analysisBatch', storeCalculationBatch(
+                           dataSources, methodId, activeSourceIndex, mdmOffset, batchTruth, { offsetMode: mdmOffsetMode },
+                         ))
+                       }
+                       const sampleSize = currentData?.length || (generating ? simN : 0)
+                       if (sampleSize > 0) params.set('simulationN', String(sampleSize))
+                       if (methodId === 'mdm') params.set('offset', String(mdmOffset))
+                       router.push(methodHref(methodId, 'analysis', params));
                      }}
                      className="flex-1 h-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 rounded-md flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                      <BarChart3 size={14} />
                      结果分析
                    </button>
-                </div>
+                </div>}
           </div>
         </div>}
       </div>

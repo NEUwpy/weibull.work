@@ -16,12 +16,12 @@ const axisNumber = (value: number) => value !== 0 && (Math.abs(value) >= 1e5 || 
   ? value.toExponential(2) : value.toLocaleString('zh-CN', { maximumSignificantDigits: 4, useGrouping: false })
 
 type HoverPoint = { point: CalculationPoint; name: string }
-function CalculatedPoint({ cx, cy, payload, color, label, onHover }: {
+function CalculatedPoint({ cx, cy, payload, color, label, onHover, radius = 2.7, opacity = 1 }: {
   cx?: number; cy?: number; payload?: CalculationPoint; color: string; label: string
-  onHover: (value: HoverPoint | null) => void
+  onHover: (value: HoverPoint | null) => void; radius?: number; opacity?: number
 }) {
   if (!payload) return <g />
-  return <circle className="process-calculated-point" cx={cx} cy={cy} r={2.7} fill={color} stroke="#fff" strokeWidth={0.5}
+  return <circle className="process-calculated-point" cx={cx} cy={cy} r={radius} fill={color} opacity={opacity} stroke="#fff" strokeWidth={0.5}
     data-x={payload.x} data-y={payload.y}
     onMouseEnter={() => onHover({ point: payload, name: label })} onMouseLeave={() => onHover(null)} />
 }
@@ -57,8 +57,12 @@ export function ProcessChart({ chart: givenChart, initiallyFocused, figureOnly =
     }))) }
     overlay = { activeId: batch.sources[batch.activeIndex]?.id, activeLabel: batch.sources[batch.activeIndex]?.name, label: '各组实际计算' }
   }
+  // In a dense batch, the active group stays readable and background candidate
+  // points become a light context layer so the cloud does not hide the curve.
+  const denseOverlay = !!overlay && !!rows && rows.length > 20
   const activeSeries = (id: string) => id === overlay?.activeId || !!overlay?.activeId && id.startsWith(overlay.activeId + '/')
   const [hoveredPoint, setHoveredPoint] = useState<HoverPoint | null>(null)
+  const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
   const focus = overlay ? null : calculationFocus(chart)
   const values = chart.series.flatMap(series => series.points.map(point => point.y))
   const extent = values.reduce(([min, max], value) => [Math.min(min, value), Math.max(max, value)], [Infinity, -Infinity])
@@ -136,18 +140,28 @@ export function ProcessChart({ chart: givenChart, initiallyFocused, figureOnly =
               ])}
               {viewSeries.map((series, index) => {
                 const highlighted = !overlay || activeSeries(series.id)
+                const groupId = overlay ? series.id.split('/')[0] : series.id
+                const lineHovered = denseOverlay && hoveredGroupId === groupId
                 const color = overlay ? series.role === 'candidate' ? '#b7791f' : highlighted ? '#2563eb' : '#64748b'
                   : series.role === 'virtual' ? '#94a3b8' : SERIES_COLORS[index % SERIES_COLORS.length]
+                const hiddenDenseCandidate = denseOverlay && !highlighted && series.role === 'candidate' && !lineHovered
+                const pointRadius = highlighted ? 2.7 : lineHovered ? 2.2 : denseOverlay && series.role === 'candidate' ? 1.1 : 2.2
+                const pointOpacity = hiddenDenseCandidate ? 0 : denseOverlay && !highlighted && series.role === 'candidate' ? .75 : 1
                 return series.kind === 'line' ? (
                   <Line key={series.id} data={series.points} type={series.interpolation ?? 'linear'} dataKey="y" name={series.label}
-                    stroke={color} strokeWidth={highlighted ? 2 : 1} strokeOpacity={highlighted ? 1 : .22}
+                    stroke={color} strokeWidth={highlighted ? 2 : lineHovered ? 1.4 : 1} strokeOpacity={highlighted ? 1 : lineHovered ? .72 : .22}
                     dot={series.role === 'solver' && highlighted ? <CalculatedPoint color={color} label={series.label} onHover={setHoveredPoint} /> : false}
                     strokeDasharray={series.role === 'virtual' ? '5 4' : undefined}
-                    activeDot={highlighted ? { r: 4 } : false} isAnimationActive={false} connectNulls={false} />
+                    activeDot={highlighted || lineHovered ? { r: 4 } : false}
+                    onMouseEnter={() => denseOverlay && setHoveredGroupId(groupId)}
+                    onMouseLeave={() => denseOverlay && setHoveredGroupId(null)} isAnimationActive={false} connectNulls={false} />
                 ) : (
                   <Scatter key={series.id} name={series.label} data={series.points} fill={color}
-                    shape={series.role === 'solver' ? <CalculatedPoint color={color} label={series.label} onHover={setHoveredPoint} /> : undefined}
-                    fillOpacity={0.75} isAnimationActive={false} />
+                    shape={series.role === 'solver' || series.role === 'candidate'
+                      ? <CalculatedPoint color={color} label={series.label} radius={pointRadius} opacity={pointOpacity} onHover={setHoveredPoint} />
+                      : undefined}
+                    fillOpacity={series.role === 'candidate' ? pointOpacity : .75}
+                    isAnimationActive={false} />
                 )
               })}
               {chart.selected?.map((point, index) => (

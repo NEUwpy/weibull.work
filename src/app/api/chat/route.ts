@@ -6,6 +6,8 @@ import { getDeepSeekClient, getDeepSeekSettings, hasDeepSeekKey } from '@/lib/se
 import { createLibraryChatLog } from '@/lib/server/library-chat-log'
 import { searchLibrary, enrichLibrarySearchHits, startLibrarySearchPrewarm } from '@/lib/server/library-search'
 import { buildSearchQueries, evidenceContext, selectLibraryEvidence, orderEvidenceCandidates, poolLibraryCandidates } from '@/lib/library-rag'
+import { requireLibraryLogin } from '@/lib/server/library-auth'
+import { answerArticleQuestion, parseArticleQuestion, readArticleQuestion } from '@/lib/server/library-article-chat'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 180
@@ -31,6 +33,20 @@ export async function POST(request: NextRequest) {
   if (typeof question !== 'string' || !question.trim() || question.length > 2000) {
     return NextResponse.json({ error: '请输入问题，最长2000字。' }, { status: 400 })
   }
+  let article: ReturnType<typeof readArticleQuestion> = null
+  if (body && typeof body === 'object' && 'article' in body) {
+    const denied = requireLibraryLogin(request)
+    if (denied) return denied
+    const scope = parseArticleQuestion(body.article)
+    if (!scope) return NextResponse.json({ error: '文献范围或引用内容无效。' }, { status: 400 })
+    try {
+      article = readArticleQuestion(scope)
+    } catch (error) {
+      console.error('[library-chat]', { stage: 'article', ...failureInfo(error) })
+      return NextResponse.json({ error: '文献暂时无法读取，请稍后重试。' }, { status: 503 })
+    }
+    if (!article) return NextResponse.json({ error: '本篇暂无可读取的正文。' }, { status: 404 })
+  }
 
   const controller = new AbortController()
   const abort = () => controller.abort()
@@ -38,7 +54,8 @@ export async function POST(request: NextRequest) {
   if (request.signal?.aborted) abort()
   const encoder = new TextEncoder()
   const log = createLibraryChatLog()
-  log.record('start', { question: question.trim(), model: getDeepSeekSettings().model })
+  log.record('start', { model: getDeepSeekSettings().model,
+    ...(article ? { slug: article.scope.slug, version: article.scope.version } : { question: question.trim() }) })
   const stream = new ReadableStream({
     async start(output) {
       let closed = false
@@ -51,7 +68,18 @@ export async function POST(request: NextRequest) {
       }
       try {
         const client = getDeepSeekClient()
-        const { model } = getDeepSeekSettings()
+        const { model, baseURL } = getDeepSeekSettings()
+        if (article) {
+          stage = 'article'
+          const received = await answerArticleQuestion({ article, question: question.trim(), client, model, baseURL,
+            instructions: prompt('rag_evidence_answer.md'), signal: controller.signal,
+            send: event => { if (event.content) answerChars += event.content.length; send({ ...event }) },
+          })
+          if (!received) send({ error: '模型没有返回正文，请重试。' })
+          outcome = received ? 'completed' : 'empty'
+          send({ done: true })
+          return
+        }
         send({ stage: 'expanding', message: '正在分析问题，准备检索表达…' })
         let variants: unknown = []
         try {
@@ -111,7 +139,7 @@ export async function POST(request: NextRequest) {
         const response = await client.chat.completions.create({
           model,
           messages: [
-            { role: 'system', content: prompt('rag_evidence_answer.md') },
+            { role: 'system', content: prompt('rag_evidence_answer.md') + '\n\n用中文回答。' },
             { role: 'user', content: `问题：${question.trim()}\n\n参考资料：\n${JSON.stringify(evidenceContext(evidence))}` },
           ],
           max_tokens: 4096,
@@ -155,7 +183,7 @@ export async function POST(request: NextRequest) {
   })
   return new NextResponse(stream, { headers: {
     'Content-Type': 'text/event-stream; charset=utf-8',
-    'Cache-Control': 'no-cache, no-transform',
+    'Cache-Control': article ? 'private, no-store, no-transform' : 'no-cache, no-transform',
     'X-Accel-Buffering': 'no',
   } })
 }

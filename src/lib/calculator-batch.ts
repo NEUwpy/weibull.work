@@ -90,29 +90,36 @@ export async function estimateSampleSources(
 }
 
 const handoffKey = 'weibull-calculation-batch:'
-type StoredBatch = { methodId: string; sources: DataSource[]; activeIndex: number; offset: number; generatedFrom?: CalculatorParameters }
+type StoredBatch = {
+  methodId: string
+  sources: DataSource[]
+  activeIndex: number
+  offset: number
+  generatedFrom?: CalculatorParameters
+  analysis?: { offsetMode: 'fixed' | 'ai' }
+}
 const processBatches = new Map<string, StoredBatch>()
 export function storeCalculationBatch(sources: DataSource[], methodId: string, activeIndex: number,
-  offset: number, generatedFrom?: CalculatorParameters): string {
+  offset: number, generatedFrom?: CalculatorParameters, analysis?: StoredBatch['analysis']): string {
   const id = crypto.randomUUID()
-  processBatches.set(id, { sources, methodId, activeIndex, offset, generatedFrom })
+  processBatches.set(id, { sources, methodId, activeIndex, offset, generatedFrom, analysis })
   if (processBatches.size > 3) processBatches.delete(processBatches.keys().next().value!)
   // Samples are retained for an exact handoff. Process records are obtained by
   // the method page, so large trace payloads do not enter session storage.
   try {
-    sessionStorage.setItem(handoffKey + id, JSON.stringify({ methodId, activeIndex, offset, generatedFrom,
-      sources: sources.map(({ id, name, color, data, groupId, sourceType, generatedFrom, archive }) =>
-        ({ id, name, color, data, groupId, sourceType, generatedFrom, archive })) }))
+    sessionStorage.setItem(handoffKey + id, JSON.stringify({ methodId, activeIndex, offset, generatedFrom, analysis,
+      sources: sources.map(({ id, name, color, data, groupId, sourceType, generatedFrom, archive, result, calculationError, calculationOffset }) =>
+        ({ id, name, color, data, groupId, sourceType, generatedFrom, archive,
+          ...(analysis && { result: result && { ...result, points: [] }, calculationError, calculationOffset }),
+        })) }))
   } catch { /* The current tab can still use the in-memory records. */ }
   return id
 }
 
-export function readCalculationBatch(id: string, methodId: string, reuseSamples = false): {
-  sources: DataSource[]; activeIndex: number; offset: number; generatedFrom?: CalculatorParameters
-} | null {
+export function readCalculationBatch(id: string, methodId: string, reuseSamples = false): StoredBatch | null {
   const cached = processBatches.get(id)
   const forMethod = (batch: StoredBatch) => batch.methodId === methodId ? batch : reuseSamples ? {
-    ...batch, methodId, sources: batch.sources.map(({ id, name, color, data, groupId, sourceType, generatedFrom }) =>
+    ...batch, methodId, analysis: undefined, sources: batch.sources.map(({ id, name, color, data, groupId, sourceType, generatedFrom }) =>
       ({ id, name, color, data, groupId, sourceType, generatedFrom })),
   } : null
   if (cached) return forMethod(cached)

@@ -15,6 +15,7 @@ export interface LibrarySearchOptions {
   scope?: 'auto' | 'text'
   category?: string
   sort?: LibrarySort
+  document?: Pick<LibrarySearchHit, 'slug' | 'version'>
 }
 
 const MAX_PASSAGE_CHARS = 1600
@@ -127,7 +128,7 @@ function plain(value: string): string {
     .replace(/[`*#]/g, '').replace(/\s+/g, ' ').trim()
 }
 
-function readIndex(): { passages: IndexedPassage[]; papers: PaperMetadata[] } {
+function readIndex(): SearchIndexCache {
   let documents = readLibraryDocuments()
   while (documents !== indexCache.documents) {
     const update = updateIndex(documents)
@@ -271,6 +272,27 @@ export function enrichLibrarySearchHits(hits: LibrarySearchHit[]): LibrarySearch
   })
 }
 
+export function librarySectionPassages(document: NonNullable<LibrarySearchOptions['document']>, limit: number): LibrarySearchHit[] {
+  const passages = readIndex().byDocument.get(`${document.slug}:${document.version}`)?.passages || []
+  const sections = new Map<string, IndexedPassage>()
+  for (const passage of passages) {
+    const previous = sections.get(passage.hit.section)
+    if (!previous || (previous.length < 120 && passage.length > previous.length)) sections.set(passage.hit.section, passage)
+  }
+  const representatives = Array.from(sections.values())
+  const count = Math.min(limit, representatives.length)
+  return Array.from({ length: count }, (_, index) => {
+    const hit = representatives[Math.round(index * (representatives.length - 1) / Math.max(1, count - 1))].hit
+    return { ...hit, excerpt: libraryMathExcerpt(hit.text, []) }
+  })
+}
+
+export function libraryAnchoredPassages(document: NonNullable<LibrarySearchOptions['document']>, anchors: string[]): LibrarySearchHit[] {
+  const passages = readIndex().byDocument.get(`${document.slug}:${document.version}`)?.passages || []
+  return passages.filter(({ hit }) => anchors.includes(libraryPassageId(hit.startLine)))
+    .map(({ hit }) => ({ ...hit, excerpt: libraryMathExcerpt(hit.text, []) }))
+}
+
 function matchesType(paper: PaperMetadata, type: LibrarySearchOptions['type']): boolean {
   return matchesLibraryType(paper, type)
 }
@@ -285,24 +307,26 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
   const q = query.trim().slice(0, 2000)
   const { terms, strict } = queryProfile(q)
   if (!q) return { query: q, total: 0, results: [], terms }
-  const { passages, papers } = readIndex()
+  const { passages, papers, byDocument } = readIndex()
   const matches = (paper: PaperMetadata) => matchesType(paper, options.type) && matchesLibraryCategory(paper, options.category)
   const catalogKey = JSON.stringify([options.type || 'all', options.category || 'all'])
-  let catalog = indexCache.catalogs.get(catalogKey)
-  if (!catalog) {
+  const searchCatalog = !options.document && options.scope !== 'text'
+  let catalog = searchCatalog ? indexCache.catalogs.get(catalogKey) : undefined
+  if (searchCatalog && !catalog) {
     catalog = createLiteratureIndex(papers.filter(matches).map(paper => ({ ...paper,
       title: paper.display_title || paper.title, title_en: paper.original_title || paper.title_en })))
     indexCache.catalogs.set(catalogKey, catalog)
   }
-  const catalogMatches = (options.scope === 'text' ? [] : catalog.search(q)) as { record: PaperMetadata; score: number; fields: string[] }[]
-  const identifierQuery = options.scope !== 'text' && (/^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q))
+  const catalogMatches = (catalog?.search(q) || []) as { record: PaperMetadata; score: number; fields: string[] }[]
+  const identifierQuery = searchCatalog && (/^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q))
   const compactQuery = titleKey(q)
   const identities = catalogMatches.filter(match =>
     (identifierQuery && match.fields.some(field => field === 'id' || field === 'doi')) ||
     match.fields.includes('author') ||
     [match.record.title, match.record.title_en].some(title => title && titleKey(title) === compactQuery))
   const identitySlugs = new Set(identities.map(match => match.record.slug))
-  const candidates = passages.filter(passage => matches(passage.paper) && (!identifierQuery || identitySlugs.has(passage.hit.slug)))
+  const available = options.document ? byDocument.get(`${options.document.slug}:${options.document.version}`)?.passages || [] : passages
+  const candidates = available.filter(passage => matches(passage.paper) && (!identifierQuery || identitySlugs.has(passage.hit.slug)))
   const patterns = terms.map(termPattern)
   const queryWeights = terms.map(term => /[\u3400-\u9fff]/.test(term) && term.length === 1 ? .2 : 1)
   const totalWeight = queryWeights.reduce((sum, weight) => sum + weight, 0)
