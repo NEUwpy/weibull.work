@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
 import { embeddedCalculationTrace, formatCalculationNumber as number, readCalculationTrace, type CalculationTrace } from '@/lib/calculation-trace'
 import type { FlowChartTarget } from '@/lib/method-flow'
 import { MDM_OFFSET_MAX, MDM_OFFSET_MIN, MDM_OFFSET_STEP } from '@/lib/calculator-state'
@@ -16,6 +15,7 @@ import { MDMScaleCalculation, MDMScaleValues } from './MDMScaleCalculation'
 import { useCalculationBatch } from '../../CalculationBatch'
 import { MDMBatchWorkspace } from '../MDMBatchWorkspace'
 import { liveMDMBatch } from './batch-process-data'
+import { vectorSummary, recordedRun } from '../../recorded-process-data'
 
 type ProcessData = NonNullable<ReturnType<typeof mdmProcessData>>
 interface MDMVisualizerProps {
@@ -47,13 +47,21 @@ export default function MDMVisualizer({ traceData, calculation, rSquared, mdmOff
     selectedRun={batch.activeIndex + 1} onSelect={id => { if (id !== null) batch.onSelect(id - 1) }} />
   return <CalculationWorkspace methodId="mdm" ready={!!model} updating={isOffsetUpdating} revision={model}
     values={model ? { n: String(model.pseudoScales.length), offset: number(shownOffset), found_gamma: number(model.finalSlice.gamma),
-      found_beta: number(model.finalSlice.beta), found_eta: number(model.finalSlice.eta) } : {}}
-    workflowValues={{ count: model?.pseudoScales.length || undefined, offset: shownOffset }}
+      found_beta: number(model.finalSlice.beta), found_eta: number(model.finalSlice.eta),
+      data: vectorSummary(model.pseudoScales.map(point => point.observation)), t: vectorSummary(model.pseudoScales.map(point => point.observation)),
+      ranks: vectorSummary(model.pseudoScales.map(point => point.rank)), rank_transform: vectorSummary(model.pseudoScales.map(point => point.rank_transform!)),
+      rank_rule: model.rankMethod === 'exact' ? '精确中位秩' : 'Bernard 近似秩',
+      grid_density: String(recordedRun(trace!)?.parameters.gamma_steps ?? '本记录未保存'),
+      trial_gamma: number(selected?.gamma), trial_beta: number(selected?.beta), conditional_sigma: number(selected?.sigma),
+      sigma_profile: vectorSummary(model.slices.map(slice => slice.sigma)),
+      final_gamma: number(model.finalSlice.gamma), final_beta: number(model.finalSlice.beta), final_eta: number(model.finalSlice.eta),
+      r_squared: number(rSquared), process_status: String(trace?.selection.approximate ? '右端回退' : '已采纳') } : {}}
     workflowBranch={branch}
     formulaVariant={(_, target) => target === 'samples' ? model?.rankMethod ?? undefined : target === 'location' ? branch : undefined}
-    notice={offsetStale && !isOffsetUpdating && <p role="status" className="py-3 text-sm text-amber-800">偏移量已改变，请重新计算。</p>}
-    emptyContent={record ? <CalculationProcessViewer calculation={record} methodId="mdm" showOverview={false} />
-      : <p className="py-6 text-slate-500">输入样本并计算后，即可查看过程图。</p>}
+    notice={record && !model ? <p role="status" className="py-3 text-sm text-amber-800">
+      {trace && trace.selection.status !== 'ok' ? trace.selection.description : '这份记录缺少本次求解明细，请重新计算后查看。'}
+    </p> : offsetStale && !isOffsetUpdating && <p role="status" className="py-3 text-sm text-amber-800">偏移量已改变，请重新计算。</p>}
+    emptyContent={!record && <p className="py-6 text-slate-500">输入样本并计算后，即可查看过程图。</p>}
     renderFigure={(_, target) => trace && model && selected && <MDMStepImage target={target} model={model} selected={selected} trace={trace}
       rSquared={rSquared} fullShape={fullShape} setFullShape={setFullShape} fullGradient={fullGradient} setFullGradient={setFullGradient}
       setManualIndex={setManualIndex} shownOffset={shownOffset} mdmOffset={mdmOffset} onMdmOffsetChange={onMdmOffsetChange} />}
@@ -68,7 +76,7 @@ function MDMStepImage({ target, model, selected, trace, rSquared, fullShape, set
   setManualIndex: (index: number) => void; shownOffset: number; mdmOffset: number; onMdmOffsetChange: (value: number) => void
 }) {
   if (target === 'samples') return <ProcessValueTable label="样本与经验概率" minColumnWidth={460}
-    columns={['序号 i', '排序样本 t₍ᵢ₎', '经验概率 pᵢ', '概率变换 xᵢ'].map((label, index) => ({ label, align: index ? 'right' : 'left' }))}
+    columns={['序号', '排序样本', '经验概率', '概率变换'].map((label, index) => ({ label, math: ['i', 't_{(i)}', 'p_i', 'x_i'][index], align: index ? 'right' : 'left' }))}
     rows={model.pseudoScales.map((point, index) =>
       [index + 1, number(point.observation), number(point.rank), number(point.rank_transform)])} />
   if (target === 'trial') return <div className="space-y-3">

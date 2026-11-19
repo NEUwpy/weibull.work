@@ -5,6 +5,8 @@ import { isContentSlug } from './content-files'
 import { extractLibraryNoteSummary } from '../library-note-summary'
 import { libraryOriginalLanguage, type LibraryTitlePresentation } from '../library-titles'
 import { validateLibraryCredits } from '../library-credits'
+import { extractDois } from '../literature-search.mjs'
+import { validateLibraryProblemTags } from '../library-problems'
 
 export interface SourcePaper {
   id: string
@@ -56,6 +58,7 @@ export function indexSourcePapers(sources: unknown, observedDirectories?: string
         const valid = field === 'year' ? typeof value === 'number' && Number.isInteger(value) && value >= 1000 && value <= 9999
           : field === 'tags' ? Array.isArray(value) && value.every(tag => typeof tag === 'string') : typeof value === 'string'
         if (!valid) throw new Error(`JSON题录字段格式无效：${id} / ${field}`)
+        if (field === 'tags') validateLibraryProblemTags(value as string[])
       }
       return { id, metadata }
     })
@@ -241,12 +244,13 @@ export function sourceDocument(paper: SourcePaper, version: string): { raw: stri
   const credits = creditsValue === undefined ? undefined : validateLibraryCredits(creditsValue)
   const metadata = Object.fromEntries(Object.entries({
     title, title_en: data.title_en ?? n.英文标题,
-    author: data.author || n.作者 || credits?.authors.map(author => author.name).join(', ') || 'Unknown', doi: data.doi,
+    author: data.author || n.作者 || credits?.authors.map(author => author.name).join(', ') || 'Unknown',
+    doi: data.doi || extractDois(n.DOI ?? n.doi)[0],
     affiliation: data.affiliation || n.单位 || credits?.institutions?.map(unit => unit.name).join('；'), credits,
     publication: data.publication ?? n.出版物 ?? n.期刊或类型 ?? n.期刊,
     short_publication: data.short_publication ?? n.出版简称 ?? n.期刊简称,
     type: data.type ?? n.文献类型 ?? n.type ?? '文献', year,
-    tags: Array.from(new Set<string>(typeof tags === 'string' ? [tags] : tags)),
+    tags: validateLibraryProblemTags(Array.from(new Set<string>(typeof tags === 'string' ? [tags] : tags))),
     summary: readSourceNoteSummary(paper) || (data.summary ?? ''),
     related_method_id: data.related_method_id ?? n.关联方法,
   }).filter(([, value]) => value !== undefined))

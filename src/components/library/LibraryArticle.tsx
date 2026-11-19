@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useRef, useId } from 'react'
 import Markdown from 'react-markdown'
-import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
-import { ArrowRight, Calendar, BookOpen, FileText, Languages, LockKeyhole, Loader2, PanelLeft, PanelRight } from 'lucide-react'
+import { LibraryDocumentLink as Link, useLibraryCatalogPaper } from './LibraryDocumentDialog'
+import { libraryJournalForPaper, libraryJournalPreviewHref } from '@/lib/library-journals'
+import { ArrowRight, Calendar, BookOpen, FileText, Languages, List, LockKeyhole, Loader2, MessageSquare, PanelLeft, PanelRight } from 'lucide-react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import '@/components/library/document.css'
@@ -14,35 +15,59 @@ import { cn } from '@/lib/utils'
 import { processLibraryContent, getLibraryMarkdownOptions, getLibraryReferenceMarkdownOptions } from '@/lib/library-markdown'
 import { readLibrarySearchHighlight, rehypeLibrarySearchHighlights, type LibrarySearchHighlight } from '@/lib/library-search-highlight'
 import { LibraryAuthenticationError, libraryDocumentClient, scheduleLibraryResultPrefetch } from '@/lib/library-document-client'
-import { libraryAuthClient, useLibrarySession } from '@/lib/library-auth-client'
+import { libraryAuthClient, maskLibraryPhone, useLibrarySession } from '@/lib/library-auth-client'
 import { LibraryLoginDialog } from '@/components/library/LibraryLoginDialog'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import type { LibraryVersion } from '@/lib/library-search-types'
-import type { LibraryCategory } from '@/lib/library-categories'
-import type { LibraryTitlePresentation } from '@/lib/library-titles'
-import type { LibraryCredits } from '@/lib/library-credits'
+import type { PaperMetadata } from '@/lib/server/literature'
 import { LibraryPaperTitle } from '@/components/library/LibraryPaperTitle'
 import { LibraryAuthors } from './LibraryAuthors'
 import { LibraryInstitutions } from './LibraryInstitutions'
 import { libraryPaperInstitutions } from '@/lib/library-institutions'
 import { LibraryArticleChat } from './LibraryArticleChat'
+import articleQuestions from '@/content/prompts/article-questions.json'
 
 type ReadingView = '简介' | LibraryVersion
 const READING_VERSIONS: LibraryVersion[] = ['原文', '翻译']
-interface PublicPaper extends LibraryTitlePresentation {
-  slug: string
-  title: string
-  title_en?: string
-  author: string
-  affiliation?: string
-  credits?: LibraryCredits
-  publication?: string
-  year: number
-  type?: string
-  doi?: string
-  summary: string
-  tags: string[]
-  category?: LibraryCategory
+const NO_READING_VERSIONS: LibraryVersion[] = []
+const COMPACT_READER = '(max-width: 900px)'
+
+function tocLevel(text: string, headingLevel: number, firstLevel: number) {
+  // Some source articles use the same Markdown heading level for every numbered section.
+  const sectionNumber = /^(\d{1,3}(?:\.\d{1,3})*)(?:[.)、])?(?=\s|[\u3400-\u9fff]|$)/.exec(text.trim().normalize('NFKC'))?.[1]
+  return Math.min(3, sectionNumber ? sectionNumber.split('.').length : headingLevel - firstLevel + 1)
+}
+
+function scrollBelowReaderToolbar(target: HTMLElement, onlyIfCovered = false) {
+  const reader = target.closest('.library-reader')
+  const toolbar = reader?.querySelector<HTMLElement>('.library-article-toolbar-band')
+  const scroller = reader?.closest<HTMLElement>('[data-library-dialog-scroll]')
+  const top = (scroller?.getBoundingClientRect().top ?? 0) + (toolbar ? parseFloat(getComputedStyle(toolbar).top) + toolbar.offsetHeight : 0)
+  const distance = target.getBoundingClientRect().top - top - 8
+  if (onlyIfCovered && distance >= 0) return
+  if (scroller) scroller.scrollTo({ top: scroller.scrollTop + distance })
+  else window.scrollTo({ top: window.scrollY + distance })
+}
+
+function readerAnchor(content: HTMLElement | null, hash: string) {
+  let id: string
+  try { id = decodeURIComponent(hash.slice(1)) } catch { return null }
+  return id ? content?.querySelector<HTMLElement>(`#${CSS.escape(id)}`) : null
+}
+
+function recommendedQuestions(paper: PaperMetadata): readonly string[] {
+  if (paper.type === '书籍') return articleQuestions.book
+  switch (paper.category?.key) {
+    case '180/181': return articleQuestions.review
+    case '180/186': return articleQuestions.case
+    case '170/171':
+    case '180/182':
+    case '180/183':
+    case '180/184':
+    case '180/185':
+    case '180/187': return articleQuestions.method
+    default: return articleQuestions.general
+  }
 }
 
 function renderTextWithMath(text: string): React.ReactNode {
@@ -70,14 +95,28 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
   const [readerVisible, setReaderVisible] = useState(false)
   const [leftOpen, setLeftOpen] = useState(true)
   const [rightOpen, setRightOpen] = useState(false)
-  const [paper, setPaper] = useState<PublicPaper | null>(null)
-  const [versions, setVersions] = useState<LibraryVersion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadedSlug, setLoadedSlug] = useState('')
-  const [error, setError] = useState('')
+  const [compact, setCompact] = useState(false)
+  const [inlineTocOpen, setInlineTocOpen] = useState(false)
+  const tocReturn = useRef<(() => void) | null>(null)
+  const catalogPaper = useLibraryCatalogPaper(slug)
+  const [details, setDetails] = useState<{ paper: PaperMetadata } | { error: string } | null>(null)
+  const paper = catalogPaper ?? (details && 'paper' in details ? details.paper : null)
+  const error = !paper && details && 'error' in details ? details.error : ''
+  const versions = paper?.availableVersions ?? NO_READING_VERSIONS
   const [loginOpen, setLoginOpen] = useState(false)
   const [sessionError, setSessionError] = useState('')
   const auth = useLibrarySession()
+
+  useEffect(() => {
+    const media = window.matchMedia(COMPACT_READER)
+    const update = () => {
+      setCompact(media.matches)
+      if (!media.matches) { setInlineTocOpen(false); tocReturn.current = null }
+    }
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     const readView = () => {
@@ -91,46 +130,43 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
   }, [slug, locationHref])
 
   useEffect(() => {
+    if (catalogPaper) return
     const controller = new AbortController()
-    const requested = new URL(locationHref || window.location.href, window.location.origin).searchParams.get('version')
-    const readingRequested = requested === '原文' || requested === '翻译'
-    setLoading(true); setError(''); setPaper(null); setVersions([]); setReaderVersion(null)
-    setPreparedVersion(null); setIntroExpanded(!readingRequested); setReaderVisible(readingRequested)
-    setLeftOpen(true); setRightOpen(false)
     fetch(`/api/library/papers/${encodeURIComponent(slug)}`, { cache: 'no-store', signal: controller.signal })
       .then(async response => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || '文献暂时无法加载。')
-        if (!controller.signal.aborted) { setPaper(data.paper); setVersions(data.versions); setLoadedSlug(slug) }
+        if (!controller.signal.aborted) setDetails({ paper: { ...data.paper, availableVersions: data.versions } })
       })
-      .catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '连接失败，请稍后重试。') })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+      .catch(cause => {
+        if (!controller.signal.aborted) setDetails({ error: cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '连接失败，请稍后重试。' })
+      })
     return () => controller.abort()
-  }, [slug])
+  }, [slug, catalogPaper])
 
   useEffect(() => {
-    if (loading || loadedSlug !== slug || auth.status !== 'authenticated') return
+    if (!paper || auth.status !== 'authenticated' || auth.user?.canRead === false) return
     return scheduleLibraryResultPrefetch(READING_VERSIONS.filter(version => versions.includes(version))
       .map(version => ({ slug, version })))
-  }, [loading, loadedSlug, slug, versions, auth.status])
+  }, [paper, slug, versions, auth.status, auth.user?.canRead])
 
   useEffect(() => {
     if (auth.status === 'authenticated') setLoginOpen(false)
     else setPreparedVersion(null)
-    if (loading || loadedSlug !== slug || view === '简介') return
+    if (!paper || view === '简介') return
     if (!versions.includes(view)) { chooseView('简介'); return }
     setReaderVersion(view)
     if (auth.status === 'anonymous') setLoginOpen(true)
-  }, [view, auth.status, versions, loading, loadedSlug, slug])
+  }, [view, auth.status, versions, paper])
 
   useEffect(() => {
-    if (loading || loadedSlug !== slug) return
+    if (!paper) return
     if (view === '简介') {
       setIntroExpanded(true)
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setReaderVisible(false)
       return
     }
-    if (auth.status === 'loading' || (auth.status === 'authenticated' && preparedVersion !== view)) return
+    if (auth.status === 'loading' || (auth.status === 'authenticated' && auth.user?.canRead !== false && preparedVersion !== view)) return
     setReaderVisible(true)
     // Lay out the prepared reader before starting the drawer animation.
     let settle = 0
@@ -138,10 +174,12 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
       settle = requestAnimationFrame(() => setIntroExpanded(false))
     })
     return () => { cancelAnimationFrame(prepare); cancelAnimationFrame(settle) }
-  }, [view, auth.status, preparedVersion, loading, loadedSlug, slug])
+  }, [view, auth.status, auth.user?.canRead, preparedVersion, paper])
 
   function chooseView(next: ReadingView) {
     if (next !== '简介' && !versions.includes(next)) return
+    setInlineTocOpen(false)
+    tocReturn.current = null
     setView(next)
     if (next !== '简介') setReaderVersion(next)
     if (next === '简介') setLoginOpen(false)
@@ -167,15 +205,40 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
     catch (cause) { setSessionError(cause instanceof Error ? cause.message : '退出未完成，请重试。') }
   }
 
-  if (loading || (!error && loadedSlug !== slug)) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="status" className="p-20 text-center text-sm text-slate-400">正在加载文献简介…</div></main>
-  if (error || !paper) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="alert" className="p-12 text-center text-sm text-slate-500"><p>{error || '文献未找到。'}</p></div></main>
+  if (!paper && !error) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="status" className="p-20 text-center text-sm text-slate-400">正在加载文献简介…</div></main>
+  if (!paper) return <main className="library-reader flex-1 bg-slate-50 min-h-screen"><div role="alert" className="p-12 text-center text-sm text-slate-500"><p>{error || '文献未找到。'}</p></div></main>
   const selectedVersion = view !== '简介' && versions.includes(view) ? view : null
   const readingView = selectedVersion || '简介'
   const documentVersion = selectedVersion || readerVersion
-  const readingControlsVisible = !introExpanded && readingView !== '简介' && auth.status === 'authenticated'
-  const topics = Array.from(new Set([paper.category?.groupName, paper.category?.name, ...paper.tags].filter((tag): tag is string => Boolean(tag))))
+  const canRead = auth.status === 'authenticated' && auth.user?.canRead !== false
+  const readingControlsVisible = !introExpanded && readingView !== '简介' && canRead
+  const tocOpen = compact ? inlineTocOpen : leftOpen
+  const topics = Array.from(new Set([paper.category?.groupName, paper.category?.name, ...paper.tags.filter(tag => !tag.startsWith('problem:'))].filter((tag): tag is string => Boolean(tag))))
   const institutions = libraryPaperInstitutions(paper)
+  const journal = libraryJournalForPaper(paper)
+  const publication = paper.publication || paper.short_publication || '未登记'
+
+  function closeInlineToc(restorePosition: boolean) {
+    setInlineTocOpen(false)
+    if (restorePosition && tocReturn.current) requestAnimationFrame(tocReturn.current)
+    tocReturn.current = null
+  }
+
+  function toggleContents() {
+    if (!compact) { setLeftOpen(open => !open); return }
+    if (inlineTocOpen) { closeInlineToc(true); return }
+    const scroller = article.current?.closest<HTMLElement>('[data-library-dialog-scroll]')
+    const position = scroller?.scrollTop ?? window.scrollY
+    tocReturn.current = scroller ? () => scroller.scrollTo({ top: position }) : () => window.scrollTo({ top: position })
+    setInlineTocOpen(true)
+    requestAnimationFrame(() => {
+      const contents = document.getElementById(panelId + '-toc')
+      if (contents && !contents.hidden) scrollBelowReaderToolbar(contents, true)
+    })
+  }
+
   function openCitation(href: string) {
+    if (compact) closeInlineToc(false)
     const version = new URL(href, window.location.origin).searchParams.get('version')
     if (version === '原文' || version === '翻译') { setView(version); setReaderVersion(version) }
     if (onNavigate) onNavigate(href)
@@ -189,10 +252,10 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
     <button type="button" role="tab" aria-selected={readingView === '简介'} aria-controls={panelId + '-intro'} onClick={() => chooseView('简介')}><BookOpen size={16} />简介</button>
     {READING_VERSIONS.map(version => <button key={version} type="button" role="tab" disabled={!versions.includes(version)}
       aria-selected={selectedVersion === version} aria-controls={panelId}
-      aria-busy={selectedVersion === version && auth.status === 'authenticated' && preparedVersion !== version}
+      aria-busy={selectedVersion === version && canRead && preparedVersion !== version}
       title={!versions.includes(version) ? (version === '翻译' ? '译文' : '原文') + '资料待补齐' : undefined} onClick={() => chooseView(version)}>
-      {selectedVersion === version && auth.status === 'authenticated' && preparedVersion !== version ? <Loader2 size={16} className="animate-spin" /> : version === '原文' ? <FileText size={16} /> : <Languages size={16} />}{version === '翻译' ? '译文' : '原文'}
-      {versions.includes(version) && auth.status !== 'authenticated' && <LockKeyhole size={12} className="text-slate-400" />}
+      {selectedVersion === version && canRead && preparedVersion !== version ? <Loader2 size={16} className="animate-spin" /> : version === '原文' ? <FileText size={16} /> : <Languages size={16} />}{version === '翻译' ? '译文' : '原文'}
+      {versions.includes(version) && !canRead && <LockKeyhole size={12} className="text-slate-400" />}
     </button>)}
   </div>
 
@@ -202,7 +265,7 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
         <div className="library-entry-shell pt-8">
           <div className="flex flex-wrap items-center justify-end gap-4 mb-8">
             <div className="library-entry-session">
-              {auth.status === 'authenticated' ? <><span>已登录 · {auth.user?.phone ? auth.user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '阅读账号'}</span><span aria-hidden="true">·</span><button type="button" onClick={logout}>退出登录</button></>
+              {auth.status === 'authenticated' ? <><span>已登录 · {auth.user?.phone ? maskLibraryPhone(auth.user.phone) : '阅读账号'}</span><span aria-hidden="true">·</span><button type="button" onClick={logout}>退出登录</button></>
                 : auth.status === 'loading' ? <span>确认登录状态…</span> : <button type="button" onClick={() => setLoginOpen(true)}>登录</button>}
             </div>
           </div>
@@ -217,13 +280,16 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
       </div>
       <div className="library-article-toolbar-band" data-reading={readingControlsVisible}>
         <div className="library-article-toolbar library-entry-shell">
-          <button type="button" disabled={!readingControlsVisible} aria-expanded={leftOpen} aria-controls={panelId + '-toc'}
-            aria-label={leftOpen ? '收起目录' : '展开目录'} title={leftOpen ? '收起目录' : '展开目录'}
-            onClick={() => setLeftOpen(open => !open)}><PanelLeft size={17} /></button>
+          <button type="button" disabled={!readingControlsVisible} aria-expanded={tocOpen} aria-controls={panelId + '-toc'}
+            aria-label={tocOpen ? '收起目录' : '展开目录'} title={tocOpen ? '收起目录' : '展开目录'} onClick={toggleContents}>
+            {compact ? <><List size={17} /><span>目录</span></> : <PanelLeft size={17} />}
+          </button>
           <div className="library-article-toolbar-center">{versionTabs}</div>
           <button type="button" disabled={!readingControlsVisible} aria-expanded={rightOpen} aria-controls={panelId + '-chat'}
             aria-label={rightOpen ? '收起 AI 问答' : '展开 AI 问答'} title={rightOpen ? '收起 AI 问答' : '展开 AI 问答'}
-            onClick={() => setRightOpen(open => !open)}><PanelRight size={17} /></button>
+            onClick={() => setRightOpen(open => !open)}>
+            {compact ? <><MessageSquare size={17} /><span>AI 问答</span></> : <PanelRight size={17} />}
+          </button>
         </div>
       </div>
       <div id={panelId + '-intro'} role="tabpanel" aria-label="文献简介" className="library-article-intro" data-expanded={introExpanded} aria-hidden={readingView !== '简介'}
@@ -243,8 +309,10 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
                 <div><dt>发表年份</dt><dd>{paper.year > 0 ? paper.year : '未登记'}</dd></div>
                 {(paper.original_title || paper.title_en) && <div><dt>{paper.original_language === 'en' ? '英文原名' : '英文题名'}</dt><dd><LibraryMathMarkdown inline>{paper.original_title || paper.title_en || ''}</LibraryMathMarkdown></dd></div>}
                 <div><dt>作者</dt><dd><LibraryAuthors author={paper.author || '未登记'} credits={paper.credits} from={paper.slug} /></dd></div>
-                <div><dt>出版信息</dt><dd>{paper.publication || '未登记'}</dd></div>
-                {institutions.length > 0 && <div><dt>机构</dt><dd><LibraryInstitutions affiliation={institutions.join('；')} credits={paper.credits} from={paper.slug} /></dd></div>}
+                <div><dt>出版信息</dt><dd>{journal
+                  ? <Link href={libraryJournalPreviewHref(journal.key)} prefetch={false} className="library-author-link">{publication}</Link>
+                  : publication}</dd></div>
+                {institutions.length > 0 && <div><dt>机构</dt><dd><LibraryInstitutions names={institutions} credits={paper.credits} from={paper.slug} /></dd></div>}
                 <div><dt>DOI</dt><dd>{paper.doi ? <a href={'https://doi.org/' + paper.doi} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{paper.doi}</a> : '未登记'}</dd></div>
                 <div><dt>主题</dt><dd>{topics.length ? topics.join(' · ') : '未登记'}</dd></div>
                 <div><dt>可阅读版本</dt><dd>{versions.map(version => version === '翻译' ? '译文' : '原文').join(' / ') || '资料待补齐'}</dd></div>
@@ -258,11 +326,13 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
       <div id={panelId} role="tabpanel" className="library-article-reader-panel" hidden={!readerVisible} data-active={readingView !== '简介'}
         aria-hidden={readingView === '简介'} ref={element => { if (element) element.inert = readingView === '简介' }}>
         {auth.status === 'loading' ? <div className="library-entry-shell py-12"><p role="status" className="flex items-center justify-center gap-2 py-20 text-sm text-slate-400"><Loader2 size={18} className="animate-spin" />正在确认阅读权限…</p></div>
-          : auth.status !== 'authenticated' ? <div className="library-entry-shell py-12"><div className="library-access-wall"><div aria-hidden="true" className="library-access-preview">{Array.from({ length: 16 }, (_, index) => <div key={index} />)}</div><div className="library-access-cover"><div className="library-access-card"><div className="library-login-emblem"><LockKeyhole size={25} strokeWidth={1.6} /></div><h2>登录后，阅读完整{view === '翻译' ? '译文' : '原文'}</h2><p>卡片介绍、文献简介与搜索片段公开可见。<br />登录已开放账号，即可继续阅读全文。</p><button type="button" className="library-entry-read library-entry-read-primary" onClick={() => setLoginOpen(true)}>登录并继续<ArrowRight size={16} /></button></div></div></div></div>
+          : auth.user?.canRead === false ? <p role="status" className="p-12 text-center text-sm text-slate-500">此账号尚未开通全文阅读权限。</p>
+          : !canRead ? <div className="library-entry-shell py-12"><div className="library-access-wall"><div aria-hidden="true" className="library-access-preview">{Array.from({ length: 16 }, (_, index) => <div key={index} />)}</div><div className="library-access-cover"><div className="library-access-card"><div className="library-login-emblem"><LockKeyhole size={25} strokeWidth={1.6} /></div><h2>登录后，阅读完整{view === '翻译' ? '译文' : '原文'}</h2><p>卡片介绍、文献简介与搜索片段公开可见。<br />登录具有全文权限的账号，即可继续阅读。</p><button type="button" className="library-entry-read library-entry-read-primary" onClick={() => setLoginOpen(true)}>登录并继续<ArrowRight size={16} /></button></div></div></div></div>
             : documentVersion ? <LibraryDocument key={slug} slug={paper.slug} version={documentVersion} locationHref={locationHref || undefined}
-              onLogin={() => setLoginOpen(true)} onCitation={openCitation}
+              onLogin={() => setLoginOpen(true)} onCitation={openCitation} suggestions={recommendedQuestions(paper)}
               onReady={setPreparedVersion}
-              controlsId={panelId} leftOpen={leftOpen} rightOpen={rightOpen} setRightOpen={setRightOpen} />
+              controlsId={panelId} compact={compact} tocOpen={tocOpen} rightOpen={rightOpen} setRightOpen={setRightOpen}
+              readingControlsVisible={readingControlsVisible} />
               : <p className="p-12 text-center text-sm text-slate-400">本篇暂未收录这个版本。</p>}
       </div>
       <LibraryLoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} container={article.current} />
@@ -270,9 +340,11 @@ export function LibraryArticle({ slug, locationHref, onNavigate }: { slug: strin
   )
 }
 
-function LibraryDocument({ slug, version, locationHref, onLogin, onCitation, onReady, controlsId, leftOpen, rightOpen, setRightOpen }: {
-  slug: string; version: LibraryVersion; locationHref?: string; onLogin: () => void; onCitation: (href: string) => void; controlsId: string; leftOpen: boolean; rightOpen: boolean; setRightOpen: (open: boolean) => void
+function LibraryDocument({ slug, version, locationHref, onLogin, onCitation, onReady, controlsId, compact, tocOpen, rightOpen, setRightOpen, readingControlsVisible, suggestions }: {
+  slug: string; version: LibraryVersion; locationHref?: string; onLogin: () => void; onCitation: (href: string) => void
+  controlsId: string; compact: boolean; tocOpen: boolean; rightOpen: boolean; setRightOpen: (open: boolean) => void; readingControlsVisible: boolean
   onReady: (version: LibraryVersion) => void
+  suggestions: readonly string[]
 }) {
   const content = useRef<HTMLDivElement>(null)
   const [document, setDocument] = useState<{ version: LibraryVersion; raw?: string; references?: Record<string, string>; error?: string } | null>(null)
@@ -317,11 +389,10 @@ function LibraryDocument({ slug, version, locationHref, onLogin, onCitation, onR
       const url = new URL(locationHref || window.location.href, window.location.origin)
       const next = readLibrarySearchHighlight(url.search, url.hash)
       setHighlight(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next)
-      let id = ''
-      try { id = decodeURIComponent(url.hash.slice(1)) } catch { return }
-      const target = id ? content.current?.querySelector<HTMLElement>(`#${CSS.escape(id)}`) : null
+      const target = readerAnchor(content.current, url.hash)
       const scroller = content.current?.closest<HTMLElement>('[data-library-dialog-scroll]')
-      if (target && scroller) scroller.scrollTo({ top: target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 62 })
+      if (target && compact) scrollBelowReaderToolbar(target)
+      else if (target && scroller) scroller.scrollTo({ top: target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 62 })
       else target?.scrollIntoView({ block: 'start' })
     }
     const frame = requestAnimationFrame(scrollToTarget)
@@ -331,16 +402,35 @@ function LibraryDocument({ slug, version, locationHref, onLogin, onCitation, onR
       window.addEventListener('popstate', scrollToTarget)
     }
     return () => { cancelAnimationFrame(frame); clearTimeout(settle); window.removeEventListener('hashchange', scrollToTarget); window.removeEventListener('popstate', scrollToTarget) }
-  }, [fileContent, current?.version, slug, version, locationHref])
+  }, [fileContent, current?.version, slug, version, locationHref, compact])
+
+  function navigateToSection(href: string) {
+    onCitation(href)
+    if (!compact) return
+    const url = new URL(href, window.location.origin)
+    const targetVersion = url.searchParams.get('version')
+    if (targetVersion && targetVersion !== current?.version) return
+    requestAnimationFrame(() => {
+      const target = readerAnchor(content.current, url.hash)
+      if (target) scrollBelowReaderToolbar(target)
+    })
+  }
 
   const { body, referenceTitle, referenceEntries, headings: rawToc } = processed || { body: '', referenceTitle: '', referenceEntries: [], headings: [] }
   const minLevel = rawToc.length > 0 ? Math.min(...rawToc.map(h => h.level)) : 1
-  const contents = (rawToc.length > 0 || referenceEntries.length > 0) ? <nav aria-label="文献目录">
-    {rawToc.map(item => <a key={item.slug} href={`#${item.slug}`}
-      data-nested={item.level > minLevel || undefined} style={{ paddingInlineStart: `${(item.level - minLevel) * 12}px` }}>
+  const contents = (rawToc.length > 0 || referenceEntries.length > 0) ? <nav aria-label="文献目录" onClick={event => {
+    if (!compact || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+    const link = (event.target as Element).closest('a[href^="#"]')
+    if (!link) return
+    event.preventDefault()
+    const url = new URL(locationHref || window.location.href, window.location.origin)
+    url.hash = link.getAttribute('href') || ''
+    navigateToSection(url.pathname + url.search + url.hash)
+  }}>
+    {rawToc.map(item => <a key={item.slug} href={`#${item.slug}`} data-level={tocLevel(item.text, item.level, minLevel)}>
       {renderTextWithMath(item.text)}
     </a>)}
-    {referenceEntries.length > 0 && <a href="#references-section">{referenceTitle}</a>}
+    {referenceEntries.length > 0 && <a href="#references-section" data-level={1}>{referenceTitle}</a>}
   </nav> : undefined
   const markdownOptions = useMemo(() => processed && getLibraryMarkdownOptions(processed), [processed])
   // Keep the Markdown tree stable while the drawer and sidebars animate.
@@ -388,7 +478,8 @@ function LibraryDocument({ slug, version, locationHref, onLogin, onCitation, onR
           </div>
   ), [current, processed, markdownOptions, body, highlight, referenceEntries, referenceTitle, references])
   return (
-    <LibraryArticleChat slug={slug} version={current?.version || version} onLogin={onLogin} onCitation={onCitation} contents={contents} controlsId={controlsId} leftOpen={leftOpen} rightOpen={rightOpen} setRightOpen={setRightOpen}>
+    <LibraryArticleChat slug={slug} version={current?.version || version} onLogin={onLogin} onCitation={navigateToSection} contents={contents} suggestions={suggestions}
+      controlsId={controlsId} compact={compact} tocOpen={tocOpen} rightOpen={rightOpen && (!compact || readingControlsVisible)} setRightOpen={setRightOpen}>
       {renderedDocument}
     </LibraryArticleChat>
   )

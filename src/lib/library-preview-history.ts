@@ -28,6 +28,7 @@ export function createPreviewHistory(target: PreviewWindow, onChange: (value: st
   onChange(currentHref(), currentTrail())
 
   return {
+    currentHref,
     open(href: string) {
       if (closing || !isValid(href)) return
       const trail = currentTrail()
@@ -63,6 +64,17 @@ export function createPreviewHistory(target: PreviewWindow, onChange: (value: st
 }
 
 export function createLibraryPreviewHistory(target: PreviewWindow, onChange: (href: string | null, trail: string[]) => void) {
-  return createPreviewHistory(target, onChange, '__weibullLibraryPreview', href => /^\/library\/[^/?#]+(?:[?#]|$)/.test(href) ||
-    (href.startsWith('/library?') && ['author', 'institution'].some(key => Boolean(new URL(href, 'http://library.local').searchParams.get(key)))))
+  return createPreviewHistory(target, onChange, '__weibullLibraryPreview', isLibraryPreviewHref)
+}
+
+export const libraryEntityDirectories = { author: 'authors', institution: 'institutions', journal: 'journals' } as const
+
+export function libraryEntityPreviewKind(href: string) {
+  if (!href.startsWith('/library?')) return undefined
+  const query = new URL(href, 'http://library.local').searchParams
+  return (Object.keys(libraryEntityDirectories) as Array<keyof typeof libraryEntityDirectories>).find(key => !!query.get(key)?.trim())
+}
+
+export function isLibraryPreviewHref(href: string) {
+  return /^\/library\/[^/?#]+(?:[?#]|$)/.test(href) || Boolean(libraryEntityPreviewKind(href))
 }

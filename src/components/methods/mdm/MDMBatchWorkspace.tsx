@@ -11,6 +11,7 @@ import { formatCalculationNumber as number, type CalculationPoint, type Calculat
 import type { FlowChartTarget } from '@/lib/method-flow'
 import type { MDMProcessBatch, MDMProcessRun, MDMProcessTrace } from '@/lib/calculation-records'
 import type { MethodFlow } from '@/lib/method-flow'
+import { vectorSummary } from '../recorded-process-data'
 import { useCalculationBatch } from '../CalculationBatch'
 
 function adoptedShape(run: MDMProcessRun) {
@@ -206,8 +207,16 @@ export function MDMBatchWorkspace({ process, selectedRun, onSelect }: {
     <CalculationWorkspace methodId="mdm" recordedFlow={process.flow} ready
       workflowBranch={selected?.branch ?? 'ready'}
       formulaVariant={(_, target) => target === 'samples' ? selected?.rankMethod : target === 'location' ? selected?.branch ?? 'ready' : undefined}
-      workflowValues={{ count: n, offset: shownDelta }} values={{ offset: number(shownDelta), n: number(n),
-        found_gamma: number(selected?.gamma), found_beta: number(selected?.beta), found_eta: number(selected?.eta) }}
+      values={{ offset: number(shownDelta), n: number(n),
+        found_gamma: number(selected?.gamma), found_beta: number(selected?.beta), found_eta: number(selected?.eta),
+        data: selected ? vectorSummary(selected.sample) : runs.length + ' 组样本',
+        t: selected ? vectorSummary(selected.sample) : runs.length + ' 组样本',
+        ranks: vectorSummary(pseudoScales.map(point => point.rank)), rank_transform: vectorSummary(pseudoScales.map(point => point.rank_transform!)),
+        rank_rule: selected?.rankMethod === 'exact' ? '精确中位秩' : 'Bernard 近似秩',
+        trial_gamma: number(trialPoint?.[0]), trial_beta: number(trialPoint?.[2]),
+        sigma_profile: selected ? vectorSummary(selected.trace.profile.map(point => point[1])) : runs.length + ' 组剖面',
+        final_gamma: number(selected?.gamma), final_beta: number(selected?.beta), final_eta: number(selected?.eta),
+        r_squared: number(selected?.rSquared), process_status: selected ? solverLabel(selected) : runs.length + ' 组结果' }}
       notice={<div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
         <span>{process.title} · {mixedSampleSizes ? '多种样本量' : 'n=' + n} · δ={shownDelta.toFixed(2)} · {runs.length} 次</span>
         <label className="flex items-center gap-2">查看

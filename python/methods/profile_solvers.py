@@ -231,6 +231,9 @@ def solve_wmle_profile(data, weights, *, trace=False):
                     location_at_zero_boundary=best['gamma'] == 0.,
                     approximate_boundary_root=best['kind'] == 'boundary_residual_tolerance')
     if trace:
+        info['normalization_unit'] = unit
+        info['prepared_samples'] = [dict(index=i+1, observation=float(t), normalized=float(v))
+                                    for i, (t, v) in enumerate(zip(x, z))]
         info['selected_shape_evaluations'] = shape_records[min(shape_records, key=lambda g: abs(g - best['gamma'] / unit))] if best and best['kind'] != 'boundary_residual_tolerance' else []
         info['profile_trace'] = [dict(
             evaluation=i + 1, gamma=float(g * unit),

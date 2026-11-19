@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, type ReactNode } from 'react'
 import { LibraryDocumentLink as Link } from '@/components/library/LibraryDocumentDialog'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { Loader2, Square } from 'lucide-react'
 import { consumeLibraryChatStream } from '@/lib/chat-stream'
 import { cacheLibraryChatAnswer, readLibraryChatSession, type LibraryChatAnswer, type LibraryChatRequest } from '@/lib/library-chat-session'
+import type { LibraryRecommendationRelations } from '@/lib/library-recommendations'
 
 export function LibraryChatAnswerView({ message }: { message: LibraryChatAnswer }) {
   return <>
@@ -35,7 +36,10 @@ export function LibraryChatAnswerView({ message }: { message: LibraryChatAnswer 
   </>
 }
 
-export function ChatDialog({ request }: { request: LibraryChatRequest }) {
+export function ChatDialog({ request, renderRecommendations }: {
+  request: LibraryChatRequest
+  renderRecommendations: (paperIds: string[], relations?: LibraryRecommendationRelations) => ReactNode
+}) {
   const [restored] = useState(() => {
     const saved = readLibraryChatSession()
     return saved?.request.id === request.id ? saved : null
@@ -64,11 +68,6 @@ export function ChatDialog({ request }: { request: LibraryChatRequest }) {
     setIsLoading(true)
     setProgress('正在理解问题，准备检索…')
 
-    fetch('/api/chat', { signal: controller.signal, cache: 'no-store' })
-      .then(response => response.ok ? response.json() : null)
-      .then(config => { if (active && config?.label) { label = config.label; setModelLabel(label) } })
-      .catch(() => {})
-
     async function ask() {
       try {
         const response = await fetch('/api/chat', {
@@ -85,6 +84,10 @@ export function ChatDialog({ request }: { request: LibraryChatRequest }) {
           if (!active || controller.signal.aborted) return
           if (event.message) setProgress(event.message)
           if (event.evidence) update({ evidence: event.evidence, queries: event.queries })
+          if (Array.isArray(event.recommendedPaperIds)) update({
+            recommendedPaperIds: event.recommendedPaperIds,
+            recommendationRelations: event.recommendationRelations,
+          })
           if (event.content) { content += event.content; update({ content }) }
         }, controller.signal)
       } catch (cause) {
@@ -94,13 +97,25 @@ export function ChatDialog({ request }: { request: LibraryChatRequest }) {
         if (active) { finished = true; update({}, false); setIsLoading(false); setProgress('') }
       }
     }
-    void ask()
+    // An effect replay can clean up before the request needs to start.
+    void Promise.resolve().then(() => {
+      if (!active) return
+      fetch('/api/chat', { signal: controller.signal, cache: 'no-store' })
+        .then(response => response.ok ? response.json() : null)
+        .then(config => { if (active && config?.label) { label = config.label; setModelLabel(label) } })
+        .catch(() => {})
+      void ask()
+    })
     return () => {
       if (!finished) cacheLibraryChatAnswer(request.id, { ...latest, stopped: true }, label)
       active = false
       controller.abort()
     }
   }, [request])
+
+  if (Array.isArray(answer.recommendedPaperIds)) {
+    return <>{renderRecommendations(answer.recommendedPaperIds, answer.recommendationRelations)}</>
+  }
 
   return <section aria-label="AI 问答结果" className="library-chat overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div className="chat-controls flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">

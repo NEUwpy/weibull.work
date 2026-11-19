@@ -13,6 +13,11 @@ const papers = [
   { slug: 'unit-solo', author: 'Jane Doe', year: 2024, affiliation: 'Example University' },
   { slug: 'unit-multi', author: 'Jane Doe, John Roe', year: 2025, affiliation: 'Other University; Third University' },
   { slug: 'unit-annotated', author: 'Anne Doe（University of Examples）; John Roe', year: 2023, affiliation: 'Whole paper unit' },
+  { slug: 'unit-annotated-again', author: 'Anne Doe（University of Examples）; June Roe', year: 2022 },
+  { slug: 'unit-structured', author: 'Anne Doe, Jane Doe', year: 2026, credits: {
+    authors: [{ name: 'Anne Doe', units: ['a'] }, { name: 'Jane Doe' }],
+    institutions: [{ id: 'a', name: 'Another Research Institute' }],
+  } },
 ]
 
 test('author parsing preserves bilingual annotations, institution commas and suffixes', () => {
@@ -76,7 +81,11 @@ test('the public author endpoint lists selected metadata and handles missing nam
   const jane = await GET(new Request('http://localhost/api/library/authors?name=Jane+Doe'))
   assert.deepEqual(Array.from(jane.body.author.affiliations, item => item.name), ['Example University'])
   const anne = await GET(new Request('http://localhost/api/library/authors?name=Anne+Doe'))
-  assert.deepEqual(Array.from(anne.body.author.affiliations, item => item.name), ['University of Examples'])
+  assert.deepEqual(Array.from(anne.body.author.affiliations, item => [item.slug, item.name]), [
+    ['unit-structured', 'Another Research Institute'],
+    ['unit-annotated', 'University of Examples'],
+    ['unit-annotated-again', 'University of Examples'],
+  ])
   fail = true
   assert.equal((await GET(new Request('http://localhost/api/library/authors?name=杨小玉'))).status, 503)
 })

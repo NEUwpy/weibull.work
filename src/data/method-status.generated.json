@@ -140,7 +140,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/mmle.json",
+            "python/methods/mmle.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -150,13 +150,14 @@
         "calculation": {
           "status": "in_progress",
           "evidence": [
+            "src/components/methods/RecordedCalculationProcess.tsx",
             "src/components/methods/LikelihoodProcessViewer.tsx",
             "src/components/methods/PowerScaleCalculation.tsx",
             "src/data/method-process-examples/mmle.json",
             "python/tests/test_likelihood_process_views.py",
             "coworker/reports/2026-11-05-method-process-figures.md"
           ],
-          "note": "固定示例的定位、删点平移、实际形状迭代代入和逐样本尺度计算已补齐；任意样本入口仍随计算器专项验收保持关闭"
+          "note": "固定示例已接通逐步骤实际输入输出、删点平移、形状迭代前后量与停止条件及尺度恢复；科学表述待用户审阅，任意样本入口仍随计算器专项验收保持关闭"
         },
         "analysis": {
           "status": "todo",
@@ -285,7 +286,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/wmle.json",
+            "python/methods/wmle.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -295,13 +296,14 @@
         "calculation": {
           "status": "done",
           "evidence": [
+            "src/components/methods/RecordedCalculationProcess.tsx",
             "python/tests/test_calculation_provenance.py",
             "python/tests/test_likelihood_process_views.py",
             "src/components/methods/LikelihoodProcessViewer.tsx",
             "src/components/methods/PowerScaleCalculation.tsx",
             "coworker/reports/2026-11-05-method-process-figures.md"
           ],
-          "note": "权重来源及作用、双方程代入与选根、逐样本贡献经J₁恢复尺度已走通；边界近似仍标明"
+          "note": "共用工作区按条件形状、共同位置、候选选择与最终尺度分配内容，输入输出接同次实际值；辅助曲线与求解点仍区分，科学表述待用户审阅"
         },
         "analysis": {
           "status": "todo",
@@ -370,7 +372,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/lse.json",
+            "python/methods/lse.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -380,11 +382,12 @@
         "calculation": {
           "status": "done",
           "evidence": [
+            "src/components/methods/RecordedCalculationProcess.tsx",
             "python/tests/test_calculation_provenance.py",
             "src/components/methods/RegressionProcessViewer.tsx",
             "coworker/reports/2026-11-05-method-process-figures.md"
           ],
-          "note": "图形联动展示同次判据、中间量与参数恢复；估计规则未变，原文差异不由页面验收推断为完整复刻"
+          "note": "样本到White期望、位置试算的回归与F比、最终回归系数到参数已接入各步实际输入输出；科学表述待用户审阅，估计规则未变"
         },
         "analysis": {
           "status": "todo",
@@ -529,7 +532,7 @@
             "src/components/methods/mdm/visualizers/MDMVisualizer.tsx",
             "coworker/reports/2026-11-05-method-process-figures.md"
           ],
-          "note": "图形联动展示同次判据、中间量与参数恢复；估计规则未变，原文差异不由页面验收推断为完整复刻"
+          "note": "样本到Park绘图位置和分数、相关系数定位、最终回归系数到参数已接入各步实际输入输出；科学表述待用户审阅，估计规则未变"
         },
         "analysis": {
           "status": "done",
@@ -669,7 +672,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/lre.json",
+            "python/methods/lre.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -679,11 +682,12 @@
         "calculation": {
           "status": "done",
           "evidence": [
+            "src/components/methods/RecordedCalculationProcess.tsx",
             "python/tests/test_calculation_provenance.py",
             "src/components/methods/RegressionProcessViewer.tsx",
             "coworker/reports/2026-11-05-method-process-figures.md"
           ],
-          "note": "图形联动展示同次判据、中间量与参数恢复；估计规则未变，原文差异不由页面验收推断为完整复刻"
+          "note": "三个矩、显式三参数、位置处理后尺度及两参数对照已有数值过程和实际输入输出；失败时保留已算出的矩，科学表述待用户审阅"
         },
         "analysis": {
           "status": "todo",
@@ -813,7 +817,7 @@
         "process": {
           "status": "done",
           "evidence": [
-            "src/data/method_flows/mm.json",
+            "python/methods/mm.py",
             "src/lib/server/method-flow.mjs",
             "coworker/reports/2026-11-02-program-transparency.md"
           ]
@@ -823,6 +827,7 @@
         "calculation": {
           "status": "done",
           "evidence": [
+            "src/components/methods/RecordedCalculationProcess.tsx",
             "python/tests/test_calculation_provenance.py",
             "src/components/methods/MomentProcessViewer.tsx",
             "coworker/reports/2026-11-05-method-process-figures.md"

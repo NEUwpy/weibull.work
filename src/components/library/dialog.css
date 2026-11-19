@@ -47,16 +47,11 @@
 @media (prefers-reduced-motion: reduce) { .library-document-dialog[open] { animation: none; } }
 
 .library-author-link { display: inline; text-align: start; border-radius: 3px; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.library-entry-details .library-author-link,
+.library-authorship-links .library-author-link { color: #16624d; text-decoration-line: underline; text-decoration-color: #8fb2a4; }
 .library-author-link:hover { color: #047857; text-decoration-line: underline; }
 .library-author-link:focus-visible { outline: 2px solid #10b981; outline-offset: 3px; }
-.library-entity-dialog { width: min(920px, calc(100vw - 80px)); }
 .library-entity-content { padding: 36px 44px 44px; }
-.library-entity-header { display: flex; gap: 20px; align-items: flex-start; overflow-wrap: anywhere; }
-.library-entity-papers { display: grid; gap: 16px; margin-top: 20px; }
-.library-entity-paper { padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: white; overflow-wrap: anywhere; }
 @media (max-width: 767px) {
-  .library-entity-dialog { width: 100vw; }
   .library-entity-content { padding: 24px 16px; }
-  .library-entity-header { gap: 14px; }
-  .library-entity-paper { padding: 20px 16px; }
 }

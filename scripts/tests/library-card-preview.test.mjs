@@ -4,9 +4,15 @@ import fs from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import React from 'react'
+import { loadServerModule } from './helpers/load-server-module.mjs'
+
+const libraryJournals = loadServerModule('src/lib/library-journals.ts')
+const libraryInstitutions = loadServerModule('src/lib/library-institutions.ts')
+const libraryTypes = loadServerModule('src/lib/library-types.ts')
+const LibraryInstitutions = () => null
 
 // Exercise the actual card's pointer handlers with a clock, without simulating a browser/device.
-function cardHarness() {
+function cardHarness(paperOverrides = {}) {
   const refs = [], states = [], timers = new Map()
   let refIndex = 0, stateIndex = 0, now = 0, nextTimer = 0
   const hooks = { ...React,
@@ -17,13 +23,18 @@ function cardHarness() {
   }
   const module = { exports: {} }
   const imports = {
-    react: hooks, 'next/link': () => null, 'lucide-react': { ChevronDown: () => null, ChevronUp: () => null, User: () => null },
+    react: hooks, 'next/link': () => null, 'lucide-react': { Building2: () => null, ChevronDown: () => null, ChevronUp: () => null, User: () => null },
     './LibraryDocumentDialog': { LibraryDocumentLink: () => null },
     './LibraryAuthors': { LibraryAuthors: () => null },
+    './LibraryInstitutions': { LibraryInstitutions },
     '@/components/shared/LibraryMathMarkdown': { LibraryMathMarkdown: () => null },
     './LibraryCardMetadata': { LibraryCardMetadata: () => null },
+    './LibraryFavorites': { LibraryFavoriteButton: () => null },
     './LibraryPaperTitle': { LibraryPaperTitle: () => null },
     '@/lib/utils': { cn: (...values) => values.filter(Boolean).join(' ') },
+    '@/lib/library-journals': libraryJournals,
+    '@/lib/library-institutions': libraryInstitutions,
+    '@/lib/library-types': libraryTypes,
   }
   const file = 'src/components/library/LibraryCard.tsx'
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: {
@@ -35,7 +46,7 @@ function cardHarness() {
   setTimeout: (fn, delay) => { timers.set(++nextTimer, { fn, due: now + delay }); return nextTimer },
   clearTimeout: id => timers.delete(id) }, { filename: file })
   const paper = { slug: '182-103', title: 'Weibull', author: 'Author', year: 2026, summary: 'The full public note summary.',
-    tags: ['one', 'two', 'three', 'four', 'one'], availableVersions: ['原文'] }
+    tags: ['one', 'two', 'three', 'four', 'one'], availableVersions: ['原文'], ...paperOverrides }
   const render = () => { refIndex = 0; stateIndex = 0
     const element = module.exports.LibraryCard({ paper })
     element.ref.current = { getBoundingClientRect: () => ({ height: 320, top: 400 }) }
@@ -51,6 +62,26 @@ function descendants(element) {
   if (!element || typeof element !== 'object') return []
   return [element, ...React.Children.toArray(element.props?.children).flatMap(descendants)]
 }
+
+test('standard cards render an affiliation row for structured, legacy and missing affiliations', () => {
+  const legacy = { affiliation: '示例研究院；示例大学' }
+  const structured = { credits: { authors: [{ name: 'Author', units: ['lab'] }], institutions: [{ id: 'lab', name: '示例实验室' }] } }
+
+  for (const [overrides, expected] of [
+    [{ ...legacy, ...structured }, ['示例实验室']],
+    [legacy, ['示例研究院', '示例大学']],
+    [{}, []],
+  ]) {
+    const { render } = cardHarness(overrides)
+    const nodes = descendants(render())
+    const authors = nodes.findIndex(node => node.props.className?.split(' ').includes('library-card-authors'))
+    const affiliations = nodes.findIndex(node => node.props.className?.split(' ').includes('library-card-affiliations'))
+    assert.ok(authors >= 0 && affiliations > authors)
+    const institutions = descendants(nodes[affiliations]).find(node => node.type === LibraryInstitutions)
+    assert.deepEqual(Array.from(institutions.props.names), expected)
+    assert.equal(institutions.props.from, '182-103')
+  }
+})
 
 test('hover waits briefly, reveals extra tags in the card flow and closes after leaving', () => {
   const { render, advance } = cardHarness()

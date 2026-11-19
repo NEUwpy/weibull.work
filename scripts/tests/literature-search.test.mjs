@@ -9,6 +9,12 @@ const records = [
 ]
 const index = createLiteratureIndex(records)
 
+test('internal collection membership does not turn technical IDs into search keywords', () => {
+  const tagged = createLiteratureIndex([{ key: 'classified', title: 'Parameter estimation', tags: ['Weibull', 'problem:theory-02'] }])
+  assert.equal(tagged.search('Weibull').length, 1)
+  assert.equal(tagged.search('theory').length, 0)
+})
+
 test('DOI, citation title and typo-tolerant names are reusable search entrypoints', () => {
   for (const query of ['https://doi.org/10.1000/TEST.', 'three parameter WEIBULL estimation — a new method', 'Demidenco', '威布尔', 'Weibull 2006', '182001']) {
     assert.equal(index.search(query)[0]?.key, 'a', query)

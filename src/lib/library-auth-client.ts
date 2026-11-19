@@ -4,8 +4,13 @@ import { useEffect, useSyncExternalStore } from 'react'
 
 export interface LibraryAuthSnapshot {
   status: 'loading' | 'anonymous' | 'authenticated'
-  user?: { phone: string }
+  user?: { phone: string; canRead?: boolean }
   expiresAt?: number
+  loginMode?: 'sms' | 'password'
+}
+
+export function maskLibraryPhone(phone: string) {
+  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
 }
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>
@@ -37,14 +42,16 @@ export function createLibraryAuthClient(options: {
     return snapshot
   }
 
-  function fromResponse(data: { authenticated?: boolean; user?: { phone: string }; expiresAt?: number }): LibraryAuthSnapshot {
-    return data.authenticated ? { status: 'authenticated', user: data.user, expiresAt: data.expiresAt } : { status: 'anonymous' }
+  function fromResponse(data: { authenticated?: boolean; user?: LibraryAuthSnapshot['user']; expiresAt?: number; loginMode?: LibraryAuthSnapshot['loginMode'] }): LibraryAuthSnapshot {
+    const mode = data.loginMode || snapshot.loginMode
+    const state: LibraryAuthSnapshot = data.authenticated ? { status: 'authenticated', user: data.user, expiresAt: data.expiresAt } : { status: 'anonymous' }
+    return mode ? { ...state, loginMode: mode } : state
   }
 
   function invalidate() {
     revision++
     pending = undefined
-    return publish({ status: 'anonymous' })
+    return publish(fromResponse({}))
   }
 
   function refresh() {
@@ -57,19 +64,29 @@ export function createLibraryAuthClient(options: {
         if (!response.ok) throw new Error('暂时无法确认登录状态。')
         const data = await response.json()
         return current === revision ? publish(fromResponse(data)) : snapshot
-      }).catch(() => current === revision ? publish({ status: 'anonymous' }) : snapshot)
+      }).catch(() => current === revision ? publish(fromResponse({})) : snapshot)
       .finally(() => { if (pending === request) pending = undefined })
     pending = request
     return request
   }
 
-  async function login(phone: string, password: string) {
+  async function sendCode(phone: string) {
+    const response = await fetcher('/api/auth/code', {
+      method: 'POST', cache: 'no-store', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || '暂时无法获取验证码。')
+    return Number(data.resendAfter)
+  }
+
+  async function login(phone: string, credential: string, mode: 'sms' | 'password' = 'password') {
     if (pendingLogout) await pendingLogout
     const current = ++revision
     pending = undefined
     const response = await fetcher('/api/auth/login', {
       method: 'POST', cache: 'no-store', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password }),
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'sms' ? { phone, code: credential } : { phone, password: credential }),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok || !data.authenticated) throw new Error(data.error || '暂时无法登录，请稍后重试。')
@@ -95,7 +112,7 @@ export function createLibraryAuthClient(options: {
     getSnapshot: () => snapshot,
     getServerSnapshot: () => INITIAL_SNAPSHOT,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
-    refresh, login, logout, invalidate,
+    refresh, sendCode, login, logout, invalidate,
   }
 }
 

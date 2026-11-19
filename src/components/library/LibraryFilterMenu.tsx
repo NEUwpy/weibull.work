@@ -61,7 +61,7 @@ export function LibraryFilterMenu({ label, value, options, onChange, align = 'st
       onKeyDown={event => {
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); show(event.key === 'ArrowUp') }
       }}>
-      <span>{selected?.label || label}</span><ChevronDown size={14} aria-hidden="true" />
+      <span className="library-filter-trigger-label">{selected?.label || label}</span><ChevronDown size={14} aria-hidden="true" />
     </button>
     {open && <div id={id} role="menu" aria-label={`选择${label}`} className="library-filter-panel" data-side={placement.side}
       style={{ maxHeight: placement.height }} onKeyDown={event => {

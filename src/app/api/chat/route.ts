@@ -5,15 +5,29 @@ import config from './config.json'
 import { getDeepSeekClient, getDeepSeekSettings, hasDeepSeekKey } from '@/lib/server/deepseek-client'
 import { createLibraryChatLog } from '@/lib/server/library-chat-log'
 import { searchLibrary, enrichLibrarySearchHits, startLibrarySearchPrewarm } from '@/lib/server/library-search'
-import { buildSearchQueries, evidenceContext, selectLibraryEvidence, orderEvidenceCandidates, poolLibraryCandidates } from '@/lib/library-rag'
+import { buildRecommendationSearchPlan, buildSearchQueries, evidenceContext, selectLibraryEvidence, orderEvidenceCandidates, poolLibraryCandidates } from '@/lib/library-rag'
 import { requireLibraryLogin } from '@/lib/server/library-auth'
 import { answerArticleQuestion, parseArticleQuestion, readArticleQuestion } from '@/lib/server/library-article-chat'
+import { listPapers } from '@/lib/server/literature'
+import { isLibraryRecommendationRelation, type LibraryRecommendationRelation, type LibraryRecommendationRelations } from '@/lib/library-recommendations'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 180
 
 function prompt(name: string): string {
   return fs.readFileSync(path.join(process.cwd(), 'src/content/prompts', name), 'utf8')
+}
+
+function readRecommendationRelations(ids: string[], value: unknown): LibraryRecommendationRelations | undefined {
+  if (!ids.length || !value || typeof value !== 'object' || Array.isArray(value)) return
+  const source = value as Record<string, unknown>
+  const entries: Array<[string, LibraryRecommendationRelation]> = []
+  for (const id of ids) {
+    const relation = source[id]
+    if (!Object.hasOwn(source, id) || !isLibraryRecommendationRelation(relation)) return
+    entries.push([id, relation])
+  }
+  return Object.fromEntries(entries)
 }
 
 function failureInfo(error: unknown) {
@@ -81,7 +95,7 @@ export async function POST(request: NextRequest) {
           return
         }
         send({ stage: 'expanding', message: '正在分析问题，准备检索表达…' })
-        let variants: unknown = []
+        let expansionPlan: { intent?: unknown; queries?: unknown; mechanism_queries?: unknown; comparison_query?: unknown } = {}
         try {
           const expansion = await client.chat.completions.create({
             model,
@@ -92,31 +106,56 @@ export async function POST(request: NextRequest) {
             stream: false,
             ...{ thinking: { type: 'disabled' } },
           }, { signal: controller.signal })
-          variants = JSON.parse(expansion.choices[0]?.message?.content || '{}').queries
+          const plan = JSON.parse(expansion.choices[0]?.message?.content || '{}')
+          if (plan && typeof plan === 'object' && !Array.isArray(plan)) expansionPlan = plan
         } catch (error) {
           if (controller.signal.aborted) return
           console.warn('[library-chat]', { stage, ...failureInfo(error) })
           log.record('warning', { stage, ...failureInfo(error) })
           // Direct corpus retrieval remains usable when query expansion is unavailable.
         }
-        const queries = buildSearchQueries(question, variants, config.retrieval.maxQueries)
+        const recommendPapers = expansionPlan.intent === 'recommendations'
+        const recommendationPlan = recommendPapers
+          ? buildRecommendationSearchPlan(question, expansionPlan, config.retrieval.maxRecommendationQueries)
+          : undefined
+        const queries = recommendationPlan?.queries ?? buildSearchQueries(question, expansionPlan.queries, config.retrieval.maxQueries)
         stage = 'searching'
-        send({ stage: 'searching', message: '正在查找相关正文并筛选参考段落…' })
+        send({ stage: 'searching', message: recommendPapers ? '正在检索与研究方向相关的论文…' : '正在查找相关正文并筛选参考段落…' })
         await startLibrarySearchPrewarm()
         if (controller.signal.aborted) return
-        const rankings = queries.map(query => searchLibrary(query, { limit: config.retrieval.candidatesPerQuery }).results)
-        const candidateLimits = { maxPassages: config.retrieval.maxRerankCandidates, maxPerPaper: 5, maxContextChars: config.retrieval.maxRerankChars }
-        const pooled = poolLibraryCandidates(rankings, candidateLimits)
+        const rankings = queries.map(query => searchLibrary(query, {
+          limit: config.retrieval.candidatesPerQuery,
+          type: recommendPapers ? 'paper' : 'all',
+          distinctPapers: recommendPapers,
+        }).results)
+        const candidateLimits = { maxPassages: config.retrieval.maxRerankCandidates, maxPerPaper: recommendPapers ? 1 : 5, maxContextChars: config.retrieval.maxRerankChars }
+        const focusedRankings = recommendationPlan ? queries.flatMap((query, index) => {
+          if (recommendationPlan.mechanismQueries.includes(query)) return [rankings[index].slice(0, 4)]
+          if (recommendationPlan.methodQueries.includes(query) || recommendationPlan.comparisonQuery === query) {
+            return [rankings[index].slice(0, 2)]
+          }
+          return []
+        }) : []
+        const pooled = poolLibraryCandidates(rankings, candidateLimits, focusedRankings)
         const candidates = selectLibraryEvidence([enrichLibrarySearchHits(pooled)], candidateLimits)
+          .map(hit => recommendPapers ? { ...hit, id: hit.slug } : hit)
         let ranked = candidates
+        let relations: unknown
         if (candidates.length) {
           stage = 'screening'
-          send({ stage: 'screening', message: '正在核对候选段落是否能支持这个问题…' })
+          send({ stage: 'screening', message: recommendPapers ? '正在筛选与研究方向匹配的论文…' : '正在核对候选段落是否能支持这个问题…' })
+          const screeningInstruction = recommendPapers
+            ? `${prompt('rag_screen_recommendations.md')}\n\n最多推荐 ${config.retrieval.maxRecommendedPapers} 篇。`
+            : prompt('rag_screen_evidence.md')
+          const summaries = recommendPapers ? new Map(listPapers().map(paper => [paper.slug, paper.summary?.slice(0, 350)])) : null
+          const choices = candidates.map(({ id, slug, title, version, section, text }) => ({
+            id, slug, title, version, section, text, summary: summaries?.get(slug) || undefined,
+          }))
           const screening = await client.chat.completions.create({
             model,
             messages: [
-              { role: 'system', content: prompt('rag_screen_evidence.md') },
-              { role: 'user', content: `问题：${question.trim()}\n\n候选段落：\n${JSON.stringify(candidates.map(({ id, slug, title, version, section, text }) => ({ id, slug, title, version, section, text })))}` },
+              { role: 'system', content: screeningInstruction },
+              { role: 'user', content: `问题：${question.trim()}\n\n候选段落：\n${JSON.stringify(choices)}` },
             ],
             response_format: { type: 'json_object' },
             max_tokens: 1024,
@@ -124,8 +163,19 @@ export async function POST(request: NextRequest) {
             stream: false,
             ...{ thinking: { type: 'disabled' } },
           }, { signal: controller.signal })
-          const ids = JSON.parse(screening.choices[0]?.message?.content || '{}').ranked_ids
-          ranked = orderEvidenceCandidates(candidates, ids)
+          const selection = JSON.parse(screening.choices[0]?.message?.content || '{}')
+          ranked = orderEvidenceCandidates(candidates, selection.ranked_ids)
+          if (recommendPapers) relations = selection.relations
+        }
+        if (recommendPapers) {
+          const recommendedPaperIds = ranked.slice(0, config.retrieval.maxRecommendedPapers).map(hit => hit.slug)
+          const recommendationRelations = readRecommendationRelations(recommendedPaperIds, relations)
+          log.record('recommendations', { queries, mechanismQueries: recommendationPlan?.mechanismQueries,
+            comparisonQuery: recommendationPlan?.comparisonQuery, candidates: candidates.length,
+            candidatePaperIds: candidates.map(hit => hit.slug), recommendedPaperIds })
+          outcome = recommendedPaperIds.length ? 'completed' : 'empty'
+          send({ recommendedPaperIds, recommendationRelations, done: true })
+          return
         }
         const evidence = selectLibraryEvidence([ranked], config.retrieval)
         log.record('retrieval', { queries, candidates: candidates.length,

@@ -21,14 +21,14 @@
   display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;
 }
-.library-toolbar-topic { justify-self: start; min-width: 0; max-width: 100%; }
+.library-toolbar-topic { display: flex; align-items: center; gap: 16px; justify-self: start; min-width: 0; max-width: 100%; }
 .library-filter-menu { position: relative; min-width: 0; max-width: 100%; }
 .library-filter-menu[data-open] { z-index: 45; }
 .library-filter-trigger {
   display: inline-flex; align-items: center; gap: 8px; max-width: 100%; height: 36px; padding: 0;
   border: 0; background: transparent; color: #475569; font-size: 14px; text-align: left;
 }
-.library-filter-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.library-filter-trigger-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .library-filter-trigger > svg { flex-shrink: 0; color: #94a3b8; transition: transform .18s; }
 .library-filter-trigger:hover, .library-filter-menu[data-open] .library-filter-trigger { color: #047857; }
 .library-filter-menu[data-open] .library-filter-trigger > svg { transform: rotate(180deg); color: #10b981; }
@@ -64,21 +64,30 @@
 @media (pointer: coarse) { .library-filter-option { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .library-filter-panel { animation: none; } .library-filter-trigger > svg, .library-filter-option { transition: none; } }
 .library-type-switch { display: inline-flex; gap: 4px; }
-.library-type-switch button {
+.library-type-switch :is(button, a) {
   display: grid; place-items: center; width: 36px; height: 36px;
   color: #94a3b8; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
 }
-.library-type-switch button:hover { color: #475569; }
-.library-type-switch button[aria-pressed="true"] { color: #047857; border-bottom-color: #10b981; }
-.library-type-switch button:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; border-radius: 4px; }
+.library-type-switch :is(button, a):hover { color: #475569; }
+.library-type-switch button[aria-pressed="true"], .library-type-switch a[aria-current="page"] { color: #047857; border-bottom-color: #10b981; }
+.library-type-switch :is(button, a):focus-visible { outline: 2px solid #10b981; outline-offset: 2px; border-radius: 4px; }
 .library-toolbar-sort { display: flex; align-items: center; justify-self: end; gap: 8px; min-width: 0; color: #94a3b8; }
 .library-sort-icon { flex-shrink: 0; }
 @media (max-width: 767px) {
   .library-toolbar { gap: 8px; }
+  .library-toolbar-topic { position: relative; gap: 8px; }
+  .library-toolbar-topic:has(.library-filter-menu[data-open]) { z-index: 45; }
   .library-type-switch { gap: 0; }
-  .library-type-switch button { width: 30px; height: 34px; }
+  .library-type-switch :is(button, a) { width: 30px; height: 34px; }
   .library-toolbar-sort { gap: 4px; }
   .library-sort-icon { display: none; }
+}
+
+@media (max-width: 767px) {
+  .library-toolbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 5px; }
+  .library-filter-trigger { gap: 4px; font-size: 12px; }
+  /* Reserve the two-line search hint before the input measures itself. */
+  .library-page .library-search-form textarea { min-height: 72px; }
 }
 
 .library-title {
@@ -101,7 +110,7 @@
 @keyframes library-title-appear { from { opacity: .6; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .library-title-text { animation: none; } }
 
-.library-card-authors > svg {
+:is(.library-card-authors, .library-card-affiliations) > svg {
   margin-top: 3.5px;
 }
 
@@ -111,7 +120,7 @@
   border-color: #cbd5e1; box-shadow: 0 8px 24px rgb(15 23 42 / .08);
 }
 .library-card-summary-clip { max-height: 4.875em; overflow: hidden; transition: max-height .24s ease; }
-.library-card-slot[data-expanded] .library-card-summary-clip { max-height: var(--library-summary-height); }
+.library-card-slot[data-expanded] .library-card-summary-clip { max-height: var(--library-summary-height, 4.875em); }
 .library-card-key-tags { min-width: 0; overflow: hidden; flex-wrap: nowrap; }
 .library-card-key-tags > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .library-card-expand { flex-shrink: 0; }

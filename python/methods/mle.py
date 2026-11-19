@@ -39,7 +39,6 @@ class MLE(WeibullBase):
 #   "methodId": "mle",
 #   "methodName": "极大似然法 MLE",
 #   "description": "条件形状求根 → 有限似然候选搜索 → 边界极限单列。",
-#   "presentation": "steps",
 #   "steps": [
 #     {
 #       "id": 1,
@@ -76,23 +75,13 @@ class MLE(WeibullBase):
 #         ]
 #       },
 #       "inputs": [
-#         {
-#           "code": "data",
-#           "symbol": "t_i",
-#           "meaning": "本次完整失效样本"
-#         }
+#         "samples"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "n",
-#           "symbol": "n",
-#           "meaning": "样本数"
-#         },
-#         {
-#           "code": "unit",
-#           "symbol": "u",
-#           "meaning": "归一化单位"
-#         }
+#         "ordered",
+#         "normalized",
+#         "n",
+#         "unit"
 #       ],
 #       "sources": [
 #         {
@@ -108,7 +97,27 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "排序并按最小观测归一化，建立本次条件剖面搜索的可取范围。",
-#       "notes": "当前实现使用 β≥1、γ≥0 的接受域。Hirose（1996）提供数值基准，当前程序不是其完整 GEV 求解流程。"
+#       "notes": "当前实现使用 β≥1、γ≥0 的接受域。Hirose（1996）提供数值基准，当前程序不是其完整 GEV 求解流程。",
+#       "flow": {
+#         "label": "排序并归一化样本"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "samples"
+#           ],
+#           "name": "寿命样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "normalized",
+#             "n"
+#           ],
+#           "name": "样本与归一化",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "id": 2,
@@ -166,33 +175,14 @@ class MLE(WeibullBase):
 #         }
 #       },
 #       "inputs": [
-#         {
-#           "code": "viewed_gamma",
-#           "symbol": "\\gamma",
-#           "meaning": "当前试算位置"
-#         },
-#         {
-#           "code": "n",
-#           "symbol": "n",
-#           "meaning": "样本数"
-#         }
+#         "normalized",
+#         "n",
+#         "trial_gamma"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "viewed_beta",
-#           "symbol": "\\beta^*(\\gamma)",
-#           "meaning": "当前条件形状"
-#         },
-#         {
-#           "code": "viewed_eta",
-#           "symbol": "\\eta^*(\\gamma)",
-#           "meaning": "当前条件尺度"
-#         },
-#         {
-#           "code": "viewed_ll",
-#           "symbol": "\\ell_p(\\gamma)",
-#           "meaning": "当前剖面似然"
-#         }
+#         "trial_beta",
+#         "trial_eta",
+#         "profile_likelihood"
 #       ],
 #       "sources": [
 #         {
@@ -220,7 +210,37 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "每个试算位置先解条件形状方程，再恢复对应尺度，形成剖面对数似然。",
-#       "notes": "图中只读取本次求解的形状求值。β=1 下界得分≤0时按约束采纳；内层数值求根沿用Brent。尺度与似然在程序中使用中心化对数及logsumexp稳定计算。"
+#       "notes": "图中只读取本次求解的形状求值。β=1 下界得分≤0时按约束采纳；内层数值求根沿用Brent。尺度与似然在程序中使用中心化对数及logsumexp稳定计算。",
+#       "flow": {
+#         "label": "给定位置求条件形状",
+#         "symbol": "S_\\beta(\\beta^*,\\gamma)=0"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "normalized",
+#             "n"
+#           ],
+#           "name": "样本与样本量",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "trial_gamma"
+#           ],
+#           "name": "试算位置",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "trial_beta",
+#             "trial_eta",
+#             "profile_likelihood"
+#           ],
+#           "name": "条件似然",
+#           "wrap": 1
+#         }
+#       }
 #     },
 #     {
 #       "id": 3,
@@ -288,23 +308,11 @@ class MLE(WeibullBase):
 #         }
 #       },
 #       "inputs": [
-#         {
-#           "code": "candidate_count",
-#           "symbol": "|\\mathcal C|",
-#           "meaning": "合格候选数"
-#         }
+#         "profile_likelihood"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "按似然采纳的位置"
-#         },
-#         {
-#           "code": "log_likelihood",
-#           "symbol": "\\ell_p(\\hat\\gamma)",
-#           "meaning": "采纳候选的似然"
-#         }
+#         "gamma_hat",
+#         "status"
 #       ],
 #       "sources": [
 #         {
@@ -319,7 +327,31 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "以位置得分由正转负的交点及剖面峰值精化有限候选，再按原对数似然选择位置。",
-#       "notes": "扫描、括根、窄谷及峰值精化属于同一位置决策。候选不是迭代轨迹。支持边界 γ=t₍₁₎ 仅记极限诊断，不作可达有限解；有限网格与局部精化不构成全局证明。"
+#       "notes": "扫描、括根、窄谷及峰值精化属于同一位置决策。候选不是迭代轨迹。支持边界 γ=t₍₁₎ 仅记极限诊断，不作可达有限解；有限网格与局部精化不构成全局证明。",
+#       "flow": {
+#         "label": "比较剖面似然确定位置",
+#         "symbol": {
+#           "default": "\\max_{\\gamma\\in\\mathcal C}\\ell_p(\\gamma)",
+#           "zero": "\\hat\\gamma=0",
+#           "failed": "\\mathcal C=\\varnothing"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "profile_likelihood"
+#           ],
+#           "name": "候选似然",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "id": 4,
@@ -353,18 +385,12 @@ class MLE(WeibullBase):
 #         }
 #       },
 #       "inputs": [
-#         {
-#           "code": "gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "已采纳位置"
-#         }
+#         "gamma_hat",
+#         "normalized",
+#         "n"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "beta",
-#           "symbol": "\\hat\\beta",
-#           "meaning": "采纳候选的条件形状"
-#         }
+#         "beta_hat"
 #       ],
 #       "sources": [
 #         {
@@ -380,7 +406,38 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "固定已经采纳的位置，读取该位置已求得的条件形状，不另跑一个估计器。",
-#       "notes": "图读该候选在原求解过程中已记录的形状方程求值；β=1边界不要求得分为零。"
+#       "notes": "图读该候选在原求解过程中已记录的形状方程求值；β=1边界不要求得分为零。",
+#       "flow": {
+#         "label": "采纳对应的形状",
+#         "symbol": {
+#           "default": "\\hat\\beta=\\beta^*(\\hat\\gamma)",
+#           "failed": "\\varnothing"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "normalized",
+#             "n"
+#           ],
+#           "name": "样本与归一化",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat"
+#           ],
+#           "name": "形状估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "id": 5,
@@ -425,28 +482,13 @@ class MLE(WeibullBase):
 #         }
 #       },
 #       "inputs": [
-#         {
-#           "code": "gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "采纳位置"
-#         },
-#         {
-#           "code": "beta",
-#           "symbol": "\\hat\\beta",
-#           "meaning": "采纳形状"
-#         },
-#         {
-#           "code": "n",
-#           "symbol": "n",
-#           "meaning": "样本数"
-#         }
+#         "gamma_hat",
+#         "beta_hat",
+#         "ordered",
+#         "n"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "eta",
-#           "symbol": "\\hat\\eta",
-#           "meaning": "采纳尺度"
-#         }
+#         "eta_hat"
 #       ],
 #       "sources": [
 #         {
@@ -463,7 +505,39 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "使用采纳位置和形状，逐样本距离取幂、求和、除以样本数并开形状次方。",
-#       "notes": "尺度已在该候选的条件求解中算出，这里展开其计算。若原始幂和溢出，展示同次记录的归一化幂及稳定计算关系。"
+#       "notes": "尺度已在该候选的条件求解中算出，这里展开其计算。若原始幂和溢出，展示同次记录的归一化幂及稳定计算关系。",
+#       "flow": {
+#         "label": "由幂均值恢复尺度",
+#         "symbol": {
+#           "default": "\\hat\\eta",
+#           "failed": "\\varnothing"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat",
+#             "beta_hat"
+#           ],
+#           "name": "位置与形状",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered",
+#             "n"
+#           ],
+#           "name": "寿命样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "id": 6,
@@ -496,28 +570,16 @@ class MLE(WeibullBase):
 #         ]
 #       },
 #       "inputs": [
-#         {
-#           "code": "beta",
-#           "symbol": "\\hat\\beta",
-#           "meaning": "采纳形状"
-#         },
-#         {
-#           "code": "eta",
-#           "symbol": "\\hat\\eta",
-#           "meaning": "采纳尺度"
-#         },
-#         {
-#           "code": "gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "采纳位置"
-#         }
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "r_squared",
-#           "symbol": "R^2",
-#           "meaning": "概率图拟合优度"
-#         }
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat",
+#         "r_squared",
+#         "status"
 #       ],
 #       "sources": [
 #         {
@@ -536,7 +598,38 @@ class MLE(WeibullBase):
 #       ],
 #       "primarySource": 0,
 #       "basis": "汇总三参数、概率图拟合优度和求解状态；R²不参与似然选点。",
-#       "notes": "未找到有限候选或求解失败时保留真实状态，不填默认参数。"
+#       "notes": "未找到有限候选或求解失败时保留真实状态，不填默认参数。",
+#       "flow": {
+#         "label": "汇总参数与拟合优度",
+#         "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat",
+#             "beta_hat"
+#           ],
+#           "name": "位置与形状",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat",
+#             "gamma_hat",
+#             "r_squared"
+#           ],
+#           "name": "估计结果",
+#           "wrap": 2
+#         }
+#       }
 #     }
 #   ],
 #   "workflow": {
@@ -550,45 +643,31 @@ class MLE(WeibullBase):
 #       "scale": 5,
 #       "result": 6
 #     },
-#     "legacySourceSteps": [
-#       1,
-#       2,
-#       2,
-#       3,
-#       3,
-#       6
-#     ],
 #     "items": [
 #       {
 #         "kind": "group",
-#         "layout": "inputs",
+#         "layout": "module",
 #         "children": [
 #           {
 #             "kind": "port",
-#             "anchor": "sample",
+#             "anchor": "i1-1",
 #             "target": "samples",
 #             "direction": "input",
-#             "label": "失效样本 tᵢ",
-#             "text": {
-#               "default": [
-#                 "排序并建立支持范围"
-#               ],
-#               "ready": [
-#                 "n = {count}"
-#               ]
-#             }
-#           }
-#         ]
-#       },
-#       {
-#         "kind": "group",
-#         "layout": "prepare",
-#         "children": [
+#             "external": true,
+#             "group": "input-0"
+#           },
 #           {
 #             "kind": "step",
-#             "anchor": "prepare",
+#             "anchor": "s1",
 #             "step": 1,
 #             "target": "samples"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o1",
+#             "target": "samples",
+#             "direction": "output",
+#             "group": "output-0"
 #           }
 #         ]
 #       },
@@ -599,120 +678,369 @@ class MLE(WeibullBase):
 #         "children": [
 #           {
 #             "kind": "group",
-#             "layout": "searchContent",
+#             "layout": "module",
 #             "children": [
 #               {
-#                 "kind": "step",
-#                 "anchor": "trial",
-#                 "step": 2,
+#                 "kind": "port",
+#                 "anchor": "i2-1",
 #                 "target": "trial",
-#                 "text": {
-#                   "default": [
-#                     "条件形状 → 尺度 → 似然"
-#                   ],
-#                   "ready": [
-#                     "γ = {viewedGamma}"
-#                   ]
-#                 }
+#                 "direction": "input",
+#                 "group": "input-0"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "i2-2",
+#                 "target": "trial",
+#                 "direction": "input",
+#                 "group": "input-1"
 #               },
 #               {
 #                 "kind": "step",
-#                 "anchor": "location",
-#                 "step": 3,
+#                 "anchor": "s2",
+#                 "step": 2,
+#                 "target": "trial"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o2",
+#                 "target": "trial",
+#                 "direction": "output",
+#                 "group": "output-0"
+#               }
+#             ]
+#           },
+#           {
+#             "kind": "group",
+#             "layout": "module",
+#             "children": [
+#               {
+#                 "kind": "port",
+#                 "anchor": "i3-1",
 #                 "target": "location",
-#                 "text": {
-#                   "default": [
-#                     "精化候选并比较似然"
-#                   ],
-#                   "ready": [
-#                     "γ̂ = {gamma}"
-#                   ],
-#                   "zero": [
-#                     "γ̂ = 0"
-#                   ],
-#                   "failed": [
-#                     "未找到有限候选"
-#                   ]
-#                 }
+#                 "direction": "input",
+#                 "group": "input-0"
+#               },
+#               {
+#                 "kind": "step",
+#                 "anchor": "s3",
+#                 "step": 3,
+#                 "target": "location"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o3",
+#                 "target": "location",
+#                 "direction": "output",
+#                 "group": "output-0"
 #               }
 #             ]
 #           }
-#         ],
-#         "sideLabel": "换位置"
+#         ]
 #       },
 #       {
 #         "kind": "group",
-#         "layout": "scale",
+#         "layout": "module",
 #         "children": [
 #           {
-#             "kind": "step",
-#             "anchor": "shape",
-#             "step": 4,
+#             "kind": "port",
+#             "anchor": "i4-1",
 #             "target": "shape",
-#             "text": {
-#               "ready": [
-#                 "β̂ = {beta}"
-#               ],
-#               "failed": [
-#                 "不返回估计值"
-#               ]
-#             }
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i4-2",
+#             "target": "shape",
+#             "direction": "input",
+#             "group": "input-1"
 #           },
 #           {
 #             "kind": "step",
-#             "anchor": "scale",
-#             "step": 5,
+#             "anchor": "s4",
+#             "step": 4,
+#             "target": "shape"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o4",
+#             "target": "shape",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i5-1",
 #             "target": "scale",
-#             "text": {
-#               "ready": [
-#                 "η̂ = {eta}"
-#               ],
-#               "failed": [
-#                 "不返回估计值"
-#               ]
-#             }
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i5-2",
+#             "target": "scale",
+#             "direction": "input",
+#             "group": "input-1"
 #           },
 #           {
 #             "kind": "step",
-#             "anchor": "result",
+#             "anchor": "s5",
+#             "step": 5,
+#             "target": "scale"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o5",
+#             "target": "scale",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i6-1",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i6-2",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s6",
 #             "step": 6,
 #             "target": "result"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o6",
+#             "target": "result",
+#             "direction": "output",
+#             "group": "output-0"
 #           }
 #         ]
 #       }
 #     ],
 #     "connections": [
 #       {
-#         "from": "sample",
-#         "to": "prepare"
+#         "from": "o1",
+#         "to": "i2-1"
 #       },
 #       {
-#         "from": "prepare",
-#         "to": "trial"
+#         "from": "s3",
+#         "to": "i2-2",
+#         "dashed": true,
+#         "label": "位置试算"
 #       },
 #       {
-#         "from": "trial",
-#         "to": "location"
+#         "from": "o2",
+#         "to": "i3-1"
 #       },
 #       {
-#         "from": "location",
-#         "to": "shape"
+#         "from": "o3",
+#         "to": "i4-1"
 #       },
 #       {
-#         "from": "shape",
-#         "to": "scale"
+#         "from": "o1",
+#         "to": "i4-2"
 #       },
 #       {
-#         "from": "scale",
-#         "to": "result"
+#         "from": "o3",
+#         "to": "i5-1"
 #       },
 #       {
-#         "from": "location",
-#         "to": "trial",
-#         "route": "loop",
-#         "dashed": true
+#         "from": "o4",
+#         "to": "i5-1"
+#       },
+#       {
+#         "from": "o1",
+#         "to": "i5-2"
+#       },
+#       {
+#         "from": "o3",
+#         "to": "i6-1"
+#       },
+#       {
+#         "from": "o4",
+#         "to": "i6-1"
+#       },
+#       {
+#         "from": "o5",
+#         "to": "i6-2"
 #       }
 #     ]
+#   },
+#   "variables": {
+#     "samples": {
+#       "symbol": "t_i",
+#       "name": "样本",
+#       "meaning": "样本",
+#       "code": "data"
+#     },
+#     "ordered": {
+#       "symbol": "t_{(i)}",
+#       "name": "有序样本",
+#       "meaning": "有序样本",
+#       "code": "t"
+#     },
+#     "n": {
+#       "symbol": "n",
+#       "name": "样本量",
+#       "meaning": "样本量",
+#       "code": "n"
+#     },
+#     "unit": {
+#       "symbol": "u",
+#       "name": "归一化单位",
+#       "meaning": "归一化单位",
+#       "code": "unit"
+#     },
+#     "normalized": {
+#       "symbol": "z_i",
+#       "name": "归一化样本",
+#       "meaning": "归一化样本",
+#       "code": "z"
+#     },
+#     "beta_hat": {
+#       "symbol": "\\hat\\beta",
+#       "name": "形状估计",
+#       "meaning": "形状估计",
+#       "code": "final_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "eta_hat": {
+#       "symbol": "\\hat\\eta",
+#       "name": "尺度估计",
+#       "meaning": "尺度估计",
+#       "code": "final_eta",
+#       "axisLabel": "尺度参数 η"
+#     },
+#     "gamma_hat": {
+#       "symbol": "\\hat\\gamma",
+#       "name": "位置估计",
+#       "meaning": "位置估计",
+#       "code": "final_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "r_squared": {
+#       "symbol": "R^2",
+#       "name": "拟合优度",
+#       "meaning": "拟合优度",
+#       "code": "r_squared"
+#     },
+#     "status": {
+#       "symbol": "\\mathrm{status}",
+#       "name": "求解状态",
+#       "meaning": "求解状态",
+#       "code": "process_status"
+#     },
+#     "trial_gamma": {
+#       "symbol": "\\gamma",
+#       "name": "试算位置",
+#       "meaning": "试算位置",
+#       "code": "trial_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "trial_beta": {
+#       "symbol": "\\beta^*(\\gamma)",
+#       "name": "条件形状",
+#       "meaning": "条件形状",
+#       "code": "trial_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "trial_eta": {
+#       "symbol": "\\eta^*(\\gamma)",
+#       "name": "条件尺度",
+#       "meaning": "条件尺度",
+#       "code": "trial_eta",
+#       "axisLabel": "尺度参数 η"
+#     },
+#     "beta_axis": {
+#       "symbol": "\\beta",
+#       "name": "形状",
+#       "meaning": "形状",
+#       "axisLabel": "形状参数 β",
+#       "code": "beta_axis"
+#     },
+#     "gamma_axis": {
+#       "symbol": "\\gamma",
+#       "name": "位置",
+#       "meaning": "位置",
+#       "axisLabel": "位置参数 γ",
+#       "code": "gamma_axis"
+#     },
+#     "sample_axis": {
+#       "symbol": "i",
+#       "name": "样本序号",
+#       "meaning": "样本序号",
+#       "axisLabel": "样本序号 i",
+#       "code": "sample_axis"
+#     },
+#     "power": {
+#       "symbol": "c_i",
+#       "name": "幂次贡献",
+#       "meaning": "幂次贡献",
+#       "code": "power"
+#     },
+#     "profile_likelihood": {
+#       "symbol": "\\ell_p(\\gamma)",
+#       "name": "剖面似然",
+#       "meaning": "剖面似然",
+#       "code": "likelihood_profile",
+#       "axisLabel": "剖面对数似然 ℓₚ(γ)"
+#     },
+#     "shape_score": {
+#       "symbol": "S_\\beta",
+#       "name": "形状得分",
+#       "meaning": "形状得分",
+#       "axisLabel": "形状得分 Sβ",
+#       "code": "shape_score"
+#     },
+#     "location_score": {
+#       "symbol": "\\partial_\\gamma\\ell",
+#       "name": "位置得分",
+#       "meaning": "位置得分",
+#       "axisLabel": "位置得分 ∂ℓ/∂γ",
+#       "code": "location_score"
+#     }
+#   },
+#   "chartBindings": {
+#     "linked-shape-equation": {
+#       "x": "beta_axis",
+#       "y": "shape_score"
+#     },
+#     "profile-likelihood": {
+#       "x": "gamma_axis",
+#       "y": "profile_likelihood"
+#     },
+#     "location-score": {
+#       "x": "gamma_axis",
+#       "y": "location_score"
+#     },
+#     "conditional-shape-equation": {
+#       "x": "beta_axis",
+#       "y": "shape_score"
+#     },
+#     "scale-sample-contributions": {
+#       "x": "sample_axis",
+#       "y": "power"
+#     }
 #   }
 # }
 # @end-method-flow

@@ -22,7 +22,7 @@ function sessionHarness({ unavailable = false, raw = null } = {}) {
   return { session: load(), reload: load }
 }
 
-function chatHarness(session, body) {
+function chatHarness(session, body, renderRecommendations) {
   const state = []
   let index = 0, mounted = false, effect, cleanup, posts = 0
   const hooks = { ...React,
@@ -53,7 +53,7 @@ function chatHarness(session, body) {
       return { ok: true, body: body() }
     },
   }, { filename: file })
-  const render = () => { index = 0; return module.exports.ChatDialog({ request }) }
+  const render = () => { index = 0; return module.exports.ChatDialog({ request, renderRecommendations }) }
   render(); mounted = true; cleanup = effect()
   return { html: () => renderToStaticMarkup(render()), posts: () => posts,
     unmount: () => cleanup?.(), replay: () => { cleanup?.(); cleanup = effect() } }
@@ -112,6 +112,28 @@ test('a completed answer survives leaving and remounting without a second POST o
   restored.unmount()
 })
 
+test('recommendation relations reach the renderer and survive restoring the same tab', async () => {
+  const { session, reload } = sessionHarness()
+  const paperIds = ['182-046', '182-030']
+  const relations = { '182-046': 'direct-improvement', '182-030': 'principle' }
+  const renderRecommendations = (ids, roles) => {
+    assert.deepEqual(JSON.parse(JSON.stringify(ids)), paperIds)
+    assert.deepEqual(JSON.parse(JSON.stringify(roles)), relations)
+    return React.createElement('p', null, '分组推荐')
+  }
+  session.startLibraryChat(request)
+  const first = chatHarness(session, () => stream([{ recommendedPaperIds: paperIds, recommendationRelations: relations, done: true }]), renderRecommendations)
+  await settle()
+  assert.equal(first.posts(), 1)
+  assert.match(first.html(), /分组推荐/)
+  first.unmount()
+  const restored = chatHarness(reload(), () => { throw new Error('Restoring must not call the API') }, renderRecommendations)
+  await settle()
+  assert.equal(restored.posts(), 0)
+  assert.match(restored.html(), /分组推荐/)
+  restored.unmount()
+})
+
 test('leaving during generation retains received content and citations without restarting the request', async () => {
   const { session, reload } = sessionHarness()
   session.startLibraryChat(request)
@@ -133,6 +155,7 @@ test('effect setup-cleanup-setup still generates an answer instead of restoring 
   const chat = chatHarness(session, () => stream([{ content: '重放后的完整回答' }, { done: true }]))
   chat.replay()
   await settle()
+  assert.equal(chat.posts(), 1)
   assert.match(chat.html(), /重放后的完整回答/)
   assert.notEqual(session.readLibraryChatSession().answer.stopped, true)
   chat.unmount()

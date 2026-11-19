@@ -25,11 +25,6 @@ class LRE(WeibullBase):
         2. 使用 Park 分段绘图位置，优化 γ 使相关系数 ρ 最大。
         3. 固定 γ 后 OLS 回归解 β 和 η。
         """
-        # @step: 1 | 数据预处理 | 获取排序后的失效时间数据和样本数量
-        # @formula: t_{(1)} \leq t_{(2)} \leq \cdots \leq t_{(n)}
-        # @symbols: t|t|排序后的失效时间数组, n|n|样本数量
-        # @inputs: data|t_i|原始失效时间样本
-        # @outputs: t|t|排序后数组, n|n|样本数量
         self.calculation_trace = None
         evaluations = []
         n = self.n
@@ -47,11 +42,6 @@ class LRE(WeibullBase):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 2 | Park 绘图位置变换 | n≤10 用 Blom，n≥11 用 (i−1/2)/n
-        # @formula: p_i=\begin{cases}(i-3/8)/(n+1/4),&n\leq10\\(i-1/2)/n,&n\geq11\end{cases},\quad y_i=\ln(-\ln(1-p_i))
-        # @symbols: F(t_i)|F(t_i)|第i个样本的经验累积概率, y_i|y_i|变换后的因变量
-        # @inputs: n|n|样本数量
-        # @outputs: y|y_i|双对数变换的因变量数组
         # 此估计器的绘图位置由论文固定，不消费基础类的 Bernard/exact 开关。
         ranks = np.arange(1, n + 1, dtype=float)
         F = (ranks - 3 / 8) / (n + 1 / 4) if n <= 10 else (ranks - 1 / 2) / n
@@ -65,13 +55,6 @@ class LRE(WeibullBase):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 3 | 优化位置参数 | 按 Park 式(2)在 [0,t_(1)) 内最大化相关系数
-        # @formula: \hat{\gamma} = \arg\max_{\gamma \in [0,t_{(1)})} \rho(\gamma),
-        #   \rho = \mathrm{corr}(\ln(t-\gamma), y)
-        # @symbols: \gamma|\gamma|位置参数候选值, \rho|\rho|Pearson 相关系数
-        # @inputs: t|t|失效时间数组, y|y_i|变换因变量
-        # @outputs: gamma_hat|\hat{\gamma}|最优位置参数
-        # @loop: 无量纲位置网格 + 各峰邻域有界精化，包含 γ=0
         t_min = float(t[0])
         upper = float(np.nextafter(t_min, 0.0))
         # s=log((t_min-γ)/t_min)。用对数间隔覆盖开区间的近端点；
@@ -128,12 +111,6 @@ class LRE(WeibullBase):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 4 | OLS 线性回归 | 在最优 γ 下对 (ln(t-γ), y) 做最小二乘拟合
-        # @formula: \hat{\beta} = \frac{\sum(x_i-\bar{x})(y_i-\bar{y})}{\sum(x_i-\bar{x})^2},
-        #   \hat{\eta} = e^{-\hat{\alpha}/\hat{\beta}},\ \hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}
-        # @symbols: \hat{\beta}|\hat{\beta}|形状参数（回归斜率）, \hat{\eta}|\hat{\eta}|尺度参数（截距反解）
-        # @inputs: gamma_hat|\hat{\gamma}|最优γ, t|t|失效时间数组, y|y_i|变换因变量
-        # @outputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数
         x_vals = np.log((t - gamma_hat) / t_min)
         x_mean = float(np.mean(x_vals))
         y_mean = float(np.mean(y))
@@ -147,10 +124,6 @@ class LRE(WeibullBase):
 
         beta_hat = numerator / denominator
 
-        # @step: 5 | 系数合理性检查 | β ≤ 0 时回归方向与 Weibull 支撑矛盾，不可采纳
-        # @symbols: \hat{\beta}|\hat{\beta}|形状参数估计值
-        # @inputs: beta_hat|\hat{\beta}|形状参数
-        # @outputs: status|status|采纳性判定
         if not (np.isfinite(beta_hat) and beta_hat > 0):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
@@ -162,11 +135,6 @@ class LRE(WeibullBase):
             self.last_solution_info = {"status": "degenerate_sample"}
             return [0, 0, 0, 0, "degenerate_sample"]
 
-        # @step: 6 | 计算概率图 R² | 与位置搜索采用同一组 Park 绘图位置
-        # @formula: R^2 = 1-\frac{\sum(y_i-\hat{y}_i)^2}{\sum(y_i-\bar{y})^2}=\rho^2
-        # @symbols: R^2|R^2|概率图决定系数, y_i|y_i|变换后的绘图分数
-        # @inputs: beta_hat|\hat{\beta}|形状参数, eta_hat|\hat{\eta}|尺度参数, gamma_hat|\hat{\gamma}|位置参数
-        # @outputs: r2|R^2|拟合优度
         residual = y - (beta_hat * x_vals + intercept)
         r2 = 1.0 - float(np.dot(residual, residual)) / y_ss
 
@@ -250,3 +218,681 @@ class LRE(WeibullBase):
             self.trace_data = self.calculation_trace
 
         return [float(beta_hat), float(eta_hat), float(gamma_hat), float(r2), True]
+
+
+# @method-flow
+# {
+#   "schemaVersion": 2,
+#   "methodId": "lre",
+#   "methodName": "线性回归 (LRE)",
+#   "description": "Park绘图位置 → 相关系数定位 → OLS形状与尺度。",
+#   "steps": [
+#     {
+#       "name": "数据预处理",
+#       "description": "获取排序后的失效时间数据和样本数量",
+#       "formula": {
+#         "symbols": [
+#           {
+#             "symbol": "t",
+#             "meaning": "排序后的失效时间数组"
+#           },
+#           {
+#             "symbol": "n",
+#             "meaning": "样本数量"
+#           }
+#         ],
+#         "explanation": "获取排序后的失效时间数据和样本数量",
+#         "equations": [
+#           "t_{(1)} \\leq t_{(2)} \\leq \\cdots \\leq t_{(n)}"
+#         ]
+#       },
+#       "inputs": [
+#         "samples"
+#       ],
+#       "outputs": [
+#         "ordered",
+#         "n"
+#       ],
+#       "basis": "公共输入规则：有限、严格为正的失效时间，统一排序。",
+#       "notes": "当前实现处理完整失效样本；不包含删失样本似然。本方法在 run 内要求 n≥3。",
+#       "sources": [
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase.__init__"
+#         },
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "label": "本步实现",
+#           "from": "self.calculation_trace = None",
+#           "until": "ranks = np.arange"
+#         }
+#       ],
+#       "id": 1,
+#       "primarySource": 1,
+#       "flow": {
+#         "label": "排序样本"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "samples"
+#           ],
+#           "name": "寿命样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "ordered",
+#             "n"
+#           ],
+#           "name": "有序样本",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "计算绘图位置",
+#       "description": "n≤10 用 Blom，n≥11 用 (i−1/2)/n",
+#       "formula": {
+#         "symbols": [
+#           {
+#             "symbol": "F(t_i)",
+#             "meaning": "第i个样本的经验累积概率"
+#           },
+#           {
+#             "symbol": "y_i",
+#             "meaning": "变换后的因变量"
+#           }
+#         ],
+#         "explanation": "n≤10 用 Blom，n≥11 用 (i−1/2)/n",
+#         "equations": [
+#           "p_i=\\begin{cases}(i-3/8)/(n+1/4),&n\\leq10\\\\(i-1/2)/n,&n\\geq11\\end{cases},\\quad y_i=\\ln(-\\ln(1-p_i))"
+#         ]
+#       },
+#       "inputs": [
+#         "n"
+#       ],
+#       "outputs": [
+#         "ranks",
+#         "scores"
+#       ],
+#       "basis": "Park (2017) Proposed+Plot构造：小样本用Blom，大样本用(i−1/2)/n。",
+#       "notes": "固定使用本方法的分段绘图位置；不消费基础类Bernard/exact开关。",
+#       "sources": [
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "label": "本步实现",
+#           "from": "ranks = np.arange",
+#           "until": "t_min = float(t[0])"
+#         }
+#       ],
+#       "id": 2,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "求绘图位置与概率变换",
+#         "symbol": "Y_i=\\ln[-\\ln(1-p_i)]"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "n"
+#           ],
+#           "name": "样本量",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "ranks",
+#             "scores"
+#           ],
+#           "name": "绘图位置与分数",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "让概率图最直，确定位置",
+#       "description": "按Park式(2)比较各位置下概率图的相关系数，取最大值确定γ。",
+#       "formula": {
+#         "symbols": [
+#           {
+#             "symbol": "\\gamma",
+#             "meaning": "位置参数候选值"
+#           },
+#           {
+#             "symbol": "\\rho",
+#             "meaning": "Pearson 相关系数"
+#           }
+#         ],
+#         "explanation": "按Park式(2)比较各位置下概率图的相关系数，取最大值确定γ。",
+#         "equations": [
+#           "\\hat{\\gamma} = \\arg\\max_{\\gamma \\in [0,t_{(1)})} \\rho(\\gamma), \\rho = \\mathrm{corr}(\\ln(t-\\gamma), y)"
+#         ]
+#       },
+#       "inputs": [
+#         "scores",
+#         "ordered"
+#       ],
+#       "outputs": [
+#         "gamma_hat"
+#       ],
+#       "basis": "Park（2017）§5式(2)、图4：最大化相关系数确定位置；式(3)给出等价求根条件。",
+#       "notes": "包含γ=0；上界取nextafter(tmin,0)。不假定目标单峰，无有效候选时失败。",
+#       "sources": [
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "from": "t_min = float(t[0])",
+#           "until": "def negative_correlation(s):"
+#         },
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "from": "search_grid = np.unique",
+#           "until": "best_idx = int"
+#         },
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run.negative_correlation"
+#         },
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "from": "best_idx = int",
+#           "until": "x_vals = np.log((t - gamma_hat) / t_min)"
+#         }
+#       ],
+#       "id": 3,
+#       "primarySource": 3,
+#       "flow": {
+#         "label": "最大相关确定位置",
+#         "symbol": "\\max_\\gamma\\rho(\\gamma)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "scores"
+#           ],
+#           "name": "概率分数",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered"
+#           ],
+#           "name": "有序样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "平移后回归，读出形状与尺度",
+#       "description": "固定选中位置，把寿命减去γ后做概率图OLS；直线斜率就是形状，截距用于恢复尺度。",
+#       "formula": {
+#         "explanation": "固定选中位置，把寿命减去γ后做概率图OLS；直线斜率就是形状，截距用于恢复尺度。",
+#         "symbols": [
+#           {
+#             "symbol": "x_i",
+#             "meaning": "归一化对数横坐标"
+#           },
+#           {
+#             "symbol": "\\hat\\beta",
+#             "meaning": "回归斜率即形状参数"
+#           }
+#         ],
+#         "equations": [
+#           "Y_i=a+b\\ln(t_i-\\hat\\gamma),\\quad b=\\frac{\\sum(X_i-\\bar X)(Y_i-\\bar Y)}{\\sum(X_i-\\bar X)^2},\\quad\\hat\\beta=b,\\quad\\hat\\eta=e^{-a/b}"
+#         ]
+#       },
+#       "inputs": [
+#         "gamma_hat",
+#         "ordered",
+#         "scores"
+#       ],
+#       "outputs": [
+#         "beta_hat",
+#         "eta_hat"
+#       ],
+#       "basis": "Park（2017）§2直线关系、§5 Proposed+Plot及图5：先定位，再对平移样本回归。",
+#       "notes": "源码用寿命单位归一化改善数值稳定性，恢复尺度时乘回tmin；要求斜率及尺度为有限正数。",
+#       "sources": [
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "label": "本步实现",
+#           "from": "x_vals = np.log((t - gamma_hat) / t_min)",
+#           "until": "if not (np.isfinite(beta_hat) and beta_hat > 0):"
+#         },
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "label": "本步实现",
+#           "from": "if not (np.isfinite(beta_hat) and beta_hat > 0):",
+#           "until": "residual = y - (beta_hat * x_vals + intercept)"
+#         }
+#       ],
+#       "id": 4,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "平移回归求形状与尺度"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered",
+#             "scores"
+#           ],
+#           "name": "样本与分数",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat"
+#           ],
+#           "name": "形状与尺度",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "计算拟合优度并返回",
+#       "description": "与位置搜索采用同一组 Park 绘图位置",
+#       "formula": {
+#         "symbols": [
+#           {
+#             "symbol": "R^2",
+#             "meaning": "概率图决定系数"
+#           },
+#           {
+#             "symbol": "y_i",
+#             "meaning": "变换后的绘图分数"
+#           }
+#         ],
+#         "explanation": "与位置搜索采用同一组 Park 绘图位置",
+#         "equations": [
+#           "R^2 = 1-\\frac{\\sum(y_i-\\hat{y}_i)^2}{\\sum(y_i-\\bar{y})^2}=\\rho^2"
+#         ]
+#       },
+#       "inputs": [
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat"
+#       ],
+#       "outputs": [
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat",
+#         "r_squared",
+#         "status"
+#       ],
+#       "basis": "项目诊断：使用同一组Park绘图位置计算概率图R²，OLS含截距时等于ρ²。",
+#       "notes": "本方法直接计算R²；不调用基础类的绘图位置。trace包含候选结果与最终结果。",
+#       "sources": [
+#         {
+#           "file": "python/methods/lre.py",
+#           "symbol": "LRE.run",
+#           "label": "本步实现",
+#           "from": "residual = y - (beta_hat * x_vals + intercept)"
+#         }
+#       ],
+#       "id": 5,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "汇总参数与拟合优度",
+#         "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat"
+#           ],
+#           "name": "形状与尺度",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat",
+#             "gamma_hat",
+#             "r_squared"
+#           ],
+#           "name": "估计结果",
+#           "wrap": 2
+#         }
+#       }
+#     }
+#   ],
+#   "workflow": {
+#     "title": "计算流程",
+#     "description": "Park绘图位置 → 相关系数定位 → OLS形状与尺度。",
+#     "targets": {
+#       "samples": 1,
+#       "transformation": 2,
+#       "location": 3,
+#       "regression": 4,
+#       "result": 5
+#     },
+#     "items": [
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i1-1",
+#             "target": "samples",
+#             "direction": "input",
+#             "external": true,
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s1",
+#             "step": 1,
+#             "target": "samples"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o1",
+#             "target": "samples",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i2-1",
+#             "target": "transformation",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s2",
+#             "step": 2,
+#             "target": "transformation"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o2",
+#             "target": "transformation",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i3-1",
+#             "target": "location",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i3-2",
+#             "target": "location",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s3",
+#             "step": 3,
+#             "target": "location"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o3",
+#             "target": "location",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i4-1",
+#             "target": "regression",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i4-2",
+#             "target": "regression",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s4",
+#             "step": 4,
+#             "target": "regression"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o4",
+#             "target": "regression",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i5-1",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i5-2",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s5",
+#             "step": 5,
+#             "target": "result"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o5",
+#             "target": "result",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       }
+#     ],
+#     "connections": [
+#       {
+#         "from": "o1",
+#         "to": "i2-1"
+#       },
+#       {
+#         "from": "o2",
+#         "to": "i3-1"
+#       },
+#       {
+#         "from": "o1",
+#         "to": "i3-2"
+#       },
+#       {
+#         "from": "o3",
+#         "to": "i4-1"
+#       },
+#       {
+#         "from": "o1",
+#         "to": "i4-2"
+#       },
+#       {
+#         "from": "o2",
+#         "to": "i4-2"
+#       },
+#       {
+#         "from": "o4",
+#         "to": "i5-1"
+#       },
+#       {
+#         "from": "o3",
+#         "to": "i5-2"
+#       }
+#     ]
+#   },
+#   "variables": {
+#     "samples": {
+#       "symbol": "t_i",
+#       "name": "样本",
+#       "meaning": "样本",
+#       "code": "data"
+#     },
+#     "ordered": {
+#       "symbol": "t_{(i)}",
+#       "name": "有序样本",
+#       "meaning": "有序样本",
+#       "code": "t"
+#     },
+#     "n": {
+#       "symbol": "n",
+#       "name": "样本量",
+#       "meaning": "样本量",
+#       "code": "n"
+#     },
+#     "beta_hat": {
+#       "symbol": "\\hat\\beta",
+#       "name": "形状估计",
+#       "meaning": "形状估计",
+#       "code": "final_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "eta_hat": {
+#       "symbol": "\\hat\\eta",
+#       "name": "尺度估计",
+#       "meaning": "尺度估计",
+#       "code": "final_eta",
+#       "axisLabel": "尺度参数 η"
+#     },
+#     "gamma_hat": {
+#       "symbol": "\\hat\\gamma",
+#       "name": "位置估计",
+#       "meaning": "位置估计",
+#       "code": "final_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "r_squared": {
+#       "symbol": "R^2",
+#       "name": "拟合优度",
+#       "meaning": "拟合优度",
+#       "code": "r_squared"
+#     },
+#     "status": {
+#       "symbol": "\\mathrm{status}",
+#       "name": "求解状态",
+#       "meaning": "求解状态",
+#       "code": "process_status"
+#     },
+#     "gamma_axis": {
+#       "symbol": "\\gamma",
+#       "name": "位置",
+#       "meaning": "位置",
+#       "axisLabel": "位置参数 γ",
+#       "code": "gamma_axis"
+#     },
+#     "ranks": {
+#       "symbol": "p_i",
+#       "name": "绘图位置",
+#       "meaning": "绘图位置",
+#       "code": "F"
+#     },
+#     "scores": {
+#       "symbol": "Y_i",
+#       "name": "Weibull 分数",
+#       "meaning": "Weibull 分数",
+#       "code": "y",
+#       "axisLabel": "Weibull 分数 Yᵢ"
+#     },
+#     "plot_x": {
+#       "symbol": "x_i",
+#       "name": "平移对数寿命",
+#       "meaning": "平移对数寿命",
+#       "code": "x_vals",
+#       "axisLabel": "平移对数寿命 xᵢ"
+#     },
+#     "original_x": {
+#       "symbol": "\\ln t_i",
+#       "name": "原样本对数寿命",
+#       "meaning": "原样本对数寿命",
+#       "axisLabel": "原样本对数寿命 ln(tᵢ)",
+#       "code": "original_x"
+#     },
+#     "criterion": {
+#       "symbol": "\\rho(\\gamma)",
+#       "name": "位置判据",
+#       "meaning": "位置判据",
+#       "code": "criterion",
+#       "axisLabel": "相关系数 ρ(γ)"
+#     }
+#   },
+#   "chartBindings": {
+#     "park-probability-regression": {
+#       "x": "plot_x",
+#       "y": "scores"
+#     },
+#     "original-probability-plot": {
+#       "x": "original_x",
+#       "y": "scores"
+#     },
+#     "correlation-location": {
+#       "x": "gamma_axis",
+#       "y": "criterion"
+#     }
+#   }
+# }
+# @end-method-flow

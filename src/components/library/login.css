@@ -52,7 +52,10 @@
 .library-login-submit { display: inline-flex; justify-content: center; align-items: center; gap: .6rem; width: 100%; height: 48px; border-radius: 10px; color: white; background: #1d4ed8; font-size: .875rem; font-weight: 500; box-shadow: 0 4px 12px rgb(37 99 235 / .12); }
 .library-login-submit:hover { background: #1e40af; }
 .library-login-submit:disabled { opacity: .6; cursor: wait; }
-.library-login-note { text-align: center; font-size: .6875rem; color: #94a3b8; line-height: 1.7; margin-top: 1.5rem; }
+.library-login-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; margin-bottom: 1.15rem; }
+.library-login-code-row input { margin-bottom: 0; }
+.library-login-code-row button { padding-inline: .65rem; border: 1px solid #dbeafe; border-radius: 10px; color: #1d4ed8; background: #eff6ff; font-size: .75rem; white-space: nowrap; }
+.library-login-code-row button:disabled { color: #64748b; background: #f8fafc; }
 .library-login-dialog button:focus-visible, .library-entry-tabs button:focus-visible, .library-entry-read:focus-visible { outline: 2px solid #3b82f6; outline-offset: 4px; }
 @keyframes library-login-enter { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .library-login-dialog { animation: none; } }

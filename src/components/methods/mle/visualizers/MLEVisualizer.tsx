@@ -10,6 +10,7 @@ import { embeddedCalculationTrace, readCalculationTrace, formatCalculationNumber
 import type { FlowChartTarget } from '@/lib/method-flow'
 import { mleProcessData, type MLEFrame } from './process-data'
 import { useCalculationBatch } from '../../CalculationBatch'
+import { vectorSummary } from '../../recorded-process-data'
 
 type Model = NonNullable<ReturnType<typeof mleProcessData>>
 
@@ -28,13 +29,21 @@ export default function MLEVisualizer({ traceData, calculation, rSquared, isUpda
   useEffect(() => setIndex(0), [record])
   const viewed = model?.frames[Math.min(index, model.frames.length - 1)]
   const branch = model && !model.success ? 'failed' : model?.final?.gamma === 0 ? 'zero' : 'ready'
-  const values: Record<string, string> = model ? { n: String(model.samples.length), unit: number(model.unit), candidate_count: String(model.candidates.length),
+  const values: Record<string, string> = model ? { data: vectorSummary(model.samples.map(sample => sample.observation)), n: String(model.samples.length), unit: number(model.unit), candidate_count: String(model.candidates.length),
     gamma: number(model.final?.gamma), beta: number(model.final?.beta), eta: number(model.final?.eta),
     log_likelihood: number(model.final?.log_likelihood), r_squared: number(rSquared),
     viewed_gamma: number(viewed?.gamma), viewed_beta: number(viewed?.beta), viewed_eta: number(viewed?.eta), viewed_ll: number(viewed?.log_likelihood) } : {}
+  if (model) Object.assign(values, {
+    t: vectorSummary(model.samples.map(sample => sample.observation)), z: vectorSummary(model.samples.map(sample => sample.normalized)),
+    trial_gamma: number(viewed?.gamma), trial_beta: number(viewed?.beta), trial_eta: number(viewed?.eta),
+    trial_likelihood: number(viewed?.log_likelihood),
+    likelihood_profile: vectorSummary(trace?.charts.find(chart => chart.id === 'profile-likelihood')?.series.find(series => series.id === 'profile')?.points.map(point => point.y)),
+    candidate_likelihoods: model.candidates.length + ' 个合格候选',
+    final_beta: number(model.final?.beta), final_eta: number(model.final?.eta), final_gamma: number(model.final?.gamma),
+    process_status: model.success ? '已采纳' : '未获得合格估计',
+  })
   return <CalculationWorkspace methodId="mle" ready={!!model} updating={isUpdating} revision={model}
     values={values} workflowBranch={branch}
-    workflowValues={{ count: model?.samples.length, viewedGamma: viewed?.gamma, gamma: model?.final?.gamma, beta: model?.final?.beta, eta: model?.final?.eta }}
     formulaVariant={(_, target) => target === 'trial' ? viewed?.shape_at_lower_boundary ? 'boundary' : undefined
       : target === 'location' ? branch : target === 'shape' ? model && !model.success ? 'failed' : model?.final?.shape_at_lower_boundary ? 'boundary' : undefined
         : target === 'scale' ? model && !model.success ? 'failed' : model?.scale?.use_scaled ? 'scaled' : undefined : undefined}
@@ -69,7 +78,7 @@ function MLEFigure({ target, trace, model, viewed, index, setIndex, rSquared }: 
   target?: FlowChartTarget; trace: CalculationTrace; model: Model; viewed?: MLEFrame; index: number; setIndex: (index: number) => void; rSquared?: number | null
 }) {
   if (target === 'samples') return <ProcessValueTable label="排序样本与归一化" minColumnWidth={340}
-    columns={[{ label: '序号 i' }, { label: '排序样本 t₍ᵢ₎', align: 'right' }, { label: '归一化 zᵢ', align: 'right' }]}
+    columns={[{ label: '序号', math: 'i' }, { label: '排序样本', math: 't_{(i)}', align: 'right' }, { label: '归一化样本', math: 'z_i', align: 'right' }]}
     rows={model.samples.map(sample => [sample.index, number(sample.observation), number(sample.normalized)])} />
   if (target === 'trial') return viewed ? <div className="space-y-3">
     <ProcessPlotControls>

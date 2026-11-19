@@ -1,5 +1,5 @@
 import registeredAuthors from '../data/library-authors.json'
-import { findLibraryCredit, libraryCreditNames, type LibraryCreditPaper, type LibraryCredits } from './library-credits'
+import { findLibraryCredit, libraryCreditNameKey, libraryCreditNames, type LibraryCreditPaper, type LibraryCredits } from './library-credits'
 
 export interface LibraryAuthor {
   key: string
@@ -38,24 +38,64 @@ function nameKey(name: string): string {
   return libraryAuthorName(name).normalize('NFKC').toLowerCase().replace(/[.,，'’\-‐‑]/g, '').replace(/\s+/g, ' ')
 }
 
+type SignedAuthor = LibraryCredits['authors'][number]
+type AuthorIndex = {
+  bySpelling: Map<string, SignedAuthor[]>
+  sources: Map<string, Map<LibraryCreditPaper, SignedAuthor>>
+  identities: Map<string, LibraryAuthor>
+}
+const authorIndexes = new WeakMap<LibraryCreditPaper[], AuthorIndex>()
+
+function indexAuthorSignatures(papers: LibraryCreditPaper[]): AuthorIndex {
+  const cached = authorIndexes.get(papers)
+  if (cached) return cached
+  const index: AuthorIndex = { bySpelling: new Map(), sources: new Map(), identities: new Map() }
+  for (const paper of papers) {
+    for (const author of paper.credits?.authors || []) {
+      const keys = new Set(libraryCreditNames(author).map(libraryCreditNameKey))
+      for (const key of Array.from(keys)) {
+        const matches = index.bySpelling.get(key)
+        if (matches) matches.push(author)
+        else index.bySpelling.set(key, [author])
+      }
+      const key = nameKey(author.name)
+      const sources = index.sources.get(key) ?? new Map<LibraryCreditPaper, SignedAuthor>()
+      if (!sources.has(paper)) sources.set(paper, author)
+      index.sources.set(key, sources)
+    }
+  }
+  authorIndexes.set(papers, index)
+  return index
+}
+
 /** Only reviewed aliases join Chinese and romanized names. Initials never expand automatically. */
 export function libraryAuthorIdentity(name: string, papers: LibraryCreditPaper[] = []): LibraryAuthor {
   const clean = libraryAuthorName(name)
+  const index = papers.length ? indexAuthorSignatures(papers) : undefined
+  const cached = index?.identities.get(clean)
+  if (cached) return cached
+  const identity = resolveLibraryAuthor(clean, index)
+  index?.identities.set(clean, identity)
+  return identity
+}
+
+function resolveLibraryAuthor(clean: string, index?: AuthorIndex): LibraryAuthor {
   const key = nameKey(clean)
-  const credit = findLibraryCredit(papers.flatMap(paper => paper.credits?.authors || []), clean)
-  const spellings = credit ? libraryCreditNames(credit) : [clean]
+  const credit = findLibraryCredit(index?.bySpelling.get(libraryCreditNameKey(clean)) || [], clean)
+  const primary = credit && libraryCreditNameKey(credit.name)
+  const spellings = primary ? (index?.bySpelling.get(primary) || [])
+    .filter(author => libraryCreditNameKey(author.name) === primary).flatMap(libraryCreditNames) : [clean]
   const registered = registeredAuthors.find(author => [author.name, author.englishName, ...author.aliases]
     .some(alias => spellings.some(spelling => nameKey(alias) === nameKey(spelling))))
   if (credit) {
-    const sources = papers.filter(paper => paper.credits?.authors.some(author => nameKey(author.name) === nameKey(credit.name)))
+    const sources = Array.from(index?.sources.get(nameKey(credit.name)) || [])
     const name = registered?.name || credit.name
-    const evidence = [...sources.map(paper => ({ slug: paper.slug, note: '源稿结构化署名 credits' })), ...(registered?.evidence || [])]
-    const affiliations = [...sources.flatMap(paper => {
-        const author = paper.credits!.authors.find(row => nameKey(row.name) === nameKey(credit.name))!
-        return (paper.credits!.institutions || []).filter(unit => author.units?.includes(unit.id)).map(unit => ({ name: unit.name, slug: paper.slug, year: paper.year || 0 }))
-      }), ...(registered?.affiliations || [])]
+    const evidence = [...sources.map(([paper]) => ({ slug: paper.slug, note: '源稿结构化署名 credits' })), ...(registered?.evidence || [])]
+    const affiliations = [...sources.flatMap(([paper, author]) => (paper.credits?.institutions || [])
+      .filter(unit => author.units?.includes(unit.id)).map(unit => ({ name: unit.name, slug: paper.slug, year: paper.year || 0 }))),
+      ...(registered?.affiliations || [])]
     return { key: nameKey(name), name, englishName: credit.name_en || registered?.englishName,
-      aliases: Array.from(new Set([...libraryCreditNames(credit), ...(registered ? [registered.name, registered.englishName, ...registered.aliases] : [])])),
+      aliases: Array.from(new Set([...spellings, ...(registered ? [registered.name, registered.englishName, ...registered.aliases] : [])])),
       evidence: evidence.filter((item, index) => evidence.findIndex(other => other.slug === item.slug) === index),
       affiliations: affiliations.filter((item, index) => affiliations.findIndex(other => other.slug === item.slug && other.name === item.name) === index) }
   }

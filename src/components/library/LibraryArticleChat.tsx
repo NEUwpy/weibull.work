@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { ArrowUp, CornerDownRight, Loader2, Quote, Square, X } from 'lucide-react'
+import { ArrowLeft, ArrowUp, CornerDownRight, Loader2, Quote, Square, X } from 'lucide-react'
 import { LibraryChatAnswerView } from '@/components/chat'
+import { usePreviewDialog } from '@/components/shared/usePreviewDialog'
 import { consumeLibraryChatStream } from '@/lib/chat-stream'
 import { MAX_ARTICLE_CHAT_HISTORY, MAX_ARTICLE_QUOTES, MAX_ARTICLE_QUOTE_CHARS, type LibraryArticleQuote } from '@/lib/library-article-chat'
 import type { LibraryChatAnswer } from '@/lib/library-chat-session'
 import { libraryAuthClient } from '@/lib/library-auth-client'
 import type { LibraryVersion } from '@/lib/library-search-types'
-import articleQuestions from '@/content/prompts/article-questions.json'
 import './article-chat.css'
 
 interface Turn {
@@ -17,16 +17,18 @@ interface Turn {
   answer: LibraryChatAnswer
 }
 
-export function LibraryArticleChat({ slug, version, onLogin, onCitation, contents, controlsId, leftOpen, rightOpen, setRightOpen, children }: {
+export function LibraryArticleChat({ slug, version, onLogin, onCitation, contents, controlsId, compact, tocOpen, rightOpen, setRightOpen, suggestions, children }: {
   slug: string
   version: LibraryVersion
   onLogin: () => void
   onCitation: (href: string) => void
   contents?: ReactNode
   controlsId: string
-  leftOpen: boolean
+  compact: boolean
+  tocOpen: boolean
   rightOpen: boolean
   setRightOpen: (open: boolean) => void
+  suggestions: readonly string[]
   children: ReactNode
 }) {
   const panelId = controlsId + '-chat'
@@ -45,20 +47,17 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
   const [progress, setProgress] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const mobileChat = usePreviewDialog(() => setRightOpen(false), compact && rightOpen)
 
   useEffect(() => () => active.current?.abort(), [])
   useEffect(() => {
-    if (!rightOpen) return
+    if (!rightOpen || compact) return
     let frame = 0
     const fitPanel = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         const panel = chatPanel.current
         if (!panel) return
-        if (window.matchMedia('(max-width: 900px)').matches) {
-          panel.style.removeProperty('--article-chat-height')
-          return
-        }
         const scroller = shell.current?.closest('[data-library-dialog-scroll]')
         const bottom = Math.min(window.innerHeight, scroller?.getBoundingClientRect().bottom ?? window.innerHeight)
         const available = bottom - panel.getBoundingClientRect().top - 16
@@ -78,7 +77,25 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
       window.removeEventListener('scroll', fitPanel, true)
       window.removeEventListener('resize', fitPanel)
     }
-  }, [rightOpen])
+  }, [compact, rightOpen])
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    const panel = mobileChat.dialog.ref.current
+    if (!compact || !rightOpen || !viewport || !panel) return
+    const fitViewport = () => {
+      panel.style.setProperty('--article-chat-top', `${viewport.offsetTop}px`)
+      panel.style.setProperty('--article-chat-height', `${viewport.height}px`)
+    }
+    fitViewport()
+    viewport.addEventListener('resize', fitViewport)
+    viewport.addEventListener('scroll', fitViewport)
+    return () => {
+      viewport.removeEventListener('resize', fitViewport)
+      viewport.removeEventListener('scroll', fitViewport)
+    }
+  }, [compact, rightOpen, mobileChat.dialog.ref])
+
   useEffect(() => {
     let frame = 0
     function refresh() {
@@ -86,7 +103,7 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
       frame = requestAnimationFrame(() => {
         const selected = window.getSelection()
         const root = shell.current?.querySelector('[data-library-selection]')
-        if (!root || !selected?.rangeCount || selected.isCollapsed || !root.contains(selected.anchorNode) || !root.contains(selected.focusNode)) {
+        if ((compact && rightOpen) || !root || !selected?.rangeCount || selected.isCollapsed || !root.contains(selected.anchorNode) || !root.contains(selected.focusNode)) {
           setSelection(null)
           return
         }
@@ -109,13 +126,14 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
     document.addEventListener('selectionchange', refresh)
     window.addEventListener('resize', refresh)
     window.addEventListener('scroll', refresh, true)
+    refresh()
     return () => {
       cancelAnimationFrame(frame)
       document.removeEventListener('selectionchange', refresh)
       window.removeEventListener('resize', refresh)
       window.removeEventListener('scroll', refresh, true)
     }
-  }, [version])
+  }, [version, compact, rightOpen])
 
   function attach(quote: LibraryArticleQuote) {
     setRightOpen(true)
@@ -131,7 +149,7 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
     setQuotes(current => current.some(item => item.text === quote.text) ? current : [...current, quote])
     window.getSelection()?.removeAllRanges()
     setSelection(null)
-    requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }))
+    if (!compact) requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }))
   }
 
   async function ask(event: FormEvent<HTMLFormElement>) {
@@ -185,65 +203,68 @@ export function LibraryArticleChat({ slug, version, onLogin, onCitation, content
     }
   }
 
+  const chatContent = <>
+    <header className="library-article-chat-header">
+      {compact && <button type="button" ref={mobileChat.closeButton} className="library-article-chat-close" onClick={() => setRightOpen(false)} aria-label="返回正文"><ArrowLeft size={21} /></button>}
+      <h2>AI 问答</h2>
+    </header>
+    <div ref={messages} className="library-article-chat-messages" onClickCapture={event => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      const href = (event.target as Element).closest('a')?.getAttribute('href')
+      if (!href?.startsWith(`/library/${encodeURIComponent(slug)}?`)) return
+      event.preventDefault()
+      if (compact) setRightOpen(false)
+      onCitation(href)
+    }}>
+      {!turns.length && <p className="library-article-chat-empty">直接提问，或划选正文后加入问答。</p>}
+      {turns.map(turn => <div className="library-article-chat-turn" key={turn.answer.id}>
+        <div className="library-article-chat-user">
+          {turn.quotes.map(item => <blockquote key={item.text}><Quote size={13} />
+            {item.anchor && item.version ? <a href={`/library/${encodeURIComponent(slug)}?version=${encodeURIComponent(item.version)}#${item.anchor}`}
+              className="hover:underline" title="跳到选段出处"><span>{item.text}</span></a> : <span>{item.text}</span>}
+          </blockquote>)}
+          <p>{turn.question}</p>
+        </div>
+        <LibraryChatAnswerView message={turn.answer} />
+      </div>)}
+      {progress && <p role="status" className="flex items-center gap-2 text-xs text-slate-500"><Loader2 size={14} className="animate-spin" />{progress}</p>}
+    </div>
+    <div className="library-article-chat-suggestions" aria-label="推荐问题" data-has-turns={turns.length > 0}>
+      {suggestions.map(suggestion => <button type="button" key={suggestion} onClick={() => {
+        setQuestion(suggestion)
+        composer.current?.focus({ preventScroll: true })
+      }}><CornerDownRight size={15} aria-hidden="true" /><span>{suggestion}</span></button>)}
+    </div>
+    <form className="library-article-chat-form" onSubmit={ask}>
+      {notice && <p role="alert" className="text-xs text-rose-700">{notice}</p>}
+      {!!quotes.length && <div className="library-article-chat-quotes" aria-label="已附选段">
+        {quotes.map(item => <div key={item.text} className="library-article-chat-quote">
+          <Quote size={14} aria-hidden="true" />
+          <details><summary>{item.text}</summary><p>{item.text}</p></details>
+          <button type="button" onClick={() => setQuotes(current => current.filter(quote => quote !== item))} aria-label="移除选段"><X size={15} /></button>
+        </div>)}
+      </div>}
+      <textarea ref={composer} value={question} maxLength={2000} rows={2} aria-label="关于本篇的问题"
+        placeholder="关于这篇文献，你想问什么？" onChange={event => setQuestion(event.target.value)} />
+      <div className="library-article-chat-form-footer">
+        {busy ? <button type="button" className="library-article-chat-send" onClick={() => active.current?.abort()} aria-label="停止回答"><Square size={15} /></button>
+          : <button type="submit" className="library-article-chat-send" disabled={!question.trim()} aria-label="发送问题"><ArrowUp size={19} /></button>}
+      </div>
+    </form>
+  </>
+
   return <div ref={shell} className="library-article-chat-shell"
-    data-left-open={Boolean(contents) && leftOpen} data-right-open={rightOpen}>
-    <div className="library-article-workspace library-entry-shell" data-left-open={Boolean(contents) && leftOpen} data-right-open={rightOpen}>
-      {contents && <aside id={tocId} hidden={!leftOpen} className="library-article-toc" aria-label="目录">
-        <h2>目录</h2>
+    data-left-open={Boolean(contents) && tocOpen} data-right-open={rightOpen}>
+    <div className="library-article-workspace library-entry-shell">
+      {contents && <aside id={tocId} hidden={!tocOpen} className="library-article-toc" aria-label="目录">
+        {!compact && <h2>目录</h2>}
         {contents}
       </aside>}
       <div className="library-article-reading">{children}</div>
-      <aside ref={chatPanel} id={panelId} aria-label="单篇 AI 问答" hidden={!rightOpen} className="library-article-chat">
-        <header className="library-article-chat-header">
-          <h2>AI 问答</h2>
-          <button type="button" className="library-article-chat-close" onClick={() => setRightOpen(false)} aria-label="收起问答"><X size={19} /></button>
-        </header>
-          <div ref={messages} className="library-article-chat-messages" onClickCapture={event => {
-            if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
-            const href = (event.target as Element).closest('a')?.getAttribute('href')
-            if (!href?.startsWith(`/library/${encodeURIComponent(slug)}?`)) return
-            event.preventDefault()
-            if (window.matchMedia('(max-width: 900px)').matches) setRightOpen(false)
-            onCitation(href)
-          }}>
-            {!turns.length && <p className="library-article-chat-empty">直接提问，或划选正文后加入问答。</p>}
-            {turns.map(turn => <div className="library-article-chat-turn" key={turn.answer.id}>
-              <div className="library-article-chat-user">
-                {turn.quotes.map(item => <blockquote key={item.text}><Quote size={13} />
-                  {item.anchor && item.version ? <a href={`/library/${encodeURIComponent(slug)}?version=${encodeURIComponent(item.version)}#${item.anchor}`}
-                    className="hover:underline" title="跳到选段出处"><span>{item.text}</span></a> : <span>{item.text}</span>}
-                </blockquote>)}
-                <p>{turn.question}</p>
-              </div>
-              <LibraryChatAnswerView message={turn.answer} />
-            </div>)}
-            {progress && <p role="status" className="flex items-center gap-2 text-xs text-slate-500"><Loader2 size={14} className="animate-spin" />{progress}</p>}
-          </div>
-          <div className="library-article-chat-suggestions" aria-label="推荐问题">
-            {articleQuestions.map(item => <button type="button" key={item.label} onClick={() => {
-              setQuestion(item.question)
-              requestAnimationFrame(() => composer.current?.focus({ preventScroll: true }))
-            }}><CornerDownRight size={15} aria-hidden="true" /><span>{item.question}</span></button>)}
-          </div>
-          <form className="library-article-chat-form" onSubmit={ask}>
-            {notice && <p role="alert" className="text-xs text-rose-700">{notice}</p>}
-            {!!quotes.length && <div className="library-article-chat-quotes" aria-label="已附选段">
-              {quotes.map(item => <div key={item.text} className="library-article-chat-quote">
-                <Quote size={14} aria-hidden="true" />
-                <details><summary>{item.text}</summary><p>{item.text}</p></details>
-                <button type="button" onClick={() => setQuotes(current => current.filter(quote => quote !== item))} aria-label="移除选段"><X size={15} /></button>
-              </div>)}
-            </div>}
-            <textarea ref={composer} value={question} maxLength={2000} rows={2} aria-label="关于本篇的问题"
-              placeholder="关于这篇文献，你想问什么？" onChange={event => setQuestion(event.target.value)} />
-            <div className="library-article-chat-form-footer">
-              {busy ? <button type="button" className="library-article-chat-send" onClick={() => active.current?.abort()} aria-label="停止回答"><Square size={15} /></button>
-                : <button type="submit" className="library-article-chat-send" disabled={!question.trim()} aria-label="发送问题"><ArrowUp size={19} /></button>}
-            </div>
-          </form>
-      </aside>
+      {compact ? <dialog {...mobileChat.dialog} id={panelId} aria-label="单篇 AI 问答" className="library-article-chat library-article-chat-mobile">{chatContent}</dialog>
+        : <aside ref={chatPanel} id={panelId} aria-label="单篇 AI 问答" hidden={!rightOpen} className="library-article-chat">{chatContent}</aside>}
     </div>
-      {selection?.quote.version === version && <button type="button" className="library-article-selection" style={{ left: selection.left, top: selection.top }}
+      {!(compact && rightOpen) && selection?.quote.version === version && <button type="button" className="library-article-selection" style={{ left: selection.left, top: selection.top }}
         onPointerDown={event => { lastSelection.current = selection.quote; event.preventDefault() }}
         onClick={() => attach(lastSelection.current || selection.quote)}><Quote size={15} />加入问答</button>}
   </div>

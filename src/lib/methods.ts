@@ -1,4 +1,4 @@
-import methodsData from '@/data/methods.json'
+import methodsData from '../data/methods.json'
 
 export type MethodNode = {
   id: string

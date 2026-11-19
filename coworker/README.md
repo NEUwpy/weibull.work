@@ -1,6 +1,18 @@
 # Coworker 工作区
 
-这里只保留当前入口、分仓恢复说明及产品验收记录，共11份。项目唯一权威入口是根README；通用协作流程由`.agents/skills/coworker/SKILL.md`维护，本目录不另立规则。
+本目录保存分仓恢复说明及产品验收记录。
+
+## 协作约定
+
+- 编程、重构、修 bug、审查 diff 或在 Codex / Hermes / OpenCode / Claude Code 之间交接任务时，使用 `coworker` skill。
+- 默认协作角色：Codex 负责需求对齐、规划审查和最终验收；Hermes / MiMo 或 Claude Code / MiMo 优先执行；OpenCode / DeepSeek 可作二审、备选执行或独立 bug-finding。
+- 审查时以实际 diff、验证命令和项目规则为准，不以历史手稿覆盖当前代码事实。
+
+[coworker 技能](../.agents/skills/coworker/SKILL.md)
+
+## 工作记录
+
+具体多 agent 任务的计划、分发、执行报告和验收记录放在 `coworker/`。
 
 - `plans/`：当前分仓、基线及源库切换的恢复依据。
 - `reports/`、`reviews/`：当前功能和方法建设的验收证据。

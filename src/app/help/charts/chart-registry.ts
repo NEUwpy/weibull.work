@@ -68,8 +68,8 @@ export const chartRegistry: ChartRegistry = {
     ...['mle', 'wmle', 'lse', 'lre', 'mm', 'mmle'].map(method => ({
       id: `calculation-${method}`,
       label: `${method.toUpperCase()} 本次计算与选择判据`,
-      location: method === 'mm' ? 'MethodCalculationSteps / MomentProcessViewer' : 'MethodCalculationSteps / ProcessChart',
-      description: '按求参阶段分步展示，说明坐标、曲线依据与取值判据，采纳点配虚线读数；联动比较和完整代入在详情中。',
+      location: method === 'mm' ? 'MomentProcessViewer' : 'RecordedCalculationProcess / ProcessChart',
+      description: '按求参关系分配图表、实际输入输出及关键数值代入；位置联动与回归在对应步骤中阅读，详细操作数按需展开。',
       dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
       props: { contract: 'calculation/schema_version=1', methodId: method, source: 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only', exampleOnly: method === 'mmle' },
     })),

@@ -81,7 +81,8 @@ export function createLiteratureIndex(records) {
     titles: [record.title, record.title_en].filter(Boolean).map(titleKey),
     dois: extractDois(record.doi), author: nameTokens(record.author),
     text: fold([record.id, record.slug, record.title, record.title_en, record.author, record.year,
-      record.publication, record.tags, record.directory, record.reason, record.summary].filter(Boolean).join(' ')),
+      record.publication, Array.isArray(record.tags) ? record.tags.filter(tag => !tag.startsWith('problem:')) : record.tags,
+      record.directory, record.reason, record.summary].filter(Boolean).join(' ')),
   }))
   const byKey = new Map(rows.map(row => [row.key, row]))
   if (byKey.size !== rows.length) throw new Error('文献检索身份重复，须按具体目录和UID区分')

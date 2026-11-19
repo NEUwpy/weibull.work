@@ -11,6 +11,7 @@
 "use client"
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { useProcessAxisLabel } from '../../ProcessDefinitionContext'
 import {
   LineChart,
   Line,
@@ -140,6 +141,8 @@ export function SigmaBetaChart({
   noContainer = false,
   workspacePlot = false,
 }: SigmaBetaChartProps) {
+  const xAxisName = useProcessAxisLabel('mdm-shape', 'x', '形状参数 β')
+  const yAxisName = useProcessAxisLabel('mdm-shape', 'y', '标准差 σ_η')
   const [hoveredPoint, setHoveredPoint] = useState<(SigmaBetaCurvePoint & { evaluation?: number }) | null>(null)
   const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-shape-calculated-point"
     cx={props.cx} cy={props.cy} r={2.7} fill="#2563eb" stroke="#fff" strokeWidth={0.5}
@@ -241,7 +244,7 @@ export function SigmaBetaChart({
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '形状参数 β', position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
+          label={{ value: xAxisName, position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
         <YAxis
@@ -256,7 +259,7 @@ export function SigmaBetaChart({
           stroke="#000"
           strokeWidth={1}
           label={{
-            value: yScale === 'log' ? '标准差 σ_η (对数)' : '标准差 σ_η',
+            value: yScale === 'log' ? yAxisName + ' (对数)' : yAxisName,
             content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
             angle: -90,
             position: 'insideLeft',

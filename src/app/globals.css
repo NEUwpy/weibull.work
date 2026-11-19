@@ -105,8 +105,14 @@ body {
   flex-shrink: 0;
 }
 .site-navigation-frame { height: var(--header-control-size); }
-.site-title > :last-child { height: var(--header-control-size); justify-content: center; }
-.site-title h1 { font-family: 'Weibull Header Linux Libertine G', 'Linux Libertine G', Georgia, serif; }
+.site-title { min-width: 0; }
+.site-title > :last-child { min-width: 0; height: var(--header-control-size); justify-content: center; }
+.site-title h1 {
+  font-family: 'Weibull Header Linux Libertine G', 'Linux Libertine G', Georgia, serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .site-title > :last-child > span {
   font-family: 'Weibull Header YanZhenqing', '方正颜真卿楷书 简繁', KaiTi, serif;
   font-size: 18px;
@@ -122,6 +128,10 @@ body {
   display: none;
 }
 
+@media (min-width: 1280px) and (max-width: 1440px) {
+  .site-navigation-frame > a { padding-inline: 12px; }
+}
+
 @media (max-width: 1279px) {
   .page-shell {
     width: 100%;
@@ -132,10 +142,7 @@ body {
   }
 
   .site-header-inner { --header-control-size: 44px; gap: 16px; }
-  .site-title { min-width: 0; }
   .site-title > :first-child { flex-shrink: 0; }
-  .site-title > :last-child { min-width: 0; }
-  .site-title h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .desktop-navigation { display: none; }
   .compact-navigation-toggle { display: flex; width: 44px; height: 44px; flex-shrink: 0; }
   .compact-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px 24px; }

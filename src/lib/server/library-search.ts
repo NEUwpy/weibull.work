@@ -6,7 +6,8 @@ import { libraryMathExcerpt } from '../library-math-markdown'
 import { setImmediate, setTimeout } from 'node:timers'
 import { matchesLibraryType, type LibraryTypeFilter } from '../library-types'
 import { matchesLibraryCategory } from '../library-categories'
-import { compareLibraryOrder, type LibrarySort } from '../library-sort'
+import type { LibrarySort } from '../library-sort'
+import { libraryJournalForPaper, libraryPaperOrder } from '../library-journals'
 
 export interface LibrarySearchOptions {
   limit?: number
@@ -14,7 +15,9 @@ export interface LibrarySearchOptions {
   type?: LibraryTypeFilter | 'journal' | 'journal-conf'
   scope?: 'auto' | 'text'
   category?: string
+  journal?: string
   sort?: LibrarySort
+  distinctPapers?: boolean
   document?: Pick<LibrarySearchHit, 'slug' | 'version'>
 }
 
@@ -308,14 +311,17 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
   const { terms, strict } = queryProfile(q)
   if (!q) return { query: q, total: 0, results: [], terms }
   const { passages, papers, byDocument } = readIndex()
-  const matches = (paper: PaperMetadata) => matchesType(paper, options.type) && matchesLibraryCategory(paper, options.category)
+  const journal = options.journal === 'all' ? undefined : options.journal
+  const journalSlugs = journal ? new Set(papers.filter(paper => libraryJournalForPaper(paper)?.key === journal).map(paper => paper.slug)) : null
+  const matches = (paper: PaperMetadata) => matchesType(paper, options.type) && matchesLibraryCategory(paper, options.category) &&
+    (!journalSlugs || journalSlugs.has(paper.slug))
   const catalogKey = JSON.stringify([options.type || 'all', options.category || 'all'])
   const searchCatalog = !options.document && options.scope !== 'text'
-  let catalog = searchCatalog ? indexCache.catalogs.get(catalogKey) : undefined
+  let catalog = searchCatalog && !journal ? indexCache.catalogs.get(catalogKey) : undefined
   if (searchCatalog && !catalog) {
     catalog = createLiteratureIndex(papers.filter(matches).map(paper => ({ ...paper,
       title: paper.display_title || paper.title, title_en: paper.original_title || paper.title_en })))
-    indexCache.catalogs.set(catalogKey, catalog)
+    if (!journal) indexCache.catalogs.set(catalogKey, catalog)
   }
   const catalogMatches = (catalog?.search(q) || []) as { record: PaperMetadata; score: number; fields: string[] }[]
   const identifierQuery = searchCatalog && (/^\d{3}-\d{3}$/.test(q) || /^10\.\d{4,9}\//.test(q))
@@ -374,15 +380,19 @@ export function searchLibrary(query: string, options: LibrarySearchOptions = {})
     if (!first) continue
     hits.set(first.hit.id, { ...first.hit, score: identityScore, excerpt: libraryMathExcerpt(first.hit.text, terms) })
   }
-  const bySlug = new Map(papers.map(paper => [paper.slug, paper]))
+  const paperOrder = options.sort && options.sort !== 'relevance'
+    ? new Map(libraryPaperOrder(papers, options.sort).map((paper, index) => [paper.slug, index])) : null
   const ranked = Array.from(hits.values()).sort((left, right) => {
-    if (options.sort && options.sort !== 'relevance') {
-      const order = compareLibraryOrder(bySlug.get(left.slug)!, bySlug.get(right.slug)!, options.sort)
-      if (order) return order
-    }
-    return right.score - left.score || left.id.localeCompare(right.id)
+    const order = paperOrder ? paperOrder.get(left.slug)! - paperOrder.get(right.slug)! : 0
+    return order || right.score - left.score || left.id.localeCompare(right.id)
   })
   const limit = Number.isFinite(options.limit) ? Math.max(1, Math.min(30, Math.floor(options.limit!))) : 10
   const offset = Number.isFinite(options.offset) ? Math.max(0, Math.floor(options.offset!)) : 0
-  return { query: q, total: ranked.length, results: ranked.slice(offset, offset + limit), terms }
+  const seen = new Set<string>()
+  const results = options.distinctPapers ? ranked.filter(hit => {
+    if (seen.has(hit.slug)) return false
+    seen.add(hit.slug)
+    return true
+  }) : ranked
+  return { query: q, total: results.length, results: results.slice(offset, offset + limit), terms }
 }

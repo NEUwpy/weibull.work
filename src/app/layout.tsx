@@ -5,9 +5,10 @@ import './globals.css'
 import './site-shell.css'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calculator, Library, Database, Settings2, SlidersHorizontal, ChevronDown, BookOpen, FileText, Info, Cpu, Menu, X } from 'lucide-react'
+import { Calculator, Library, Database, Settings2, SlidersHorizontal, Info, Cpu, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { APP_VERSION } from '@/lib/config'
+import { SiteInfoMenus } from '@/components/shared/SiteInfoMenus'
+import { LibraryLoginDialog } from '@/components/library/LibraryLoginDialog'
 
 export default function RootLayout({
   children,
@@ -20,9 +21,8 @@ export default function RootLayout({
   const isMethods = pathname.startsWith('/methods')
   const isAI = pathname.startsWith('/ai')
   const isHelp = pathname.startsWith('/help')
-  const [infoOpen, setInfoOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const infoRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => { setMobileNavOpen(false) }, [pathname])
@@ -30,7 +30,7 @@ export default function RootLayout({
   useEffect(() => {
     if (!mobileNavOpen) return
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !event.defaultPrevented) {
         setMobileNavOpen(false)
         menuButtonRef.current?.focus()
       }
@@ -38,17 +38,6 @@ export default function RootLayout({
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [mobileNavOpen])
-
-  // 点击外部关闭下拉
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (infoRef.current && !infoRef.current.contains(e.target as Node)) {
-        setInfoOpen(false)
-      }
-    }
-    if (infoOpen) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [infoOpen])
 
   let title = 'Weibull Calculator'
   let subtitle = '威布尔计算器'
@@ -103,7 +92,7 @@ export default function RootLayout({
                  aria-label={homeLabel}
                  title={homeLabel}
                  onClick={event => {
-                   setMobileNavOpen(false); setInfoOpen(false)
+                   setMobileNavOpen(false)
                    if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) window.dispatchEvent(new CustomEvent('weibull:module-home', { detail: homeHref }))
                  }}
                  className={cn("site-title-icon rounded-[9px] border transition-colors hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2", themeColor)}
@@ -121,7 +110,7 @@ export default function RootLayout({
             </div>
 
             {/* Right: Navigation Switcher */}
-            <div className="desktop-navigation flex items-center gap-8">
+            <div className="desktop-navigation flex shrink-0 items-center gap-4 2xl:gap-6">
                {/* Segmented Control */}
                <div className="site-navigation-frame flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                   <Link
@@ -185,55 +174,7 @@ export default function RootLayout({
                     可靠性图书馆
                   </Link>
                </div>
-               
-               {/* Software Info Dropdown */}
-               <div ref={infoRef} className="relative hidden sm:block">
-                  <button
-                    onClick={() => setInfoOpen(!infoOpen)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                  >
-                    <Info size={14} />
-                    <span className="font-medium">软件信息</span>
-                    <ChevronDown size={12} className={cn("transition-transform", infoOpen && "rotate-180")} />
-                  </button>
-
-                  {infoOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-black/5 border border-slate-200 py-1 z-50">
-                      {/* Version */}
-                      <div className="px-4 py-2.5 border-b border-slate-100">
-                        <div className="text-xs text-slate-400 font-medium">版本号</div>
-                        <div className="text-sm text-slate-700 font-mono font-bold mt-0.5">{APP_VERSION}</div>
-                      </div>
-
-                      {/* Menu Items */}
-                      <div className="py-1">
-                        <Link
-                          href="/help/manual/about"
-                          onClick={() => setInfoOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                        >
-                          <BookOpen size={16} className="text-slate-400" />
-                          用户手册
-                        </Link>
-                        <Link
-                          href="/help/changelog"
-                          onClick={() => setInfoOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                        >
-                          <FileText size={16} className="text-slate-400" />
-                          更新日志
-                        </Link>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="px-4 py-2 border-t border-slate-100">
-                        <div className="text-[10px] text-slate-300 font-bold tracking-wider uppercase">
-                          by wpyneu
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+               <SiteInfoMenus onLogin={() => setLoginOpen(true)} />
             </div>
             <button
               ref={menuButtonRef}
@@ -255,8 +196,6 @@ export default function RootLayout({
                 { href: '/ai', label: '人工智能方法', Icon: Cpu },
                 { href: '/cases', label: '案例数据库', Icon: Database },
                 { href: '/library', label: '可靠性图书馆', Icon: Library },
-                { href: '/help/manual/about', label: '用户手册', Icon: BookOpen },
-                { href: '/help/changelog', label: '更新日志', Icon: FileText },
               ].map(item => (
                 <Link
                   key={item.href}
@@ -268,7 +207,11 @@ export default function RootLayout({
                   <item.Icon size={18} />{item.label}
                 </Link>
               ))}
-              <span className="px-4 py-3 text-xs text-slate-400">{APP_VERSION}</span>
+              <SiteInfoMenus compact onNavigate={() => setMobileNavOpen(false)} onLogin={() => {
+                menuButtonRef.current?.focus()
+                setMobileNavOpen(false)
+                setLoginOpen(true)
+              }} />
             </nav>
           )}
         </header>
@@ -277,6 +220,7 @@ export default function RootLayout({
         <div className="flex-1 relative">
            {children}
         </div>
+        <LibraryLoginDialog open={loginOpen} purpose="account" onClose={() => setLoginOpen(false)} />
       </body>
     </html>
   )

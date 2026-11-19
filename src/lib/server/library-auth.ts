@@ -1,4 +1,6 @@
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto'
+import { librarySmsSender } from './library-sms-provider'
+import { acceptLibrarySms, markLibrarySmsSent, readLibrarySmsSession, reserveLibrarySms, revokeLibrarySmsSession } from './library-sms-store'
 
 const COOKIE_NAME = 'weibull_library_session'
 const SESSION_SECONDS = 7 * 24 * 60 * 60
@@ -9,8 +11,16 @@ const PRIVATE_HEADERS = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' }
 interface AuthConfig { phone: string; passwordHash: string; secret: string }
 export interface LibrarySession {
   authenticated: boolean
-  user?: { phone: string }
+  user?: { phone: string; canRead?: boolean }
   expiresAt?: number
+  legacyAccountId?: string | null
+}
+
+const loginMode = () => process.env.WEIBULL_LIBRARY_AUTH_MODE === 'sms' ? 'sms' : 'password'
+const smsSecret = () => (process.env.WEIBULL_SESSION_SECRET || '').length >= 32 ? process.env.WEIBULL_SESSION_SECRET! : ''
+
+function smsModeUser(phone: string) {
+  return { phone, canRead: phone === process.env.WEIBULL_LIBRARY_PHONE }
 }
 
 function configuration(): AuthConfig | null {
@@ -46,8 +56,17 @@ function sessionCookie(request: Request, value: string, maxAge: number): string 
 }
 
 export function getLibrarySession(request: Request, now = Date.now()): LibrarySession {
-  const config = configuration()
   const token = cookieValue(request)
+  if (loginMode() === 'sms') {
+    const secret = smsSecret()
+    if (!secret || !/^[A-Za-z0-9_-]{43}$/.test(token)) return { authenticated: false }
+    try {
+      const row = readLibrarySmsSession(token, secret, now)
+      if (row) return { authenticated: true, user: smsModeUser(row.phone), expiresAt: row.expires_at, legacyAccountId: row.legacy_account_id }
+    } catch (error) { console.error('[library-sms] Session read failed', (error as Error).name) }
+    return { authenticated: false }
+  }
+  const config = configuration()
   if (!config || token.length > 1024 || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(token)) return { authenticated: false }
   const [value, signed] = token.split('.')
   if (!sameString(signed, signature(value, config))) return { authenticated: false }
@@ -61,16 +80,21 @@ export function getLibrarySession(request: Request, now = Date.now()): LibrarySe
 }
 
 export function requireLibraryLogin(request: Request): Response | null {
-  return getLibrarySession(request).authenticated ? null : Response.json({
+  const session = getLibrarySession(request)
+  if (session.user?.canRead === false) return Response.json({
+    error: '此账号尚未开通全文及单篇问答权限。', code: 'LIBRARY_ACCESS_DENIED',
+  }, { status: 403, headers: PRIVATE_HEADERS })
+  return session.authenticated ? null : Response.json({
     error: '请登录后阅读原文或译文。', code: 'AUTH_REQUIRED',
   }, { status: 401, headers: PRIVATE_HEADERS })
 }
 
 export function librarySessionResponse(request: Request): Response {
-  return Response.json(getLibrarySession(request), { headers: PRIVATE_HEADERS })
+  const { authenticated, user, expiresAt } = getLibrarySession(request)
+  return Response.json({ authenticated, user, expiresAt, loginMode: loginMode() }, { headers: PRIVATE_HEADERS })
 }
 
-function sameOrigin(request: Request): boolean {
+export function isLibrarySameOrigin(request: Request): boolean {
   if (request.headers.get('sec-fetch-site') === 'cross-site') return false
   const origin = request.headers.get('origin')
   if (!origin) return false
@@ -106,8 +130,70 @@ async function validPassword(password: string, passwordHash: string): Promise<bo
   return timingSafeEqual(digest, Buffer.from(expected, 'hex'))
 }
 
+async function smsInput(request: Request) {
+  if (!request.headers.get('content-type')?.includes('application/json') || Number(request.headers.get('content-length')) > 2048) return null
+  try {
+    const body = await request.text()
+    if (body.length > 2048) return null
+    const input = JSON.parse(body)
+    const phone = typeof input?.phone === 'string' ? /^(?:\+?86)?(1[3-9]\d{9})$/.exec(input.phone.trim())?.[1] : undefined
+    return phone ? { phone, code: typeof input.code === 'string' ? input.code.trim() : '' } : null
+  } catch { return null }
+}
+
+function smsFailure(error: string, status: number, retryAfter?: number) {
+  return Response.json({ error, retryAfter }, {
+    status, headers: retryAfter ? { ...PRIVATE_HEADERS, 'Retry-After': String(retryAfter) } : PRIVATE_HEADERS,
+  })
+}
+
+export async function sendLibraryLoginCode(request: Request): Promise<Response> {
+  if (!isLibrarySameOrigin(request)) return smsFailure('请在本站页面获取验证码。', 403)
+  const secret = smsSecret()
+  const localCode = process.env.WEIBULL_SMS_LOCAL_CODE || ''
+  const local = process.env.NODE_ENV === 'development' && /^\d{6}$/.test(localCode) &&
+    ['localhost', '127.0.0.1', '[::1]'].includes(new URL(request.headers.get('origin')!).hostname) &&
+    !request.headers.has('cf-connecting-ip')
+  const send = local ? null : librarySmsSender()
+  if (loginMode() !== 'sms' || !secret || (!local && !send)) return smsFailure('短信服务暂未开通。', 503)
+  const input = await smsInput(request)
+  if (!input) return smsFailure('请输入有效的中国大陆手机号。', 400)
+  try {
+    const client = request.headers.get('cf-connecting-ip')?.slice(0, 100) || 'local'
+    const reservation = reserveLibrarySms(input.phone, client, secret, Date.now())
+    if (reservation.retryAfter !== undefined) return smsFailure('获取验证码过于频繁，请稍后再试。', 429, reservation.retryAfter)
+    const code = local ? localCode : String(randomInt(1_000_000)).padStart(6, '0')
+    if (send) await send(input.phone, code)
+    markLibrarySmsSent(reservation.id, code, secret)
+    return Response.json({ resendAfter: reservation.resendAfter }, { headers: PRIVATE_HEADERS })
+  } catch (error) {
+    console.error('[library-sms] Send failed', (error as Error).name)
+    return smsFailure('验证码暂时无法发送，请稍后再试。', 503)
+  }
+}
+
+async function loginLibraryWithCode(request: Request) {
+  const secret = smsSecret()
+  if (!secret) return smsFailure('登录暂时不可用，请稍后重试。', 503)
+  const input = await smsInput(request)
+  if (!input || !/^\d{6}$/.test(input.code)) return smsFailure('请填写手机号和 6 位验证码。', 400)
+  const now = Date.now()
+  const expiresAt = now + SESSION_SECONDS * 1000
+  try {
+    const token = acceptLibrarySms(input.phone, input.code, secret, now, expiresAt)
+    if (!token) return smsFailure('验证码无效或已过期，请重新获取。', 401)
+    return Response.json({ authenticated: true, user: smsModeUser(input.phone), expiresAt }, {
+      headers: { ...PRIVATE_HEADERS, 'Set-Cookie': sessionCookie(request, token, SESSION_SECONDS) },
+    })
+  } catch (error) {
+    console.error('[library-sms] Verification failed', (error as Error).name)
+    return smsFailure('登录暂时不可用，请稍后重试。', 503)
+  }
+}
+
 export async function loginLibrary(request: Request): Promise<Response> {
-  if (!sameOrigin(request)) return Response.json({ error: '请在本站页面登录。' }, { status: 403, headers: PRIVATE_HEADERS })
+  if (!isLibrarySameOrigin(request)) return Response.json({ error: '请在本站页面登录。' }, { status: 403, headers: PRIVATE_HEADERS })
+  if (loginMode() === 'sms') return loginLibraryWithCode(request)
   const config = configuration()
   if (!config) return Response.json({ error: '登录暂时不可用，请稍后重试。' }, { status: 503, headers: PRIVATE_HEADERS })
   if (!request.headers.get('content-type')?.includes('application/json')) {
@@ -141,6 +227,17 @@ export async function loginLibrary(request: Request): Promise<Response> {
 }
 
 export function logoutLibrary(request: Request): Response {
-  if (!sameOrigin(request)) return Response.json({ error: '请在本站页面退出登录。' }, { status: 403, headers: PRIVATE_HEADERS })
+  if (!isLibrarySameOrigin(request)) return Response.json({ error: '请在本站页面退出登录。' }, { status: 403, headers: PRIVATE_HEADERS })
+  if (loginMode() === 'sms') {
+    const token = cookieValue(request)
+    const secret = smsSecret()
+    if (secret && /^[A-Za-z0-9_-]{43}$/.test(token)) {
+      try { revokeLibrarySmsSession(token, secret) }
+      catch (error) {
+        console.error('[library-sms] Logout failed', (error as Error).name)
+        return smsFailure('退出未完成，请重试。', 503)
+      }
+    }
+  }
   return Response.json({ authenticated: false }, { headers: { ...PRIVATE_HEADERS, 'Set-Cookie': sessionCookie(request, '', 0) } })
 }

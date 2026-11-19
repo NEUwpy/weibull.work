@@ -11,7 +11,7 @@ const mathNumber = (value: number) => number(value).replace(/e([+-]?\d+)/, Strin
 export function MDMScaleValues({ values, total }: { values: PseudoScaleValue[]; total: number | null }) {
   if (!values.length) return <p className="text-slate-500">本次记录未包含逐样本伪尺度。</p>
   return <ProcessValueTable label="各样本的伪尺度值"
-    columns={[{ label: '样本序号 i' }, { label: '伪尺度 ηᵢ', align: 'right' }]}
+    columns={[{ label: '样本序号', math: 'i' }, { label: '伪尺度', math: String.raw`\eta_i`, align: 'right' }]}
     rows={values.map((value, index) => [index + 1, number(value.eta)])}
     footer={total !== null && <><span>合计（{values.length} 个）</span><strong className="font-medium">{number(total)}</strong></>} />
 }

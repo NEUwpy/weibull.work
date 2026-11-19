@@ -91,6 +91,87 @@ test('grounded chat receives actual external paragraph evidence without paid API
   assert.match(stream, /audit-paper/)
 }))
 
+test('research directions group ranked existing papers and retain the ranking if classification is invalid', () => withFixture(async root => {
+  const write = (slug, title, type, paragraphs) => fs.writeFileSync(path.join(root, `content/${slug}-pdf原文.md`),
+    `---\ntitle: ${title}\ntype: ${type}\n---\n## Study\n\n${paragraphs.join('\n\n')}\n`)
+  const topic = 'Profile likelihood and small sample estimation'
+  write('182-001', 'Profile likelihood study', '期刊', Array.from({ length: 40 }, (_, i) => `${topic} with strong coverage. Experiment ${i}.`))
+  write('182-002', 'Small sample estimation study', '论文', [`${topic} with a wider simulation and additional noise conditions.`])
+  write('421-001', 'Likelihood reference book', '书籍', [`${topic} is discussed in this chapter.`])
+  const calls = []
+  let relations = { '182-002': 'comparison-validation', '182-001': 'principle', '999-999': 'direct-improvement' }
+  const client = { chat: { completions: { create: async request => {
+    calls.push(request)
+    assert.equal(request.stream, false)
+    if (request.messages[0].content.startsWith('你筛选')) {
+      const candidates = JSON.parse(request.messages[1].content.split('候选段落：\n')[1])
+      assert.deepEqual(candidates.map(hit => hit.slug).sort(), ['182-001', '182-002'])
+      const [first, second] = candidates
+      return { choices: [{ message: { content: JSON.stringify({ ranked_ids: [second.id, '999-999', second.id, first.id], relations }) } }] }
+    }
+    return { choices: [{ message: { content: JSON.stringify({ intent: 'recommendations', queries: [topic] }) } }] }
+  } } } }
+  const chat = load('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record() {}, flush: async () => {} }) },
+    '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
+      getDeepSeekSettings: () => ({ model: 'deepseek-flash', baseURL: 'https://api.deepseek.com' }) },
+  })
+  async function recommend() {
+    calls.length = 0
+    const response = await chat.POST({ json: async () => ({ question: '我想研究小样本条件下的剖面似然估计，请推荐相关论文。' }) })
+    const events = (await response.text()).split('\n\n').filter(Boolean).map(frame => JSON.parse(frame.slice(6)))
+    assert.equal(calls.length, 2)
+    assert.ok(events.every(event => !event.content && !event.evidence))
+    return events.at(-1)
+  }
+  const recommendedPaperIds = ['182-002', '182-001']
+  assert.deepEqual(await recommend(), {
+    recommendedPaperIds,
+    recommendationRelations: { '182-002': 'comparison-validation', '182-001': 'principle' },
+    done: true,
+  })
+  for (const invalid of [{ '182-002': 'comparison-validation', '182-001': 'constructor' }, { '182-002': 'comparison-validation' }, undefined]) {
+    relations = invalid
+    assert.deepEqual(await recommend(), { recommendedPaperIds, done: true })
+  }
+}))
+
+test('recommendation screening receives evidence from separate method, mechanism and comparison searches', () => withFixture(async root => {
+  const papers = [
+    ['182-031', 'Target estimator', 'MDM uses a fixed coefficient in the estimation criterion.'],
+    ['182-032', 'Data-adaptive method', 'A tuning constant can adapt to an observed sample.'],
+    ['182-033', 'Small-sample comparison', 'A weighted estimator supplies an independent benchmark.'],
+    ['182-034', 'Risk-based selection', 'The tuning parameter is chosen by minimizing estimated risk.'],
+  ]
+  for (const [id, title, content] of papers) {
+    fs.writeFileSync(path.join(root, `content/${id}-pdf原文.md`), `---\ntitle: ${title}\ntype: 期刊\n---\n## Method\n\n${content}\n`)
+  }
+  const calls = []
+  const relations = { '182-031': 'principle', '182-032': 'method-transfer', '182-033': 'comparison-validation', '182-034': 'method-transfer' }
+  const client = { chat: { completions: { create: async request => {
+    calls.push(request)
+    const plan = { intent: 'recommendations', queries: [], mechanism_queries: ['adaptive tuning constant robust estimation'], comparison_query: 'independent benchmark' }
+    if (calls.length === 1) return { choices: [{ message: { content: JSON.stringify(plan) } }] }
+    const candidates = JSON.parse(request.messages[1].content.split('候选段落：\n')[1])
+    assert.deepEqual(candidates.map(hit => hit.slug).sort(), papers.map(([id]) => id))
+    return { choices: [{ message: { content: JSON.stringify({ ranked_ids: Object.keys(relations), relations }) } }] }
+  } } } }
+  const records = []
+  const chat = load('src/app/api/chat/route.ts', {
+    '@/lib/server/library-chat-log': { createLibraryChatLog: () => ({ record: (event, details) => records.push({ event, ...details }), flush: async () => {} }) },
+    '@/lib/server/deepseek-client': { hasDeepSeekKey: () => true, getDeepSeekClient: () => client,
+      getDeepSeekSettings: () => ({ model: 'fixture', baseURL: 'https://example.invalid' }) },
+  })
+  const response = await chat.POST({ json: async () => ({ question: '请推荐把 MDM 的固定常数改成随样本变化的相关研究。' }) })
+  const events = (await response.text()).split('\n\n').filter(Boolean).map(frame => JSON.parse(frame.slice(6)))
+  assert.equal(calls.length, 2)
+  assert.deepEqual(events.at(-1), { recommendedPaperIds: Object.keys(relations), recommendationRelations: relations, done: true })
+  const diagnostic = records.find(record => record.event === 'recommendations')
+  assert.deepEqual(Array.from(diagnostic.mechanismQueries), ['tuning parameter', 'tuning constant'])
+  assert.equal(diagnostic.comparisonQuery, 'independent benchmark')
+  assert.deepEqual(Array.from(diagnostic.candidatePaperIds).sort(), Object.keys(relations))
+}))
+
 test('single-article chat guards private reading and sends the overview, quote and short Markdown in one call', () => withFixture(async root => {
   const file = path.join(root, 'content/audit-paper-pdf翻译.md')
   fs.writeFileSync(file, '---\ntitle: 外挂测试文献\nsummary: PUBLIC_OVERVIEW_731\n---\n## 摘要\n\nAUTHOR_ABSTRACT_731\n\n## 方法\n\nMETHOD_731\n\n## 结果\n\nRESULT_731\n')

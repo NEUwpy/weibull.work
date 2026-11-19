@@ -1,10 +1,13 @@
 import type { LibraryEvidence } from './library-search-types'
+import type { LibraryRecommendationRelations } from './library-recommendations'
 
 export interface LibraryChatEvent {
   stage?: 'expanding' | 'searching' | 'screening' | 'answering'
   message?: string
   content?: string
   evidence?: LibraryEvidence[]
+  recommendedPaperIds?: string[]
+  recommendationRelations?: LibraryRecommendationRelations
   queries?: string[]
   coverage?: string
   sections?: string[]

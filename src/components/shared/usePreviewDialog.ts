@@ -6,12 +6,13 @@ let openDialogs = 0
 let pageLock: { overflow: string; paddingRight: string; left: number; top: number } | null = null
 
 /** Shared behavior for a temporary reading surface above a mounted page. */
-export function usePreviewDialog(onClose: () => void) {
+export function usePreviewDialog(onClose: () => void, enabled = true) {
   const ref = useRef<HTMLDialogElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    const panel = ref.current!
+    const panel = ref.current
+    if (!enabled || !panel) return
     const previousFocus = document.activeElement as HTMLElement | null
     if (openDialogs === 0) {
       const { overflow, paddingRight } = document.body.style
@@ -35,7 +36,7 @@ export function usePreviewDialog(onClose: () => void) {
       }
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
-  }, [])
+  }, [enabled])
 
   return {
     closeButton,
@@ -43,6 +44,7 @@ export function usePreviewDialog(onClose: () => void) {
       ref,
       onCancel(event: SyntheticEvent<HTMLDialogElement>) {
         event.preventDefault()
+        event.stopPropagation()
         onClose()
       },
       onClick(event: MouseEvent<HTMLDialogElement>) {

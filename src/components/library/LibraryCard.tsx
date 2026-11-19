@@ -2,48 +2,63 @@
 
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { LibraryDocumentLink as Link } from './LibraryDocumentDialog'
-import { ChevronDown, ChevronUp, User } from 'lucide-react'
+import { Building2, ChevronDown, ChevronUp, User } from 'lucide-react'
 import type { LibraryCategory } from '@/lib/library-categories'
 import type { LibraryVersion } from '@/lib/library-search-types'
 import { LibraryAuthors } from './LibraryAuthors'
+import { LibraryInstitutions } from './LibraryInstitutions'
 import { LibraryMathMarkdown } from '@/components/shared/LibraryMathMarkdown'
 import { LibraryCardMetadata } from './LibraryCardMetadata'
 import { LibraryPaperTitle } from './LibraryPaperTitle'
 import type { LibraryTitlePresentation } from '@/lib/library-titles'
 import type { LibraryCredits } from '@/lib/library-credits'
 import { cn } from '@/lib/utils'
+import { libraryJournalForPaper, libraryJournalMetricsLabel } from '@/lib/library-journals'
+import { libraryPaperInstitutions } from '@/lib/library-institutions'
+import { matchesLibraryType } from '@/lib/library-types'
+import type { LibraryRecommendationRelation } from '@/lib/library-recommendations'
+import { LibraryFavoriteButton } from './LibraryFavorites'
 
 interface CardPaper extends LibraryTitlePresentation {
   slug: string; title: string; author: string; year: number; summary: string; tags: string[]
-  type?: string; publication?: string; short_publication?: string; doi?: string
+  type?: string; publication?: string; short_publication?: string; doi?: string; affiliation?: string
   credits?: LibraryCredits
   category?: LibraryCategory; availableVersions: LibraryVersion[]
 }
 
-export function LibraryCard({ paper }: { paper: CardPaper }) {
+export function LibraryCard({ paper, profile, favoriteFolderId, favoriteRelation, actions }: {
+  paper: CardPaper; profile?: { current: boolean }; favoriteFolderId?: string
+  favoriteRelation?: LibraryRecommendationRelation; actions?: React.ReactNode
+}) {
   const slot = useRef<HTMLDivElement>(null)
+  const summaryClip = useRef<HTMLDivElement>(null)
   const summary = useRef<HTMLDivElement>(null)
   const pending = useRef<ReturnType<typeof setTimeout>>()
   const touch = useRef<{ x: number; y: number } | null>(null)
   const suppressClick = useRef<{ x: number; y: number; until: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [summaryHeight, setSummaryHeight] = useState(0)
   const contentId = useId()
   const available = paper.availableVersions.length > 0
-  const tags = Array.from(new Set(paper.tags)).filter(tag => tag !== paper.category?.groupName && tag !== paper.category?.name)
+  const canPreview = available || Boolean(profile) || Boolean(favoriteFolderId)
+  const canFavorite = Boolean(favoriteFolderId) || matchesLibraryType(paper, 'paper')
+  const Title = favoriteFolderId ? 'h4' : 'h3'
+  const metrics = libraryJournalForPaper(paper)?.metrics
+  const tags = Array.from(new Set(paper.tags)).filter(tag => !tag.startsWith('problem:') && tag !== paper.category?.groupName && tag !== paper.category?.name)
 
   const cancelPending = useCallback(() => { clearTimeout(pending.current) }, [])
   const close = useCallback(() => { cancelPending(); setExpanded(false) }, [cancelPending])
   const open = useCallback(() => { cancelPending(); setExpanded(true) }, [cancelPending])
 
   useLayoutEffect(() => {
-    if (!summary.current) return
-    const measure = () => setSummaryHeight(summary.current?.scrollHeight || 0)
+    const content = summary.current
+    const clip = summaryClip.current
+    if (!expanded || !content || !clip) return
+    const measure = () => clip.style.setProperty('--library-summary-height', `${content.scrollHeight}px`)
     measure()
     const observer = new ResizeObserver(measure)
-    observer.observe(summary.current)
+    observer.observe(content)
     return () => observer.disconnect()
-  }, [paper.summary])
+  }, [expanded, paper.summary])
 
   useEffect(() => {
     if (!expanded) return
@@ -61,7 +76,7 @@ export function LibraryCard({ paper }: { paper: CardPaper }) {
   useEffect(() => cancelPending, [cancelPending])
 
   return <div ref={slot} className="library-card-slot group block break-inside-avoid mb-8"
-    data-expanded={expanded || undefined} aria-disabled={!available || undefined}
+    data-expanded={expanded || undefined} aria-disabled={(!canPreview && !canFavorite) || undefined}
     onPointerEnter={event => { if (event.pointerType === 'mouse') { cancelPending(); pending.current = setTimeout(open, 220) } }}
     onPointerLeave={event => { if (event.pointerType === 'mouse') { cancelPending(); pending.current = setTimeout(close, 120) } }}
     onPointerDown={event => {
@@ -95,17 +110,29 @@ export function LibraryCard({ paper }: { paper: CardPaper }) {
     <article className={cn('library-card relative rounded-xl border border-slate-200', available ? 'bg-white' : 'bg-slate-50')}>
       <div className="p-7 space-y-5">
         <LibraryCardMetadata id={paper.slug} type={paper.type} publication={paper.publication || paper.short_publication}
-          year={paper.year} doi={paper.doi} available={available} />
-        <h3 className={cn('library-title text-xl leading-relaxed transition-colors', available ? 'text-slate-800 group-hover:text-blue-800' : 'text-slate-500')}>
-          {available ? <Link href={`/library/${paper.slug}`} className="library-card-link"><LibraryPaperTitle paper={paper} /></Link>
+          year={paper.year} doi={paper.doi} available={available} journalMetrics={metrics && libraryJournalMetricsLabel(metrics)} current={profile?.current}
+          action={<>{actions}{canFavorite && <LibraryFavoriteButton paperId={paper.slug} relation={favoriteRelation} folderId={favoriteFolderId} />}</>} />
+        <Title className={cn('library-title text-xl leading-relaxed transition-colors', canPreview ? 'text-slate-800 group-hover:text-blue-800' : 'text-slate-500')}>
+          {canPreview ? <Link href={`/library/${paper.slug}`} className="library-card-link"><LibraryPaperTitle paper={paper} /></Link>
             : <LibraryPaperTitle paper={paper} />}
-        </h3>
-        <p className="library-card-authors relative z-20 text-sm text-slate-500 flex items-start gap-1.5" title={paper.author}>
-          <User size={13} className="text-slate-400 shrink-0" />
-          <span className="min-w-0 line-clamp-2"><LibraryAuthors author={paper.author} credits={paper.credits} from={paper.slug} preview /></span>
-        </p>
+        </Title>
+        <div className="relative z-20 space-y-1">
+          <p className="library-card-authors flex items-start gap-1.5 text-sm text-slate-500" title={paper.author}>
+            <User size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+            <span className={cn('min-w-0', !profile && 'line-clamp-2')}>
+              <LibraryAuthors author={paper.author} credits={paper.credits} from={paper.slug} preview={!profile} />
+            </span>
+          </p>
+          <p className="library-card-affiliations flex items-start gap-1.5 text-sm text-slate-500">
+            <Building2 size={13} className="text-slate-400 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 break-words">
+              <span className="sr-only">署名机构：</span>
+              <LibraryInstitutions names={libraryPaperInstitutions(paper)} credits={paper.credits} from={paper.slug} preview />
+            </span>
+          </p>
+        </div>
         <div id={contentId}>
-          <div className="library-card-summary-clip text-sm" style={{ '--library-summary-height': `${summaryHeight}px` } as React.CSSProperties}>
+          <div ref={summaryClip} className="library-card-summary-clip text-sm">
             <div ref={summary}>
               <LibraryMathMarkdown className={cn('library-card-summary text-sm leading-relaxed text-justify', available ? 'text-slate-600' : 'text-slate-500')}>
                 {paper.summary || '暂无文献介绍。'}

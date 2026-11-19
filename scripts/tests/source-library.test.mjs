@@ -53,6 +53,14 @@ test('source reader retains an explicit numeric-parentheses display hint', () =>
   assert.equal(matter(readPaper(id, '原文')).data.citation_style, 'numeric-parentheses')
 }))
 
+test('a verified note DOI survives the shared reader and an explicit catalog DOI keeps precedence', () => withSource(({ root, note, descriptor }) => {
+  write(note, matter.stringify('## 一句话总结\n\nPublic summary.\n', { ...noteData, DOI: 'https://doi.org/10.1234/Note-Only' }))
+  assert.equal(readPreferredPaper(id).metadata.doi, '10.1234/note-only')
+  descriptor.sources[0].papers = [{ id, metadata: { title: 'Selected title', author: 'Author A', year: 2025, doi: '10.1234/selected' } }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.equal(readPreferredPaper(id).metadata.doi, '10.1234/selected')
+}))
+
 test('explicit retained v1 book source joins the source selection without exposing unselected neighbours', () => withSource(({ workspace, root, descriptor }) => {
   const books = path.join(workspace, 'preserved-books')
   const book = '421-001'
@@ -77,6 +85,17 @@ function write(file, text) {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text)
 }
+
+test('problem tags pass from source notes into public metadata and explicit bookplates retain ownership', () => withSource(({ root, note, descriptor }) => {
+  write(note, matter.stringify('## 一句话总结\n\nAn intake classification.\n', { ...noteData, 关键词: ['problem:theory-02', '保留关键词'] }))
+  assert.deepEqual(Array.from(listPapers().find(paper => paper.slug === id).tags), ['problem:theory-02', '保留关键词'])
+  descriptor.sources[0].papers = [{ id, metadata: { tags: ['problem:phm-01'] } }]
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.deepEqual(Array.from(listPapers().find(paper => paper.slug === id).tags), ['problem:phm-01'])
+  descriptor.sources[0].papers[0].metadata.tags = ['problem:unknown']
+  write(path.join(root, 'library.json'), JSON.stringify(descriptor))
+  assert.throws(() => listPapers(), /未知科学问题标签/)
+}))
 
 function withSource(run) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'weibull-source-library-'))

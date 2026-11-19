@@ -1,10 +1,13 @@
 import type { LibraryEvidence } from './library-search-types'
+import type { LibraryRecommendationRelations } from './library-recommendations'
 
 export interface LibraryChatRequest { id: number; question: string }
 export interface LibraryChatAnswer {
   id: number
   content: string
   evidence?: LibraryEvidence[]
+  recommendedPaperIds?: string[]
+  recommendationRelations?: LibraryRecommendationRelations
   queries?: string[]
   error?: string
   stopped?: boolean

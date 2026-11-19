@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex'
 import { visit } from 'unist-util-visit'
 import GithubSlugger from 'github-slugger'
 
-export const LIBRARY_RENDERER_VERSION = '1.3.0'
+export const LIBRARY_RENDERER_VERSION = '1.3.1'
 
 export interface LibraryDiagnostic {
   code: string
@@ -29,6 +29,7 @@ export interface ProcessedLibraryContent {
   frontmatter: Record<string, any>
   body: string
   abstract?: string
+  inlineAbstractLines?: number[]
   referenceTitle: string
   referenceList: string[]
   referenceEntries: LibraryReference[]
@@ -100,7 +101,9 @@ export function processLibraryContent(rawMarkdown: string, options: { requireAbs
   const prefix = rawMarkdown.slice(0, rawMarkdown.length - content.length)
   const bodyLineOffset = (prefix.match(/\n/g) || []).length
   const tree: any = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(content)
-  const diagnostics: LibraryDiagnostic[] = articleStructureDiagnostics(tree, bodyLineOffset, Boolean(options.requireAbstract))
+  const isArticle = !['书籍', '软件文档', '技术资料'].includes(data.type)
+  const abstracts = isArticle ? openingAbstracts(tree.children) : []
+  const diagnostics = articleStructureDiagnostics(tree.children, bodyLineOffset, Boolean(options.requireAbstract), abstracts)
   const referenceEntries: LibraryReference[] = []
   let body = content
   let referenceTitle = '参考文献'
@@ -139,14 +142,18 @@ export function processLibraryContent(rawMarkdown: string, options: { requireAbs
 
   // The reader already presents the public title and credits above the article.
   // Keep source positions stable while starting article reading at its abstract.
-  const abstract = tree.children.find((node: any) => node.type === 'heading' && isAbstractTitle(nodeText(node)))
+  const firstAbstract = abstracts[0]
   let abstractText: string | undefined
-  if (abstract && !['书籍', '软件文档', '技术资料'].includes(data.type)) {
+  if (firstAbstract !== undefined) {
+    const abstract = tree.children[firstAbstract]
     const start = abstract.position.start.offset
-    const after = tree.children.slice(tree.children.indexOf(abstract) + 1)
-    const next = after.find((node: any) => node.type === 'heading' || isKeywordsTitle(nodeText(node)))
-    abstractText = content.slice(abstract.position.end.offset, next?.position.start.offset ?? content.length).trim()
-    body = body.slice(0, start).replace(/[^\r\n]/g, '') + body.slice(start)
+    const next = tree.children[abstractEnd(tree.children, firstAbstract)]
+    abstractText = abstractLabel(abstract)?.inline
+      ? content.slice(start, abstract.position.end.offset).trim()
+      : content.slice(abstract.position.end.offset, next?.position.start.offset ?? content.length).trim()
+    if (beforeAbstractIssues(tree.children.slice(0, firstAbstract)).length === 0) {
+      body = body.slice(0, start).replace(/[^\r\n]/g, '') + body.slice(start)
+    }
   }
 
   const slugger = new GithubSlugger()
@@ -157,27 +164,109 @@ export function processLibraryContent(rawMarkdown: string, options: { requireAbs
     const slug = slugger.slug(nodeText(node).trim())
     if (node.depth <= 3) headings.push({ level: node.depth, text, slug })
   })
-  return { frontmatter: data, body, abstract: abstractText, referenceTitle, referenceList: referenceEntries.map(entry => entry.raw), referenceEntries, headings, diagnostics, bodyLineOffset }
+  const inlineAbstractLines = abstracts.map(index => tree.children[index])
+    .filter(node => node.type === 'paragraph').map(node => node.position.start.line)
+  return { frontmatter: data, body, abstract: abstractText, inlineAbstractLines, referenceTitle, referenceList: referenceEntries.map(entry => entry.raw), referenceEntries, headings, diagnostics, bodyLineOffset }
 }
 
 function nodeText(node: any): string {
   return typeof node.value === 'string' ? node.value : (node.children || []).map(nodeText).join('')
 }
 
-function isAbstractTitle(text: string): boolean {
-  return /^(?:abstract|摘\s*要|中文摘要|英文摘要)(?:\s*[:：.]|\s*[（(](?:abstract|摘要)[)）])?$/i.test(text.trim())
-}
+const abstractTitle = /^(?:abstract|摘\s*要|中文摘要|英文摘要)(?:\s*[:：.]|\s*[（(](?:abstract|摘要)[)）])?$/i
+const inlineAbstractTitle = /^\s*(?:【(abstract|摘\s*要|中文摘要|英文摘要)】\s*|(abstract|摘\s*要|中文摘要|英文摘要)(?:\s*[:：.。—–-]+\s*|\s+|$))/i
 
 function isKeywordsTitle(text: string): boolean {
-  return /^(?:key\s*words?|关键词|关键字)(?:\s*[:：.]|$)/i.test(text.trim())
+  const label = text.trim()
+  return /^(?:key\s*words?|关键词|关键字)(?:\s*[:：.。—–-]|\s+|$)/i.test(label)
+}
+
+function headingLevel(node: any): number {
+  return node.type === 'heading' ? node.depth : /^h[1-6]$/.test(node.tagName || '') ? Number(node.tagName[1]) : 0
+}
+
+function paragraph(node: any): boolean {
+  return node.type === 'paragraph' || node.tagName === 'p'
+}
+
+function abstractLabel(node: any) {
+  if (headingLevel(node)) {
+    const title = nodeText(node).trim()
+    return abstractTitle.test(title) ? { title, prefixLength: 0, inline: false } : undefined
+  }
+  if (!paragraph(node)) return
+  const text = nodeText(node)
+  const match = text.match(inlineAbstractTitle)
+  if (!match) return
+  const label = match[1] || match[2]
+  const prefixLength = match[0].length
+  return { title: /^abstract$/i.test(label) ? 'Abstract' : label.replace(/\s+/g, ''), prefixLength, inline: Boolean(text.slice(prefixLength).trim()) }
+}
+
+function abstractEnd(nodes: any[], start: number): number {
+  const level = headingLevel(nodes[start])
+  if (!level && abstractLabel(nodes[start])?.inline) return start + 1
+  const next = nodes.findIndex((node, index) => index > start && (
+    (headingLevel(node) > 0 && (headingLevel(node) <= Math.max(2, level) || abstractLabel(node))) ||
+    ((headingLevel(node) || paragraph(node)) && isKeywordsTitle(nodeText(node)))
+  ))
+  return next < 0 ? nodes.length : next
+}
+
+const articleSectionTitle = /^(?:\d+(?:[.．]\d+)*(?:[\s.．、]|(?=[\u3400-\u9fff]))|[一二三四五六七八九十]+[、.]|引\s*言|前\s*言|introduction\b|参考文献|references\b)/i
+
+function openingAbstracts(nodes: any[]): number[] {
+  const first = nodes.findIndex(node => abstractLabel(node))
+  if (first < 0) return []
+  const abstracts = [first]
+  // A bilingual title may precede the companion abstract. Stop at a body section.
+  for (let index = abstractEnd(nodes, first); index < nodes.length; index++) {
+    const node = nodes[index]
+    if (abstractLabel(node)) { abstracts.push(index); break }
+    const level = headingLevel(node)
+    if (!level) continue
+    const title = nodeText(node).trim()
+    if (!isKeywordsTitle(title) && (level > 1 || articleSectionTitle.test(title))) break
+  }
+  return abstracts
+}
+
+function beforeAbstractIssues(before: any[]): any[] {
+  const title = before.find(node => headingLevel(node) === 1 && !articleSectionTitle.test(nodeText(node).trim()))
+  return before.filter(node => {
+    const text = nodeText(node).trim()
+    // A wrapped affiliation line such as “2. 某大学实验室…” parses as an ordered list.
+    const affiliationList = node.type === 'list' && node.ordered && node.children.every((item: any) => {
+      const affiliation = nodeText(item).trim()
+      return item.children.length === 1 && affiliation.length <= 300 && !/[。！？]/.test(affiliation) &&
+        /大学|学院|实验室|研究[所院]|\b(?:university|department|school|laboratory|institute)\b/i.test(affiliation)
+    })
+    return (headingLevel(node) > 0 && node !== title) || ['table', 'code', 'math', 'blockquote'].includes(node.type) ||
+      (node.type === 'list' && !affiliationList) ||
+      (paragraph(node) && (isKeywordsTitle(text) || node.children?.some((child: any) => child.type === 'image' || child.type === 'imageReference') || text.length > 900)) ||
+      (node.type === 'html' && /<(?:img|table)\b/i.test(text))
+  })
+}
+
+const articleEndMatter = /^(?:references|bibliography|参考文献|致\s*谢|附\s*录|appendix|acknowledg(?:e)?ments?|funding|data availability|作者贡献|基金资助)(?:$|\s|[:：])/i
+
+function hasArticleBody(nodes: any[], start: number): boolean {
+  let inSection = false
+  for (const node of nodes.slice(start)) {
+    if (headingLevel(node)) {
+      const text = nodeText(node).trim()
+      if (articleEndMatter.test(text)) return false
+      inSection = !abstractLabel(node) && !isKeywordsTitle(text)
+    } else if (inSection && ['paragraph', 'list', 'table', 'code', 'math', 'blockquote', 'html'].includes(node.type) &&
+      !isKeywordsTitle(nodeText(node)) && (nodeText(node).trim() || node.children?.some((child: any) => ['image', 'imageReference'].includes(child.type)))) return true
+  }
+  return false
 }
 
 /** Content checks only: visual abstract styling belongs to the shared renderer. */
-function articleStructureDiagnostics(tree: any, offset: number, required: boolean): LibraryDiagnostic[] {
+function articleStructureDiagnostics(nodes: any[], offset: number, required: boolean, abstracts: number[]): LibraryDiagnostic[] {
   const diagnostics: LibraryDiagnostic[] = []
   const report = (node: any, code: string, message: string) => diagnostics.push({ code, message, severity: 'error', line: (node?.position?.start?.line || 1) + offset })
-  const nodes: any[] = tree.children
-  const abstractIndex = nodes.findIndex(node => node.type === 'heading' && isAbstractTitle(nodeText(node)))
   // Match standalone publisher controls, never mentions inside scientific prose,
   // code examples, quotations, captions or bibliographic reference entries.
   const publisher = /^(?:view supplementary material|submit your article to this journal|article views\s*[:：]|view related articles|view crossmark data|check for updates|(?:请)?(?:查看|检查)更新|查看补充材料|向本刊投稿|文章浏览量\s*[:：]|查看相关文章|查看\s*crossmark\s*数据|published online\s*[:：]|(?:首次)?在线发表\s*[:：]|to cite this article\s*[:：]|to link to this article\s*[:：]|引用本文\s*[:：]|原文链接\s*[:：]|full terms\s*[&＆]\s*conditions|journal homepage\s*[:：])/i
@@ -187,45 +276,60 @@ function articleStructureDiagnostics(tree: any, offset: number, required: boolea
     if (text.length < 1000 && publisher.test(text)) report(node, 'article.publisher-chrome', '正文混入出版商页面控件或封面杂项；对照原文删除该项及仅为该控件服务的图标，保留实际补充材料说明和学术图表。')
   }
   if (!required) return diagnostics
-  if (abstractIndex < 0) {
-    const inline = nodes.find(node => node.type === 'paragraph' && /^(?:abstract|摘\s*要)\s*[:：.—-]?\s*/i.test(nodeText(node)))
-    report(inline || nodes[0], 'article.abstract-missing', '未找到独立的“## Abstract”或“## 摘要”区。请对照原文整理摘要，正文须从摘要开始；不得用笔记总结代替或编造摘要。')
+  if (!abstracts.length) {
+    report(nodes[0], 'article.abstract-missing', '未找到摘要区。对照原文补齐实际摘要，使用独立二级标题“## Abstract”或“## 摘要”，其后接正文。')
     return diagnostics
   }
-  const abstract = nodes[abstractIndex]
-  const before = nodes.slice(0, abstractIndex)
-  // A single article title and its short bibliographic/author lines are front
-  // matter, not body sections. Tables, figures and numbered body sections are not.
-  const title = before.find(node => node.type === 'heading' && node.depth === 1)
-  for (const node of before) {
-    const text = nodeText(node).trim()
-    if ((node.type === 'heading' && node !== title) || ['table', 'code', 'math', 'blockquote', 'list'].includes(node.type) ||
-        (node.type === 'paragraph' && (node.children?.some((child: any) => child.type === 'image' || child.type === 'imageReference') || text.length > 900)) ||
-        (node.type === 'html' && /<(?:img|table)\b/i.test(text))) {
-      report(node, 'article.before-abstract', '摘要前存在正文章节、图表或非题录内容；核对PDF，删除识别杂项，实际正文与图表应放在摘要之后。')
-    }
+  for (const node of beforeAbstractIssues(nodes.slice(0, abstracts[0]))) {
+    report(node, 'article.before-abstract', '摘要前存在正文章节、图表或非题录内容，核对PDF后将实际正文与图表放在摘要之后。')
   }
-  const next = nodes.findIndex((node, index) => index > abstractIndex && node.type === 'heading' && node.depth <= abstract.depth)
-  const region = nodes.slice(abstractIndex + 1, next < 0 ? nodes.length : next)
-  const prose = region.filter(node => ['paragraph', 'list'].includes(node.type) && !isKeywordsTitle(nodeText(node)))
-  if (!prose.some(node => nodeText(node).trim())) report(abstract, 'article.abstract-empty', '摘要区为空或只有关键词；须保留原论文的摘要正文。')
-  const following = next < 0 ? [] : nodes.slice(next).filter(node => node.type === 'heading' && !isAbstractTitle(nodeText(node)) && !isKeywordsTitle(nodeText(node)) && !/^(?:references|参考文献|bibliography)\s*[:：]?$/i.test(nodeText(node).trim()))
-  if (!following.length) report(abstract, 'article.body-missing', '摘要之后未识别到正文章节；请检查是否仅保留了摘要或正文标题尚未整理，不能以摘要代替全文。')
+  let bodyStart = 0
+  for (const index of abstracts) {
+    const abstract = nodes[index]
+    const label = abstractLabel(abstract)!
+    if (headingLevel(abstract) !== 2) {
+      report(abstract, 'article.abstract-format', '将摘要标签单独写成二级标题“## 摘要”或“## Abstract”，下一段保留原有摘要内容。')
+    }
+    bodyStart = abstractEnd(nodes, index)
+    const prose = nodes.slice(index + 1, bodyStart).filter(node => ['paragraph', 'list'].includes(node.type))
+    const hasText = label.inline || prose.some(node => nodeText(node).trim())
+    if (!hasText) report(abstract, 'article.abstract-empty', '摘要区为空或只有关键词，须保留原论文的摘要正文。')
+  }
+  if (!hasArticleBody(nodes, bodyStart)) report(nodes[abstracts.at(-1)!], 'article.body-missing', '摘要后须有包含实际内容的正文章节。核对是否只有题录、空标题、关键词或文末参考文献等附属内容。')
   return diagnostics
 }
 
-function rehypeLibraryAbstract() {
+function removeTextPrefix(node: any, length: number): number {
+  if (node.type === 'text') {
+    const removed = Math.min(length, node.value.length)
+    node.value = node.value.slice(removed)
+    return length - removed
+  }
+  for (const child of node.children || []) {
+    length = removeTextPrefix(child, length)
+    if (!length) break
+  }
+  return length
+}
+
+function rehypeLibraryAbstract(options: { inlineLines: number[] }) {
+  const lines = new Set(options.inlineLines)
   return (tree: any) => {
     for (let index = 0; index < tree.children.length; index++) {
-      const heading = tree.children[index]
-      if (heading.type !== 'element' || !/^h[1-6]$/.test(heading.tagName) || !isAbstractTitle(nodeText(heading))) continue
-      let end = index + 1
-      while (end < tree.children.length) {
-        const node = tree.children[end]
-        if (node.type === 'element' && ((/^h[1-6]$/.test(node.tagName) && node.tagName <= heading.tagName) || (node.tagName === 'p' && isKeywordsTitle(nodeText(node))))) break
-        end++
+      const node = tree.children[index]
+      if (!headingLevel(node) && !lines.has(node.position?.start?.line)) continue
+      const label = abstractLabel(node)
+      if (!label) continue
+      const end = abstractEnd(tree.children, index)
+      const children = tree.children.slice(index, end)
+      if (label.prefixLength) {
+        const title = element('h2', label.inline ? {} : node.properties, [{ type: 'text', value: label.title }])
+        if (label.inline) {
+          removeTextPrefix(node, label.prefixLength)
+          children.unshift(title)
+        } else children[0] = title
       }
-      const section = element('section', { className: ['library-abstract'], 'aria-label': nodeText(heading).trim() }, tree.children.slice(index, end))
+      const section = element('section', { className: ['library-abstract'], 'aria-label': label.title }, children)
       tree.children.splice(index, end - index, section)
     }
   }
@@ -476,7 +580,7 @@ export function getLibraryMarkdownOptions(processed: ProcessedLibraryContent, ob
   const rehypePlugins: PluggableList = [rehypeRaw, rehypeSlug, [rehypeLibraryHtmlCellMath, { processed, observation }], rehypeKatex,
     ...(linkCitations ? [[rehypeLibraryCitations, { processed, observation }] as any] : []), rehypeStyleCaptions,
     ...(linkCitations ? [[rehypeLibraryPassages, { processed }] as any] : []),
-    rehypeLibraryTables, rehypeLibraryAbstract,
+    rehypeLibraryTables, [rehypeLibraryAbstract, { inlineLines: linkCitations ? processed.inlineAbstractLines || [] : [] }],
     [rehypeLibraryObserve, { processed, observation }]]
   return { remarkPlugins, rehypePlugins }
 }

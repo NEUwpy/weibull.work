@@ -15,7 +15,6 @@ const tabs: { tab: MethodTab; label: string; icon: LucideIcon }[] = [
 export default function MethodNavigation({ method, activeTab, canCalculate }: { method: MethodNode; activeTab: MethodTab; canCalculate: boolean }) {
   const router = useRouter(), query = useSearchParams()
   const navigationQuery = new URLSearchParams(query.toString())
-  navigationQuery.delete('sourceStep')
   const [open, setOpen] = useState(false)
   const switchRef = useRef<HTMLDivElement>(null), buttonRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {

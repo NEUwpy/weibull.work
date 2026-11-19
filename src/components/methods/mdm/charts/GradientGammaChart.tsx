@@ -11,6 +11,7 @@
 "use client"
 
 import React, { useCallback, useMemo, useState } from 'react'
+import { useProcessAxisLabel } from '../../ProcessDefinitionContext'
 import {
   ComposedChart,
   Scatter,
@@ -137,6 +138,8 @@ export function GradientGammaChart({
   noContainer = false,
   workspacePlot = false,
 }: GradientGammaChartProps) {
+  const xAxisName = useProcessAxisLabel('mdm-gradient', 'x', '位置参数 γ')
+  const yAxisName = useProcessAxisLabel('mdm-gradient', 'y', '梯度 ∇(γ)')
   const [hoveredPoint, setHoveredPoint] = useState<GradientGammaPoint | null>(null)
   const drawCalculatedPoint = useCallback((props: any) => <circle className="mdm-gradient-calculated-point"
     cx={props.cx} cy={props.cy} r={2.7} fill="#ef4444" stroke="#fff" strokeWidth={0.5}
@@ -231,7 +234,7 @@ export function GradientGammaChart({
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '位置参数 γ', position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
+          label={{ value: xAxisName, position: 'bottom', offset: 8, fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />
         <YAxis
@@ -244,7 +247,7 @@ export function GradientGammaChart({
           tickLine={true}
           stroke="#000"
           strokeWidth={1}
-          label={{ value: '梯度 ∇(γ)', content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
+          label={{ value: yAxisName, content: workspacePlot ? <ProcessYAxisLabel /> : undefined,
             angle: -90, position: 'insideLeft', fontSize: 14, fill: '#64748b' }}
           axisLine={{ stroke: '#000', strokeWidth: 1 }}
         />

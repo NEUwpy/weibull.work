@@ -3,22 +3,36 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowRight, Loader2, LockKeyhole, X } from 'lucide-react'
-import { libraryAuthClient } from '@/lib/library-auth-client'
+import { libraryAuthClient, useLibrarySession } from '@/lib/library-auth-client'
 import './login.css'
 
-export function LibraryLoginDialog({ open, onClose, container }: { open: boolean; onClose: () => void; container?: HTMLElement | null }) {
+const loginCopy = {
+  reading: { title: '登录，继续阅读', description: '登录后查看文献原文与译文。' },
+  favorites: { title: '登录，使用收藏夹', description: '收藏夹随你的账号保存。' },
+  account: { title: '登录图书馆账号', description: '登录后可查看个人收藏。' },
+}
+
+export function LibraryLoginDialog({ open, onClose, container, purpose = 'reading' }: {
+  open: boolean; onClose: () => void; container?: HTMLElement | null; purpose?: keyof typeof loginCopy
+}) {
   const [mounted, setMounted] = useState(false)
   const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
+  const [credential, setCredential] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [resendAt, setResendAt] = useState(0)
+  const [countdown, setCountdown] = useState(0)
+  const { status, loginMode } = useLibrarySession()
+  const sms = loginMode === 'sms'
   const panel = useRef<HTMLDivElement>(null)
+  const codeInput = useRef<HTMLInputElement>(null)
   const close = useRef(onClose)
   close.current = onClose
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    if (!open) { setPassword(''); setError(''); return }
+    if (!open) { setCredential(''); setError(''); return }
     const previousFocus = document.activeElement as HTMLElement | null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -45,13 +59,40 @@ export function LibraryLoginDialog({ open, onClose, container }: { open: boolean
     }
   }, [open])
 
+  useEffect(() => {
+    if (!open || !resendAt) return
+    function update() { setCountdown(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000))) }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [open, resendAt])
+
+  async function sendCode() {
+    if (busy || sending || countdown > 0) return
+    setError('')
+    if (!/^(?:\+?86)?1[3-9]\d{9}$/.test(phone.trim())) {
+      setError('请输入有效的中国大陆手机号。')
+      return
+    }
+    setSending(true)
+    try {
+      const seconds = await libraryAuthClient.sendCode(phone.trim())
+      setCountdown(seconds)
+      setResendAt(Date.now() + seconds * 1000)
+      setCredential('')
+      codeInput.current?.focus()
+    } catch (cause) {
+      setError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '连接失败，请稍后重试。')
+    } finally { setSending(false) }
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (busy) return
+    if (busy || sending || status === 'loading' || !loginMode) return
     setError(''); setBusy(true)
     try {
-      const result = await libraryAuthClient.login(phone.trim(), password)
-      if (result.status === 'authenticated') { setPassword(''); close.current() }
+      const result = await libraryAuthClient.login(phone.trim(), credential, loginMode)
+      if (result.status === 'authenticated') { setCredential(''); close.current() }
     } catch (cause) {
       setError(cause instanceof Error && cause.name !== 'TypeError' ? cause.message : '连接失败，请稍后重试。')
     } finally { setBusy(false) }
@@ -64,17 +105,26 @@ export function LibraryLoginDialog({ open, onClose, container }: { open: boolean
         <button type="button" className="library-login-close" aria-label="关闭登录" onClick={onClose}><X size={20} /></button>
         <div className="library-login-emblem"><LockKeyhole size={26} strokeWidth={1.6} /></div>
         <p className="library-login-eyebrow">可靠性图书馆</p>
-        <h2 id="library-login-title">登录，继续阅读</h2>
-        <p id="library-login-description" className="library-login-description">登录后查看文献原文与译文。</p>
+        <h2 id="library-login-title">{loginCopy[purpose].title}</h2>
+        <p id="library-login-description" className="library-login-description">{sms ? '手机号即账号，首次验证成功会自动注册。' : loginCopy[purpose].description}</p>
         <form onSubmit={submit} className="library-login-form">
           <label htmlFor="library-login-phone">手机号</label>
-          <input id="library-login-phone" name="username" type="tel" inputMode="tel" autoComplete="username" maxLength={20} required placeholder="请输入手机号" value={phone} onChange={event => setPhone(event.target.value)} />
-          <label htmlFor="library-login-password">密码</label>
-          <input id="library-login-password" name="password" type="password" autoComplete="current-password" maxLength={256} required placeholder="请输入密码" value={password} onChange={event => setPassword(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'library-login-error' : undefined} />
+          <input id="library-login-phone" name="username" type="tel" inputMode="tel" autoComplete={sms ? 'tel' : 'username'} maxLength={20} required placeholder="请输入手机号" value={phone} readOnly={sending || busy} onChange={event => { setPhone(event.target.value); if (sms) setCredential('') }} />
+          {sms ? <>
+            <label htmlFor="library-login-code">短信验证码</label>
+            <div className="library-login-code-row">
+              <input ref={codeInput} id="library-login-code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required placeholder="6 位验证码" value={credential} onChange={event => setCredential(event.target.value.replace(/[^0-9]/g, ''))} aria-describedby={error ? 'library-login-error' : undefined} />
+              <button type="button" disabled={busy || sending || countdown > 0} onClick={sendCode}>{sending ? '发送中…' : countdown > 0 ? `${countdown} 秒后重发` : '获取验证码'}</button>
+            </div>
+          </> : loginMode === 'password' && <>
+            <label htmlFor="library-login-password">密码</label>
+            <input id="library-login-password" name="password" type="password" autoComplete="current-password" maxLength={256} required placeholder="请输入密码" value={credential} onChange={event => setCredential(event.target.value)} aria-invalid={Boolean(error)} aria-describedby={error ? 'library-login-error' : undefined} />
+          </>}
           {error && <p id="library-login-error" role="alert" className="library-login-error">{error}</p>}
-          <button type="submit" disabled={busy} className="library-login-submit">{busy ? <><Loader2 size={18} className="animate-spin" />正在登录</> : <>登录并继续<ArrowRight size={18} /></>}</button>
+          {!loginMode && status !== 'loading'
+            ? <button type="button" className="library-login-submit" onClick={() => { void libraryAuthClient.refresh() }}>重新加载登录</button>
+            : <button type="submit" disabled={busy || sending || !loginMode} className="library-login-submit">{busy ? <><Loader2 size={18} className="animate-spin" />正在登录</> : <>登录并继续<ArrowRight size={18} /></>}</button>}
         </form>
-        <p className="library-login-note">仅限已开放账号 · 暂未开放注册</p>
       </div>
     </div>, container || document.body,
   )

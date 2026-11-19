@@ -115,7 +115,16 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-.library-article-toc nav a[data-nested] { color: #64748b; }
+.library-article-toc nav a[data-level="2"] {
+  padding-inline-start: 12px;
+  font-size: .8125rem;
+  color: #4b5563;
+}
+.library-article-toc nav a[data-level="3"] {
+  padding-inline-start: 24px;
+  font-size: .75rem;
+  color: #626d7b;
+}
 .library-article-toc nav a:hover { background: #edf2ee; color: #24563d; }
 .library-article-chat {
   grid-column: 3;
@@ -214,33 +223,60 @@
 }
 .library-article-selection:hover { background: #215840; }
 @media (max-width: 900px) {
-  .library-article-chat-shell[data-left-open="true"] { --left-pane: 36px; --left-inset: 0px; }
-  .library-article-chat-shell[data-right-open="true"] { --right-pane: 36px; --right-inset: 0px; }
+  .library-article-toolbar > button { min-height: 44px; padding-inline: 8px; white-space: nowrap; }
+  .library-article-toolbar > button[aria-expanded="true"] { background: #edf2ee; }
+  .library-article-workspace { display: block; padding-block-start: 12px; }
+  .library-article-reading { padding-inline: 0; }
   .library-article-toc, .library-document-dialog .library-article-toc {
-    position: sticky;
-    z-index: 20;
-    top: var(--article-pane-top);
-    grid-column: 1;
-    grid-row: 1;
-    width: min(250px, 72vw);
-    max-height: 65dvh;
-    padding: 0 16px 16px 0;
+    position: static;
+    max-height: none;
+    margin-block-end: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--article-divider);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .library-article-toc nav a { display: flex; align-items: center; min-height: 44px; }
+  .library-article-chat-mobile {
+    position: fixed;
+    inset: var(--article-chat-top, 0px) 0 auto;
+    display: none;
+    width: 100%;
+    max-width: none;
+    height: var(--article-chat-height, 100dvh);
+    max-height: none;
+    margin: 0;
+    padding: max(6px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+    border: 0;
     background: #f8fafc;
-    box-shadow: 10px 0 20px rgb(15 23 42 / .06);
+    color: #334155;
+    overscroll-behavior: contain;
   }
-  .library-article-chat, .library-document-dialog .library-article-chat {
-    position: fixed; z-index: 65; inset: auto 0 0 auto;
-    width: min(420px, 100vw); height: min(620px, 72dvh); max-height: none;
-    background: #f8fafc; padding: 8px 16px max(12px, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--article-divider);
-    box-shadow: -6px -3px 24px rgb(15 23 42 / .12);
+  .library-article-chat-mobile[open] { display: flex; }
+  .library-article-chat-mobile .library-article-chat-header { justify-content: flex-start; flex-shrink: 0; }
+  .library-article-chat-close { display: inline-flex; width: 44px; height: 44px; }
+  .library-article-chat-mobile .library-article-chat-suggestions[data-has-turns="true"],
+  .library-article-chat-mobile:has(textarea:focus) .library-article-chat-suggestions { display: none; }
+  .library-article-chat-mobile .library-article-chat-suggestions button { min-height: 44px; align-items: center; }
+  .library-article-chat-mobile .library-article-chat-form { flex-shrink: 0; }
+  .library-article-chat-mobile .library-article-chat-quotes { max-height: min(92px, 18dvh); }
+}
+@media (max-width: 900px) and (orientation: portrait) {
+  .library-reader .library-article-workspace { padding-inline: 16px; }
+  .library-article-reading .reader-paper {
+    padding: 8px 0 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
   }
-  .library-article-chat-close { display: inline-flex; }
 }
 @media (max-width: 600px) {
   .library-article-heading > .library-entry-shell { padding-bottom: 28px; }
+  .library-article-toolbar { grid-template-columns: 1fr 1fr; }
+  .library-article-toolbar-center { grid-area: 1 / 1 / 2 / -1; }
+  .library-article-toolbar > button { grid-row: 2; }
+  .library-article-toolbar-band[data-reading="false"] .library-article-toolbar > button { display: none; }
   .library-reading-tabs { gap: 10px; }
-  .library-article-toolbar > button { gap: 4px; padding-inline: 3px; }
   .library-article-toolbar .library-reading-tabs button { gap: 4px; padding-inline: 1px; }
 }
 @media (prefers-reduced-motion: reduce) {

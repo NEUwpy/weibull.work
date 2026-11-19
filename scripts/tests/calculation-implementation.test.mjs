@@ -10,6 +10,5 @@ test('each method has one live implementation and one corresponding process docu
     assert.ok(flow.sources.some(source => source.path === `python/methods/${method}.py`))
     assert.ok(flow.sources.every(source => !source.path.endsWith('_paper.py')))
     assert.equal(fs.existsSync(`python/methods/${method}_paper.py`), false)
-    assert.equal(fs.existsSync(`src/data/method_flows/${method}_paper.json`), false)
   }
 })

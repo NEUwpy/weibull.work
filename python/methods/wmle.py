@@ -287,16 +287,13 @@ class WMLE(WeibullBase):
 
     def run(self, trace=False, generate_surface=False):
         self.calculation_trace = None
-        # @step: 1 | 校准权重 | 使用原有J1、J2、J3查表与插值规则
-        # @step: 2 | 联立方程求根 | 条件形状求根后扫描位置方程的交点
-        # @formula: T1(beta,gamma)=0, T2(beta,gamma)=0
-        # @step: 3 | 多根选择 | 沿用原启发式初值的距离规则，与真值无关
         try:
             selected, info = solve_wmle_profile(self.data, sys.modules[__name__], trace=trace)
         except (ValueError, FloatingPointError, RuntimeError) as error:
             self.last_solution_info = dict(status='profile_solver_failed', error=str(error))
             return [None, None, None, 0., 'profile_solver_failed']
-        self.last_solution_info = {k: v for k, v in info.items() if k not in ('profile_trace', 'selected_shape_evaluations')}
+        self.last_solution_info = {k: v for k, v in info.items() if k not in
+                                   ('profile_trace', 'selected_shape_evaluations', 'normalization_unit', 'prepared_samples')}
         if trace:
             from .calculation_trace import profile_calculation
             self.calculation_trace = profile_calculation('wmle', info, selected,
@@ -310,8 +307,6 @@ class WMLE(WeibullBase):
                 self.log_step(dict(phase='failed', reason=info['status']))
             return [None, None, None, 0., info['status']]
         beta, eta, gamma = (selected[p] for p in ['beta', 'eta', 'gamma'])
-        # @step: 4 | 尺度恢复 | 在对数域实现原J1加权幂均值公式
-        # @formula: eta=(sum((x-gamma)**beta)/(n*J1))**(1/beta)
         if trace:
             self.log_step(dict(phase='final', beta=beta, eta=eta, gamma=gamma))
         if generate_surface:
@@ -323,5 +318,925 @@ class WMLE(WeibullBase):
                 values.append([float(v) if np.isfinite(v) and v < 1e5 else None for v in a*a+c*c])
             self.trace_data.append(dict(phase='surface', betas=betas.tolist(), gammas=gammas.tolist(),
                                         values=values, optimal_beta=beta, optimal_gamma=gamma))
-        # @step: 5 | 拟合优度 | 保持统一概率图R平方的输出接口
         return [beta, eta, gamma, self._calculate_r2(beta, eta, gamma), True]
+
+
+# @method-flow
+# {
+#   "schemaVersion": 2,
+#   "methodId": "wmle",
+#   "methodName": "加权极大似然法 WMLE",
+#   "description": "原权重与方程 → 条件求根 → 位置搜索与多根选择。",
+#   "steps": [
+#     {
+#       "name": "准备样本与加权方程",
+#       "description": "准备样本与J权重；J₃随求解中的候选形状变化。",
+#       "basis": "工程限制：内部形状求根上限10，最终候选还须β<9.99。",
+#       "notes": "Web统一入口至少3点；条件剖面至少2点。",
+#       "formula": {
+#         "explanation": "准备样本与J权重；J₃随求解中的候选形状变化。",
+#         "symbols": [
+#           {
+#             "symbol": "z_i",
+#             "meaning": "无量纲样本"
+#           },
+#           {
+#             "symbol": "u",
+#             "meaning": "原单位尺度"
+#           }
+#         ],
+#         "equations": [
+#           "u=t_{(1)},\\quad z_i=t_i/u,\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}"
+#         ]
+#       },
+#       "inputs": [
+#         "samples"
+#       ],
+#       "outputs": [
+#         "ordered",
+#         "normalized",
+#         "unit",
+#         "j1",
+#         "j2"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "_load_j3_table"
+#         },
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase.__init__"
+#         },
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "solve_wmle_profile",
+#           "from": "x = np.sort",
+#           "through": "cache = {}"
+#         }
+#       ],
+#       "id": 1,
+#       "primarySource": 2,
+#       "flow": {
+#         "label": "归一化样本并取权重"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "samples"
+#           ],
+#           "name": "寿命样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "normalized",
+#             "j1",
+#             "j2"
+#           ],
+#           "name": "样本与权重",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "给定位置，求条件形状",
+#       "description": "固定一个位置γ，求使T₁=0的形状β，得到一组成对候选。",
+#       "basis": "数值策略：Brent求内部形状根；无0<β<10的根时不生成条件点。",
+#       "notes": "",
+#       "formula": {
+#         "explanation": "固定一个试算位置，按同一距离向量求 T₁=0 的条件形状；改变位置后，这个形状会随之改变。",
+#         "symbols": [
+#           {
+#             "symbol": "\\beta",
+#             "meaning": "形状参数"
+#           },
+#           {
+#             "symbol": "d_i",
+#             "meaning": "平移距离"
+#           },
+#           {
+#             "symbol": "v_i",
+#             "meaning": "中心化对数距离"
+#           },
+#           {
+#             "symbol": "w_i",
+#             "meaning": "归一化幂权重"
+#           }
+#         ],
+#         "equations": [
+#           "v_i=\\ln d_i-\\overline{\\ln d},\\quad w_i=\\frac{e^{\\beta v_i}}{\\sum_j e^{\\beta v_j}},\\quad T_1=\\frac{J_2}{\\beta}-\\sum_iw_iv_i=0"
+#         ]
+#       },
+#       "inputs": [
+#         "normalized",
+#         "j2",
+#         "trial_gamma"
+#       ],
+#       "outputs": [
+#         "trial_beta",
+#         "shape_score"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "_location_grid"
+#         },
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "wmle_profile",
+#           "until": "beta, _, _ = solution"
+#         },
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "_distances"
+#         },
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "get_weight_j1"
+#         },
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "get_weight_j2"
+#         },
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "_shape"
+#         }
+#       ],
+#       "id": 2,
+#       "primarySource": 5,
+#       "flow": {
+#         "label": "由形状方程求条件形状",
+#         "symbol": {
+#           "default": "T_1=0",
+#           "extrapolated": "Q\\le10^{-8}"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "normalized",
+#             "j2"
+#           ],
+#           "name": "样本与权重",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "trial_gamma"
+#           ],
+#           "name": "试算位置",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "trial_beta",
+#             "shape_score"
+#           ],
+#           "name": "条件形状",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "沿条件形状解寻找共同位置",
+#       "description": "沿T₁=0的条件解改变位置，寻找T₂也为零的位置，并核对原方程残差。",
+#       "basis": "兼容规则：保留原有零位置残差容忍，并明确标记近似边界根。",
+#       "notes": "近似解不声称两个残差同时精确为零；无合格候选时返回no_equation_root_found。",
+#       "formula": {
+#         "explanation": "每换一个位置，复用该位置下 T₁=0 的形状，计算 T₂；扫描和精化共同根，再按原方程残差接受候选。",
+#         "symbols": [
+#           {
+#             "symbol": "\\mathrm{boundary\\_residual\\_tolerance}",
+#             "meaning": "近似边界类型"
+#           },
+#           {
+#             "symbol": "Q",
+#             "meaning": "两个加权残差的平方和"
+#           }
+#         ],
+#         "equations": [
+#           "d_i=t_i-\\gamma,\\quad T_2=\\overline{d^{-1}}\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3",
+#           "T_1(\\beta,\\gamma)=0,\\quad T_2(\\beta,\\gamma)=0",
+#           "Q=T_1^2+T_2^2\\le10^{-8},\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}"
+#         ],
+#         "variants": {
+#           "extrapolated": [
+#             "d_i=t_i-\\gamma,\\quad T_2=\\overline{d^{-1}}\\frac{\\sum_i d_i^\\beta}{\\sum_i d_i^{\\beta-1}}-J_3",
+#             "\\hat\\gamma=0",
+#             "Q=T_1^2+T_2^2\\le10^{-8},\\quad0<\\beta<9.99,\\quad0\\le\\gamma<t_{(1)}"
+#           ]
+#         }
+#       },
+#       "inputs": [
+#         "trial_beta",
+#         "normalized"
+#       ],
+#       "outputs": [
+#         "candidates"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "wmle_profile",
+#           "from": "beta, _, _ = solution"
+#         },
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "wmle_residuals"
+#         },
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "get_weight_j3"
+#         },
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "solve_wmle_profile",
+#           "from": "grid = _location_grid()",
+#           "until": "# The previous estimator"
+#         },
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "solve_wmle_profile.add"
+#         },
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "solve_wmle_profile",
+#           "from": "if not candidates:",
+#           "until": "def proximity(p):"
+#         },
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "wmle_objective_profile"
+#         }
+#       ],
+#       "id": 3,
+#       "primarySource": 3,
+#       "flow": {
+#         "label": "由位置方程搜索共同解",
+#         "symbol": {
+#           "default": "T_2=0",
+#           "extrapolated": "Q\\le10^{-8}"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "trial_beta"
+#           ],
+#           "name": "条件形状",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "normalized"
+#           ],
+#           "name": "归一化样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "candidates"
+#           ],
+#           "name": "共同解候选",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "核对并选定共同解",
+#       "description": "有多个合格共同解时，按现行选择规则确定最终β、γ，保留该点对应的η。",
+#       "basis": "工程选择：沿用原启发式β=2、γ=0.9tmin附近的距离规则。",
+#       "notes": "选择不使用仿真真值。",
+#       "formula": {
+#         "explanation": "有多个合格共同解时，按现行选择规则确定最终β、γ，保留该点对应的η。",
+#         "symbols": [
+#           {
+#             "symbol": "\\hat c",
+#             "meaning": "选定候选或None"
+#           },
+#           {
+#             "symbol": "u",
+#             "meaning": "原始样本最小值"
+#           }
+#         ],
+#         "equations": [
+#           "\\begin{gathered}\\mathcal C_*=\\{c:Q(c)\\le Q_{min}+10^{-12}\\}\\\\[5pt]\\hat c=\\arg\\min_{c\\in\\mathcal C_*}\\left[\\ln^2(\\beta/2)+\\left(\\frac{\\gamma-0.9u}{\\max(u,1)}\\right)^2\\right]\\end{gathered}"
+#         ]
+#       },
+#       "inputs": [
+#         "candidates"
+#       ],
+#       "outputs": [
+#         "beta_hat",
+#         "gamma_hat"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/methods/profile_solvers.py",
+#           "symbol": "solve_wmle_profile",
+#           "from": "def proximity(p):"
+#         },
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "WMLE.run",
+#           "from": "self.last_solution_info = {",
+#           "through": "beta, eta, gamma = (selected[p] for p in ['beta', 'eta', 'gamma'])"
+#         }
+#       ],
+#       "id": 4,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "比较候选并选定参数",
+#         "symbol": "\\mathcal C_*"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "candidates"
+#           ],
+#           "name": "共同解候选",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "gamma_hat"
+#           ],
+#           "name": "采纳形状与位置",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "用采纳形状和位置恢复尺度",
+#       "description": "将成对的β、γ代入T₂，查看第二条方程是否也成立；同时按J₁恢复尺度。",
+#       "basis": "方法核心：原J₂/J₃加权方程；用logsumexp稳定幂和。",
+#       "notes": "",
+#       "formula": {
+#         "explanation": "固定采纳的共同解，读取各样本距离的幂次贡献，除以 nJ₁ 后开 1/β̂ 次幂，恢复原单位尺度。",
+#         "symbols": [
+#           {
+#             "symbol": "T_1",
+#             "meaning": "形状残差"
+#           },
+#           {
+#             "symbol": "T_2",
+#             "meaning": "位置残差"
+#           },
+#           {
+#             "symbol": "d_i",
+#             "meaning": "平移距离"
+#           },
+#           {
+#             "symbol": "v_i",
+#             "meaning": "中心化对数距离"
+#           },
+#           {
+#             "symbol": "w_i",
+#             "meaning": "归一化幂权重"
+#           }
+#         ],
+#         "equations": [
+#           "\\hat\\eta=\\left(\\frac{\\sum_i(t_i-\\hat\\gamma)^{\\hat\\beta}}{nJ_1}\\right)^{1/\\hat\\beta}"
+#         ]
+#       },
+#       "inputs": [
+#         "beta_hat",
+#         "gamma_hat",
+#         "ordered",
+#         "j1"
+#       ],
+#       "outputs": [
+#         "eta_hat"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/methods/conditional_profiles.py",
+#           "symbol": "wmle_profile",
+#           "from": "beta, _, _ = solution"
+#         }
+#       ],
+#       "id": 5,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "按加权关系恢复尺度"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "beta_hat",
+#             "gamma_hat"
+#           ],
+#           "name": "形状与位置",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered",
+#             "j1"
+#           ],
+#           "name": "样本与权重",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         }
+#       }
+#     },
+#     {
+#       "name": "返回结果与拟合检查",
+#       "description": "返回三参数并补充拟合检查；拟合优度不参与加权方程求根。",
+#       "basis": "项目诊断：概率图R²不参与加权方程求根。",
+#       "notes": "trace候选和曲面不是优化迭代；失败与近似边界标记保留在last_solution_info。",
+#       "formula": {
+#         "explanation": "返回三参数并补充拟合检查；拟合优度不参与加权方程求根。",
+#         "symbols": [
+#           {
+#             "symbol": "(β,η,γ,R²,status)",
+#             "meaning": "统一返回"
+#           }
+#         ],
+#         "equations": [
+#           "y_i=\\ln[-\\ln(1-p_i)],\\quad\\hat y_i=\\beta\\ln(t_i-\\gamma)-\\beta\\ln\\eta,\\quad R^2=1-\\frac{\\sum_i(y_i-\\hat y_i)^2}{\\sum_i(y_i-\\bar y)^2}"
+#         ]
+#       },
+#       "inputs": [
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat"
+#       ],
+#       "outputs": [
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat",
+#         "r_squared",
+#         "status"
+#       ],
+#       "sources": [
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase._calculate_r2"
+#         },
+#         {
+#           "file": "python/base.py",
+#           "symbol": "WeibullBase._median_ranks"
+#         },
+#         {
+#           "file": "python/methods/wmle.py",
+#           "symbol": "WMLE.run",
+#           "from": "return [beta, eta, gamma, self._calculate_r2"
+#         }
+#       ],
+#       "id": 6,
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "汇总参数与拟合优度",
+#         "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "beta_hat",
+#             "gamma_hat"
+#           ],
+#           "name": "形状与位置",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat",
+#             "gamma_hat",
+#             "r_squared"
+#           ],
+#           "name": "估计结果",
+#           "wrap": 2
+#         }
+#       }
+#     }
+#   ],
+#   "artifacts": [
+#     "python/methods/j3_weights.tsv"
+#   ],
+#   "workflow": {
+#     "title": "计算流程",
+#     "description": "原权重与方程 → 条件求根 → 位置搜索与多根选择。",
+#     "targets": {
+#       "samples": 1,
+#       "trial": 2,
+#       "location": 3,
+#       "comparison": 4,
+#       "scale": 5,
+#       "result": 6
+#     },
+#     "items": [
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i1-1",
+#             "target": "samples",
+#             "direction": "input",
+#             "external": true,
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s1",
+#             "step": 1,
+#             "target": "samples"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o1",
+#             "target": "samples",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "search",
+#         "title": "共同解搜索",
+#         "children": [
+#           {
+#             "kind": "group",
+#             "layout": "module",
+#             "children": [
+#               {
+#                 "kind": "port",
+#                 "anchor": "i2-1",
+#                 "target": "trial",
+#                 "direction": "input",
+#                 "group": "input-0"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "i2-2",
+#                 "target": "trial",
+#                 "direction": "input",
+#                 "group": "input-1"
+#               },
+#               {
+#                 "kind": "step",
+#                 "anchor": "s2",
+#                 "step": 2,
+#                 "target": "trial"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o2",
+#                 "target": "trial",
+#                 "direction": "output",
+#                 "group": "output-0"
+#               }
+#             ]
+#           },
+#           {
+#             "kind": "group",
+#             "layout": "module",
+#             "children": [
+#               {
+#                 "kind": "port",
+#                 "anchor": "i3-1",
+#                 "target": "location",
+#                 "direction": "input",
+#                 "group": "input-0"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "i3-2",
+#                 "target": "location",
+#                 "direction": "input",
+#                 "group": "input-1"
+#               },
+#               {
+#                 "kind": "step",
+#                 "anchor": "s3",
+#                 "step": 3,
+#                 "target": "location"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o3",
+#                 "target": "location",
+#                 "direction": "output",
+#                 "group": "output-0"
+#               }
+#             ]
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i4-1",
+#             "target": "comparison",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s4",
+#             "step": 4,
+#             "target": "comparison"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o4",
+#             "target": "comparison",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i5-1",
+#             "target": "scale",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i5-2",
+#             "target": "scale",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s5",
+#             "step": 5,
+#             "target": "scale"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o5",
+#             "target": "scale",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i6-1",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i6-2",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "anchor": "s6",
+#             "step": 6,
+#             "target": "result"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o6",
+#             "target": "result",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       }
+#     ],
+#     "connections": [
+#       {
+#         "from": "o1",
+#         "to": "i2-1"
+#       },
+#       {
+#         "from": "s3",
+#         "to": "i2-2",
+#         "dashed": true,
+#         "label": "位置试算"
+#       },
+#       {
+#         "from": "o2",
+#         "to": "i3-1"
+#       },
+#       {
+#         "from": "o1",
+#         "to": "i3-2"
+#       },
+#       {
+#         "from": "o3",
+#         "to": "i4-1"
+#       },
+#       {
+#         "from": "o4",
+#         "to": "i5-1"
+#       },
+#       {
+#         "from": "o1",
+#         "to": "i5-2"
+#       },
+#       {
+#         "from": "o4",
+#         "to": "i6-1"
+#       },
+#       {
+#         "from": "o5",
+#         "to": "i6-2"
+#       }
+#     ]
+#   },
+#   "variables": {
+#     "samples": {
+#       "symbol": "t_i",
+#       "name": "样本",
+#       "meaning": "样本",
+#       "code": "data"
+#     },
+#     "ordered": {
+#       "symbol": "t_{(i)}",
+#       "name": "有序样本",
+#       "meaning": "有序样本",
+#       "code": "t"
+#     },
+#     "unit": {
+#       "symbol": "u",
+#       "name": "归一化单位",
+#       "meaning": "归一化单位",
+#       "code": "unit"
+#     },
+#     "normalized": {
+#       "symbol": "z_i",
+#       "name": "归一化样本",
+#       "meaning": "归一化样本",
+#       "code": "z"
+#     },
+#     "beta_hat": {
+#       "symbol": "\\hat\\beta",
+#       "name": "形状估计",
+#       "meaning": "形状估计",
+#       "code": "final_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "eta_hat": {
+#       "symbol": "\\hat\\eta",
+#       "name": "尺度估计",
+#       "meaning": "尺度估计",
+#       "code": "final_eta",
+#       "axisLabel": "尺度参数 η"
+#     },
+#     "gamma_hat": {
+#       "symbol": "\\hat\\gamma",
+#       "name": "位置估计",
+#       "meaning": "位置估计",
+#       "code": "final_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "r_squared": {
+#       "symbol": "R^2",
+#       "name": "拟合优度",
+#       "meaning": "拟合优度",
+#       "code": "r_squared"
+#     },
+#     "status": {
+#       "symbol": "\\mathrm{status}",
+#       "name": "求解状态",
+#       "meaning": "求解状态",
+#       "code": "process_status"
+#     },
+#     "trial_gamma": {
+#       "symbol": "\\gamma",
+#       "name": "试算位置",
+#       "meaning": "试算位置",
+#       "code": "trial_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "trial_beta": {
+#       "symbol": "\\beta^*(\\gamma)",
+#       "name": "条件形状",
+#       "meaning": "条件形状",
+#       "code": "trial_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "beta_axis": {
+#       "symbol": "\\beta",
+#       "name": "形状",
+#       "meaning": "形状",
+#       "axisLabel": "形状参数 β",
+#       "code": "beta_axis"
+#     },
+#     "gamma_axis": {
+#       "symbol": "\\gamma",
+#       "name": "位置",
+#       "meaning": "位置",
+#       "axisLabel": "位置参数 γ",
+#       "code": "gamma_axis"
+#     },
+#     "sample_axis": {
+#       "symbol": "i",
+#       "name": "样本序号",
+#       "meaning": "样本序号",
+#       "axisLabel": "样本序号 i",
+#       "code": "sample_axis"
+#     },
+#     "power": {
+#       "symbol": "c_i",
+#       "name": "幂次贡献",
+#       "meaning": "幂次贡献",
+#       "code": "power"
+#     },
+#     "j1": {
+#       "symbol": "J_1",
+#       "name": "尺度权重",
+#       "meaning": "尺度权重",
+#       "code": "j1"
+#     },
+#     "j2": {
+#       "symbol": "J_2",
+#       "name": "形状权重",
+#       "meaning": "形状权重",
+#       "code": "j2"
+#     },
+#     "shape_score": {
+#       "symbol": "T_1",
+#       "name": "形状残差",
+#       "meaning": "形状残差",
+#       "code": "t1",
+#       "axisLabel": "形状残差 T₁"
+#     },
+#     "location_score": {
+#       "symbol": "T_2",
+#       "name": "位置残差",
+#       "meaning": "位置残差",
+#       "code": "t2",
+#       "axisLabel": "位置残差 T₂"
+#     },
+#     "objective": {
+#       "symbol": "Q",
+#       "name": "残差平方和",
+#       "meaning": "残差平方和",
+#       "code": "objective",
+#       "axisLabel": "残差平方和 Q"
+#     },
+#     "candidates": {
+#       "symbol": "\\mathcal C",
+#       "name": "共同解候选",
+#       "meaning": "共同解候选",
+#       "code": "candidates"
+#     }
+#   },
+#   "chartBindings": {
+#     "linked-shape-equation": {
+#       "x": "beta_axis",
+#       "y": "shape_score"
+#     },
+#     "weighted-location-equation": {
+#       "x": "gamma_axis",
+#       "y": "location_score"
+#     },
+#     "candidate-residuals": {
+#       "x": "gamma_axis",
+#       "y": "objective"
+#     },
+#     "conditional-shape-equation": {
+#       "x": "beta_axis",
+#       "y": "shape_score"
+#     },
+#     "scale-sample-contributions": {
+#       "x": "sample_axis",
+#       "y": "power"
+#     }
+#   }
+# }
+# @end-method-flow

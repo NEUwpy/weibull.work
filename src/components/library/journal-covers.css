@@ -1,0 +1,166 @@
+.library-journal-cover-grid {
+  --journal-gap: 28px;
+  --journal-min-column: 214px;
+  --journal-column: max(var(--journal-min-column), calc((100% - 3 * var(--journal-gap)) / 4));
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--journal-column)), 1fr));
+  gap: 34px var(--journal-gap);
+}
+
+.library-journal-cover-grid > li {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.library-journal-cover {
+  --journal-ink: #28584e;
+  --journal-paper: #f4f6ed;
+  --journal-lift: 0px;
+  --journal-open: 0deg;
+  --journal-page-shift: 0px;
+  --journal-shadow: 0 3px 7px rgb(32 46 41 / .09);
+  --journal-duration: .24s;
+  position: relative;
+  display: grid;
+  width: min(100%, 242px);
+  min-width: 0;
+  border-radius: 5px;
+  container-type: inline-size;
+  perspective: 640px;
+}
+
+.library-journal-cover[data-tone="ink"] { --journal-ink: #304b67; --journal-paper: #f0f4f7; }
+.library-journal-cover[data-tone="plum"] { --journal-ink: #67445b; --journal-paper: #f7f0f4; }
+.library-journal-cover[data-tone="ochre"] { --journal-ink: #755536; --journal-paper: #f8f3e9; }
+
+.library-journal-cover::before {
+  content: "";
+  position: absolute;
+  inset: 4px -2px 0 8px;
+  border: 1px solid #cfd1c8;
+  border-radius: 3px 7px 7px 3px;
+  background: repeating-linear-gradient(#f9f7ef 0 3px, #e5e3d9 3px 4px);
+  transform: translateX(var(--journal-page-shift));
+  transition: transform var(--journal-duration) ease;
+}
+
+.journal-cover-face {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-block-size: clamp(210px, 125cqi, 296px);
+  overflow: hidden;
+  border: 1px solid rgb(32 46 41 / .18);
+  border-radius: 3px 8px 8px 3px;
+  background: var(--journal-paper);
+  box-shadow: var(--journal-shadow);
+  transform-origin: left center;
+  transform: translateY(var(--journal-lift)) rotateY(var(--journal-open));
+  transition: transform var(--journal-duration) ease, box-shadow var(--journal-duration) ease;
+}
+
+.journal-cover-face::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  width: 10px;
+  border-right: 1px solid rgb(15 28 24 / .09);
+  background: linear-gradient(90deg, rgb(15 28 24 / .17), rgb(15 28 24 / .02) 70%, rgb(255 255 255 / .22));
+  pointer-events: none;
+}
+
+.journal-cover-masthead {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  padding: clamp(15px, 8cqi, 21px);
+  padding-inline-start: clamp(19px, 10cqi, 26px);
+}
+
+.journal-cover-masthead::before {
+  content: "";
+  width: 30px;
+  height: 2px;
+  margin-bottom: 1px;
+  background: var(--journal-ink);
+}
+
+.journal-cover-abbreviation {
+  color: var(--journal-ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.journal-cover-name {
+  color: #23322d;
+  font: 600 clamp(19px, 12cqi, 34px)/1.12 Georgia, "Noto Serif SC", "Songti SC", SimSun, serif;
+  letter-spacing: -.025em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.journal-cover-name[data-title-size="medium"] { font-size: clamp(14px, 9cqi, 23px); line-height: 1.18; }
+.journal-cover-name[data-title-size="long"] { font-size: clamp(14px, 7.7cqi, 19px); line-height: 1.23; letter-spacing: -.01em; }
+
+.journal-cover-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  align-items: center;
+  min-block-size: clamp(58px, 33cqi, 80px);
+  padding: 8px 6px 8px 12px;
+  border-top: 1px solid rgb(32 46 41 / .16);
+  background:
+    linear-gradient(90deg, var(--journal-ink), transparent 82%),
+    repeating-radial-gradient(ellipse at 84% 124%, transparent 0 12px, rgb(250 246 222 / .12) 12px 13px, transparent 13px 20px),
+    var(--journal-ink);
+}
+
+.journal-cover-stat {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  padding-inline: 2px;
+  color: #fff;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-cover-stat + .journal-cover-stat { border-inline-start: 1px solid rgb(255 255 255 / .25); }
+.journal-cover-stat > span { color: rgb(255 255 255 / .85); font-size: clamp(9px, 5.5cqi, 11px); }
+.journal-cover-stat strong { font-size: clamp(12px, 8cqi, 18px); font-weight: 650; line-height: 1.2; }
+
+.library-journal-cover:focus-visible {
+  --journal-lift: -3px;
+  --journal-open: -7deg;
+  --journal-page-shift: 5px;
+  --journal-shadow: 0 8px 16px rgb(32 46 41 / .15);
+  outline: 2px solid #2d7d5b;
+  outline-offset: 5px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .library-journal-cover:hover {
+    --journal-lift: -3px;
+    --journal-open: -7deg;
+    --journal-page-shift: 5px;
+    --journal-shadow: 0 8px 16px rgb(32 46 41 / .15);
+  }
+}
+
+@media (max-width: 767px) {
+  .library-journal-cover-grid { --journal-gap: 16px; --journal-min-column: 138px; row-gap: 22px; }
+  .journal-cover-masthead { gap: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-journal-cover {
+    --journal-lift: 0px !important;
+    --journal-open: 0deg !important;
+    --journal-page-shift: 0px !important;
+    --journal-duration: 0s;
+  }
+}

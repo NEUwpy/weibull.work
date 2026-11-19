@@ -239,6 +239,55 @@ test('year and number sorting cover the full result set before pagination and ke
   assert.deepEqual((await response.json()).results.map(hit => hit.slug), ['182-001', '182-003'])
 }))
 
+test('journal folders reuse registered short names while keeping complete journal identities', () => {
+  const { libraryJournalGroups, libraryJournalForPaper, libraryJournalInitials } = loadServerModule('src/lib/library-journals.ts')
+  const groups = libraryJournalGroups([
+    metadata('first', { publication: 'Reliability Engineering and System Safety' }),
+    metadata('second', { publication: 'Reliability Engineering & System Safety 183: 116-127', short_publication: 'RESS' }),
+    metadata('third', { publication: 'An Unregistered Technical Journal', short_publication: 'AUTJ' }),
+  ])
+  assert.equal(groups.length, 2)
+  assert.equal(groups.find(group => group.count === 2).shortName, 'RESS')
+  assert.equal(groups.find(group => group.count === 1).shortName, 'AUTJ')
+  assert.equal(libraryJournalForPaper(metadata('IEEE', { publication: 'IEEE Transactions on Reliability', short_publication: 'IEEE TR 1988' })).shortName, 'IEEE TR')
+  assert.equal(libraryJournalForPaper(metadata('clipped', { publication: 'A Journal of Advanced Engineering', short_publication: 'A Journal of Advanced Engin' })).shortName, undefined)
+  assert.equal(libraryJournalForPaper(metadata('registered', { publication: 'Nature Communications' })).shortName, 'Nat Commun')
+  assert.equal(libraryJournalForPaper(metadata('alias', { publication: 'IEEE TPAMI' })).shortName, 'IEEE TPAMI')
+  assert.equal(libraryJournalInitials('Reliability Engineering & System Safety'), 'RESS')
+  assert.equal(libraryJournalInitials('Nature'), 'Nature')
+  assert.equal(libraryJournalInitials('机械工程学报'), '机械工程学报')
+})
+
+test('journal collections share title normalization and impact sorting with paged full-text search', () => withLibrary(async ({ root, translation }) => {
+  fs.unlinkSync(translation)
+  const { libraryJournalGroups } = loadServerModule('src/lib/library-journals.ts')
+  const journals = [
+    ['182-001', 2025, 'Journal without registered metrics'],
+    ['182-002', 1980, 'Reliability Engineering and System Safety'],
+    ['182-003', 2024, 'International Journal of Fatigue'],
+    ['182-004', 1994, 'Reliability Engineering & System Safety 183: 116-127'],
+  ]
+  const papers = journals.map(([id, year, publication]) => metadata(id, { year, publication }))
+  for (const paper of papers) {
+    write(path.join(root, 'content', `${paper.title}-pdf原文.md`), matter.stringify('# Journal test\n\nJournalneedle identifies a relevant article on reliability estimation.\n', paper))
+  }
+  const journal = 'reliability-engineering-and-system-safety'
+  const groups = libraryJournalGroups([...papers, metadata('book', { type: '书籍', publication: 'Nature' })])
+  assert.equal(groups.length, 3)
+  assert.equal(groups.find(group => group.key === journal).count, 2)
+  const route = loadServerModule('src/app/api/library/search/route.ts')
+  const page = async params => {
+    const response = await route.GET({ nextUrl: new URL('http://test/api/library/search?q=Journalneedle&sort=impact-desc&' + params) })
+    assert.equal(response.status, 200)
+    return response.json()
+  }
+  const collection = await page(`journal=${journal}&limit=1`)
+  assert.equal(collection.total, 2)
+  assert.equal(collection.results[0].slug, '182-004')
+  assert.deepEqual((await page('limit=3&offset=1')).results.map(hit => hit.slug), ['182-002', '182-003', '182-001'])
+  assert.equal((await page(`journal=${journal}&type=book`)).total, 0)
+}))
+
 test('explanatory paragraphs rank ahead of keyword lists and isolated index terms', () => withLibrary(async ({ original, translation }) => {
   write(original, matter.stringify('# Background\n\nKeywords: maximum likelihood, Weibull, estimation.\n\nMaximum likelihood\n\nMaximum likelihood estimates the unknown parameters from the observed sample by maximizing its likelihood function, and its location boundary needs careful examination.\n', metadata('Likelihood background')))
   fs.unlinkSync(translation)

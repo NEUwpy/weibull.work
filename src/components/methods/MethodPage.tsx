@@ -16,9 +16,6 @@ import DataEditor from '@/components/calculator/DataEditor'
 import dynamic from 'next/dynamic'
 import { DataPoint, WeibullResult, DataSource, MULTI_CURVE_COLORS } from '@/lib/weibull'
 import { calculateSampleEstimate, calculateWeibull, CalculationError } from '@/hooks/useWeibullCalculation'
-import { CalculationProcessViewer } from '@/components/shared/charts/CalculationProcessViewer'
-import { CalculationOverview } from '@/components/methods/CalculationSteps'
-import { CalculationStageProvider } from '@/components/methods/CalculationSource'
 import { CalculationInputCard } from '@/components/methods/CalculationInputCard'
 import mmleProcessExample from '@/data/method-process-examples/mmle.json'
 import { getMethodCapability } from '@/lib/method-status'
@@ -32,6 +29,7 @@ import type { MDMProcessBatch } from '@/lib/calculation-records'
 // Dynamic imports for heavy visualizers
 const MDMVisualizer = dynamic(() => import('@/components/methods/mdm/visualizers/MDMVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MLEVisualizer = dynamic(() => import('@/components/methods/mle/visualizers/MLEVisualizer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
+const RecordedCalculationProcess = dynamic(() => import('@/components/methods/RecordedCalculationProcess'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const CaseStudyViewer = dynamic(() => import('@/components/methods/CaseStudyViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MethodResultAnalysis = dynamic(() => import('@/components/methods/MethodResultAnalysis'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
 const MethodCompareViewer = dynamic(() => import('@/components/methods/shared/compare/MethodCompareViewer'), { loading: () => <div className="p-8 text-center text-slate-400">加载中...</div> })
@@ -133,7 +131,6 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
     if (href.split('?')[0] !== pathname) router.push(href, { scroll: false })
   }, [method.id, pathname, router, searchParams])
   const capability = getMethodCapability(method.id)
-  const sourceAvailable = capability?.layer1.process.status === 'done'
 
   const [data, setData] = useState<DataPoint[]>([])
   const [result, setResult] = useState<WeibullResult | undefined>(undefined)
@@ -159,8 +156,11 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
   const handledBatchRef = useRef<string | null>(null)
   const offsetRecalculationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const offsetRecalculationRequestRef = useRef(0)
-  const showCalculation = !!(calculation || dataSources?.some(source => source.calculation)) && (!isCalculating || method.id === 'mdm')
   const activeCalculationError = dataSources?.[activeSourceIndex]?.calculationError ?? calculationError
+  const activeSource = dataSources?.[activeSourceIndex]
+  const currentCalculation = dataSources?.length ? activeSource?.calculation : calculation
+  const currentTrace = dataSources?.length ? activeSource?.traceData : traceData
+  const currentRSquared = (dataSources?.length ? activeSource?.result : result)?.rSquared
   const invalidateCalculation = () => {
     setArchivedBatch(null)
     setCalculationProgress(undefined)
@@ -528,8 +528,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
              )}
           </div>
         ) : activeTab === 'lab' ? (
-          <CalculationStageProvider key={method.id} method={method.id} sourceAvailable={sourceAvailable}>
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div key={method.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {method.id.toLowerCase() === 'mmle' ? <div className="space-y-6" data-method-calculation-example="mmle">
               <section className="rounded-2xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
                 <h2 className="text-lg font-semibold text-slate-800">计算示例 · n = {mmleProcessExample.sample.length}</h2>
@@ -538,71 +537,71 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                   <p className="mt-3 break-words tabular-nums">{mmleProcessExample.sample.join('，')}</p>
                 </details>
               </section>
-              <CalculationProcessViewer calculation={mmleProcessExample.calculation} methodId="mmle" />
+              <RecordedCalculationProcess calculation={mmleProcessExample.calculation} methodId="mmle" />
             </div> : capability && ['done', 'in_progress'].includes(capability.layer2.calculation.status) ? (
               <div className="space-y-8">
-            <CalculationInputCard allowArchive={method.id === 'mdm'} onLoadSources={loadArchivedSources} sampleCard={
-            <AnalysisCard
-              id="lab"
-              initialDirection="estimate"
-              generationParameters={generationParameters}
-              generatedFrom={generatedFrom}
-              calculationProgress={calculationProgress}
-              onDataSourcesChange={handleDataSourcesChange}
-              onGenerationParametersChange={setGenerationParameters}
-              index={0}
-              calculationActionLabel="计算并展示过程"
-              data={data}
-              result={result}
-              methodId={method.id}
-              mdmOffset={mdmOffset}
-              color="#4f46e5"
-              fitMode={fitMode}
-              is3P={is3P}
-              dataSources={dataSources}
-              activeDataSourceIndex={activeSourceIndex}
-              onActiveDataSourceChange={setActiveSourceIndex}
-              availableLayers={[]}
-              onDataChange={handleDataChange}
-              onToggle3P={handleToggle3P}
-              onCalculate={handleCalculate}
-              onMdmOffsetChange={handleMdmOffsetChange}
-              onMethodClick={undefined}
-              onDataClick={handleDataClick}
-              hideCalculationProcessButton={true}
-              isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
-            />}>
+                <CalculationInputCard allowArchive={method.id === 'mdm'} onLoadSources={loadArchivedSources} sampleCard={
+                  <AnalysisCard
+                    id="lab"
+                    initialDirection="estimate"
+                    generationParameters={generationParameters}
+                    generatedFrom={generatedFrom}
+                    calculationProgress={calculationProgress}
+                    onDataSourcesChange={handleDataSourcesChange}
+                    onGenerationParametersChange={setGenerationParameters}
+                    index={0}
+                    calculationActionLabel="计算并展示过程"
+                    data={data}
+                    result={result}
+                    methodId={method.id}
+                    mdmOffset={mdmOffset}
+                    color="#4f46e5"
+                    fitMode={fitMode}
+                    is3P={is3P}
+                    dataSources={dataSources}
+                    activeDataSourceIndex={activeSourceIndex}
+                    onActiveDataSourceChange={setActiveSourceIndex}
+                    availableLayers={[]}
+                    onDataChange={handleDataChange}
+                    onToggle3P={handleToggle3P}
+                    onCalculate={handleCalculate}
+                    onMdmOffsetChange={handleMdmOffsetChange}
+                    onMethodClick={undefined}
+                    onDataClick={handleDataClick}
+                    hideCalculationProcessButton={true}
+                    isMdmOffsetUpdating={isCalculating && method.id.toLowerCase() === 'mdm'}
+                  />}>
 
-            {!(dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation) &&
-              activeCalculationError &&
-              <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{activeCalculationError}</p>}
-            <CalculationBatch methodId={method.id} sources={dataSources} activeIndex={activeSourceIndex}
-              onSelect={setActiveSourceIndex} origin={generatedFrom}>
-            {archivedBatch ? <MDMBatchWorkspace process={archivedBatch}
-              selectedRun={dataSources?.[activeSourceIndex]?.archive?.runId ?? null}
-              onSelect={id => { const index = dataSources?.findIndex(source => source.archive?.runId === id); if (index != null && index >= 0) setActiveSourceIndex(index) }} /> : method.id === 'mdm' ? <MDMVisualizer
-                traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
-                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
-                rSquared={(dataSources?.length ? dataSources[activeSourceIndex]?.result : result)?.rSquared}
-                mdmOffset={mdmOffset}
-                onMdmOffsetChange={handleMdmOffsetChange}
-                offsetStale={isCalculating}
-                isOffsetUpdating={isCalculating}
-              /> : method.id === 'mle' ? <MLEVisualizer
-                traceData={dataSources?.length ? dataSources[activeSourceIndex]?.traceData : traceData}
-                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
-                rSquared={(dataSources?.length ? dataSources[activeSourceIndex]?.result : result)?.rSquared}
-                isUpdating={isCalculating}
-              /> : showCalculation ? <CalculationProcessViewer
-                calculation={dataSources?.length ? dataSources[activeSourceIndex]?.calculation : calculation}
-                methodId={method.id}
-              /> : sourceAvailable && <CalculationOverview method={method.id} />}
-            </CalculationBatch>
-            </CalculationInputCard>
+                {!currentCalculation && activeCalculationError &&
+                  <p role="alert" className="rounded-xl bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900">{activeCalculationError}</p>}
+                <CalculationBatch methodId={method.id} sources={dataSources} activeIndex={activeSourceIndex}
+                  onSelect={setActiveSourceIndex} origin={generatedFrom}>
+                {archivedBatch ? <MDMBatchWorkspace process={archivedBatch}
+                  selectedRun={dataSources?.[activeSourceIndex]?.archive?.runId ?? null}
+                  onSelect={id => { const index = dataSources?.findIndex(source => source.archive?.runId === id); if (index != null && index >= 0) setActiveSourceIndex(index) }} /> : method.id === 'mdm' ? <MDMVisualizer
+                    traceData={currentTrace}
+                    calculation={currentCalculation}
+                    rSquared={currentRSquared}
+                    mdmOffset={mdmOffset}
+                    onMdmOffsetChange={handleMdmOffsetChange}
+                    offsetStale={isCalculating}
+                    isOffsetUpdating={isCalculating}
+                  /> : method.id === 'mle' ? <MLEVisualizer
+                    traceData={currentTrace}
+                    calculation={currentCalculation}
+                    rSquared={currentRSquared}
+                    isUpdating={isCalculating}
+                  /> : <RecordedCalculationProcess
+                    calculation={currentCalculation}
+                    methodId={method.id}
+                    rSquared={currentRSquared}
+                    updating={isCalculating}
+                  />}
+                </CalculationBatch>
+                </CalculationInputCard>
 
               </div>
             ) : <div className="space-y-4">
-              {sourceAvailable && <CalculationOverview method={method.id} />}
               <MethodBuildStatus
                 label="计算过程"
                 status={capability?.layer2.calculation.status ?? 'todo'}
@@ -610,8 +609,7 @@ function MethodDetail({ category, method }: { category: MethodNode; method: Meth
                 evidence={capability?.layer2.calculation.evidence}
               />
             </div>}
-            </div>
-          </CalculationStageProvider>
+          </div>
         ) : activeTab === 'analysis' ? (
           <MethodResultAnalysis methodId={method.id} capability={capability} />
         ) : activeTab === 'cases' ? (

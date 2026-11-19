@@ -7,7 +7,7 @@ import vm from 'node:vm'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
-import { legacyProcessHref, methodHref, methodTabFromPath } from '../../src/lib/method-navigation.ts'
+import { methodHref, methodTabFromPath } from '../../src/lib/method-navigation.ts'
 import { workbookMatches, formatWorkbookCell } from '../../src/lib/monte-carlo.ts'
 import { loadMethodFlow } from '../../src/lib/server/method-flow.mjs'
 const require = createRequire(import.meta.url)
@@ -21,12 +21,7 @@ test('independent method URLs retain the function, batch, sample and calculation
   }
   assert.equal(methodTabFromPath('/methods/mdm/applicability'), 'analysis')
   assert.equal(methodHref('mdm', null), '/methods/mdm')
-  assert.equal(methodTabFromPath('/methods/mdm/process'), 'lab')
-  query.set('step', '3')
-  const redirected = new URL(legacyProcessHref('mdm', query), 'http://localhost')
-  assert.equal(redirected.pathname, '/methods/mdm/calculation')
-  assert.deepEqual([...redirected.searchParams], [...query].map(([key, value]) => [key === 'step' ? 'sourceStep' : key, value]))
-  assert.equal(legacyProcessHref('mdm', new URLSearchParams()), '/methods/mdm/calculation?sourceStep=1')
+  assert.equal(methodTabFromPath('/methods/mdm/process'), null)
 })
 test('linked choices require the other two parameters, sample size, method and available data to match', () => {
   const card = { truth: [2, 1000, 500], ns: [7, 15, 30], methods: ['mdm', 'mle'] }

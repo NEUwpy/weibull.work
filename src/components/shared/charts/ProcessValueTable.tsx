@@ -1,8 +1,9 @@
 "use client"
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { MathText } from '@/components/shared/MathText'
 
-interface ValueColumn { label: string; align?: 'left' | 'right' }
+interface ValueColumn { label: string; math?: string; align?: 'left' | 'right' }
 const TABLE_COLUMN_GAP = 48
 
 /** Split consecutive rows into balanced columns without changing their order. */
@@ -36,8 +37,8 @@ export function ProcessValueTable({ label, columns, rows, minColumnWidth = 260, 
         <table className="w-full text-base tabular-nums text-slate-700"
           aria-label={columnCount > 1 ? `${label}（${group.start + 1}–${group.start + group.rows.length}）` : label}>
           <thead className="text-sm text-slate-500">
-            <tr>{columns.map((column, index) => <th key={index} scope="col"
-              className={`whitespace-nowrap border-b border-slate-200 px-3 py-2 font-medium ${column.align === 'right' ? 'text-right' : 'text-left'}`}>{column.label}</th>)}</tr>
+            <tr>{columns.map((column, index) => <th key={index} scope="col" aria-label={column.label}
+              className={`whitespace-nowrap border-b border-slate-200 px-3 py-2 font-medium ${column.align === 'right' ? 'text-right' : 'text-left'}`}>{column.math ? <><span className="mb-1 block">{column.label}</span><MathText math={column.math} /></> : column.label}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {group.rows.map((row, index) => <tr key={group.start + index} data-value-row={group.start + index + 1}>

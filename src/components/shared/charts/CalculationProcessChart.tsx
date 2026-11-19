@@ -10,6 +10,7 @@ import 'katex/dist/katex.min.css'
 import { type CalculationChart, type CalculationPoint, calculationFocus, formatCalculationNumber } from '@/lib/calculation-trace'
 import { processPlotAxes, processPlotFrame, ProcessYAxisLabel } from './ProcessPlot'
 import { useCalculationBatch } from '@/components/methods/CalculationBatch'
+import { useProcessChart } from '@/components/methods/ProcessDefinitionContext'
 
 const SERIES_COLORS = ['#2563eb', '#7c3aed', '#059669', '#475569', '#db2777']
 const axisNumber = (value: number) => value !== 0 && (Math.abs(value) >= 1e5 || Math.abs(value) < 1e-3)
@@ -45,6 +46,8 @@ export function ProcessChart({ chart: givenChart, initiallyFocused, figureOnly =
   batchCharts?: { sourceId: string; label: string; chart: CalculationChart }[]
 }) {
   const batch = useCalculationBatch()
+  const defined = useProcessChart(givenChart)
+  givenChart = defined.chart
   let chart = givenChart
   let overlay = givenOverlay
   const rows = batchCharts ?? batch?.records.flatMap(({ source, trace }) => {
@@ -83,13 +86,14 @@ export function ProcessChart({ chart: givenChart, initiallyFocused, figureOnly =
     {focused ? '显示全部范围' : focusLabel}
   </button>
   return (
-    <section className={figureOnly ? 'min-w-0' : 'min-w-0 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-4 sm:px-5'}>
+    <section data-chart-id={chart.id} data-x-variable={defined.binding?.x} data-y-variable={defined.binding?.y}
+      className={figureOnly ? 'min-w-0' : 'min-w-0 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-4 sm:px-5'}>
       {(!figureOnly || (focus && !workspacePlot)) && <div className={`flex flex-wrap items-start gap-2 ${figureOnly ? 'justify-end' : 'justify-between'}`}>
         {!figureOnly && <h3 title={chart.description} className="text-lg font-semibold leading-snug text-slate-800">{chart.title}</h3>}
         {!workspacePlot && focusButton}
       </div>}
-      {!figureOnly && <p className="mt-3 text-base leading-relaxed text-slate-600">横轴：{chart.x.label}；纵轴：{chart.y.label}。{chart.description}</p>}
-      {!figureOnly && chart.formula && <ProcessFormula expression={chart.formula} />}
+      {!figureOnly && !workspacePlot && <p className="mt-3 text-base leading-relaxed text-slate-600">横轴：{chart.x.label}；纵轴：{chart.y.label}。{chart.description}</p>}
+      {!figureOnly && !workspacePlot && chart.formula && <ProcessFormula expression={chart.formula} />}
       {hasPoints ? (
         <div className={workspacePlot ? processPlotFrame : 'mt-1 h-[300px] w-full min-w-0'} data-process-plot={workspacePlot || undefined}
           role="img" aria-label={`${chart.title}；横轴${chart.x.label}，纵轴${chart.y.label}`}>

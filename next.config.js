@@ -12,7 +12,6 @@ try {
 
 /** @type {import('next').NextConfig} */
 const methodFlowFiles = [
-  './src/data/method_flows/*.json',
   './src/content/algorithms/*.md',
   './python/base.py',
   './python/methods/*.py',

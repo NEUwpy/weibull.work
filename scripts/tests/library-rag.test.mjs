@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { loadServerModule } from './helpers/load-server-module.mjs'
 
-const { buildSearchQueries, selectLibraryEvidence, evidenceContext, orderEvidenceCandidates, poolLibraryCandidates } = loadServerModule('src/lib/library-rag.ts')
+const { buildRecommendationSearchPlan, buildSearchQueries, selectLibraryEvidence, evidenceContext, orderEvidenceCandidates, poolLibraryCandidates } = loadServerModule('src/lib/library-rag.ts')
 
 function hit(n, slug = '182-001', text = `这是正文证据 ${n}，说明条件与结论。`) {
   return { id: `${slug}-${n}`, slug, title: '测试文献', version: '原文', section: '方法', startLine: n,
@@ -16,6 +16,75 @@ test('query expansion retains the question and bounds/deduplicates generated var
   assert.equal(queries[1], 'MLE')
   assert.equal(queries[3].length, 160)
   assert.equal(buildSearchQueries('直接检索', { queries: ['wrong shape'] }).length, 1)
+})
+
+test('compound recommendations keep both the broad topic and the canonical method name when model variants are narrow', () => {
+  const question = '我想研究小样本情况下的参数估计，再看 MDM 的自适应改进。请推荐论文。'
+  const variants = ['MDM 小样本 参数估计', 'small sample parameter estimation MDM', 'MDM 自适应 改进']
+  const queries = buildSearchQueries(question, variants, 6, true)
+  assert.deepEqual(Array.from(queries), [question, 'MDM', '小样本 参数估计', '最小差异法', ...variants.slice(0, 2)])
+  assert.deepEqual(Array.from(buildSearchQueries(question, variants)), [question, 'MDM', ...variants])
+  const comparison = buildSearchQueries('请推荐 MLE 和 WMLE 对右截尾小样本参数估计的比较论文。', ['右截尾 三参数威布尔'], 6, true)
+  assert.ok(comparison.includes('右截尾 三参数威布尔'))
+})
+
+test('recommendation plans preserve independent mechanism and comparison expressions within eight searches', () => {
+  const question = '我想研究小样本情况下的参数估计，再看 MDM 的自适应改进。请推荐论文。'
+  const plan = buildRecommendationSearchPlan(question, {
+    queries: ['small sample estimation', 'adaptive Weibull', 'distribution fitting'],
+    mechanism_queries: [null, '  tuning   parameter ', 'TUNING PARAMETER', 'tuning constant', 'extra mechanism'],
+    comparison_query: 'Weibull weighted MLE',
+  }, 8)
+  assert.deepEqual(Array.from(plan.queries), [question, 'MDM', '小样本 参数估计', '最小差异法',
+    'tuning parameter', 'tuning constant', 'Weibull weighted MLE', 'small sample estimation'])
+  assert.deepEqual(Array.from(plan.mechanismQueries), ['tuning parameter', 'tuning constant'])
+  assert.equal(plan.comparisonQuery, 'Weibull weighted MLE')
+  const malformed = buildRecommendationSearchPlan(question, { mechanism_queries: {}, comparison_query: 123 }, 8)
+  assert.deepEqual(Array.from(malformed.queries), [question, 'MDM', '小样本 参数估计', '最小差异法'])
+  assert.equal(malformed.mechanismQueries.length, 0)
+  assert.equal(malformed.comparisonQuery, undefined)
+})
+
+test('recommendation plans independently search the written method name for a proposed improvement', () => {
+  const question = '我想要给最小差异法加一个机制，就是自适应选择偏移量。有哪些跟我这个相关的论文？'
+  const plan = buildRecommendationSearchPlan(question, {
+    queries: ['最小差异法 偏移量', 'minimum difference method offset', '自适应 偏移量 选择'],
+    mechanism_queries: ['adaptive tuning parameter selection', 'data-driven regularization parameter'],
+  }, 8)
+  assert.deepEqual(Array.from(plan.methodQueries), ['最小差异法'])
+  assert.equal(plan.queries[1], '最小差异法')
+  assert.ok(plan.queries.includes('最小差异法 偏移量'))
+  assert.deepEqual(Array.from(plan.mechanismQueries), ['tuning parameter', 'tuning constant'])
+})
+
+test('a written method name keeps its full qualifier and deduplicates its abbreviation', () => {
+  const question = '请推荐修正极大似然估计（MMLE）的改进论文。'
+  const plan = buildRecommendationSearchPlan(question, {}, 8)
+  assert.deepEqual(Array.from(plan.methodQueries), ['修正极大似然估计'])
+  assert.deepEqual(Array.from(plan.queries), [question, 'MMLE', '修正极大似然估计'])
+})
+
+test('tuning searches keep two short alternative expressions when generated phrases overconstrain matching', () => {
+  const plan = buildRecommendationSearchPlan('研究按照数据选择稳健估计的调节量', {
+    mechanism_queries: ['adaptive tuning parameter selection', 'data-driven regularization parameter'],
+  }, 8)
+  assert.deepEqual(Array.from(plan.mechanismQueries), ['tuning parameter', 'tuning constant'])
+  assert.ok(plan.queries.includes('data-driven regularization parameter'))
+  const threshold = buildRecommendationSearchPlan('请推荐动态检测阈值论文', { mechanism_queries: ['dynamic threshold'] }, 8)
+  assert.deepEqual(Array.from(threshold.mechanismQueries), ['dynamic threshold'])
+})
+
+test('focused searches retain distinct candidates under a shared context budget', () => {
+  const general = Array.from({ length: 8 }, (_, i) => hit(i + 1, `general-${i}`))
+  const shared = hit(10, 'shared')
+  const sharedTranslation = { ...hit(11, 'shared'), version: '翻译' }
+  const mechanism = hit(12, 'mechanism')
+  const comparison = hit(13, 'comparison')
+  const focused = [[shared, mechanism], [sharedTranslation, comparison]]
+  const limits = { maxPassages: 8, maxPerPaper: 1, maxContextChars: 520 }
+  const pool = poolLibraryCandidates([general, ...focused], limits, focused)
+  assert.deepEqual(Array.from(pool, candidate => candidate.slug), ['shared', 'mechanism', 'comparison'])
+  assert.ok(JSON.stringify(evidenceContext(pool)).length <= limits.maxContextChars)
 })
 
 test('comparison retrieval preserves named methods even when paraphrases omit one', () => {

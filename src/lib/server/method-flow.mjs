@@ -87,57 +87,132 @@ function validateWorkflow(workflow, steps, methodId) {
   const invalid = reason => fail(`${methodId}：流程图${reason}`)
   const stepIds = new Set(steps.map(step => step.id))
   const anchors = new Set()
+  const nodes = []
+  const modulePorts = []
+  const attachments = []
   const depictedSteps = new Set()
-  if (!text(workflow.title) || !text(workflow.description) || !Array.isArray(workflow.items) || !workflow.targets) invalid('声明不完整')
-  for (const id of Object.values(workflow.targets)) if (!stepIds.has(id)) invalid('目标步骤不存在')
-  if (workflow.legacySourceSteps && (!Array.isArray(workflow.legacySourceSteps)
-    || workflow.legacySourceSteps.some(id => !stepIds.has(id)))) invalid('旧步骤定位无效')
+  if (!workflow || !text(workflow.title) || !text(workflow.description) || !Array.isArray(workflow.items) || !workflow.targets) invalid('声明不完整')
+  const targetIds = Object.values(workflow.targets)
+  if (new Set(targetIds).size !== targetIds.length || targetIds.some(id => !stepIds.has(id))) invalid('目标步骤不存在或重复')
   function visit(items) {
     for (const item of items) {
       if (item.kind === 'group') {
         if (!text(item.layout) || !Array.isArray(item.children)) invalid('分组无效')
+        if (item.layout === 'module') {
+          const bodies = item.children.filter(child => child.kind === 'step')
+          const ports = item.children.filter(child => child.kind === 'port')
+          const inputs = ports.filter(port => port.direction === 'input')
+          const outputs = ports.filter(port => port.direction === 'output')
+          if (bodies.length !== 1 || !inputs.length || !outputs.length || ports.length + 1 !== item.children.length) invalid('计算模块须包含一个计算框和输入输出端口')
+          if (ports.some(port => workflow.targets[port.target] !== bodies[0].step)) invalid('端口不属于所在计算模块')
+          modulePorts.push(...ports)
+          attachments.push(...inputs.map(port => ({ from: port.anchor, to: bodies[0].anchor })),
+            ...outputs.map(port => ({ from: bodies[0].anchor, to: port.anchor })))
+        }
         visit(item.children)
         continue
       }
       if (!text(item.anchor) || anchors.has(item.anchor)) invalid('节点锚点缺失或重复')
       anchors.add(item.anchor)
+      nodes.push(item)
       if (item.target && !Object.hasOwn(workflow.targets, item.target)) invalid('节点目标不存在')
       if (item.kind === 'step') {
-        if (!stepIds.has(item.step) || depictedSteps.has(item.step)) invalid('节点步骤无效或重复')
+        if (!stepIds.has(item.step) || depictedSteps.has(item.step) || (item.target && workflow.targets[item.target] !== item.step)) invalid('节点步骤无效或重复')
+        if (item.label !== undefined && !text(item.label)) invalid('节点短名称无效')
+        if (item.symbol !== undefined && !(text(item.symbol) || item.symbol && typeof item.symbol === 'object'
+          && !Array.isArray(item.symbol) && Object.values(item.symbol).every(text))) invalid('节点符号无效')
         depictedSteps.add(item.step)
       } else if (item.kind !== 'port' || !item.target || !text(item.label) || !['input', 'output'].includes(item.direction)) {
         invalid('输入输出节点无效')
+      } else if (item.name !== undefined && !text(item.name)) {
+        invalid('输入输出量名无效')
+      } else if (item.external !== undefined && (typeof item.external !== 'boolean' || item.direction !== 'input')) {
+        invalid('外部输入标记无效')
       }
     }
   }
   visit(workflow.items)
   if (depictedSteps.size !== stepIds.size) invalid('未覆盖全部程序步骤')
   if (!Array.isArray(workflow.connections) || workflow.connections.some(edge => !anchors.has(edge.from) || !anchors.has(edge.to))) invalid('连线端点不存在')
+  if (modulePorts.length && workflow.connections.some(edge => {
+    const from = nodes.find(node => node.anchor === edge.from), to = nodes.find(node => node.anchor === edge.to)
+    return to.kind !== 'port' || to.direction !== 'input'
+      || !(from.kind === 'port' && from.direction === 'output' || from.kind === 'step' && edge.dashed === true)
+  })) invalid('模块间连线须由输出或试算调用进入输入端口')
+  if (modulePorts.some(port => port.direction === 'input' && !port.external && !workflow.connections.some(edge => edge.to === port.anchor))) invalid('输入端口缺少来源连线')
+  const links = [...workflow.connections, ...attachments]
+  const inputs = nodes.filter(node => node.kind === 'port' && node.direction === 'input' && (!modulePorts.length || node.external))
+  const pending = (inputs.length ? inputs : nodes.filter(node => node.kind === 'step' && node.step === 1)).map(node => node.anchor)
+  const reachable = new Set()
+  while (pending.length) {
+    const anchor = pending.pop()
+    if (reachable.has(anchor)) continue
+    reachable.add(anchor)
+    pending.push(...links.filter(edge => edge.from === anchor).map(edge => edge.to))
+  }
+  if (nodes.some(node => !reachable.has(node.anchor))) invalid('存在未连通的节点')
 }
 
 function normalizeFormula(formula, context) {
-  if (!formula) return formula
   const validEquations = value => Array.isArray(value) && value.length > 0 && value.every(text)
-  const combined = equations => String.raw`\begin{aligned}&${equations.join(String.raw`\\[12pt]&`)}\end{aligned}`
-  if (formula.equations !== undefined && (!validEquations(formula.equations) || formula.expression !== undefined)) fail(context + '：逐条公式无效或重复声明')
-  if (formula.variants && (typeof formula.variants !== 'object' || Array.isArray(formula.variants))) fail(context + '：分支公式无效')
-  const variants = {}, variantEquations = {}
-  for (const [key, value] of Object.entries(formula.variants ?? {})) {
-    if (validEquations(value)) {
-      if (formula.equations && value.length !== formula.equations.length) fail(context + '：分支公式数量不一致')
-      variantEquations[key] = value
-      variants[key] = combined(value)
-    } else if (text(value)) variants[key] = value
-    else fail(context + '：分支公式无效')
+  if (!formula || !validEquations(formula.equations)) fail(context + '：逐条公式无效')
+  const { variants, ...content } = formula
+  if (variants === undefined) return content
+  if (!variants || typeof variants !== 'object' || Array.isArray(variants)) fail(context + '：分支公式无效')
+  if (Object.values(variants).some(value => !validEquations(value) || value.length !== formula.equations.length)) {
+    fail(context + '：分支公式无效或数量不一致')
   }
-  return { ...formula, expression: formula.equations ? combined(formula.equations) : formula.expression,
-    ...(formula.variants && { variants, variantEquations }) }
+  return { ...content, variantEquations: variants }
+}
+
+/** Resolve every presentation from the same named quantities and stage boundary. */
+function resolveDefinition(config) {
+  const context = config.methodId
+  if (!config.variables || Array.isArray(config.variables) || typeof config.variables !== 'object') fail(context + '：缺少统一变量定义')
+  const variables = Object.fromEntries(Object.entries(config.variables).map(([id, variable]) => {
+    if (!/^[a-z][a-z0-9_]*$/.test(id) || !variable || !['name', 'symbol', 'meaning', 'code'].every(key => text(variable[key]))) fail(context + '：变量定义不完整：' + id)
+    return [id, { ...variable, id }]
+  }))
+  const resolveList = (ids, label) => {
+    if (!Array.isArray(ids) || new Set(ids).size !== ids.length) fail(context + '：变量引用列表无效：' + label)
+    return ids.map(id => {
+      if (!text(id) || !variables[id]) fail(context + '：未知变量引用：' + String(id))
+      return variables[id]
+    })
+  }
+  const steps = config.steps.map(step => ({ ...step,
+    inputs: resolveList(step.inputs, step.name + ' 输入'), outputs: resolveList(step.outputs, step.name + ' 输出'),
+    extraInputs: resolveList(step.extraInputs ?? [], step.name + ' 补充输入'),
+    extraOutputs: resolveList(step.extraOutputs ?? [], step.name + ' 补充输出'),
+  }))
+  function resolveItems(items) {
+    return items.map(item => {
+      if (item.kind === 'group') return { ...item, children: resolveItems(item.children) }
+      const step = steps.find(step => step.id === (item.kind === 'step' ? item.step : config.workflow.targets[item.target]))
+      if (!step) fail(context + '：节点步骤无效')
+      if (item.kind === 'step') return { ...item, ...step.flow }
+      if ('label' in item || 'name' in item) fail(context + '：端口不得另写变量名称或符号')
+      const group = step.portGroups?.[item.group]
+      if (!group || !text(group.name)) fail(context + '：端口引用未定义的分组：' + item.group)
+      const members = resolveList(group.refs, step.name + ' 端口')
+      const allowed = new Set((item.direction === 'input' ? [...step.inputs, ...step.extraInputs] : [...step.outputs, ...step.extraOutputs]).map(variable => variable.id))
+      if (!members.length || members.some(variable => !allowed.has(variable.id))) fail(context + '：端口变量不属于本步' + item.direction + '：' + item.group)
+      const width = group.wrap === 1 ? 1 : 2
+      const rows = Array.from({ length: Math.ceil(members.length / width) }, (_, index) => members.slice(index * width, (index + 1) * width).map(variable => variable.symbol).join(','))
+      const label = rows.length === 1 ? rows[0] : String.raw`\begin{gathered}${rows.join(String.raw`\\`)}\end{gathered}`
+      return { ...item, name: group.name, label, refs: members.map(variable => variable.id) }
+    })
+  }
+  const chartBindings = config.chartBindings ?? {}
+  for (const [id, binding] of Object.entries(chartBindings)) {
+    if (!text(id) || !variables[binding.x] || !variables[binding.y]) fail(context + '：图像变量未定义：' + id)
+  }
+  return { ...config, variables, chartBindings, steps, workflow: { ...config.workflow, items: resolveItems(config.workflow.items) } }
 }
 
 /** Descriptions reference live Python; no copied code and no Python execution. */
 export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
   if (!/^[a-z][a-z0-9_]*$/.test(methodId)) return null
-  const configPath = path.join(root, 'src/data/method_flows', methodId + '.json')
   const sources = new Map()
   function readSource(relative) {
     if (!sources.has(relative)) {
@@ -147,35 +222,25 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
     return sources.get(relative)
   }
   const pythonPath = `python/methods/${methodId}.py`
-  const pythonSource = fs.existsSync(path.join(root, pythonPath)) ? readSource(pythonPath) : null
-  const pythonFlow = pythonSource && readPythonFlow(pythonSource, methodId)
-  const hasJson = fs.existsSync(configPath)
-  if (pythonFlow && hasJson) fail(methodId + '：流程同时定义在 Python 和 JSON 中')
-  if (!pythonFlow && !hasJson) return null
-  const config = pythonFlow ?? JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  if (!fs.existsSync(path.join(root, pythonPath))) return null
+  let config = readPythonFlow(readSource(pythonPath), methodId)
+  if (!config) return null
   if (config.schemaVersion !== 2 || config.methodId !== methodId || !text(config.methodName) || !text(config.description) || !config.steps?.length) fail(methodId + '：流程说明版本、身份或步骤不完整')
   if ('code' in config) fail(methodId + '：流程说明不得保存代码副本')
-  if (!pythonFlow) sources.clear()
-  if (config.workflow) validateWorkflow(config.workflow, config.steps, methodId)
-  const counters = []
+  config = resolveDefinition(config)
+  validateWorkflow(config.workflow, config.steps, methodId)
   const steps = config.steps.map((step, index) => {
     const context = `${methodId} / ${step.name || index + 1}`
     step = { ...step, formula: normalizeFormula(step.formula, context) }
     for (const key of ['name', 'description', 'basis']) if (!text(step[key])) fail(context + '：缺少 ' + key)
     if ('code' in step || 'codeLines' in step) fail(context + '：步骤不得保存代码副本或固定行号')
-    if (step.id !== index + 1 || !text(step.formula?.expression) || !text(step.formula?.explanation) || !step.formula.symbols?.length) fail(context + '：步骤序号或公式说明不完整')
-    if (step.formula.variants && (typeof step.formula.variants !== 'object' || Array.isArray(step.formula.variants) || Object.values(step.formula.variants).some(value => !text(value)))) fail(context + '：分支公式无效')
+    if (step.id !== index + 1 || !text(step.formula.explanation) || !step.formula.symbols?.length) fail(context + '：步骤序号或公式说明不完整')
     if (step.formula.symbols.some(v => !text(v.symbol) || !text(v.meaning))) fail(context + '：公式符号说明不完整')
     for (const key of ['inputs', 'outputs']) {
       if (!step[key]?.length || step[key].some(v => !text(v.code) || !text(v.symbol) || !text(v.meaning))) fail(context + '：缺少输入输出映射')
     }
     if (!step.sources?.length) fail(context + '：缺少真实源码引用')
     if (step.primarySource !== undefined && (!Number.isInteger(step.primarySource) || step.primarySource < 0 || step.primarySource >= step.sources.length)) fail(context + '：本步核心代码定位无效')
-    const depth = step.depth ?? 0, kind = step.kind ?? 'step'
-    if (!Number.isInteger(depth) || depth < 0 || depth > 3 || (index === 0 && depth !== 0) || depth > (config.steps[index - 1]?.depth ?? 0) + 1) fail(context + '：调用层级不连续')
-    if (!['step', 'call', 'loop', 'condition', 'return'].includes(kind) || (depth > 0 && !text(step.context))) fail(context + '：缺少执行关系说明')
-    counters.length = depth + 1
-    counters[depth] = (counters[depth] || 0) + 1
     const references = step.sources.map(ref => {
       const source = readSource(ref.file), lines = source.lines
       let { start, end } = ref.symbol ? symbolRange(lines, ref.symbol, ref.file) : { start: 0, end: lines.length }
@@ -188,7 +253,7 @@ export function loadMethodFlow(methodId, { root = process.cwd() } = {}) {
       if (!hasExecutable(lines.slice(start, end))) fail(context + '：源码范围只有说明而无可执行语句')
       return { file: ref.file, symbol: ref.symbol, label: ref.label || ref.symbol || path.basename(ref.file), start, end }
     })
-    return { ...step, depth, kind, number: counters.join('.'), sources: references }
+    return { ...step, sources: references }
   })
   const algorithm = path.join(root, 'src/content/algorithms', methodId + '.md')
   const definition = fs.existsSync(algorithm) ? matter(fs.readFileSync(algorithm, 'utf8')).data.implementation : null

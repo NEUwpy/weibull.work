@@ -75,6 +75,18 @@ def test_wmle_selected_residuals_satisfy_equations_at_output_coordinates():
     assert record['selection']['eta'] == eta
 
 
+def test_wmle_prepared_samples_are_the_normalized_input_of_the_same_run():
+    estimator = WMLE(PAPER_SAMPLE)
+    estimator.run(trace=True)
+    details = estimator.calculation_trace['details']
+    assert details['normalization_unit'] == min(PAPER_SAMPLE)
+    assert len(details['prepared_samples']) == len(PAPER_SAMPLE)
+    for i, point in enumerate(details['prepared_samples']):
+        assert point['index'] == i + 1
+        assert point['observation'] == sorted(PAPER_SAMPLE)[i]
+        assert point['normalized'] == point['observation'] / details['normalization_unit']
+
+
 def test_mdm_inner_curve_uses_real_objective_and_exact_selected_gamma():
     estimator = MDM(PAPER_SAMPLE)
     beta, eta, gamma, _, _ = estimator.run(trace=True, offset=.1)

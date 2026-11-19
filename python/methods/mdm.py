@@ -510,33 +510,12 @@ class MDM(WeibullBase):
 #         "explanation": "使用 Bernard 公式计算经验累积分布函数值"
 #       },
 #       "inputs": [
-#         {
-#           "code": "self.data",
-#           "symbol": "t_i",
-#           "meaning": "已排序样本"
-#         },
-#         {
-#           "code": "rank_method",
-#           "symbol": "p",
-#           "meaning": "本次绘图位置规则"
-#         }
+#         "samples"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "t",
-#           "symbol": "t",
-#           "meaning": "排序后数组"
-#         },
-#         {
-#           "code": "ranks",
-#           "symbol": "F(t_i)",
-#           "meaning": "中位秩数组"
-#         },
-#         {
-#           "code": "neg_ln_1_minus_F",
-#           "symbol": "x_i",
-#           "meaning": "变换数组"
-#         }
+#         "ordered",
+#         "ranks",
+#         "rank_transform"
 #       ],
 #       "basis": "原文式(3)以秩概率构造伪尺度；当前默认Bernard近似秩，精确秩分支见同一步源码。",
 #       "notes": "所示主公式为默认 Bernard；exact 分支使用 Beta 分布中位数，见绘图位置源码。",
@@ -558,7 +537,30 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "id": 1,
-#       "primarySource": 1
+#       "primarySource": 1,
+#       "flow": {
+#         "label": "排序样本与概率变换"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "samples"
+#           ],
+#           "name": "寿命样本",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "ordered",
+#             "rank_transform"
+#           ],
+#           "name": "样本与变换",
+#           "wrap": 2
+#         }
+#       },
+#       "extraInputs": [
+#         "rank_rule"
+#       ]
 #     },
 #     {
 #       "name": "试算各位置的最小差异",
@@ -599,38 +601,13 @@ class MDM(WeibullBase):
 #         ]
 #       },
 #       "inputs": [
-#         {
-#           "code": "t",
-#           "symbol": "t_i",
-#           "meaning": "排序后的失效时间"
-#         },
-#         {
-#           "code": "neg_ln_1_minus_F",
-#           "symbol": "x_i",
-#           "meaning": "经验概率变换"
-#         },
-#         {
-#           "code": "gamma_steps",
-#           "symbol": "N",
-#           "meaning": "网格密度"
-#         }
+#         "ordered",
+#         "rank_transform",
+#         "trial_gamma"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "gammas",
-#           "symbol": "\\gamma_j",
-#           "meaning": "试算位置"
-#         },
-#         {
-#           "code": "best_betas",
-#           "symbol": "\\beta^*(\\gamma_j)",
-#           "meaning": "各试算位置的条件形状"
-#         },
-#         {
-#           "code": "sigma_mins",
-#           "symbol": "s(\\gamma_j)",
-#           "meaning": "各试算位置的最小标准差"
-#         }
+#         "trial_beta",
+#         "sigma_profile"
 #       ],
 #       "basis": "数值策略：每个位置候选调用有界标量优化并缓存结果。",
 #       "notes": "β∈[0.1,15]是当前工程搜索范围，不是所有MDM版本的普遍理论约束。",
@@ -656,7 +633,39 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "id": 2,
-#       "primarySource": 0
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "求条件形状与最小差异",
+#         "symbol": "\\min_\\beta\\sigma_\\eta(\\beta,\\gamma)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "ordered",
+#             "rank_transform"
+#           ],
+#           "name": "样本与变换",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "trial_gamma"
+#           ],
+#           "name": "试算位置",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "trial_beta",
+#             "sigma_profile"
+#           ],
+#           "name": "条件求解",
+#           "wrap": 1
+#         }
+#       },
+#       "extraInputs": [
+#         "grid_density"
+#       ]
 #     },
 #     {
 #       "name": "按梯度偏移求位置",
@@ -697,28 +706,12 @@ class MDM(WeibullBase):
 #         ]
 #       },
 #       "inputs": [
-#         {
-#           "code": "profile_sigma",
-#           "symbol": "s(\\gamma)",
-#           "meaning": "各位置的条件最小标准差"
-#         },
-#         {
-#           "code": "offset",
-#           "symbol": "\\delta",
-#           "meaning": "偏移阈值"
-#         }
+#         "sigma_profile",
+#         "offset"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "found_gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "偏移判据选出的位置"
-#         },
-#         {
-#           "code": "solution_strategy",
-#           "symbol": "\\mathrm{strategy}",
-#           "meaning": "位置采纳方式"
-#         }
+#         "gamma_hat",
+#         "status"
 #       ],
 #       "basis": "以梯度达到偏移量为取点判据。差分、缩小区间和线性插值可对照本步源码。",
 #       "notes": "零位置梯度达到目标时取零。网格及补探仍缺少夹区间时，标记为右端回退。",
@@ -756,7 +749,38 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "id": 3,
-#       "primarySource": 0
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "按梯度偏移确定位置",
+#         "symbol": {
+#           "default": "g(\\hat\\gamma)=\\delta",
+#           "zero": "\\hat\\gamma=0",
+#           "extrapolated": "\\hat\\gamma=t_{(1)}-\\varepsilon"
+#         }
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "sigma_profile"
+#           ],
+#           "name": "差异剖面",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "offset"
+#           ],
+#           "name": "梯度偏移",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "name": "回代位置求形状",
@@ -783,18 +807,12 @@ class MDM(WeibullBase):
 #         "explanation": "在 γ̂ 对应的标准差曲线上取最低点。"
 #       },
 #       "inputs": [
-#         {
-#           "code": "found_gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "偏移判据选出的位置"
-#         }
+#         "gamma_hat",
+#         "ordered",
+#         "rank_transform"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "found_beta",
-#           "symbol": "\\hat\\beta",
-#           "meaning": "在选定位置下采纳的形状"
-#         }
+#         "beta_hat"
 #       ],
 #       "basis": "调用与试算阶段相同的条件形状寻优，位置固定为已采纳的 γ̂。",
 #       "notes": "若已在该位置完成寻优，程序会复用缓存的最小值。",
@@ -812,7 +830,34 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "primarySource": 0,
-#       "id": 4
+#       "id": 4,
+#       "flow": {
+#         "label": "固定位置回代形状"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat"
+#           ],
+#           "name": "位置估计",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered",
+#             "rank_transform"
+#           ],
+#           "name": "样本与变换",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat"
+#           ],
+#           "name": "形状估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "name": "反算尺度",
@@ -843,28 +888,13 @@ class MDM(WeibullBase):
 #         "explanation": "使用最优的 γ* 和 β* 计算所有伪尺度参数的均值"
 #       },
 #       "inputs": [
-#         {
-#           "code": "found_gamma",
-#           "symbol": "\\hat{\\gamma}",
-#           "meaning": "最优γ"
-#         },
-#         {
-#           "code": "found_beta",
-#           "symbol": "\\hat{\\beta}",
-#           "meaning": "最优β"
-#         },
-#         {
-#           "code": "t",
-#           "symbol": "t",
-#           "meaning": "失效时间数组"
-#         }
+#         "gamma_hat",
+#         "beta_hat",
+#         "ordered",
+#         "rank_transform"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "found_eta",
-#           "symbol": "\\hat{\\eta}",
-#           "meaning": "尺度参数估计值"
-#         }
+#         "eta_hat"
 #       ],
 #       "basis": "方法构造：在选定β、γ后，以伪尺度的均值恢复η。",
 #       "notes": "",
@@ -878,7 +908,35 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "id": 5,
-#       "primarySource": 0
+#       "primarySource": 0,
+#       "flow": {
+#         "label": "由伪尺度均值求尺度"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat",
+#             "beta_hat"
+#           ],
+#           "name": "位置与形状",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "ordered",
+#             "rank_transform"
+#           ],
+#           "name": "样本与概率",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         }
+#       }
 #     },
 #     {
 #       "name": "汇总结果",
@@ -910,33 +968,16 @@ class MDM(WeibullBase):
 #         ]
 #       },
 #       "inputs": [
-#         {
-#           "code": "found_gamma",
-#           "symbol": "\\hat\\gamma",
-#           "meaning": "偏移判据选出的位置"
-#         },
-#         {
-#           "code": "found_beta",
-#           "symbol": "\\hat\\beta",
-#           "meaning": "在选定位置下采纳的形状"
-#         },
-#         {
-#           "code": "found_eta",
-#           "symbol": "\\hat{\\eta}",
-#           "meaning": "尺度参数估计值"
-#         }
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat"
 #       ],
 #       "outputs": [
-#         {
-#           "code": "return",
-#           "symbol": "R^2",
-#           "meaning": "概率图决定系数"
-#         },
-#         {
-#           "code": "return",
-#           "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)",
-#           "meaning": "本次三参数、拟合优度和状态"
-#         }
+#         "beta_hat",
+#         "eta_hat",
+#         "gamma_hat",
+#         "r_squared",
+#         "status"
 #       ],
 #       "basis": "项目诊断：共用基础类的概率图 R²，不参与核心参数求解。",
 #       "notes": "γ触及样本最小值或总平方和为零时返回0；普通情况下允许负R²。",
@@ -960,10 +1001,40 @@ class MDM(WeibullBase):
 #         }
 #       ],
 #       "id": 6,
-#       "primarySource": 1
+#       "primarySource": 1,
+#       "flow": {
+#         "label": "汇总参数与拟合优度",
+#         "symbol": "(\\hat\\beta,\\hat\\eta,\\hat\\gamma,R^2)"
+#       },
+#       "portGroups": {
+#         "input-0": {
+#           "refs": [
+#             "gamma_hat",
+#             "beta_hat"
+#           ],
+#           "name": "位置与形状",
+#           "wrap": 2
+#         },
+#         "input-1": {
+#           "refs": [
+#             "eta_hat"
+#           ],
+#           "name": "尺度估计",
+#           "wrap": 2
+#         },
+#         "output-0": {
+#           "refs": [
+#             "beta_hat",
+#             "eta_hat",
+#             "gamma_hat",
+#             "r_squared"
+#           ],
+#           "name": "估计结果",
+#           "wrap": 2
+#         }
+#       }
 #     }
 #   ],
-#   "presentation": "steps",
 #   "workflow": {
 #     "title": "MDM 计算流程",
 #     "description": "准备样本，试算各位置的最小差异，按梯度偏移求位置，回代求形状，反算尺度，汇总结果。",
@@ -975,152 +1046,69 @@ class MDM(WeibullBase):
 #       "scale": 5,
 #       "result": 6
 #     },
-#     "legacySourceSteps": [
-#       1,
-#       1,
-#       2,
-#       2,
-#       3,
-#       3,
-#       3,
-#       5,
-#       6,
-#       6
-#     ],
 #     "items": [
 #       {
 #         "kind": "group",
-#         "layout": "inputs",
+#         "layout": "module",
 #         "children": [
 #           {
 #             "kind": "port",
-#             "anchor": "sample",
+#             "anchor": "i1-1",
 #             "target": "samples",
 #             "direction": "input",
-#             "label": "失效样本 tᵢ",
-#             "text": {
-#               "default": [
-#                 "待输入"
-#               ],
-#               "ready": [
-#                 "n = {count}"
-#               ]
-#             }
+#             "external": true,
+#             "group": "input-0"
 #           },
-#           {
-#             "kind": "port",
-#             "anchor": "offset",
-#             "target": "location",
-#             "direction": "input",
-#             "label": "梯度偏移 δ",
-#             "text": {
-#               "default": [
-#                 "{offset}"
-#               ]
-#             }
-#           }
-#         ]
-#       },
-#       {
-#         "kind": "group",
-#         "layout": "prepare",
-#         "children": [
 #           {
 #             "kind": "step",
 #             "step": 1,
-#             "anchor": "prepare",
+#             "anchor": "s1",
+#             "target": "samples"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o1",
 #             "target": "samples",
-#             "text": {
-#               "default": [
-#                 "排序并计算经验概率"
-#               ]
-#             }
+#             "direction": "output",
+#             "group": "output-0"
 #           }
 #         ]
 #       },
 #       {
 #         "kind": "group",
 #         "layout": "search",
-#         "children": [
-#           {
-#             "kind": "group",
-#             "layout": "searchContent",
-#             "children": [
-#               {
-#                 "kind": "step",
-#                 "step": 2,
-#                 "anchor": "trial",
-#                 "target": "trial",
-#                 "text": {
-#                   "default": [
-#                     "固定各试算 γ 求最小差异"
-#                   ]
-#                 }
-#               },
-#               {
-#                 "kind": "group",
-#                 "layout": "module",
-#                 "children": [
-#                   {
-#                     "kind": "step",
-#                     "step": 3,
-#                     "anchor": "location",
-#                     "target": "location",
-#                     "text": {
-#                       "default": [
-#                         "由梯度和 δ 定位"
-#                       ],
-#                       "ready": [
-#                         "按梯度偏移采纳位置"
-#                       ],
-#                       "zero": [
-#                         "g(0) ≥ δ，取零位置"
-#                       ],
-#                       "extrapolated": [
-#                         "右端回退 · 近似"
-#                       ]
-#                     }
-#                   },
-#                   {
-#                     "kind": "port",
-#                     "anchor": "gamma",
-#                     "target": "location",
-#                     "direction": "output",
-#                     "label": "位置 γ̂"
-#                   }
-#                 ]
-#               }
-#             ]
-#           }
-#         ],
-#         "title": "位置搜索 · 2–3 步",
-#         "sideLabel": "换 γ 求值"
-#       },
-#       {
-#         "kind": "group",
-#         "layout": "scale",
+#         "title": "位置搜索",
 #         "children": [
 #           {
 #             "kind": "group",
 #             "layout": "module",
 #             "children": [
 #               {
-#                 "kind": "step",
-#                 "step": 4,
-#                 "anchor": "shape",
-#                 "target": "shape",
-#                 "text": {
-#                   "default": [
-#                     "固定 γ̂ 取条件最小点"
-#                   ]
-#                 }
+#                 "kind": "port",
+#                 "anchor": "i2-1",
+#                 "target": "trial",
+#                 "direction": "input",
+#                 "group": "input-0"
 #               },
 #               {
 #                 "kind": "port",
-#                 "anchor": "beta",
-#                 "target": "shape",
+#                 "anchor": "i2-2",
+#                 "target": "trial",
+#                 "direction": "input",
+#                 "group": "input-1"
+#               },
+#               {
+#                 "kind": "step",
+#                 "step": 2,
+#                 "anchor": "s2",
+#                 "target": "trial"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o2",
+#                 "target": "trial",
 #                 "direction": "output",
-#                 "label": "形状 β̂"
+#                 "group": "output-0"
 #               }
 #             ]
 #           },
@@ -1129,78 +1117,321 @@ class MDM(WeibullBase):
 #             "layout": "module",
 #             "children": [
 #               {
-#                 "kind": "step",
-#                 "step": 5,
-#                 "anchor": "scale",
-#                 "target": "scale",
-#                 "text": {
-#                   "default": [
-#                     "用 tᵢ、xᵢ、γ̂、β̂ 反算并取均值"
-#                   ]
-#                 }
+#                 "kind": "port",
+#                 "anchor": "i3-1",
+#                 "target": "location",
+#                 "direction": "input",
+#                 "group": "input-0"
 #               },
 #               {
 #                 "kind": "port",
-#                 "anchor": "eta",
-#                 "target": "scale",
+#                 "anchor": "i3-2",
+#                 "target": "location",
+#                 "direction": "input",
+#                 "external": true,
+#                 "group": "input-1"
+#               },
+#               {
+#                 "kind": "step",
+#                 "step": 3,
+#                 "anchor": "s3",
+#                 "target": "location"
+#               },
+#               {
+#                 "kind": "port",
+#                 "anchor": "o3",
+#                 "target": "location",
 #                 "direction": "output",
-#                 "label": "尺度 η̂"
+#                 "group": "output-0"
 #               }
 #             ]
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i4-1",
+#             "target": "shape",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i4-2",
+#             "target": "shape",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "step": 4,
+#             "anchor": "s4",
+#             "target": "shape"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o4",
+#             "target": "shape",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i5-1",
+#             "target": "scale",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i5-2",
+#             "target": "scale",
+#             "direction": "input",
+#             "group": "input-1"
+#           },
+#           {
+#             "kind": "step",
+#             "step": 5,
+#             "anchor": "s5",
+#             "target": "scale"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o5",
+#             "target": "scale",
+#             "direction": "output",
+#             "group": "output-0"
+#           }
+#         ]
+#       },
+#       {
+#         "kind": "group",
+#         "layout": "module",
+#         "children": [
+#           {
+#             "kind": "port",
+#             "anchor": "i6-1",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-0"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "i6-2",
+#             "target": "result",
+#             "direction": "input",
+#             "group": "input-1"
 #           },
 #           {
 #             "kind": "step",
 #             "step": 6,
-#             "anchor": "result",
+#             "anchor": "s6",
+#             "target": "result"
+#           },
+#           {
+#             "kind": "port",
+#             "anchor": "o6",
 #             "target": "result",
-#             "text": {
-#               "default": [
-#                 "用 γ̂、β̂、η̂ 计算 R²"
-#               ]
-#             }
+#             "direction": "output",
+#             "group": "output-0"
 #           }
 #         ]
 #       }
 #     ],
 #     "connections": [
 #       {
-#         "from": "sample",
-#         "to": "prepare"
+#         "from": "o1",
+#         "to": "i2-1"
 #       },
 #       {
-#         "from": "prepare",
-#         "to": "trial",
-#         "label": "tᵢ、xᵢ"
+#         "from": "s3",
+#         "to": "i2-2",
+#         "dashed": true,
+#         "label": "位置试算"
 #       },
 #       {
-#         "from": "trial",
-#         "to": "location",
-#         "label": "(γⱼ, s(γⱼ))"
+#         "from": "o2",
+#         "to": "i3-1"
 #       },
 #       {
-#         "from": "offset",
-#         "to": "location",
-#         "route": "right-upper",
-#         "dashed": true
+#         "from": "o3",
+#         "to": "i4-1"
 #       },
 #       {
-#         "from": "location",
-#         "to": "trial",
-#         "route": "loop"
+#         "from": "o1",
+#         "to": "i4-2"
 #       },
 #       {
-#         "from": "gamma",
-#         "to": "shape"
+#         "from": "o3",
+#         "to": "i5-1"
 #       },
 #       {
-#         "from": "beta",
-#         "to": "scale"
+#         "from": "o4",
+#         "to": "i5-1"
 #       },
 #       {
-#         "from": "eta",
-#         "to": "result"
+#         "from": "o1",
+#         "to": "i5-2"
+#       },
+#       {
+#         "from": "o3",
+#         "to": "i6-1"
+#       },
+#       {
+#         "from": "o4",
+#         "to": "i6-1"
+#       },
+#       {
+#         "from": "o5",
+#         "to": "i6-2"
 #       }
 #     ]
+#   },
+#   "variables": {
+#     "samples": {
+#       "symbol": "t_i",
+#       "name": "样本",
+#       "meaning": "样本",
+#       "code": "data"
+#     },
+#     "ordered": {
+#       "symbol": "t_{(i)}",
+#       "name": "有序样本",
+#       "meaning": "有序样本",
+#       "code": "t"
+#     },
+#     "beta_hat": {
+#       "symbol": "\\hat\\beta",
+#       "name": "形状估计",
+#       "meaning": "形状估计",
+#       "code": "final_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "eta_hat": {
+#       "symbol": "\\hat\\eta",
+#       "name": "尺度估计",
+#       "meaning": "尺度估计",
+#       "code": "final_eta",
+#       "axisLabel": "尺度参数 η"
+#     },
+#     "gamma_hat": {
+#       "symbol": "\\hat\\gamma",
+#       "name": "位置估计",
+#       "meaning": "位置估计",
+#       "code": "final_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "r_squared": {
+#       "symbol": "R^2",
+#       "name": "拟合优度",
+#       "meaning": "拟合优度",
+#       "code": "r_squared"
+#     },
+#     "status": {
+#       "symbol": "\\mathrm{status}",
+#       "name": "求解状态",
+#       "meaning": "求解状态",
+#       "code": "process_status"
+#     },
+#     "trial_gamma": {
+#       "symbol": "\\gamma",
+#       "name": "试算位置",
+#       "meaning": "试算位置",
+#       "code": "trial_gamma",
+#       "axisLabel": "位置参数 γ"
+#     },
+#     "trial_beta": {
+#       "symbol": "\\beta^*(\\gamma)",
+#       "name": "条件形状",
+#       "meaning": "条件形状",
+#       "code": "trial_beta",
+#       "axisLabel": "形状参数 β"
+#     },
+#     "beta_axis": {
+#       "symbol": "\\beta",
+#       "name": "形状",
+#       "meaning": "形状",
+#       "axisLabel": "形状参数 β",
+#       "code": "beta_axis"
+#     },
+#     "gamma_axis": {
+#       "symbol": "\\gamma",
+#       "name": "位置",
+#       "meaning": "位置",
+#       "axisLabel": "位置参数 γ",
+#       "code": "gamma_axis"
+#     },
+#     "rank_rule": {
+#       "symbol": "p",
+#       "name": "绘图位置规则",
+#       "meaning": "绘图位置规则",
+#       "code": "rank_rule"
+#     },
+#     "ranks": {
+#       "symbol": "p_i",
+#       "name": "经验概率",
+#       "meaning": "经验概率",
+#       "code": "ranks"
+#     },
+#     "rank_transform": {
+#       "symbol": "x_i",
+#       "name": "概率变换",
+#       "meaning": "概率变换",
+#       "code": "rank_transform"
+#     },
+#     "offset": {
+#       "symbol": "\\delta",
+#       "name": "梯度偏移",
+#       "meaning": "梯度偏移",
+#       "code": "offset"
+#     },
+#     "sigma_profile": {
+#       "symbol": "s(\\gamma)",
+#       "name": "差异剖面",
+#       "meaning": "差异剖面",
+#       "code": "sigma_profile",
+#       "axisLabel": "条件最小标准差 s(γ)"
+#     },
+#     "sigma": {
+#       "symbol": "\\sigma_\\eta",
+#       "name": "伪尺度标准差",
+#       "meaning": "伪尺度标准差",
+#       "code": "conditional_sigma",
+#       "axisLabel": "标准差 σ_η"
+#     },
+#     "gradient": {
+#       "symbol": "g(\\gamma)",
+#       "name": "剖面梯度",
+#       "meaning": "剖面梯度",
+#       "code": "gradient",
+#       "axisLabel": "剖面梯度 g(γ)"
+#     },
+#     "grid_density": {
+#       "symbol": "N",
+#       "name": "位置网格密度",
+#       "meaning": "位置网格密度",
+#       "code": "grid_density"
+#     }
+#   },
+#   "chartBindings": {
+#     "mdm-shape": {
+#       "x": "beta_axis",
+#       "y": "sigma"
+#     },
+#     "mdm-gradient": {
+#       "x": "gamma_axis",
+#       "y": "gradient"
+#     }
 #   }
 # }
 # @end-method-flow

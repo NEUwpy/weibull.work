@@ -3,12 +3,12 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { LineChart, Code2, PanelLeft, PanelRight } from 'lucide-react'
 import type { FlowChartTarget, FlowStep, MethodFlow } from '@/lib/method-flow'
-import { useCalculationStage } from './CalculationSource'
 import { useMethodFlow } from './useMethodFlow'
-import { FlowStepCode, FlowStepDetails } from './VariableFlowViewer'
+import { FlowStepCode, FlowStepDetails } from './FlowStepContent'
 import { MethodWorkflow } from './MethodWorkflow'
 import { BatchStepFigure, useCalculationBatch } from './CalculationBatch'
 import styles from './CalculationWorkspace.module.css'
+import { ProcessDefinitionContext } from './ProcessDefinitionContext'
 
 const views = [{ id: 'charts', label: '图像', icon: LineChart }, { id: 'program', label: '代码', icon: Code2 }] as const
 type View = (typeof views)[number]['id']
@@ -61,8 +61,7 @@ interface WorkspaceProps {
   ready: boolean
   updating?: boolean
   revision?: unknown
-  values?: Record<string, string>
-  workflowValues?: Record<string, number | undefined>
+  values?: Record<string, string> | ((step: FlowStep, target?: FlowChartTarget) => Record<string, string>)
   workflowBranch?: 'ready' | 'zero' | 'extrapolated' | 'failed'
   formulaVariant?: (step: FlowStep, target?: FlowChartTarget) => string | undefined
   renderFigure: (step: FlowStep, target?: FlowChartTarget) => ReactNode
@@ -71,7 +70,7 @@ interface WorkspaceProps {
   emptyContent?: ReactNode
 }
 
-export function CalculationWorkspace({ methodId, recordedFlow, ready, updating = false, revision, values, workflowValues,
+export function CalculationWorkspace({ methodId, recordedFlow, ready, updating = false, revision, values,
   workflowBranch = 'ready', formulaVariant, renderFigure, renderDetails, notice, emptyContent }: WorkspaceProps) {
   const batch = useCalculationBatch()
   const { flow: currentFlow, loading, error, retry } = useMethodFlow(recordedFlow ? null : methodId)
@@ -87,8 +86,8 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
   const leftPane = useRef<HTMLDivElement>(null)
   const reader = useRef<HTMLDivElement>(null)
   const pendingScroll = useRef<number | 'flow' | null>(null)
+  const stepPositioned = useRef(false)
   const id = useId()
-  const sourceRequest = useCalculationStage()?.sourceRequest
   const diagram = flow?.workflow
   const activeStep = flow?.steps.find(step => step.id === activeId) ?? flow?.steps[0]
   const targetFor = (step: number) => Object.entries(diagram?.targets ?? {}).find(([, value]) => value === step)?.[0] as FlowChartTarget | undefined
@@ -113,6 +112,7 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
   }, [diagram])
 
   function scrollToStep(step: number) {
+    stepPositioned.current = true
     setActiveId(step)
     reader.current?.querySelector<HTMLElement>(`[data-reader-step="${step}"]`)?.scrollIntoView({ behavior: 'instant', block: 'start' })
   }
@@ -134,6 +134,7 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
     pendingScroll.current = null
     if (step === null) return
     if (step === 'flow') {
+      stepPositioned.current = true
       leftPane.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
       return
     }
@@ -147,24 +148,12 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
   }, [view, flow, leftOpen, rightOpen])
 
   useEffect(() => {
-    if (!sourceRequest || !flow || recordedFlow) return
-    const requested = sourceRequest.fromUrl && sourceRequest.step
-      ? diagram?.legacySourceSteps?.[sourceRequest.step - 1] ?? sourceRequest.step : sourceRequest.step
-    const step = flow.steps.find(item => item.id === requested) ?? flow.steps[0]
-    if (view === 'program') scrollToStep(step.id)
-    else {
-      pendingScroll.current = step.id
-      setActiveId(step.id)
-      setView('program')
-    }
-  }, [sourceRequest, flow, diagram, recordedFlow])
-
-  useEffect(() => {
     const container = reader.current
     if (!container) return
     let frame = 0
     function measure() {
       frame = 0
+      if (stepPositioned.current) return
       const sections = Array.from(container!.querySelectorAll<HTMLElement>('[data-reader-step]'))
       const line = Math.min(300, Math.max(180, window.innerHeight * .3))
       if (container!.getBoundingClientRect().top > line) return
@@ -190,8 +179,21 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
       })
     }
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure) }
+    // Layout changes and focus can scroll the document during a view switch.
+    // Let the reading line take over again when the reader scrolls.
+    const resumeReading = () => { stepPositioned.current = false }
+    const onKey = (event: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) resumeReading()
+    }
+    const onPointer = (event: PointerEvent) => {
+      if (event.clientX >= document.documentElement.clientWidth) resumeReading()
+    }
     window.addEventListener('scroll', schedule, { passive: true })
     window.addEventListener('resize', schedule)
+    window.addEventListener('wheel', resumeReading, { passive: true })
+    window.addEventListener('touchmove', resumeReading, { passive: true })
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer)
     const observer = new ResizeObserver(schedule)
     observer.observe(container)
     schedule()
@@ -200,6 +202,10 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
       observer.disconnect()
       window.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)
+      window.removeEventListener('wheel', resumeReading)
+      window.removeEventListener('touchmove', resumeReading)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer)
     }
   }, [flow, view, revision])
 
@@ -211,8 +217,8 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
   function explanation(step: FlowStep) {
     const target = targetFor(step.id)
     const equationStart = flow!.steps.filter(item => item.id < step.id)
-      .reduce((total, item) => total + (item.formula.equations?.length ?? 1), 1)
-    return <FlowStepDetails step={step} values={values} formulaVariant={formulaVariant?.(step, target)} equationStart={equationStart} compact>
+      .reduce((total, item) => total + item.formula.equations.length, 1)
+    return <FlowStepDetails step={step} values={typeof values === 'function' ? values(step, target) : values} formulaVariant={formulaVariant?.(step, target)} equationStart={equationStart}>
       {renderDetails?.(step, target)}
     </FlowStepDetails>
   }
@@ -226,7 +232,7 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
     '--pane-gap': `${PANE_GAP}px`,
   } as CSSProperties
 
-  return <div className={styles.workspace} data-calculation-method={methodId} data-columns={columns} data-left-open={leftOpen}
+  return <ProcessDefinitionContext.Provider value={flow}><div className={styles.workspace} data-calculation-method={methodId} data-columns={columns} data-left-open={leftOpen}
     data-right-open={rightOpen} style={sidebarWidths} aria-busy={updating}>
     <div className={styles.readerToolbar}>
       <div>
@@ -237,13 +243,13 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
       </div>
       <div className={styles.modeButtons} role="tablist" aria-label="计算过程视角">
         {views.map(({ id: tab, label, icon: Icon }, index) => <button key={tab} type="button" role="tab" id={`${id}-${tab}-tab`}
-          data-calculation-view={tab} data-mdm-view={methodId === 'mdm' ? tab : undefined} aria-controls={`${id}-reader`} aria-selected={view === tab} tabIndex={view === tab ? 0 : -1}
+          data-calculation-view={tab} aria-controls={`${id}-reader`} aria-selected={view === tab} tabIndex={view === tab ? 0 : -1}
           onClick={() => chooseView(tab)} onKeyDown={event => {
             if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
             event.preventDefault()
             const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : (index + 1) % views.length
             chooseView(views[nextIndex].id)
-            event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-calculation-view="${views[nextIndex].id}"]`)?.focus()
+            event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-calculation-view="${views[nextIndex].id}"]`)?.focus({ preventScroll: true })
           }}><Icon size={16} aria-hidden="true" />{label}</button>)}
       </div>
       <div className={styles.rightToggle}>
@@ -259,7 +265,7 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
     </p>}
     <div ref={layout} className={styles.layout}>
       <div ref={leftPane} className={styles.leftPane} id={`${id}-flow`} hidden={!leftOpen}>
-        <MethodWorkflow methodId={methodId} diagram={diagram} steps={flow.steps} values={workflowValues}
+        <MethodWorkflow methodId={methodId} diagram={diagram} steps={flow.steps}
           ready={ready} updating={updating} branch={workflowBranch} activeProgramStep={activeStep.id} onSelect={scrollToStep} />
       </div>
       {columns === 3 && leftOpen && <SidebarDivider side="left" controls={`${id}-flow`} width={visibleLeftWidth}
@@ -270,12 +276,12 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
           const target = targetFor(step.id)
           return <section key={step.id} className={styles.readerStep} data-reader-step={step.id} data-flow-target={target}
             data-flow-active={step.id === activeStep.id} tabIndex={-1} aria-label={step.name}
-            onPointerEnter={() => setActiveId(step.id)} onFocusCapture={() => setActiveId(step.id)}>
+            onPointerMove={() => setActiveId(step.id)} onFocusCapture={() => setActiveId(step.id)}>
             <h3 className={styles.stepHeading}><span>{step.id}</span>{step.name}</h3>
-            {view === 'program' ? <FlowStepCode flow={flow} step={step} continuous />
+            {view === 'program' ? <FlowStepCode flow={flow} step={step} />
               : !batch && !ready && step.id === flow.steps[0].id && emptyContent ? emptyContent
               : <BatchStepFigure target={target}>{renderFigure(step, target) ??
-                <p className="text-sm text-slate-500">计算后显示本步数据。</p>}</BatchStepFigure>}
+                (!ready && <p className="text-sm text-slate-500">计算后显示本步数据。</p>)}</BatchStepFigure>}
             {rightOpen && <div className={styles.mobileExplanation}>{explanation(step)}</div>}
           </section>
         })}</div>
@@ -288,5 +294,5 @@ export function CalculationWorkspace({ methodId, recordedFlow, ready, updating =
         {explanation(activeStep)}
       </aside>
     </div>
-  </div>
+  </div></ProcessDefinitionContext.Provider>
 }
