@@ -72,7 +72,7 @@ export function SiteInfoMenus({ compact, onLogin, onNavigate }: {
         </div>
         <div className="py-1">
           <Link href="/help/manual/about" onClick={followLink} className={row}><BookOpen size={16} className="text-slate-400" aria-hidden="true" />用户手册</Link>
-          <Link href="/help/changelog" onClick={followLink} className={row}><FileText size={16} className="text-slate-400" aria-hidden="true" />更新日志</Link>
+          <Link href="/help/changelog/versions" onClick={followLink} className={row}><FileText size={16} className="text-slate-400" aria-hidden="true" />更新日志</Link>
         </div>
         <div className="border-t border-slate-100 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-300">by wpyneu</div>
       </> : <UserInfo onNavigate={followLink} onLogin={() => { closeToTrigger(); onLogin() }} />}

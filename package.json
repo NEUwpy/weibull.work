@@ -1,6 +1,6 @@
 {
   "name": "weibull-platform",
-  "version": "4.2.1-261119",
+  "version": "4.2.2-261120",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit --incremental false",
     "test:app": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/*.test.mjs",
-    "check:app": "npm run check:method-status && npm run test:app && npm run typecheck",
+    "check:app": "npm run check:docs && npm run test:app && npm run typecheck",
+    "check:docs": "npm run check:version && node scripts/update-version.mjs --check-main && npm run check:method-status && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/check-docs.mjs",
     "generate:method-status": "node scripts/generate-method-status.mjs",
     "check:method-status": "node scripts/generate-method-status.mjs --check",
     "check:version": "node scripts/update-version.mjs --check",
@@ -18,7 +19,7 @@
     "test:calculator-state": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/calculator-state.test.mjs",
     "test:mdm-process-optimization": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/mdm-process-optimization.test.mjs",
     "predev": "npm run generate:method-status",
-    "prebuild": "npm run check:version && npm run check:method-status"
+    "prebuild": "npm run check:docs"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -52,6 +53,9 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@types/react-plotly.js": "^2.6.4"
+    "@types/react-plotly.js": "^2.6.4",
+    "github-slugger": "^2.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
   }
 }

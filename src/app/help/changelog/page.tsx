@@ -8,19 +8,10 @@ const TAB_LABELS: Record<string, string> = {
   process: '程序流程',
   calculation: '计算过程',
   analysis: '结果分析',
-  applicability: '适用范围',
+  applicability: '适用范围证据',
   verification: '可信性验证',
 }
-const COMPARE_LABEL = '方法对比'
 const LAYER1_KEYS = ['paper', 'backend', 'tests', 'calculator', 'theory', 'process'] as const
-const LAYER1_LABELS: Record<string, string> = {
-  paper: '论文',
-  backend: '后端',
-  tests: '测试',
-  calculator: '计算器',
-  theory: '原理',
-  process: '流程',
-}
 
 const STATUS_CELL: Record<AtomicStatus, { label: string; cellClass: string }> = {
   done: { label: '完成', cellClass: 'bg-emerald-50 text-emerald-700' },
@@ -38,16 +29,11 @@ const LEVEL_CELL: Record<MethodLevel, { label: string; cellClass: string }> = {
   not_started: { label: '未开始', cellClass: 'bg-slate-100 text-slate-500' },
 }
 
-function statusFromItem(item: { status: AtomicStatus }): AtomicStatus {
-  return item.status
-}
-
 function getLayer1Readiness(cap: MethodCapability): { done: number; total: number } {
-  return { done: 6 - cap.missingLayer1.length, total: 6 }
+  return { done: LAYER1_KEYS.length - cap.missingLayer1.length, total: LAYER1_KEYS.length }
 }
 
 function getTabStatus(cap: MethodCapability, tabKey: string): AtomicStatus {
-  if (tabKey === 'compare') return 'todo'
   const map: Record<string, keyof MethodCapability['layer1'] | keyof MethodCapability['layer2'] | keyof MethodCapability['layer3']> = {
     theory: 'theory',
     process: 'process',
@@ -67,58 +53,53 @@ function getTabStatus(cap: MethodCapability, tabKey: string): AtomicStatus {
   return cap.layer1[target as keyof typeof cap.layer1].status
 }
 
-function countAllItems(methods: MethodCapability[]): { done: number; partial: number; total: number } {
-  let done = 0
-  let partial = 0
-  let total = 0
-  const itemKeys = [...TAB_KEYS]
+function countAllItems(methods: MethodCapability[]) {
+  const totals: Record<AtomicStatus, number> = { done: 0, in_progress: 0, blocked: 0, todo: 0, not_applicable: 0 }
   for (const cap of methods) {
-    for (const key of itemKeys) {
-      total++
-      const s = getTabStatus(cap, key)
-      if (s === 'done') done++
-      else if (s === 'in_progress') partial++
+    for (const key of TAB_KEYS) {
+      totals[getTabStatus(cap, key)]++
     }
   }
-  return { done, partial, total }
+  return totals
 }
-
-const ALL_TABS = [...TAB_KEYS, 'compare']
 
 export default function StatusPage() {
   const methods = getMethodCapabilities()
-  const { done, partial, total } = countAllItems(methods)
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  const counts = countAllItems(methods)
+  const applicable = counts.done + counts.in_progress + counts.blocked + counts.todo
+  const pct = applicable > 0 ? Math.round((counts.done / applicable) * 100) : 0
 
   return (
     <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-10">
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">功能模块完成状态</h1>
-        <p className="text-slate-500">各参数估计方法的开发进度总览（22 个叶子方法，状态源自 05-状态.md）</p>
+        <p className="text-slate-500">共 {methods.length} 个参数估计方法。程序流程与适用范围证据分别在「计算过程」和「结果分析」中查看。</p>
       </div>
 
       {/* 汇总 */}
       <div className="flex items-center gap-6 p-5 rounded-2xl bg-slate-50 border border-slate-100">
         <div className="text-center">
           <div className="text-3xl font-black text-slate-900">{pct}%</div>
-          <div className="text-xs text-slate-400 mt-1">Tab 完成率</div>
+          <div className="text-xs text-slate-400 mt-1">建设项完成率</div>
         </div>
         <div className="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <div className="flex gap-4 text-xs">
+        <div className="flex flex-wrap gap-3 text-xs">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            完成 {done}
+            完成 {counts.done}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-            进行中 {partial}
+            进行中 {counts.in_progress}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-            待开始 {total - done - partial}
+            待开始 {counts.todo}
           </span>
+          {counts.blocked > 0 && <span>受阻 {counts.blocked}</span>}
+          {counts.not_applicable > 0 && <span>不适用 {counts.not_applicable}</span>}
         </div>
       </div>
 
@@ -136,14 +117,11 @@ export default function StatusPage() {
               <th className="px-2 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50 text-center whitespace-nowrap">
                 第一层
               </th>
-              {ALL_TABS.map((tab) => {
-                const label = tab === 'compare' ? COMPARE_LABEL : TAB_LABELS[tab]
-                return (
-                  <th key={tab} className="px-2 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50 text-center whitespace-nowrap">
-                    {label}
-                  </th>
-                )
-              })}
+              {TAB_KEYS.map(tab => (
+                <th key={tab} className="px-2 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 bg-slate-50/50 text-center whitespace-nowrap">
+                  {TAB_LABELS[tab]}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -163,12 +141,12 @@ export default function StatusPage() {
                   <td className="px-1 py-3 border-b border-slate-100 text-center">
                     <span className={cn(
                       'text-[10px] font-medium',
-                      l1r.done === 6 ? 'text-emerald-600' : l1r.done > 0 ? 'text-amber-600' : 'text-slate-400'
+                      l1r.done === l1r.total ? 'text-emerald-600' : l1r.done > 0 ? 'text-amber-600' : 'text-slate-400'
                     )}>
                       {l1r.done}/{l1r.total}
                     </span>
                   </td>
-                  {ALL_TABS.map((tab) => {
+                  {TAB_KEYS.map((tab) => {
                     const s = getTabStatus(cap, tab)
                     const cfg = STATUS_CELL[s]
                     return (

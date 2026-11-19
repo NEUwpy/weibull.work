@@ -4,7 +4,7 @@ import matter from 'gray-matter'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
-import { extractFromHeading, stripBlockquotes } from '@/lib/markdown'
+import { parseUserManualFeatures } from '@/lib/markdown'
 
 function readDoc(filename: string): string {
   return fs.readFileSync(path.join(process.cwd(), filename), 'utf-8')
@@ -12,7 +12,7 @@ function readDoc(filename: string): string {
 
 export default function FeaturesPage() {
   const { content } = matter(readDoc('07-用户手册.md'))
-  const body = stripBlockquotes(extractFromHeading(content, '功能详解'))
+  const { body } = parseUserManualFeatures(content)
 
   return (
     <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm">

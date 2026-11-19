@@ -1,74 +1,35 @@
 # 可信性验证开发说明
 
-> 本文保留既有实现资料；建设目的与准则见[可信性验证](../建设规范/02-参数估计方法/06-可信性验证.md)。开发入口见[02-规则.md](../../02-规则.md)第3.2节。
+建设目的与准则见[可信性验证](../建设规范/02-参数估计方法/06-可信性验证.md)。本文说明已接入的 MDM 验证配置、数据与渲染。
 
 ## 概述
 
-可信性验证（Verification，原案例展示）是预计算的验证可视化，用于：
-1. **验证方法正确性**——复现论文结果
-2. **自由探索**——放置其他验证内容
-
-**特点**：预计算，页面形式灵活可定制。
+页面读取预计算结果，与论文图表并排呈现。方法开放和进度以[建设状态](../../05-状态.md)为准。
 
 ## 目录结构
 
 ```
-public/case-studies/{method}/verification-{paperId}/
-├── config.md           # 配置文件（必需）
-├── curves.json         # 曲线数据
-├── data.csv            # 样本数据
-├── results.csv         # 估计结果
-└── summary.json        # 统计摘要
+软件仓 public/case-studies/mdm/verification-{paperId}/config.md
+外部数据根 public/case-studies/mdm/verification-{paperId}/
+├── curves.json
+├── data.csv
+├── results.csv
+└── summary.json
 ```
 
-**命名规范**：`verification-{paperId}`，例如 `verification-182-046`
+浏览器仍用 `/case-studies/...` 读取结果文件，目录配置见[外部运行数据](../data/README.md#当前目录与读取)。示例中的原图沿用原图片网址，由[文献资源读取层](../library/README.md)提供。
 
 ## 配置文件格式 (config.md)
 
-```yaml
----
-id: "verification-182-046"
-name: "复现182-046: 基于统计最小差异原理的威布尔分布参数估计方法"
-description: "复现论文图5：30个样本的∇(γ)-γ曲线"
-paper:
-  id: "182-046"                    # 文献ID，用于链接到图书馆
-  title: "基于统计最小差异原理的威布尔分布参数估计方法"
-  authors: "谢里阳, 朱文慧, 吴宁祥, 杨小玉"
-  journal: "东北大学学报（自然科学版）"
-  year: 2025
-  figure: "图5"                    # 复现的图表编号
-verification:
-  trueParams:                      # 真实参数
-    beta: 2.0
-    eta: 1000
-    gamma: 1000
-  sampleSize: 7                    # 样本量
-  offset: 0.1                      # 偏移量（MDM专用）
-  nSamples: 30                     # 样本数
-  paperImage: "/182-046-图片/xxx.jpg"  # 论文原图
-  curvesData: "/case-studies/mdm/verification-182-046/curves.json"
-  samplesData: "/case-studies/mdm/verification-182-046/data.csv"
-  resultsData: "/case-studies/mdm/verification-182-046/results.csv"
-  summaryData: "/case-studies/mdm/verification-182-046/summary.json"
----
-
-# 复现论文 182-046 图5
-
-## 图5 说明
-...（Markdown 正文）
-```
+直接查阅[已登记的 182-046 配置](../../public/case-studies/mdm/verification-182-046/config.md)。YAML 的 `id` 和 `name` 用于登记列表，`paper` 记录题录、论文编号及图号，`verification` 记录真参数、样本量、重复数、MDM 偏移量和资源路径。字段类型见 [VerificationConfig](../../src/components/methods/shared/verification/types.ts)。
 
 ## 添加新验证（3步）
 
 ### 1. 创建目录和配置
 
-```bash
-mkdir public/case-studies/mdm/verification-182-xxx
-```
+在软件仓 `public/case-studies/mdm/` 下创建 `verification-{paperId}` 目录，按现有示例填写 `config.md`。
 
-创建 `config.md`（参考上述格式）
-
-### 2. 创建数据文件
+### 2. 准备外部数据文件
 
 | 文件 | 格式 | 用途 |
 |------|------|------|
@@ -79,7 +40,7 @@ mkdir public/case-studies/mdm/verification-182-xxx
 
 ### 3. 验证
 
-API 会自动发现新验证项，无需注册。
+MDM 列表接口扫描配置目录。用验证页面核对论文原图、样本、估计结果和曲线路径能否读取，数据与对应图表是否匹配。
 
 ## 组件架构
 
@@ -121,26 +82,12 @@ Props：
 
 ## API 路由
 
-`src/app/api/case-studies/{methodId}/route.ts`
-
-返回该方法的验证列表：
-
-```json
-{
-  "cases": [
-    {
-      "id": "verification-182-046",
-      "name": "复现182-046: ...",
-      "paper": { ... },
-      "verification": { ... }
-    }
-  ]
-}
-```
+- [`GET /api/case-studies/mdm`](../../src/app/api/case-studies/mdm/route.ts) 扫描 MDM 配置，返回 `{ cases }`。扫描支持以 `verification` 或 `case` 开头的目录。
+- [`GET /api/case-studies/mdm/{caseId}`](../../src/app/api/case-studies/mdm/%5BcaseId%5D/route.ts) 返回单份兼容配置，响应为 `{ config }`。
 
 ## 类型定义
 
-核心类型见 `src/components/methods/shared/verification/types.ts`：
+核心类型见[共享类型定义](../../src/components/methods/shared/verification/types.ts)：
 
 | 类型 | 用途 |
 |------|------|
@@ -152,7 +99,4 @@ Props：
 
 ## 相关文件
 
-- 前端组件：`src/components/methods/`
-- 共享组件：`src/components/methods/shared/verification/`
-- API 路由：`src/app/api/case-studies/{methodId}/route.ts`
-- 数据文件：`public/case-studies/{method}/verification-{paperId}/`
+- 前端入口见 [CaseStudyViewer](../../src/components/methods/CaseStudyViewer.tsx)，共享布局见 [VerificationItem](../../src/components/methods/shared/verification/VerificationItem.tsx)。

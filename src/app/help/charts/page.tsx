@@ -191,7 +191,7 @@ function InstanceCard({ usage, chartType }: { usage: ChartUsage; chartType: stri
   const [error, setError] = useState('')
 
   const loadData = useCallback(async () => {
-    if (usage.dataSource.type === 'api') return
+    if (usage.dataSource.type === 'api' || usage.dataSource.type === 'example') return
     setLoading(true)
     setError('')
     try {
@@ -228,6 +228,11 @@ function InstanceCard({ usage, chartType }: { usage: ChartUsage; chartType: stri
             <div className="text-xs text-slate-500">来源：{usage.dataSource.endpoint}</div>
             <div className="text-xs text-slate-400 mt-1">API 调用，无静态数据</div>
           </div>
+        ) : usage.dataSource.type === 'example' ? (
+          <div className="text-center">
+            <div className="text-xs font-medium text-slate-600">计算过程中的固定样本示例</div>
+            <div className="mt-1 break-all text-xs text-slate-500">{usage.dataSource.path}</div>
+          </div>
         ) : loading ? (
           <div className="text-xs text-slate-400">加载数据中...</div>
         ) : error ? (
@@ -245,6 +250,9 @@ function InstanceCard({ usage, chartType }: { usage: ChartUsage; chartType: stri
 function DataSourceBadge({ source }: { source: ChartUsage['dataSource'] }) {
   if (source.type === 'api') {
     return <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">API</span>
+  }
+  if (source.type === 'example') {
+    return <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">固定示例</span>
   }
   return (
     <span className={cn(

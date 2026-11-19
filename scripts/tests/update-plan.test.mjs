@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { loadServerModule } from './helpers/load-server-module.mjs'
 
 const { parseUpdatePlan } = loadServerModule('src/lib/update-plan.ts')
@@ -63,4 +64,32 @@ test('internal notes, examples, and undated history never become newly confirmed
   assert.equal(plan.groups[0].tasks[0].status, '待开始')
   assert.equal(plan.groups[0].tasks[0].problem, '')
   assert.deepEqual(Array.from(plan.backlog), ['统一图表', '校对案例'])
+})
+
+test('reports source lines for invalid dates and task fields without changing rendering fallbacks', () => {
+  const plan = parseUpdatePlan(`<!--
+## 2026-11-35
+-->
+> **更新时间**: 2026-11-34
+## 2026-11-19
+### 摘要检查
+- 状态：已写完规范，逐篇修订待安排
+- 问题：摘要未校验
+> - 完成条件：内部注释
+## 2026-11-00
+`)
+  assert.equal(plan.groups[0].tasks[0].status, '待开始')
+  assert.equal(plan.updatedAt, undefined)
+  assert.equal(plan.diagnostics.length, 4)
+  assert.ok(plan.diagnostics.some(item => item.line === 4 && item.message.includes('更新时间')))
+  assert.ok(plan.diagnostics.some(item => item.line === 7 && item.message.includes('状态')))
+  assert.ok(plan.diagnostics.some(item => item.line === 6 && item.message.includes('完成条件')))
+  assert.ok(plan.diagnostics.some(item => item.line === 10 && item.message.includes('分组标题')))
+})
+
+test('the checked-in update plan satisfies its public task format', () => {
+  const raw = fs.readFileSync(new URL('../../04-目标与待办.md', import.meta.url), 'utf8')
+  const plan = parseUpdatePlan(raw)
+  assert.equal(JSON.stringify(plan.diagnostics), '[]')
+  assert.ok(plan.groups.length > 0)
 })

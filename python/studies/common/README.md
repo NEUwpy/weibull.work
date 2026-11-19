@@ -1,29 +1,21 @@
 # 统一蒙特卡洛流水线说明
 
-> 本目录是后端蒙特卡洛、真值抽样、API 现场模拟的共享基础设施。以后不要再为一次实验、一个方法或一个 API 入口重新写一套抽样、方法调用、指标聚合逻辑。
+本目录负责后端蒙特卡洛、真值抽样和 API 现场模拟。[调用链](#调用链) · [数据契约](#数据契约) · [MDM 相关约定](#mdm-相关约定) · [对比实验要求](#对比实验要求)
 
 ## 为什么有这个目录
 
-旧流程的问题是：蒙特卡洛经常“用一次写一次”，不同脚本各自生成样本、调用方法、保存数据、计算指标。这样会带来三类维护风险：
-
-- 方法调用不一致：同一个方法在 API、研究脚本、适用范围数据里可能走不同参数或不同失败处理。
-- 数据保存不一致：有的实验只留聚合结果，有的留行级数据，有的缺少 manifest，后续无法复现。
-- 评价标准不一致：S2R、MdAPE、P95、RMSE 等指标在不同地方各说各话，难以横向比较。
-
-当前统一后的规则是：**抽样、方法调用、指标聚合、结果保存都从本目录进入。**
+旧脚本曾分别实现样本生成、方法调用、数据保存和聚合，导致结果难以复现和比较。下面的入口供 API 和文件型实验共用。
 
 ## 文件职责
 
-`workbook.py`是冻结Research00 Excel的只读桥接解析器，保留单元格、格式、合并及样本/方法列身份，拒绝公式及不完整对应关系。它不抽样、不拟合，不替代`runner`或`experiment`；由软件根`scripts/import-research00-workbooks.py`离线调用，结果写外部data并生成Git索引。新实验自动生成完整工作簿索引另行接通。
-
-
 | 文件 | 职责 | 主要入口 |
 |------|------|----------|
-| `sample.py` | 确定性样本生成 | `generate_sample()` |
-| `runner.py` | 统一方法解析、实例化、调用和返回格式标准化 | `run_method()` |
+| `sample.py` | 依据 `seed_namespace/seed + 参数网格 + repeat_id` 确定性生成样本 | `generate_sample()` |
+| `runner.py` | 经 `methods.registry.resolve_method()` 解析方法，统一调用及返回格式 | `run_method()` |
 | `simulation.py` | API 现场蒙特卡洛模拟和 API 行聚合 | `simulate_method()`、`aggregate_simulation_rows()` |
 | `experiment.py` | 文件型实验流水线，生成 CSV/JSON/manifest | `run_experiment()` |
 | `metrics.py` | 标准指标、诊断指标、质量控制 | `aggregate_standard_metrics()` |
+| `workbook.py` | 冻结 Excel 的只读桥接，保留单元格、格式、合并及样本和方法列身份，拒绝公式及不完整对应关系 | [Research00 离线登记](../../../docs/data/README.md#research00-工作簿登记2026-11-02) |
 
 ## 调用链
 
@@ -51,35 +43,33 @@ python/main.py /monte_carlo_simulate
   -> results.csv / summary.json / manifest.json
 ```
 
-`python/main.py` 是 API 层，不应继续堆叠蒙特卡洛主循环、抽样逻辑或指标聚合逻辑。
+`python/main.py` 的现场模拟端点委托共享流程。算法调用只接受有限的正寿命观测，非法观测须明确拒绝。涉及非正观测的研究应另定适用条件，并说明与历史过滤口径的差异及可比性。
+
+现场模拟及批量请求见[交互计算与模拟限制](../../../01-A-数据模型与接口.md#23-交互计算与模拟限制)。计算器批量估计顺序提交原样本，结果分析保留各行的失败状态并复用标准指标。
 
 ## 数据契约
 
-`run_experiment()` 的默认输出是：
+[`run_experiment()`](experiment.py) 的默认产物如下。
 
-| 文件 | 用途 | 规则 |
-|------|------|------|
-| `results.csv` | 主数据，行级估计结果 | 保留所有算法返回的候选估计，适合 Excel、pandas、R 后续分析 |
-| `summary.json` | 默认聚合指标 | 按质量控制后的有效行计算 Bias、SD、RMSE、MAE |
-| `manifest.json` | 溯源信息 | 记录 code_version、run_label、参数网格、样本量、重复次数、seed namespace、指标口径 |
+| 文件 | 内容与口径 |
+|------|------------|
+| `results.csv` | 行级估计结果，保留算法返回的全部候选估计，包括边界病态候选。 |
+| `summary.json` | 聚合指标，默认按质量控制后的有效行计算主指标。 |
+| `manifest.json` | 记录 `code_version`、`run_label`、参数网格、样本量、重复次数、seed namespace 和指标口径。 |
 
-样本本身默认不单独保存。只要 `param_grid + n_values + repeat_id + seed_namespace` 足以确定性复现，就由 manifest 记录溯源。若后续实验必须保存样本，需在实验说明中写明原因。
+当 `param_grid + n_values + repeat_id + seed_namespace` 足以复现样本时，manifest 保留样本溯源信息，样本本身默认不单独保存。必须另存原样本时，在实验文档中说明原因和体量影响。
+
+`run_experiment(sample_provider=..., precomputed_results=...)` 接入已有观测和核验结果。缓存须匹配方法及样本 SHA-256，行级 `extra.experiment` 记录来源与实际支持下界。K–R MMLE 明确删除最小值时按保留观测检查支持域，详见[方法说明](../../../src/content/algorithms/mmle.md)。实验的 `boundary_tol` 同时传给行状态和共享汇总，默认 `1e−10`。
 
 ## 指标口径
 
-默认主指标：
-
-```text
-Bias / SD / RMSE / MAE
-```
-
-S2R 中位数族、MdAPE、P95 等保留为 diagnostics，用来观察尾部风险和异常解，不作为默认主排序口径。
-
-`summary.json` 的主指标默认按质量控制后的有效行聚合。若研究需要“包含所有候选解”的敏感性统计，应从 `results.csv` 另算，并在报告中明确标注该口径不同于默认 summary。
+默认主指标为 Bias、SD、RMSE 和 MAE。S2R 中位数族、MdAPE、P95 等在 [`metrics.py`](metrics.py) 的诊断结果中提供，用于观察尾部风险和异常解。公式及用途见[指标规范](../../../src/app/help/metrics/metrics-spec.ts)。全候选敏感性统计见[对比实验要求](#对比实验要求)。
 
 ## MDM 相关约定
 
-MDM 的生产默认实现只在 `python/methods/mdm.py`。共享 runner 会把 MDM 的 `last_solution_info` 写入行级 `extra.solution_info`，用于追踪：
+计算器、研究、AI、单次与重复估计和程序流程共用 [`python/methods/mdm.py`](../../methods/mdm.py)。默认使用偏移量 `0.1`。现场模拟未传偏移量时会填入该值，文件型实验在方法参数中明确写入偏移量，比较其他值时传入对应设置。非负位置约束和零边界截断见 [MDM 方法说明](../../../src/content/algorithms/mdm.md)。原文差异讨论和冻结结果追溯遵循[方法实现规则](../../../02-规则.md#24-方法页面与实现维护)。
+
+`mdm_case6.py`、`mdm_case7.py`、`mdm_case8.py`、`mdm_fine.py` 等保留历史身份。共享 runner 将 `last_solution_info` 写入行级 `extra.solution_info`，用于追踪：
 
 - `solution_strategy`
 - `root_solver`
@@ -90,19 +80,18 @@ MDM 的生产默认实现只在 `python/methods/mdm.py`。共享 runner 会把 M
 
 这类诊断信息属于行级数据，应保存在 `results.csv` 的 `extra` 字段里，不要只写进临时日志。
 
+## 对比实验要求
+
+NN 修正偏移量、最优偏移量或其他策略与 full-v1 对比时，复用同一 `seed_namespace`、参数网格、`n_values`、质量控制口径及[默认主指标](#指标口径)。明确标注是否包含边界病态候选解。
+
+包含全部候选解的敏感性统计从 `results.csv` 另算，并在报告中单独标明，便于与默认 `summary.json` 的有效行口径对照。
+
 ## 新实验检查清单
 
-```
-□ 是否使用 generate_sample() 生成样本？
-□ 是否使用 run_method() 调用方法？
-□ 是否使用 aggregate_standard_metrics() 聚合指标？
-□ 文件型实验是否使用 run_experiment() 输出 results.csv / summary.json / manifest.json？
-□ 是否记录 run_label、code_version、seed_namespace、参数网格和指标口径？
-□ 与 baseline 对比时，是否使用同一 seed_namespace、同一参数网格、同一质量控制口径？
-```
+检查[入口选用](#调用链)、[产物与版本](#数据契约)及[与基线的对比口径](#对比实验要求)。
 
 ## 软件与科研分仓调用
 
-共享流程保留在软件仓。科研仓通过集中配置的软件路径直接导入 `studies.common` 与 `methods`，不需要启动 FastAPI 或网站。新实验设计、训练、研究分析及输出保存在科研仓或其登记的外部数据目录；本仓 `studies/mdm`、`mle`、`wmle` 与 `scripts` 保留产品适用范围数据生成和维护工具。
+科研仓通过集中配置的软件路径直接导入 `studies.common` 与 `methods`，无需启动服务。软件和科研资料的保存边界见[软件与科研仓的边界](../../../01-结构.md#53-软件与科研仓的边界)。本仓 `studies/mdm`、`mle`、`wmle` 与 `scripts` 提供产品数据生成和维护工具。
 
 正式实验须同时登记软件仓与科研仓的提交号；软件仓有未提交改动时一并保存。`manifest.json` 的软件版本字段不能代替科研脚本版本记录。调用设置、环境和冻结版本的使用方式以[科研仓入口](D:/weibull-research/README.md)为准。

@@ -56,7 +56,7 @@ implementation_notes: |
 
   γ̂等于已删除的原最小值，而小于其余保留观测。Study/02准入对样本排序并剔除一个最小观测后，检查非负位置γ̂<x₍₂₎；重复最小值会留下零距离，按迭代失败处理。通用全样本支持检查仍要求γ̂<x₍₁₎，其他研究入口接入时需采用保留观测口径。计算器仍未开放。
 
-  论文出处：Kundu–Raqab（2009），Statistics & Probability Letters 79(17), 1839–1846，DOI [10.1016/j.spl.2009.05.026](https://doi.org/10.1016/j.spl.2009.05.026)。原文尚未正式入库，当前位于 `D:/博士阶段/100科研文献管理/100科研文献管理/190_待处理与日志/191_inbox/Kundu-Raqab-2009-SPL-Estimation of R for three-parameter Weibull.pdf` 待处理；已核原文及单样本化简的公式。
+  论文出处见上方结构化参考文献，原文在[文献 182-119](/library/182-119)。已核对原文及单样本化简的公式。
 
   ## 4. 旧Cohen–Whitten实现
 

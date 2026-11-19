@@ -20,14 +20,14 @@ export default function HelpPage() {
           <p className="text-sm text-slate-500">软件结构、功能详情、工作流介绍</p>
         </Link>
         <Link
-          href="/help/changelog"
+          href="/help/changelog/versions"
           className="group bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-200 transition-all"
         >
           <div className="p-3 rounded-xl bg-amber-100 text-amber-600 w-fit mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors">
             <FileText size={24} />
           </div>
           <h2 className="text-lg font-bold text-slate-900 mb-2">更新日志</h2>
-          <p className="text-sm text-slate-500">功能状态、版本记录、更新计划</p>
+          <p className="text-sm text-slate-500">版本记录、功能状态、更新计划</p>
         </Link>
         <Link
           href="/help/metrics"

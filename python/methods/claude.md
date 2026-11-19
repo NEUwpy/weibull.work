@@ -1,5 +1,7 @@
 # Python 算法编写指南
 
+> 历史指南。现行算法开发请读 [README_DEV](README_DEV.md)，程序流程采用方法文件中的 `@method-flow` 声明，见[方法页面开发说明](../../docs/development/method-pages.md)。下方保留旧注释规范。
+
 本文档说明如何在 Python 算法文件中添加注释，以便自动生成程序流程展示。
 
 ---

@@ -1,8 +1,8 @@
 /**
  * 图表使用注册表
  *
- * 记录每种图表类型在系统中的所有使用位置。
- * 展开时按 dataSource 加载真实数据渲染。
+ * 记录图表在现行功能中的使用位置。
+ * 公开数据可预览，运行时 API 和固定示例记录来源。
  *
  * 展示范式、表格范式和视觉语义定义见 charts-spec.ts；
  * 本文件只维护真实实例、数据源和实例级 props。
@@ -12,6 +12,7 @@ export type DataSource =
   | { type: 'csv'; path: string }
   | { type: 'json'; path: string }
   | { type: 'api'; endpoint: string }
+  | { type: 'example'; path: string }
 
 export interface ChartUsage {
   id: string
@@ -24,6 +25,8 @@ export interface ChartUsage {
 
 export type ChartRegistry = Record<string, ChartUsage[]>
 
+const mmleExample = { type: 'example', path: 'src/data/method-process-examples/mmle.json' } as const
+
 export const chartRegistry: ChartRegistry = {
 
   // ============================================================
@@ -34,7 +37,7 @@ export const chartRegistry: ChartRegistry = {
       id: `${method}-scale-calculation`, label: `${method.toUpperCase()} 逐样本尺度计算`,
       location: 'PowerScaleCalculation / shared ProcessChart',
       description: '逐样本距离的幂次贡献、汇总量及尺度代入；数值过大或过小时使用等价归一化式。',
-      dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
+      dataSource: method === 'mmle' ? mmleExample : { type: 'api' as const, endpoint: 'POST /calculate' },
       props: { methodId: method, source: 'calculation.details.scale_calculation', exampleOnly: method === 'mmle' },
     })),
   ],
@@ -70,8 +73,8 @@ export const chartRegistry: ChartRegistry = {
       label: `${method.toUpperCase()} 本次计算与选择判据`,
       location: method === 'mm' ? 'MomentProcessViewer' : 'RecordedCalculationProcess / ProcessChart',
       description: '按求参关系分配图表、实际输入输出及关键数值代入；位置联动与回归在对应步骤中阅读，详细操作数按需展开。',
-      dataSource: { type: 'api' as const, endpoint: 'POST /calculate' },
-      props: { contract: 'calculation/schema_version=1', methodId: method, source: 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only', exampleOnly: method === 'mmle' },
+      dataSource: method === 'mmle' ? mmleExample : { type: 'api' as const, endpoint: 'POST /calculate' },
+      props: { contract: 'calculation/schema_version=1', methodId: method, source: method === 'mmle' ? 'fixed-example' : 'backend-owned', interpolation: method === 'mm' ? 'empirical stepAfter' : 'linear display only', exampleOnly: method === 'mmle' },
     })),
     {
       id: 'calculation-mdm',
@@ -80,6 +83,14 @@ export const chartRegistry: ChartRegistry = {
       description: '同一位置下的伪尺度标准差曲线与条件最小点，联动标记位置梯度判据；外推位置不画作真实交点。',
       dataSource: { type: 'api', endpoint: 'POST /calculate' },
       props: { contract: 'calculation/schema_version=1 + trace_data', methodId: 'mdm', source: 'backend-owned', interpolation: 'linear display only' },
+    },
+    {
+      id: 'method-compare-estimates-density',
+      label: '不同方法的估计值密度曲线',
+      location: 'CompareResultsView',
+      description: '在相同真值和样本量下，按参数查看各方法的估计值密度。数据来自匹配的预计算分片或页面发起的模拟。',
+      dataSource: { type: 'api', endpoint: 'GET /api/studies/{methodId}/chunks；POST /api/studies/simulate' },
+      props: {},
     },
     {
       id: 'mdm-process-optimization-loss-curve',
@@ -147,61 +158,11 @@ export const chartRegistry: ChartRegistry = {
   // ============================================================
   DistributionMark: [],
 
-  // ============================================================
-  // BoxPlotChart (shared)
-  // ============================================================
-  BoxPlotChart: [
-    {
-      id: 'methods-study-boxplot',
-      label: '适用范围箱型图',
-      location: 'GenericStudyViewer',
-      description: '各参数组合下估计值分布（min/max/P1/P99/median）',
-      dataSource: { type: 'csv', path: '/studies/{methodId}/chunks/{chunkFile}' },
-      props: { yLabel: 'β̂', trueValue: 2.0 },
-    },
-  ],
-
-  // ============================================================
-  // HeatmapChart (shared)
-  // ============================================================
-  HeatmapChart: [
-    {
-      id: 'methods-study-heatmap',
-      label: '适用范围热力图',
-      location: 'GenericStudyViewer',
-      description: 'β-η 参数空间的偏差热力图',
-      dataSource: { type: 'csv', path: '/studies/{methodId}/chunks/{chunkFile}' },
-      props: { dataKey: 'bias_beta', maxAbs: 0.15 },
-    },
-  ],
-
-  // ============================================================
-  // DensityChart (shared)
-  // ============================================================
-  DensityChart: [
-    {
-      id: 'methods-study-density',
-      label: '适用范围密度图',
-      location: 'GenericStudyViewer',
-      description: '估计值的 KDE 概率密度分布',
-      dataSource: { type: 'csv', path: '/studies/{methodId}/chunks/{chunkFile}' },
-      props: { paramId: 'beta', trueValue: 2.0, color: '#3b82f6' },
-    },
-  ],
-
-  // ============================================================
-  // ConvergenceChart (shared)
-  // ============================================================
-  ConvergenceChart: [
-    {
-      id: 'methods-study-convergence',
-      label: '适用范围收敛图',
-      location: 'GenericStudyViewer',
-      description: '统计量随蒙特卡洛仿真次数的收敛趋势',
-      dataSource: { type: 'csv', path: '/studies/{methodId}/chunks/{chunkFile}' },
-      props: { statType: 'mean', trueValue: 2.0, yLabel: 'β̂ 均值' },
-    },
-  ],
+  // 当前保留范式示例，页面未登记实际使用。
+  BoxPlotChart: [],
+  HeatmapChart: [],
+  DensityChart: [],
+  ConvergenceChart: [],
 
   // ============================================================
   // ContourChart (shared)

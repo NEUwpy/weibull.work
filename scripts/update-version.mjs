@@ -55,6 +55,36 @@ function onMain() {
   return git(['branch', '--show-current']).trim() === 'main'
 }
 
+function checkCommit(ref) {
+  const commit = git(['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`]).trim()
+  const headers = git(['cat-file', 'commit', commit]).split('\n\n', 1)[0]
+  const tree = headers.match(/^tree (\S+)$/m)[1]
+  const parent = headers.match(/^parent (\S+)$/m)?.[1]
+  const currentFiles = readFiles(file => git(['show', `${commit}:${file}`]))
+  const current = parseVersionFiles(currentFiles).version
+  const label = commit.slice(0, 12)
+
+  if (parent && git(['rev-parse', '--verify', `${parent}^{tree}`]).trim() !== tree) {
+    const parentFiles = readFiles(file => git(['show', `${parent}:${file}`]))
+    const previous = parseVersionFiles(parentFiles).version
+    const patch = current.minor === previous.minor && current.patch === previous.patch + 1
+    const minor = current.minor === previous.minor + 1 && current.patch === 0
+    if (current.major !== previous.major || (!patch && !minor)) {
+      throw new Error(`${label} 的版本未按规则递增：v${previous.number} → v${current.number}。`)
+    }
+    const previousHeadings = [...parentFiles[changelog].matchAll(/^## (v\S+)/gm)]
+    const newLog = currentFiles[changelog]
+    const headings = [...newLog.matchAll(/^## (v\S+)/gm)]
+    const keptVersions = headings.length === previousHeadings.length + 1
+      && previousHeadings.every((heading, index) => heading[1] === headings[index + 1][1])
+    const added = newLog.slice(headings[0].index, headings[1]?.index)
+    if (!keptVersions || !/^[-*] \S/m.test(added)) {
+      throw new Error(`${label} 的更新日志须保留原有记录的版本号，并在顶部新增一份带说明的版本记录。`)
+    }
+  }
+  console.log(`version: ${label} v${current.number}`)
+}
+
 function installHooks() {
   const hookDir = path.resolve(root, git(['rev-parse', '--git-path', 'hooks']).trim())
   const repoHooks = path.join(git(['rev-parse', '--path-format=absolute', '--git-common-dir']).trim(), 'hooks')
@@ -164,8 +194,14 @@ try {
       console.log(`version: v${version.number}`)
       break
     }
+    case '--check-main':
+      if (fs.existsSync(path.join(root, '.git')) && onMain()) checkCommit('HEAD')
+      break
+    case '--check-commit':
+      checkCommit(process.argv[3] ?? 'HEAD')
+      break
     default:
-      throw new Error('用法：node scripts/update-version.mjs --check | --install | --commit | --merge')
+      throw new Error('用法：node scripts/update-version.mjs --check | --check-main | --check-commit [ref] | --install | --commit | --merge')
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))

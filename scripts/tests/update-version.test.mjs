@@ -5,13 +5,14 @@ import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 
-test('main commits save one matching version record, including retries and merges', () => {
+test('main commits save one matching version record and audit detects omitted or reverted records', () => {
   const tempRoot = fs.realpathSync(os.tmpdir())
   const repo = fs.mkdtempSync(path.join(tempRoot, 'weibull-version-'))
   const options = { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
   const git = (...args) => execFileSync('git', args, options).trim()
   const write = (file, text) => fs.writeFileSync(path.join(repo, file), text)
   const versionScript = path.join('scripts', 'update-version.mjs')
+  const check = (...args) => spawnSync(process.execPath, [versionScript, ...args], options)
 
   function assertCommittedVersion(expected) {
     const pkg = JSON.parse(git('show', 'HEAD:package.json'))
@@ -78,6 +79,44 @@ test('main commits save one matching version record, including retries and merge
     assert.equal(git('rev-parse', 'MERGE_HEAD'), git('rev-parse', 'feature'))
     git('commit', '-qm', 'Merge feature')
     assertCommittedVersion('4.3.2')
+
+    write('overview.md', '合并后的更新\n')
+    write('08-更新日志.md', git('show', 'HEAD:08-更新日志.md').replace('- 架构变更', '- 架构变更，补充说明') + '\n')
+    git('commit', '-qam', 'Versioned change')
+    assertCommittedVersion('4.3.3')
+    const versionedCommit = git('rev-parse', 'HEAD')
+    assert.equal(check('--check-main').status, 0)
+    git('commit', '-qm', 'Empty marker', '--allow-empty')
+    assert.equal(check('--check-main').status, 0)
+
+    write('unrecorded.md', '未登记的改动\n')
+    git('add', 'unrecorded.md')
+    git('commit', '-qm', 'Commit bypassing hook', '--no-verify')
+    const missing = check('--check-main')
+    assert.equal(missing.status, 1)
+    assert.match(missing.stderr, /版本未按规则递增/)
+    assert.equal(check('--check-commit', versionedCommit).status, 0)
+    assert.equal(git('status', '--porcelain'), '')
+
+    git('revert', '--no-edit', versionedCommit)
+    assertCommittedVersion('4.3.2')
+    assert.equal(check('--check').status, 0)
+    const reverted = check('--check-commit', 'HEAD')
+    assert.equal(reverted.status, 1)
+    assert.match(reverted.stderr, /版本未按规则递增/)
+
+    const log = git('show', 'HEAD:08-更新日志.md')
+    const version = JSON.parse(git('show', 'HEAD:package.json')).version.replace(/^4\.3\.2-/, '4.3.3-')
+    const date = log.match(/^## v4\.3\.2-\d{6} \(([^)]+)\)/m)[1]
+    write('08-更新日志.md', `# 更新日志\n\n## v${version} (${date})\n\n- 新条目省略了旧版本\n`)
+    write('package.json', JSON.stringify({ version }))
+    write('package-lock.json', JSON.stringify({ version, packages: { '': { version } } }))
+    git('add', '-A')
+    git('commit', '-qm', 'Drop version history', '--no-verify')
+    assert.equal(check('--check').status, 0)
+    const lostHistory = check('--check-main')
+    assert.equal(lostHistory.status, 1)
+    assert.match(lostHistory.stderr, /保留原有记录/)
   } finally {
     if (path.dirname(fs.realpathSync(repo)) === tempRoot && path.basename(repo).startsWith('weibull-version-')) {
       fs.rmSync(repo, { recursive: true, force: true })

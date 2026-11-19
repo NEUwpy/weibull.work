@@ -79,7 +79,7 @@ export interface DevNormDef {
   content: string
 }
 
-export const PAGE_DESCRIPTION = '统一系统图表与表格的展示范式。使用或新增展示前，先查阅本页对应范式；新增真实使用位置时同步 chart-registry.ts。点击「展开」可查看该图表在系统中的真实使用实例。'
+export const PAGE_DESCRIPTION = '这里展示图表与表格的范式示例。点击「展开」可查看已登记的使用位置、数据来源和可预览的静态实例。'
 
 export const REGISTRY_RELATIONSHIP = 'charts-spec.ts 定义展示范式、数据契约和视觉语义；chart-registry.ts 记录真实使用位置、数据来源和实例 props；页面从两者读取后渲染。'
 
@@ -310,7 +310,7 @@ export const CHART_USAGE_MAP_GROUPS: UsageMapGroup[] = [
       { tab: '计算过程（MDM）', chart: '形状寻优与位置梯度双图', data: '固定γ的伪尺度标准差及条件最小点、g(γ)与δ判据，位置切换联动', src: 'mdm SigmaBetaChart / GradientGammaChart' },
       { tab: '计算过程（MLE/WMLE/MMLE详情）', chart: '逐样本幂次贡献与平均值', data: '最终β、γ下的样本距离取幂，汇总并除以样本量（WMLE含J₁）后恢复尺度；大数使用等价归一化', src: 'PowerScaleCalculation / shared ProcessChart' },
       { tab: '可信性验证', chart: '折线图', data: '梯度曲线（MDM）', src: 'mdm GradientGammaChart' },
-      { tab: '方法对比', chart: '折线图', data: '多方法精度对比', src: 'Recharts LineChart' },
+      { tab: '方法对比', chart: '估计值密度曲线', data: '相同真值和样本量下各方法的估计值分布', src: 'CompareResultsView / Recharts LineChart' },
     ],
   },
   {

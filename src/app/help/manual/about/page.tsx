@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   Calculator,
   Settings2,
@@ -21,20 +22,19 @@ const CORE_FEATURES = [
   {
     icon: Search,
     title: '深入研究参数估计方法',
-    desc: '原理文档、计算过程、结果分析、可信性验证、方法对比',
+    desc: '方法原理、计算过程、结果分析、可信性验证、方法对比',
     color: 'bg-amber-100 text-amber-600',
   },
   {
     icon: Brain,
     title: '结合人工智能方法辅助',
-    desc: 'RAG 智能问答、智能优化算法辅助参数估计',
+    desc: '查看 AI 为当前样本选择 MDM 偏移量，并比较两种偏移量下的估计结果',
     color: 'bg-violet-100 text-violet-600',
-    badge: '规划中',
   },
   {
     icon: FolderOpen,
     title: '方便存储调用的寿命数据库',
-    desc: '标准失效数据集，支持按行业、样本量检索，一键调用到计算器',
+    desc: '按名称、文献编号或来源检索，查看样本、结果和出处',
     color: 'bg-indigo-100 text-indigo-600',
   },
   {
@@ -49,32 +49,26 @@ const MODULES = [
   {
     icon: Calculator,
     name: '威布尔计算器',
-    desc: '交互式参数估计，支持多方法对比，一键出图',
     color: 'border-blue-200 bg-blue-50/50',
   },
   {
     icon: Settings2,
     name: '参数估计方法',
-    desc: '查看估计方法原理和计算过程，并通过预计算结果与蒙特卡洛模拟分析估计表现',
     color: 'border-amber-200 bg-amber-50/50',
   },
   {
     icon: Brain,
     name: '人工智能方法',
-    desc: 'RAG 智能问答、智能优化算法辅助、神经网络增强',
     color: 'border-violet-200 bg-violet-50/50',
-    badge: '规划中',
   },
   {
     icon: Database,
     name: '案例数据库',
-    desc: '科研文献中的标准失效数据集，多维检索，一键调用',
     color: 'border-indigo-200 bg-indigo-50/50',
   },
   {
     icon: Library,
     name: '可靠性图书馆',
-    desc: 'Markdown 文献阅读，双语切换，参考文献跳转',
     color: 'border-emerald-200 bg-emerald-50/50',
   },
 ]
@@ -103,11 +97,6 @@ export default function AboutPage() {
               key={feat.title}
               className="relative p-6 rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
             >
-              {feat.badge && (
-                <span className="absolute top-4 right-4 text-[10px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
-                  {feat.badge}
-                </span>
-              )}
               <div className={`p-2.5 rounded-xl w-fit mb-4 ${feat.color}`}>
                 <feat.icon size={20} />
               </div>
@@ -120,26 +109,19 @@ export default function AboutPage() {
 
       {/* 五大模块结构 */}
       <section>
-        <h2 className="text-2xl font-black text-slate-900 mb-8 text-center">模块结构</h2>
+        <h2 className="text-2xl font-black text-slate-900 mb-8 text-center">模块用法</h2>
         <div className="space-y-4">
           {MODULES.map(mod => (
-            <div
+            <Link
               key={mod.name}
-              className={`relative flex items-center gap-5 p-5 rounded-2xl border ${mod.color} transition-all`}
+              href={`/help/manual/features#${encodeURIComponent(mod.name)}`}
+              className={`relative flex items-center gap-5 p-5 rounded-2xl border ${mod.color} hover:shadow-sm transition-shadow`}
             >
-              {mod.badge && (
-                <span className="absolute top-3 right-4 text-[10px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
-                  {mod.badge}
-                </span>
-              )}
               <div className="shrink-0 p-2.5 rounded-xl bg-white shadow-sm border border-slate-200/50">
                 <mod.icon size={20} className="text-slate-700" />
               </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">{mod.name}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{mod.desc}</p>
-              </div>
-            </div>
+              <span className="text-base font-bold text-slate-900">{mod.name}</span>
+            </Link>
           ))}
         </div>
       </section>

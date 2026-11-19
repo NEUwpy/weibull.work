@@ -4,9 +4,9 @@
 
 ## 当前MLE、WMLE与LRE版本（2026-10-16）
 
-MLE、WMLE共用`profile_solvers.py`，版本`2026-10-16-profile-v2`：保留原似然/加权方程、权重及接受域，通过条件求根和位置搜索减少局部优化漏解；MLE仅返回有限局部极大值，支持边界极限单列。v2补查很窄的似然峰，WMLE保留并明确标记原残差容差内的零边界近似解。详细规则见[MLE说明](../../src/content/algorithms/mle.md)、[WMLE说明](../../src/content/algorithms/wmle.md)。WMLE原绝对距离1e−6保护改为浮点严格支持检查；旧失败状态不直接沿用。不能据求解改善推断统计风险一定降低。
+MLE、WMLE 共用 [`profile_solvers.py`](profile_solvers.py)。条件搜索、权重和边界诊断分别见 [MLE](../../src/content/algorithms/mle.md) 与 [WMLE](../../src/content/algorithms/wmle.md) 的实现说明。求解改善本身不足以判断统计风险。
 
-LRE继续使用2026-09-29已核验的Park（2017）Proposed+Plot，区别于旧Bernard绘图位置组合实现。日期备份、Git旧LRE来源和历史实验分界见[备份说明](D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/2026-10-16-求解更新前/版本说明.md)。历史数据不覆盖，后续Study04比较采用当前版本。
+[LRE](../../src/content/algorithms/lre.md) 的实现说明记录 Park（2017）Proposed+Plot、切换前的 Bernard 绘图位置及验证范围。Study04 的冻结结果与后续比较版本见[备份说明](<D:/weibull-research/Study/04-study-小样本三参数Weibull估计方法比较与选择/程序/历史版本/2026-10-16-求解更新前/版本说明.md>)。
 
 ## 单一现行实现与差异讨论（2026-11-02）
 
@@ -100,15 +100,11 @@ if __name__ == "__main__":
 
 ## 6. 两版MMLE的注册口径（2026-10-07）
 
-- `mmle` → `methods.mmle.MMLE`：Kundu–Raqab构造的单样本形式，与Research09实际 `KROriginal` 一致。令γ̂为原样本最小值，删除这一个观测，对其余观测使用 `y=x[1:]-γ̂`，再按固定点迭代估计β和η。来源为Kundu & Raqab（2009），*Statistics & Probability Letters* 79(17):1839–1846，印刷1840页式(4)、1841页式(6)(9)–(11)，DOI `10.1016/j.spl.2009.05.026`。原文研究两样本应力–强度问题；这里实现其删最小值和剖面迭代的单样本化简。
-- `mmle_ch` → `methods.mmle_ch.MMLE`：原Cohen–Whitten（1982）MMLE-I工程实现，原文件字节完整保留。它以第一顺序统计量的累计概率约束替代位置似然方程，采用50个位置候选；其既有边界、近似处理和成功标记未修复，不与K-R混称。
+- `mmle` → [`methods.mmle.MMLE`](mmle.py)，现行 Kundu–Raqab 单样本实现。
+- `mmle_ch` → [`methods.mmle_ch.MMLE`](mmle_ch.py)，旧 Cohen–Whitten 工程实现，供后端显式调用。
 
-K-R默认模块常量为 `INITIAL_SHAPE=1.0`、`SHAPE_ABSOLUTE_STEP_TOLERANCE=1e-8`、`MAX_ITERATIONS=10000`；`run()`可用同名小写参数覆盖。它不加Firth修正、额外形状或位置上界，不重试，不换求解器。失败返回 `[None,None,None,0.0,False]`，`last_solution_info`保存迭代次数、最终步长、删除数和支持边界。R²沿用R09的0占位，不解释为拟合优度为零。
-
-支持检查须使用保留观测的最小值 `x[1]`，因为γ̂等于已删除的原最小值 `x[0]`。通用全样本支持检查仍拒绝γ̂≥x[0]；本次不改变runner或metrics，实验接入时须显式说明删最小值的支持口径。`run_method('mmle_ch', sample)`可调用旧版，现有冻结批次不会因注册语义变化而重算。
-
-正式对拍复用R00的W(2,1000,500)与W(2,1000,3000)各100组样本，n=7/15各50组：200组均与R09实际类成功状态相同，三个参数及原有诊断逐项一致，最大绝对差为0；不重抽、不向R00写结果。另用R09存档W(2,1000,500)的6000组样本CSV作额外核对：成功/失败集合相同，与实际类的参数及原有诊断逐项一致；CSV参数最大绝对差为2.2737367544323206e-13。独立剖面得分定根、预算失败、重复最小值、形状大于10及两版分派见 `tests/test_mmle_kundu_raqab2009.py`。这一核验不等于完整复现原文两样本实验。
+原文、配置、保留观测的支持检查和 R00/R09 对拍证据统一见 [MMLE 方法说明](../../src/content/algorithms/mmle.md)。实验接入时按该说明核对删去最小值后的支持口径。注册分派与边界测试见 [`test_mmle_kundu_raqab2009.py`](../tests/test_mmle_kundu_raqab2009.py)。
 
 ## 7. 真实运行记录（2026-11-02）
 
-各方法的`calculation_trace`只记录本次实际求值、判据与选择，runner绑定输入、配置和源码哈希。trace开关不得改变参数估计，单次及重复估计使用同一个注册方法。MDM秩与离散/连续求解、WMLE位置域与表外规则、MM位置修正后的尺度规则仍待讨论，本轮收拢不更改这些算法行为。
+各方法的 `calculation_trace` 通过[共享 runner](../studies/common/runner.py)绑定输入、配置和源码身份。计算记录契约见[外部运行数据](../../docs/data/README.md#计算记录)，trace 开关对参数的回归验收见[计算过程验收](../../docs/development/method-pages.md#计算过程验收)。待讨论的 MDM 秩、WMLE 权重和位置边界、MM 位置修正与尺度恢复见[原文差异记录](../../coworker/reports/2026-11-02-single-method-implementation.md)。

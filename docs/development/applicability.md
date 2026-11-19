@@ -2,22 +2,26 @@
 
 > 建设目的与准则见[结果分析](../建设规范/02-参数估计方法/04-结果分析.md)。下方保留旧分片接口的兼容资料。
 
+[现行工作簿](#现行工作簿入口) · [旧分片数据与接口](#旧分片数据) · [旧适用范围页面](#前端组件结构)
+
 ## 概述
 
 ### 现行工作簿入口
 
 方法页入口为 `/methods/{methodId}/analysis`。旧 `/applicability` 地址带原批次、样本量、偏移量、工作表和样本查询参数跳转到「预计算结果」。`MethodResultAnalysis` 选择来源，所有来源和计算过程的归档选择器共用 `WorkbookResults`。
 
-- 预计算结果由 `MonteCarloWorkbookViewer` 从工作簿目录和读取接口取得，工作表选择随 URL 保存。归档统计使用三参数均有数值的记录。
-- 现场计算通过 `AnalysisSampleCard` 复用 `AnalysisCard` 的抽样和组间切换，调用与计算器、计算过程共用的逐组估计函数。现场工作簿以实际进入估计的样本为数据源，使用共享有效性检查和指标函数，支持下载当前工作表 CSV。
-- 从计算器带入的批次通过会话交接恢复到同一张卡片。已有估计随批次读取，首次估计时优先完成待估计的组。现场估计沿用计算器的方法能力，MDM 使用卡片的固定或 AI 偏移量。
+- 预计算结果由 `MonteCarloWorkbookViewer` 从工作簿目录和读取接口取得，工作表选择随 URL 保存。有效记录与统计口径见[结果分析规范](../建设规范/02-参数估计方法/04-结果分析.md#工作簿与统计)。
+- 现场计算由 `AnalysisSampleCard` 接入[共享计算卡片](../../src/components/calculator/README.md#批次和归档)，MDM 沿用卡片的固定或 AI 偏移量。接到已有批次后，首次估计时优先完成待估计的组。
+- 现场工作簿以实际进入估计的样本为数据源，使用共享有效性检查和指标函数，支持下载当前工作表 CSV。
 
-数据由`src/content/monte-carlo/research00.json`登记到外部`monte-carlo/research00/`。Research00原八组/新增五组的抽样和方法协议不同，按来源分别保留，不混成统一排名。当前13组各n=7/15/30、各50份样本。每组合导出原六表Excel；界面方法、n、视图不缩小导出内容。来源维护和离线登记见[外部数据说明](../data/README.md)。
+预计算批次按 [Research00 工作簿登记](../data/README.md#research00-工作簿登记2026-11-02)读取。导出通过登记的批次 ID 定位原件，与当前显示的方法、样本量及工作表选择独立。
 
 
 ## 旧分片数据
 
-## 目录结构
+旧分片仍供方法对比读取。结果分析的现行入口使用上方工作簿。
+
+### 目录结构
 
 2026-11-01起，CSV/JSON实际位于外部`WEIBULL_DATA_ROOT/public/studies/`，默认软件旁`../weibull-data/public/studies/`。下列浏览器网址与分片相对层级保持不变；软件内只保留Markdown说明和配置，Python通过`public_data_path()`写入外部位置。
 
@@ -28,7 +32,7 @@ public/studies/{method}/chunks/
 └── ...
 ```
 
-## 分片文件命名规范
+### 分片文件命名规范
 
 分片文件名格式：`b{beta}_e{eta}_g{gamma}_n{n}_d{d}_rep{rep}_seed{seed}_step{step}.csv`
 
@@ -45,7 +49,7 @@ public/studies/{method}/chunks/
 
 示例：`b2_e1000_g1000_n7_d0.1_rep1000_seed42_step60.csv`
 
-## 分片CSV格式
+### 分片CSV格式
 
 每个分片包含特定参数组合下的所有模拟结果：
 
@@ -65,9 +69,11 @@ beta_true,eta_true,sample_size,offset_value,sim_id,est_beta,est_eta,est_gamma,bi
 - `bias_beta`, `bias_eta`, `bias_gamma`: 偏差 = 估计值 - 真实值
 - `r_squared`: 拟合优度
 
-## 前端组件结构
+### 前端组件结构
 
-### 参数配置
+以下前端配置、页面布局和来源表格属于原适用范围页面，供追溯旧界面。
+
+#### 参数配置
 
 组件采用硬编码方式定义参数：
 
@@ -93,7 +99,7 @@ const CALC_CONFIG_DEFINITIONS = [
 ]
 ```
 
-### Tab 示例配置
+#### Tab 示例配置
 
 每个 Tab 代表一个预设的研究场景：
 
@@ -120,7 +126,7 @@ const STUDY_TABS = [
 ]
 ```
 
-### 变量维度选择
+#### 变量维度选择
 
 - 最多同时选择 **2 个变量维度**
 - 变量维度决定图表类型：
@@ -128,7 +134,7 @@ const STUDY_TABS = [
   - 双变量 → 热力图
 - 非变量维度使用固定值
 
-### 三色边框逻辑
+#### 三色边框逻辑
 
 参数值标签使用三色边框表示状态：
 
@@ -138,7 +144,7 @@ const STUDY_TABS = [
 | 绿色 | 可选择 | 存在对应的分片文件，可点击选择 |
 | 白色 | 不可选择 | 不存在对应的分片文件 |
 
-## 页面布局
+#### 页面布局
 
 1. **Tab 导航** - 切换不同研究示例
 2. **参数配置** - 选择变量维度和参数值
@@ -148,7 +154,7 @@ const STUDY_TABS = [
 6. **可视化图表** - 箱型图/热力图/密度图
 7. **数据来源表格** - 显示当前统计所用的分片信息
 
-## 数据来源表格
+#### 数据来源表格
 
 页面底部显示当前统计所用的分片信息：
 
@@ -160,9 +166,9 @@ const STUDY_TABS = [
 
 表格只显示当前参数选择对应的分片，不包括其他分片。
 
-## API 接口
+### API 接口
 
-### 获取分片列表
+#### 获取分片列表
 
 ```
 GET /api/studies/{methodId}/chunks
@@ -182,7 +188,7 @@ GET /api/studies/{methodId}/chunks
 }
 ```
 
-### 加载分片数据
+#### 加载分片数据
 
 ```
 GET /studies/{methodId}/chunks/{filename}
@@ -190,9 +196,10 @@ GET /studies/{methodId}/chunks/{filename}
 
 返回原始 CSV 数据。
 
-## 相关文件
+### 相关文件
 
-- 前端组件：`src/components/methods/{method}/studies/{Method}StudyViewer.tsx`
+- 当前方法对比：[MethodCompareViewer](../../src/components/methods/shared/compare/MethodCompareViewer.tsx)
+- 旧适用范围组件：`src/components/methods/{method}/studies/{Method}StudyViewer.tsx`
 - API 路由：`src/app/api/studies/[methodId]/chunks/route.ts`
 - 分片数据：`public/studies/{method}/chunks/`
 - 共享图表：`src/components/shared/charts/`
