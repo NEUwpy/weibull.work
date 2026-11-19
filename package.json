@@ -1,6 +1,6 @@
 {
   "name": "weibull-platform",
-  "version": "4.2.0-261113",
+  "version": "4.2.1-261119",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,11 +12,13 @@
     "check:app": "npm run check:method-status && npm run test:app && npm run typecheck",
     "generate:method-status": "node scripts/generate-method-status.mjs",
     "check:method-status": "node scripts/generate-method-status.mjs --check",
+    "check:version": "node scripts/update-version.mjs --check",
+    "install:version-hook": "node scripts/update-version.mjs --install",
     "test:method-status": "node --test scripts/tests/method-status.test.mjs",
     "test:calculator-state": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/calculator-state.test.mjs",
     "test:mdm-process-optimization": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/mdm-process-optimization.test.mjs",
     "predev": "npm run generate:method-status",
-    "prebuild": "npm run check:method-status"
+    "prebuild": "npm run check:version && npm run check:method-status"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
