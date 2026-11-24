@@ -7,10 +7,10 @@ export function libraryDatabaseDirectory() {
   return path.resolve(process.env.WEIBULL_FAVORITES_DIR?.trim() || path.join(getDataRoot(), 'private', 'library-favorites'))
 }
 
-export function openLibraryDatabase(directory = libraryDatabaseDirectory()) {
+export function openLibraryDatabase(directory = libraryDatabaseDirectory(), readOnly = false) {
   const sqlite = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite')
-  mkdirSync(directory, { recursive: true, mode: 0o700 })
-  const db = new sqlite.DatabaseSync(path.join(directory, 'library-favorites.sqlite3'))
+  if (!readOnly) mkdirSync(directory, { recursive: true, mode: 0o700 })
+  const db = new sqlite.DatabaseSync(path.join(directory, 'library-favorites.sqlite3'), { readOnly })
   try {
     db.exec('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;')
     return db

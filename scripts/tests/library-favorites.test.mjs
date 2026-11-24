@@ -33,6 +33,7 @@ async function checkFavorites(t, mode) {
   const salt = '0123456789abcdef0123456789abcdef'
   const directory = favoritesEnvironment(t, {
     WEIBULL_FAVORITES_STORAGE: mode,
+    WEIBULL_LIBRARY_AUTH_MODE: 'password',
     WEIBULL_LIBRARY_PHONE: phone,
     WEIBULL_LIBRARY_PASSWORD_HASH: `scrypt:${salt}:${scryptSync(password, salt, 64).toString('hex')}`,
     WEIBULL_SESSION_SECRET: 'temporary-signing-fixture-at-least-32-characters',

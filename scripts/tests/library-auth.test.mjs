@@ -7,11 +7,12 @@ const phone = '18800000000'
 const password = 'test-password-only'
 const salt = '0123456789abcdef0123456789abcdef'
 const passwordHash = `scrypt:${salt}:${scryptSync(password, salt, 64).toString('hex')}`
-const envNames = ['WEIBULL_LIBRARY_PHONE', 'WEIBULL_LIBRARY_PASSWORD_HASH', 'WEIBULL_SESSION_SECRET']
+const envNames = ['WEIBULL_LIBRARY_AUTH_MODE', 'WEIBULL_LIBRARY_PHONE', 'WEIBULL_LIBRARY_PASSWORD_HASH', 'WEIBULL_SESSION_SECRET']
 const globals = { Request, Response }
 
 async function withAuth(run) {
   const saved = envNames.map(name => process.env[name])
+  process.env.WEIBULL_LIBRARY_AUTH_MODE = 'password'
   process.env.WEIBULL_LIBRARY_PHONE = phone
   process.env.WEIBULL_LIBRARY_PASSWORD_HASH = passwordHash
   process.env.WEIBULL_SESSION_SECRET = 'test-signing-secret-is-at-least-32-characters'

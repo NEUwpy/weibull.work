@@ -43,7 +43,11 @@
 .library-login-eyebrow { color: #64748b; font-size: .75rem; letter-spacing: .12em; margin: 1.75rem 0 .6rem; }
 .library-login-dialog h2 { color: #0f172a; font-size: 1.65rem; font-weight: 600; letter-spacing: -.035em; }
 .library-login-description { color: #94a3b8; font-size: .8125rem; line-height: 1.8; margin-top: .7rem; }
+.library-login-options { display: flex; gap: .35rem; padding: .25rem; margin-top: 1.2rem; border-radius: 10px; background: #f1f5f9; }
+.library-login-options button { flex: 1; min-height: 34px; border-radius: 7px; color: #475569; font-size: .8125rem; }
+.library-login-options button[aria-pressed="true"] { background: #fff; color: #1d4ed8; box-shadow: 0 1px 3px rgb(15 23 42 / .08); }
 .library-login-form { margin-top: 1.75rem; }
+.library-login-options + .library-login-form { margin-top: 1.15rem; }
 .library-login-form label { display: block; color: #475569; font-size: .8125rem; margin-bottom: .5rem; }
 .library-login-form input { display: block; width: 100%; min-width: 0; height: 48px; padding: 0 14px; border: 1px solid #e2e8f0; border-radius: 10px; color: #0f172a; font-size: .875rem; outline: none; background: #f8fafc; margin-bottom: 1.15rem; transition: border-color .2s, box-shadow .2s; }
 .library-login-form input::placeholder { color: #a1adbd; }
@@ -56,6 +60,14 @@
 .library-login-code-row input { margin-bottom: 0; }
 .library-login-code-row button { padding-inline: .65rem; border: 1px solid #dbeafe; border-radius: 10px; color: #1d4ed8; background: #eff6ff; font-size: .75rem; white-space: nowrap; }
 .library-login-code-row button:disabled { color: #64748b; background: #f8fafc; }
+.library-login-password-row { position: relative; }
+.library-login-password-row input { padding-right: 48px; }
+.library-login-password-row button { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 7px; color: #64748b; }
+.library-login-password-row button:hover { background: #eff6ff; color: #1d4ed8; }
+.library-login-registration { display: flex; justify-content: center; align-items: center; gap: .75rem; min-height: 32px; margin-top: .8rem; color: #64748b; font-size: .8125rem; }
+.library-login-registration button { min-height: 32px; padding-inline: .4rem; color: #1d4ed8; }
+.library-login-registration button:hover { text-decoration: underline; }
+.library-login-registration button:disabled { opacity: .6; }
 .library-login-dialog button:focus-visible, .library-entry-tabs button:focus-visible, .library-entry-read:focus-visible { outline: 2px solid #3b82f6; outline-offset: 4px; }
 @keyframes library-login-enter { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .library-login-dialog { animation: none; } }

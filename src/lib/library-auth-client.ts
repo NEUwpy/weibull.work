@@ -7,6 +7,7 @@ export interface LibraryAuthSnapshot {
   user?: { phone: string; canRead?: boolean }
   expiresAt?: number
   loginMode?: 'sms' | 'password'
+  registrationWindow?: { opensAt: number; closesAt: number } | null
 }
 
 export function maskLibraryPhone(phone: string) {
@@ -14,6 +15,9 @@ export function maskLibraryPhone(phone: string) {
 }
 
 type Fetcher = (url: string, init: RequestInit) => Promise<Response>
+type SessionResponse = Pick<LibraryAuthSnapshot, 'user' | 'expiresAt' | 'loginMode' | 'registrationWindow'> & {
+  authenticated?: boolean
+}
 const INITIAL_SNAPSHOT: LibraryAuthSnapshot = { status: 'loading' }
 const RESET_EVENT = 'weibull:library-session-reset'
 const REQUIRED_EVENT = 'weibull:library-auth-required'
@@ -42,10 +46,11 @@ export function createLibraryAuthClient(options: {
     return snapshot
   }
 
-  function fromResponse(data: { authenticated?: boolean; user?: LibraryAuthSnapshot['user']; expiresAt?: number; loginMode?: LibraryAuthSnapshot['loginMode'] }): LibraryAuthSnapshot {
+  function fromResponse(data: SessionResponse): LibraryAuthSnapshot {
     const mode = data.loginMode || snapshot.loginMode
+    const window = data.registrationWindow === undefined ? snapshot.registrationWindow : data.registrationWindow
     const state: LibraryAuthSnapshot = data.authenticated ? { status: 'authenticated', user: data.user, expiresAt: data.expiresAt } : { status: 'anonymous' }
-    return mode ? { ...state, loginMode: mode } : state
+    return mode ? { ...state, loginMode: mode, registrationWindow: window } : state
   }
 
   function invalidate() {
@@ -70,28 +75,36 @@ export function createLibraryAuthClient(options: {
     return request
   }
 
-  async function sendCode(phone: string) {
+  async function sendCode(phone: string, purpose: 'login' | 'register' = 'login') {
     const response = await fetcher('/api/auth/code', {
       method: 'POST', cache: 'no-store', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }),
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(purpose === 'register' ? { phone, purpose } : { phone }),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) throw new Error(data.error || '暂时无法获取验证码。')
     return Number(data.resendAfter)
   }
 
-  async function login(phone: string, credential: string, mode: 'sms' | 'password' = 'password') {
+  async function authenticate(endpoint: 'login' | 'register', fields: { phone: string; code?: string; password?: string }) {
     if (pendingLogout) await pendingLogout
     const current = ++revision
     pending = undefined
-    const response = await fetcher('/api/auth/login', {
+    const response = await fetcher(`/api/auth/${endpoint}`, {
       method: 'POST', cache: 'no-store', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mode === 'sms' ? { phone, code: credential } : { phone, password: credential }),
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields),
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok || !data.authenticated) throw new Error(data.error || '暂时无法登录，请稍后重试。')
     if (current !== revision) return snapshot
     return publish(fromResponse(data))
+  }
+
+  function login(phone: string, credential: string, mode: 'sms' | 'password' = 'password') {
+    return authenticate('login', mode === 'sms' ? { phone, code: credential } : { phone, password: credential })
+  }
+
+  function register(phone: string, code: string, password: string) {
+    return authenticate('register', { phone, code, password })
   }
 
   function logout() {
@@ -112,7 +125,7 @@ export function createLibraryAuthClient(options: {
     getSnapshot: () => snapshot,
     getServerSnapshot: () => INITIAL_SNAPSHOT,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
-    refresh, sendCode, login, logout, invalidate,
+    refresh, sendCode, login, register, logout, invalidate,
   }
 }
 

@@ -35,6 +35,8 @@ ENV WEIBULL_FAVORITES_STORAGE=sqlite
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/scripts/sync-library-favorites.mjs ./scripts/
+COPY --from=builder /app/src/lib ./src/lib
 
 USER nextjs
 

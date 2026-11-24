@@ -1,15 +1,17 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { LibraryFavoriteAction, LibraryFavoriteFolder, LibraryFavoriteResult } from '../library-favorites'
 import { isLibraryRecommendationRelation, libraryRecommendationLabels } from '../library-recommendations'
-import { legacyLibraryAccountId, libraryDatabaseDirectory } from './library-database'
+import { legacyLibraryAccountId, libraryDatabaseDirectory, openLibraryDatabase } from './library-database'
 import { readSqliteLibraryFavorites, updateSqliteLibraryFavorites } from './library-favorites-sqlite'
 import { removeDefaultFavoriteFolder } from './library-favorites-legacy'
 
 export class LibraryFolderNotFound extends Error {}
 
-function validFolder(folder: LibraryFavoriteFolder) {
+export function validLibraryFavoriteFolder(value: unknown): value is LibraryFavoriteFolder {
+  const folder = value as LibraryFavoriteFolder | null | undefined
   if (typeof folder?.id !== 'string' || typeof folder.name !== 'string' ||
       !Array.isArray(folder.paperIds) || !folder.paperIds.every(id => typeof id === 'string')) return false
   if (folder.subfolders !== undefined && (!Array.isArray(folder.subfolders) ||
@@ -20,9 +22,13 @@ function validFolder(folder: LibraryFavoriteFolder) {
   return Object.values(folder.paperSubfolders).every(id => children.has(id))
 }
 
+function phoneKey(phone: string) {
+  return createHash('sha256').update(phone).digest('hex')
+}
+
 function storageFor(phone: string, legacyId?: string | null) {
   const directory = libraryDatabaseDirectory()
-  const key = createHash('sha256').update(phone).digest('hex')
+  const key = phoneKey(phone)
   const file = path.join(directory, `${key}.json`)
   const mode = process.env.WEIBULL_FAVORITES_STORAGE?.trim() || 'json'
   if (mode === 'json') return { mode, file } as const
@@ -32,10 +38,33 @@ function storageFor(phone: string, legacyId?: string | null) {
   return { mode, account: { directory, userId: accountId ? `account:${accountId}` : `phone:${key}`, readInitialFolders: () => readFolders(file) } } as const
 }
 
+export function libraryFavoritesSyncOwner() {
+  const phone = process.env.WEIBULL_LIBRARY_PHONE?.trim()
+  if (!phone || !/^1\d{10}$/.test(phone)) throw new Error('请先配置预设账号的手机号。')
+  const directory = libraryDatabaseDirectory()
+  let legacyId = legacyLibraryAccountId()
+  if (process.env.WEIBULL_LIBRARY_AUTH_MODE !== 'password' && existsSync(path.join(directory, 'library-favorites.sqlite3'))) {
+    const db = openLibraryDatabase(directory, true)
+    try {
+      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'library_phone_users'").get()) {
+        const account = db.prepare('SELECT legacy_account_id FROM library_phone_users WHERE phone = ?')
+          .get(phone) as { legacy_account_id: string | null } | undefined
+        legacyId = account?.legacy_account_id ?? legacyId
+        if (legacyId && db.prepare('SELECT 1 FROM library_phone_users WHERE legacy_account_id = ? AND phone <> ?').get(legacyId, phone)) {
+          throw new Error('预设账号的收藏标识已被其他手机号关联。')
+        }
+      }
+    } finally { db.close() }
+  }
+  const storage = storageFor(phone, legacyId)
+  if (storage.mode !== 'sqlite') throw new Error('同步需要使用 SQLite。请设置 WEIBULL_FAVORITES_STORAGE=sqlite。')
+  return { ownerKey: phoneKey(phone), account: storage.account }
+}
+
 async function readFolders(file: string): Promise<LibraryFavoriteFolder[]> {
   try {
     const data = JSON.parse(await fs.readFile(file, 'utf8'))
-    if (data.version !== 1 || !Array.isArray(data.folders) || !data.folders.every(validFolder)) {
+    if (data.version !== 1 || !Array.isArray(data.folders) || !data.folders.every(validLibraryFavoriteFolder)) {
       throw new Error('Invalid library favorites file')
     }
     return removeDefaultFavoriteFolder(data.folders)

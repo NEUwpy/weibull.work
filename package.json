@@ -1,6 +1,6 @@
 {
   "name": "weibull-platform",
-  "version": "4.2.2-261120",
+  "version": "4.2.3-261125",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "check:method-status": "node scripts/generate-method-status.mjs --check",
     "check:version": "node scripts/update-version.mjs --check",
     "install:version-hook": "node scripts/update-version.mjs --install",
+    "favorites:sync": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-library-favorites.mjs",
     "test:method-status": "node --test scripts/tests/method-status.test.mjs",
     "test:calculator-state": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/calculator-state.test.mjs",
     "test:mdm-process-optimization": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/tests/mdm-process-optimization.test.mjs",

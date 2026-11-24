@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { LEGACY_LIBRARY_FOLDER, type LibraryFavoriteFolder, type LibraryFavoriteResult } from '../library-favorites'
 import { legacyFavoriteFolderName, removeDefaultFavoriteFolder } from './library-favorites-legacy'
@@ -81,9 +83,9 @@ function writeFolder(db: DatabaseSync, userId: string, folder: LibraryFavoriteFo
   Array.from(new Set(folder.paperIds)).forEach((id, index) => insert.run(userId, folder.id, id, index, assignments.get(id) ?? null))
 }
 
-function readFolders(db: DatabaseSync, userId: string) {
+function readFolders(db: DatabaseSync, userId: string, withSubfolders = true) {
   const rows = db.prepare(`
-    SELECT f.id, f.name, p.paper_id, p.subfolder_id
+    SELECT f.id, f.name, p.paper_id, ${withSubfolders ? 'p.subfolder_id' : 'NULL'} AS subfolder_id
     FROM favorite_folders f
     LEFT JOIN favorite_papers p ON (p.user_id, p.folder_id) = (f.user_id, f.id)
     WHERE f.user_id = ?
@@ -104,6 +106,7 @@ function readFolders(db: DatabaseSync, userId: string) {
       }
     }
   }
+  if (!withSubfolders) return Array.from(folders.values())
   const children = db.prepare(`
     SELECT folder_id, id, name FROM favorite_subfolders WHERE user_id = ? ORDER BY position
   `).all(userId) as Array<{ folder_id: string; id: string; name: string }>
@@ -170,5 +173,69 @@ export function updateSqliteLibraryFavorites(account: SQLiteAccount, change: (fo
     const { result, modified } = change(readFolders(db, account.userId))
     if (modified) writeFolder(db, account.userId, result.folder)
     return result
+  }))
+}
+
+export interface LibraryFavoriteSyncState {
+  folders: LibraryFavoriteFolder[]
+  baseline: LibraryFavoriteFolder[] | null
+}
+
+function readSyncBaseline(db: DatabaseSync, userId: string, peer?: string): LibraryFavoriteFolder[] | null {
+  if (!peer || !db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'favorite_sync_checkpoints'").get()) return null
+  const row = db.prepare('SELECT snapshot FROM favorite_sync_checkpoints WHERE user_id = ? AND peer = ?')
+    .get(userId, peer) as { snapshot: string } | undefined
+  return row ? JSON.parse(row.snapshot) : null
+}
+
+export async function readSqliteLibraryFavoriteSyncState(account: SQLiteAccount, peer?: string): Promise<LibraryFavoriteSyncState> {
+  const { directory, userId, readInitialFolders } = account
+  if (existsSync(path.join(directory, 'library-favorites.sqlite3'))) {
+    const db = openLibraryDatabase(directory, true)
+    try {
+      const state = transaction(db, () => {
+        const version = schemaVersion(db)
+        if (version === 0) return null
+        if (version !== 1 && version !== 2) throw new Error('收藏数据库版本不受支持。')
+        if (!db.prepare('SELECT 1 FROM favorite_users WHERE id = ?').get(userId)) return null
+        return {
+          folders: removeDefaultFavoriteFolder(readFolders(db, userId, version === 2)),
+          baseline: readSyncBaseline(db, userId, peer),
+        }
+      }, 'BEGIN')
+      if (state) return state
+    } finally { db.close() }
+  }
+  return { folders: await readInitialFolders(), baseline: null }
+}
+
+export function updateSqliteLibraryFavoriteSyncState(
+  account: SQLiteAccount,
+  peer: string | undefined,
+  change: (state: LibraryFavoriteSyncState) => { folders: LibraryFavoriteFolder[]; modified: boolean },
+) {
+  const { userId } = account
+  return withDatabase(account, db => transaction(db, () => {
+    const folders = readFolders(db, userId)
+    const next = change({ folders, baseline: readSyncBaseline(db, userId, peer) })
+    if (next.modified) {
+      db.prepare('DELETE FROM favorite_folders WHERE user_id = ?').run(userId)
+      for (const folder of next.folders) writeFolder(db, userId, folder)
+    }
+    if (peer) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS favorite_sync_checkpoints (
+          user_id TEXT NOT NULL REFERENCES favorite_users(id),
+          peer TEXT NOT NULL,
+          snapshot TEXT NOT NULL,
+          PRIMARY KEY (user_id, peer)
+        ) STRICT;
+      `)
+      db.prepare(`
+        INSERT INTO favorite_sync_checkpoints (user_id, peer, snapshot) VALUES (?, ?, ?)
+        ON CONFLICT(user_id, peer) DO UPDATE SET snapshot = excluded.snapshot
+      `).run(userId, peer, JSON.stringify(next.folders))
+    }
+    return next.folders
   }))
 }
