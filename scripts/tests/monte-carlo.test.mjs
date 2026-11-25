@@ -53,6 +53,7 @@ function fixture(run) {
     const localRequire = name => {
       if (name === '@/content/monte-carlo/research00.json') return index
       if (name === './method-flow.mjs') return { loadMethodFlow }
+      if (name === './workbook-integrity.mjs') return require(path.resolve(path.dirname(file), name))
       return name.startsWith('.') ? load(path.resolve(path.dirname(file), name + '.ts')) : require(name)
     }
     const context = vm.createContext({ process: { env: { WEIBULL_DATA_ROOT: data }, cwd: () => process.cwd() }, console, Buffer, structuredClone })

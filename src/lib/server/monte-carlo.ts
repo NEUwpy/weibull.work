@@ -1,9 +1,9 @@
 import fs from 'fs'
 import path from 'path'
-import { createHash } from 'crypto'
 import catalog from '@/content/monte-carlo/research00.json'
 import { DataConfigurationError, getDataRoot, resolveRootEntry } from './data-root'
 import { readCalculationRecordSet, mdmRecordSetProcess } from './calculation-records'
+import { WorkbookIntegrityError, readWorkbookManifest, readWorkbookArtifact } from './workbook-integrity.mjs'
 import type { MonteCarloWorkbook, WorkbookCard } from '../monte-carlo'
 
 interface Entry extends WorkbookCard {
@@ -16,9 +16,8 @@ interface Manifest {
   schemaVersion: number; id: string; importedAt: string; calculationTime: string | null; protocol: string
   configuration: Record<string, unknown>; files: Record<string, { sha256: string; bytes: number; role: string }>
 }
-export class WorkbookIntegrityError extends Error {}
+export { WorkbookIntegrityError }
 const entries: Entry[] = catalog.entries
-const sha = (data: Buffer) => createHash('sha256').update(data).digest('hex')
 
 function batchEntry(id: string): Entry | undefined { return entries.find(e => e.id === id) }
 function batchFile(entry: Entry, relative: string): string {
@@ -29,18 +28,10 @@ function batchFile(entry: Entry, relative: string): string {
   return file
 }
 function readManifest(entry: Entry): Manifest {
-  const raw = fs.readFileSync(batchFile(entry, 'manifest.json'))
-  if (sha(raw) !== entry.manifestSha256) throw new WorkbookIntegrityError('计算来源记录的哈希已变化')
-  const manifest: Manifest = JSON.parse(raw.toString('utf8'))
-  if (manifest.schemaVersion !== 1 || manifest.id !== entry.id) throw new WorkbookIntegrityError('计算来源与数据卡不匹配')
-  return manifest
+  return readWorkbookManifest(entry, (relative: string) => fs.readFileSync(batchFile(entry, relative)))
 }
 function readFile(entry: Entry, manifest: Manifest, relative: string): Buffer {
-  const record = manifest.files[relative]
-  if (!record) throw new WorkbookIntegrityError('文件未在计算来源中登记')
-  const raw = fs.readFileSync(batchFile(entry, relative))
-  if (raw.length !== record.bytes || sha(raw) !== record.sha256) throw new WorkbookIntegrityError('文件身份已变化：' + relative)
-  return raw
+  return readWorkbookArtifact(manifest, relative, (file: string) => fs.readFileSync(batchFile(entry, file)))
 }
 export function workbookCatalog(): WorkbookCard[] {
   return entries.map(entry => {

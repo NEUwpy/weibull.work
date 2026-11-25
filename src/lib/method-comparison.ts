@@ -1,4 +1,4 @@
-export interface MethodComparisonParams {
+export type MethodComparisonParams = {
   beta: number
   eta: number
   gamma: number
@@ -27,11 +27,14 @@ export interface MethodComparisonRow {
 
 export async function requestMethodComparisonSimulation(
   methodId: string,
-  { beta, eta, gamma, n, rep, seed, offset }: MethodComparisonParams
+  { beta, eta, gamma, n, rep, seed, offset }: MethodComparisonParams,
+  signal?: AbortSignal,
+  request: typeof fetch = fetch
 ): Promise<MethodComparisonRow[]> {
   const isMDM = methodId.toLowerCase() === 'mdm'
-  const response = await fetch('/api/studies/simulate', {
+  const response = await request('/api/studies/simulate', {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       methodId,

@@ -4,6 +4,7 @@ import React, { useMemo } from 'react'
 import { Loader2, AlertTriangle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MethodComparisonRow as SimulationRow } from '@/lib/method-comparison'
+import type { MethodComparisonResult, MethodComparisonState } from '@/lib/method-comparison-loader'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
@@ -35,18 +36,6 @@ function getMethodColor(methodId: string, index: number): string {
 }
 
 // ============ Types ============
-
-interface MethodData {
-  methodId: string
-  chunkInfo: any
-  csvData: SimulationRow[]
-  isLoading: boolean
-  needsSimulation: boolean
-  isSimulating: boolean
-  simulationProgress: number
-  errorMessage?: string
-  loadedFilename?: string  // 加载成功的文件名
-}
 
 interface StatsResult {
   key: string
@@ -211,7 +200,7 @@ function CompareDensityChart({
   trueValue,
   fixedValues
 }: {
-  methodsData: Record<string, MethodData>
+  methodsData: Record<string, MethodComparisonState>
   selectedMethods: string[]
   paramId: 'beta' | 'eta' | 'gamma'
   trueValue: number
@@ -230,10 +219,10 @@ function CompareDensityChart({
     }> = []
 
     selectedMethods.forEach((methodId, index) => {
-      const methodData = methodsData[methodId]
-      if (!methodData?.csvData || methodData.csvData.length === 0) return
+      const result = methodsData[methodId]?.result
+      if (result?.status !== 'ready') return
 
-      const values = methodData.csvData
+      const values = result.rows
         .map(row => row[estKey as keyof SimulationRow] as number | null)
         .filter((v): v is number => v !== null && v !== undefined)
 
@@ -371,18 +360,18 @@ function CompareDensityChart({
 
 function MethodColumn({
   methodId,
-  methodData,
+  result,
   stats,
   displayOptions,
   paramSelection,
-  fixedValues
+  onRetry
 }: {
   methodId: string
-  methodData: MethodData
+  result: MethodComparisonResult
   stats: StatsResult | null
   displayOptions: { mean: boolean; biasMean: boolean; std: boolean; ci99: boolean }
   paramSelection: { beta: boolean; eta: boolean; gamma: boolean }
-  fixedValues: Record<string, number>
+  onRetry: (methodId: string) => void
 }) {
   const methodInfo = {
     mle: { name: '极大似然估计', shortName: 'MLE' },
@@ -392,32 +381,32 @@ function MethodColumn({
 
   const borderColor = METHOD_COLORS[methodId] || 'border-slate-300'
 
-  // 需要现场计算或正在计算
-  if (methodData.needsSimulation || methodData.isSimulating) {
-    const hasError = !!methodData.errorMessage
-
+  if (result.status !== 'ready') {
     return (
       <div className={cn(
         "bg-white rounded-2xl border-2 p-6 flex flex-col items-center justify-center min-h-[300px]",
         borderColor
       )}>
-        {methodData.isSimulating ? (
+        <h4 className="font-bold text-slate-800 mb-3">{methodInfo.name}</h4>
+        {result.status === 'loading' || result.status === 'simulating' ? (
           <>
             <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-3" />
-            <p className="text-sm text-slate-600 mb-3">正在运行蒙特卡洛模拟...</p>
-            <p className="text-xs text-slate-400">请稍候，这可能需要几秒钟</p>
+            <p className="text-sm text-slate-600">{result.status === 'simulating' ? '正在运行蒙特卡洛模拟' : '正在查找所选组合的历史结果'}</p>
           </>
-        ) : hasError ? (
+        ) : result.status === 'error' ? (
           <>
             <AlertTriangle className="h-8 w-8 text-red-500 mb-3" />
-            <p className="text-sm text-red-600 font-bold mb-2">计算失败</p>
-            <p className="text-xs text-red-500 mb-4 max-w-xs text-center">{methodData.errorMessage}</p>
+            <p className="text-sm text-red-600 font-bold mb-2">{result.stage === 'simulation' ? '计算失败' : '历史数据读取失败'}</p>
+            <p className="text-xs text-red-500 mb-4 max-w-xs text-center">{result.message}</p>
+            <button type="button" onClick={() => onRetry(methodId)} className="text-sm font-medium text-purple-700 underline">重试</button>
           </>
         ) : (
           <>
             <Clock className="h-8 w-8 text-amber-500 mb-3" />
-            <p className="text-sm text-slate-600 mb-2">无预计算数据</p>
-            <p className="text-xs text-slate-400">请点击上方"开始模拟"按钮</p>
+            <p className="text-sm text-slate-600 mb-2">
+              {result.status === 'waiting-for-parameters' ? '请完成参数配置' : '所选组合没有历史结果'}
+            </p>
+            {result.status === 'waiting-for-simulation' && <p className="text-xs text-slate-400">即将开始现场模拟</p>}
           </>
         )}
       </div>
@@ -450,6 +439,9 @@ function MethodColumn({
         </div>
         <p className="text-xs text-slate-400 mt-1">
           {stats.valid_count} / {stats.count} 有效结果
+        </p>
+        <p className="text-xs text-slate-500 mt-1" title={result.source === 'archive' ? result.filename : undefined}>
+          {result.source === 'archive' ? '历史分片' : '现场模拟'}
         </p>
       </div>
 
@@ -519,7 +511,7 @@ function MethodColumn({
 
 interface CompareResultsViewProps {
   selectedMethods: string[]
-  methodsData: Record<string, MethodData>
+  methodsData: Record<string, MethodComparisonState>
   variableDimensions: string[]
   displayOptions: { mean: boolean; biasMean: boolean; std: boolean; ci99: boolean }
   paramSelection: { beta: boolean; eta: boolean; gamma: boolean }
@@ -527,6 +519,7 @@ interface CompareResultsViewProps {
   densityTab: 'beta' | 'eta' | 'gamma'
   setDensityTab: (v: 'beta' | 'eta' | 'gamma') => void
   fixedValues: Record<string, number>
+  onRetry: (methodId: string) => void
 }
 
 export default function CompareResultsView({
@@ -538,23 +531,21 @@ export default function CompareResultsView({
   setParamSelection,
   densityTab,
   setDensityTab,
-  fixedValues
+  fixedValues,
+  onRetry
 }: CompareResultsViewProps) {
   // 计算各方法统计
   const statsMap = useMemo(() => {
     const map: Record<string, StatsResult | null> = {}
     for (const methodId of selectedMethods) {
-      const data = methodsData[methodId]
-      map[methodId] = data?.csvData ? calcStats(data.csvData) : null
+      const result = methodsData[methodId]?.result
+      map[methodId] = result?.status === 'ready' ? calcStats(result.rows) : null
     }
     return map
   }, [selectedMethods, methodsData])
 
   // 检查是否有有效数据
-  const hasValidData = selectedMethods.some(methodId => {
-    const data = methodsData[methodId]
-    return data?.csvData && data.csvData.length > 0 && !data.needsSimulation && !data.isSimulating
-  })
+  const hasValidData = selectedMethods.some(methodId => methodsData[methodId]?.result.status === 'ready')
 
   // 选中的参数列表
   const selectedParams = Object.entries(paramSelection)
@@ -595,11 +586,11 @@ export default function CompareResultsView({
           <MethodColumn
             key={methodId}
             methodId={methodId}
-            methodData={methodsData[methodId] || { methodId, chunkInfo: null, csvData: [], isLoading: false, needsSimulation: false, isSimulating: false, simulationProgress: 0 }}
+            result={methodsData[methodId].result}
             stats={statsMap[methodId]}
             displayOptions={displayOptions}
             paramSelection={paramSelection}
-            fixedValues={fixedValues}
+            onRetry={onRetry}
           />
         ))}
       </div>
@@ -653,13 +644,13 @@ export default function CompareResultsView({
                 <tr className="border-b-2 border-slate-300">
                   <th className="py-2 px-3 font-bold text-slate-700 text-left w-12">#</th>
                   <th className="py-2 px-3 font-bold text-slate-700 text-left">方法</th>
-                  <th className="py-2 px-3 font-bold text-slate-700 text-left">数据文件</th>
+                  <th className="py-2 px-3 font-bold text-slate-700 text-left">数据来源</th>
                   <th className="py-2 px-3 font-bold text-slate-700 text-right w-28">数据规模</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedMethods.map((methodId, idx) => {
-                  const methodData = methodsData[methodId]
+                  const result = methodsData[methodId].result
                   const methodInfo = {
                     mle: { name: '极大似然估计', shortName: 'MLE' },
                     wmle: { name: '加权极大似然', shortName: 'WMLE' },
@@ -673,8 +664,7 @@ export default function CompareResultsView({
                     grey: { name: '灰色模型', shortName: 'GM(1,1)' },
                   }[methodId] || { name: methodId.toUpperCase(), shortName: methodId.toUpperCase() }
 
-                  const hasData = methodData?.csvData && methodData.csvData.length > 0
-                  const filename = methodData?.loadedFilename
+                  const hasData = result.status === 'ready'
 
                   return (
                     <tr key={methodId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
@@ -690,11 +680,9 @@ export default function CompareResultsView({
                         </div>
                       </td>
                       <td className="py-1.5 px-3 font-mono text-xs">
-                        {hasData && filename ? (
-                          <span className="text-slate-600">{filename}</span>
-                        ) : methodData?.needsSimulation ? (
-                          <span className="text-amber-600">现场计算</span>
-                        ) : methodData?.isSimulating ? (
+                        {hasData ? (
+                          <span className="text-slate-600">{result.source === 'archive' ? result.filename : '现场模拟'}</span>
+                        ) : result.status === 'simulating' ? (
                           <span className="text-purple-600 flex items-center gap-1">
                             <Loader2 className="h-3 w-3 animate-spin" />
                             计算中...
@@ -707,7 +695,7 @@ export default function CompareResultsView({
                         "py-1.5 px-3 text-right font-mono",
                         hasData ? "text-slate-700" : "text-slate-400"
                       )}>
-                        {hasData ? `${methodData.csvData.length} 行` : '--'}
+                        {hasData ? `${result.rows.length} 行` : '--'}
                       </td>
                     </tr>
                   )
@@ -717,7 +705,10 @@ export default function CompareResultsView({
                 <tr className="border-t-2 border-slate-300 bg-slate-100">
                   <td className="py-2 px-3 font-bold text-slate-700" colSpan={3}>合计</td>
                   <td className="py-2 px-3 text-right font-bold font-mono text-slate-700">
-                    {selectedMethods.reduce((sum, methodId) => sum + (methodsData[methodId]?.csvData?.length || 0), 0)} 行
+                    {selectedMethods.reduce((sum, methodId) => {
+                      const result = methodsData[methodId].result
+                      return sum + (result.status === 'ready' ? result.rows.length : 0)
+                    }, 0)} 行
                   </td>
                 </tr>
               </tfoot>
