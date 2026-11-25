@@ -385,12 +385,13 @@ def test_batch_csv_keeps_failed_cells_empty_and_success_numbers(helpers, monkeyp
 
 
 @pytest.mark.parametrize("endpoint", ["calculate", "batch_simulation", "monte_carlo_simulate"])
-def test_stub_alias_api_preserves_501(helpers, endpoint):
+@pytest.mark.parametrize("method", ["lm", "mps"])
+def test_unimplemented_method_api_returns_501(helpers, endpoint, method):
     requests = {
-        "calculate": helpers.CalculationRequest(method="lm", data=[1, 2, 3]),
+        "calculate": helpers.CalculationRequest(method=method, data=[1, 2, 3]),
         "batch_simulation": helpers.BatchSimulationRequest(
-            method="lm", true_beta=2, true_eta=100, true_gamma=5, sample_sizes=[7]),
-        "monte_carlo_simulate": helpers.MonteCarloRequest(method="lm", beta=2, eta=100, n=7),
+            method=method, true_beta=2, true_eta=100, true_gamma=5, sample_sizes=[7]),
+        "monte_carlo_simulate": helpers.MonteCarloRequest(method=method, beta=2, eta=100, n=7),
     }
     with pytest.raises(HTTPException) as exc:
         asyncio.run(getattr(helpers, endpoint)(requests[endpoint]))

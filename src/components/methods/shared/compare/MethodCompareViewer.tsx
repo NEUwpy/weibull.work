@@ -3,27 +3,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Loader2, Play, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { requestMethodComparisonSimulation, type MethodComparisonParams, type MethodComparisonRow } from '@/lib/method-comparison'
 import MethodSelector, { AVAILABLE_METHODS } from './MethodSelector'
 import CompareConfigPanel from './CompareConfigPanel'
 import CompareResultsView from './CompareResultsView'
 
 // ============ Types ============
-
-interface SimulationRow {
-  beta_true: number
-  eta_true: number
-  gamma?: number
-  sample_size: number
-  offset_value?: number
-  sim_id: number
-  est_beta: number | null
-  est_eta: number | null
-  est_gamma: number | null
-  bias_beta: number | null
-  bias_eta: number | null
-  bias_gamma: number | null
-  r_squared: number | null
-}
 
 interface ChunkInfo {
   chunks: string[]
@@ -34,7 +19,7 @@ interface ChunkInfo {
 interface MethodData {
   methodId: string
   chunkInfo: ChunkInfo | null
-  csvData: SimulationRow[]
+  csvData: MethodComparisonRow[]
   isLoading: boolean
   needsSimulation: boolean
   isSimulating: boolean
@@ -58,12 +43,12 @@ const DEFAULT_VALUES = {
 
 // ============ Utility Functions ============
 
-function parseCsv(text: string): SimulationRow[] {
+function parseCsv(text: string): MethodComparisonRow[] {
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
 
   const headers = lines[0].split(',')
-  const rows: SimulationRow[] = []
+  const rows: MethodComparisonRow[] = []
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',')
@@ -95,7 +80,7 @@ function parseCsv(text: string): SimulationRow[] {
   return rows
 }
 
-function generateChunkFilename(params: Record<string, number | undefined>, isMDM: boolean = false): string {
+function generateChunkFilename(params: Partial<MethodComparisonParams>, isMDM: boolean = false): string {
   const parts: string[] = []
 
   if (params.beta !== undefined) parts.push(`b${params.beta}`)
@@ -187,6 +172,31 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
 
   const isMultiSelectMode = variableDimensions.length > 0
   const allVariableDimensions = variableDimensions
+
+  const currentParams = useMemo<MethodComparisonParams>(() => ({
+    beta: variableDimensions.includes('beta')
+      ? (selectedParams.beta[0] ?? DEFAULT_VALUES.beta)
+      : (fixedValues.beta ?? DEFAULT_VALUES.beta),
+    eta: variableDimensions.includes('eta')
+      ? (selectedParams.eta[0] ?? DEFAULT_VALUES.eta)
+      : (fixedValues.eta ?? DEFAULT_VALUES.eta),
+    gamma: variableDimensions.includes('gamma')
+      ? (selectedParams.gamma[0] ?? DEFAULT_VALUES.gamma)
+      : (fixedValues.gamma ?? DEFAULT_VALUES.gamma),
+    n: variableDimensions.includes('n')
+      ? (selectedParams.n[0] ?? DEFAULT_VALUES.n)
+      : (fixedValues.n ?? DEFAULT_VALUES.n),
+    rep: variableDimensions.includes('rep')
+      ? (selectedParams.rep[0] ?? DEFAULT_VALUES.rep)
+      : (fixedValues.rep ?? DEFAULT_VALUES.rep),
+    seed: variableDimensions.includes('seed')
+      ? (selectedParams.seed[0] ?? DEFAULT_VALUES.seed)
+      : (fixedValues.seed ?? DEFAULT_VALUES.seed),
+    step: fixedValues.step ?? DEFAULT_VALUES.step,
+    offset: fixedValues.offset ?? DEFAULT_VALUES.offset
+  }), [variableDimensions, selectedParams, fixedValues])
+  const currentParamKey = JSON.stringify({ params: currentParams, isMultiSelectMode })
+  const lastLoadedSelection = React.useRef({ key: '' })
 
   // 检查是否所有参数都已选择完成
   const requiredParams = ['beta', 'eta', 'gamma', 'n', 'rep', 'seed', 'step'] as const
@@ -378,28 +388,13 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
               }
             }))
 
-            // 4. 立即用初始参数加载数据
-            const params = initialParamsCache || {
-              beta: DEFAULT_VALUES.beta,
-              eta: DEFAULT_VALUES.eta,
-              gamma: DEFAULT_VALUES.gamma,
-              n: DEFAULT_VALUES.n,
-              rep: DEFAULT_VALUES.rep,
-              seed: DEFAULT_VALUES.seed,
-              step: DEFAULT_VALUES.step,
-              d: DEFAULT_VALUES.offset
-            }
+            // 首次进入用分片初始化参数。后续新增方法沿用当前设置。
+            const params = initialParamsCache
+              ? { ...initialParamsCache, offset: initialParamsCache.d }
+              : currentParams
+            const selection = lastLoadedSelection.current
             const isMDM = methodId.toLowerCase() === 'mdm'
-            const filename = generateChunkFilename({
-              beta: params.beta,
-              eta: params.eta,
-              gamma: params.gamma,
-              n: params.n,
-              offset: isMDM ? params.d : undefined,
-              rep: params.rep,
-              seed: params.seed,
-              step: params.step
-            }, isMDM)
+            const filename = generateChunkFilename(params, isMDM)
 
             const chunkExists = chunkInfo.chunks.includes(filename)
             console.log(`[MethodCompare] ${methodId} - 初始加载: ${filename}, exists: ${chunkExists}`)
@@ -411,6 +406,8 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
 
                 if (dataRes.ok) {
                   const text = await dataRes.text()
+                  if (!isMounted) return
+                  if (lastLoadedSelection.current !== selection) continue
                   const data = parseCsv(text)
                   console.log(`[MethodCompare] ${methodId} - 加载成功: ${data.length} 行`)
                   setMethodsData(prev => ({
@@ -433,7 +430,7 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
                 [methodId]: {
                   ...prev[methodId],
                   csvData: [],
-                  needsSimulation: true,
+                  needsSimulation: !isMultiSelectMode,
                   loadedFilename: undefined
                 }
               }))
@@ -488,39 +485,10 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
     })
   }, [selectedMethods, methodsData])
 
-  // 生成当前参数组合的唯一键
-  const currentParamKey = useMemo(() => {
-    return JSON.stringify({
-      beta: variableDimensions.includes('beta')
-        ? (selectedParams.beta[0] ?? DEFAULT_VALUES.beta)
-        : (fixedValues.beta ?? DEFAULT_VALUES.beta),
-      eta: variableDimensions.includes('eta')
-        ? (selectedParams.eta[0] ?? DEFAULT_VALUES.eta)
-        : (fixedValues.eta ?? DEFAULT_VALUES.eta),
-      gamma: variableDimensions.includes('gamma')
-        ? (selectedParams.gamma[0] ?? DEFAULT_VALUES.gamma)
-        : (fixedValues.gamma ?? DEFAULT_VALUES.gamma),
-      n: variableDimensions.includes('n')
-        ? (selectedParams.n[0] ?? DEFAULT_VALUES.n)
-        : (fixedValues.n ?? DEFAULT_VALUES.n),
-      rep: variableDimensions.includes('rep')
-        ? (selectedParams.rep[0] ?? DEFAULT_VALUES.rep)
-        : (fixedValues.rep ?? DEFAULT_VALUES.rep),
-      seed: variableDimensions.includes('seed')
-        ? (selectedParams.seed[0] ?? DEFAULT_VALUES.seed)
-        : (fixedValues.seed ?? DEFAULT_VALUES.seed),
-      step: fixedValues.step ?? DEFAULT_VALUES.step,
-      offset: fixedValues.offset ?? DEFAULT_VALUES.offset
-    })
-  }, [variableDimensions, selectedParams, fixedValues])
-
   // 检查所有 chunkInfo 是否已加载完成
   const allChunkInfoLoaded = useMemo(() => {
     return selectedMethods.every(methodId => methodsData[methodId]?.chunkInfo)
   }, [selectedMethods, methodsData])
-
-  // 跟踪上次加载的参数键，用于检测参数变化（初始加载后）
-  const lastLoadedParamKeyRef = React.useRef<string>('')
 
   // 参数变化时重新加载数据（仅在初始加载完成后触发）
   useEffect(() => {
@@ -528,36 +496,12 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
     if (!allChunkInfoLoaded || !paramsInitialized) return
 
     // 检测参数是否变化
-    const paramChanged = lastLoadedParamKeyRef.current !== currentParamKey
-    if (!paramChanged) return
+    if (lastLoadedSelection.current.key === currentParamKey) return
 
     // 记录新的参数键
-    lastLoadedParamKeyRef.current = currentParamKey
+    const selection = { key: currentParamKey }
+    lastLoadedSelection.current = selection
     console.log(`[MethodCompare] 参数变化，重新加载: ${currentParamKey}`)
-
-    // 当前参数
-    const currentParams = {
-      beta: variableDimensions.includes('beta')
-        ? (selectedParams.beta[0] ?? DEFAULT_VALUES.beta)
-        : (fixedValues.beta ?? DEFAULT_VALUES.beta),
-      eta: variableDimensions.includes('eta')
-        ? (selectedParams.eta[0] ?? DEFAULT_VALUES.eta)
-        : (fixedValues.eta ?? DEFAULT_VALUES.eta),
-      gamma: variableDimensions.includes('gamma')
-        ? (selectedParams.gamma[0] ?? DEFAULT_VALUES.gamma)
-        : (fixedValues.gamma ?? DEFAULT_VALUES.gamma),
-      n: variableDimensions.includes('n')
-        ? (selectedParams.n[0] ?? DEFAULT_VALUES.n)
-        : (fixedValues.n ?? DEFAULT_VALUES.n),
-      rep: variableDimensions.includes('rep')
-        ? (selectedParams.rep[0] ?? DEFAULT_VALUES.rep)
-        : (fixedValues.rep ?? DEFAULT_VALUES.rep),
-      seed: variableDimensions.includes('seed')
-        ? (selectedParams.seed[0] ?? DEFAULT_VALUES.seed)
-        : (fixedValues.seed ?? DEFAULT_VALUES.seed),
-      step: fixedValues.step ?? DEFAULT_VALUES.step,
-      offset: fixedValues.offset ?? DEFAULT_VALUES.offset
-    }
 
     // 异步加载所有方法的数据
     selectedMethods.forEach(methodId => {
@@ -571,6 +515,8 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
           ...prev[methodId],
           csvData: [],
           needsSimulation: false,
+          isSimulating: false,
+          simulationProgress: 0,
           errorMessage: undefined,
           loadedFilename: undefined
         }
@@ -587,6 +533,7 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
             throw new Error(`HTTP ${res.status}`)
           })
           .then(text => {
+            if (lastLoadedSelection.current !== selection) return
             const data = parseCsv(text)
             setMethodsData(prev => ({
               ...prev,
@@ -615,30 +562,6 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentParamKey, allChunkInfoLoaded, isMultiSelectMode, paramsInitialized])
-
-  // 当有方法需要模拟时，自动触发模拟
-  useEffect(() => {
-    // 等待所有 chunkInfo 加载完成
-    const allChunkInfoLoaded = selectedMethods.every(methodId => methodsData[methodId]?.chunkInfo)
-    if (!allChunkInfoLoaded) return
-
-    // 检查是否有需要模拟的方法（且没有正在模拟的）
-    const methodsNeedingSimulation = selectedMethods.filter(methodId => {
-      const data = methodsData[methodId]
-      return data?.needsSimulation && !data?.isSimulating && data?.chunkInfo
-    })
-
-    // 如果有需要模拟的方法且配置完成，自动触发模拟
-    if (methodsNeedingSimulation.length > 0 && isConfigComplete && !isSimulating) {
-      console.log(`[MethodCompare] 自动触发模拟: ${methodsNeedingSimulation.length} 个方法`)
-      // 延迟一点触发，让 UI 先更新
-      const timer = setTimeout(() => {
-        handleRunAllSimulations()
-      }, 300)
-      return () => clearTimeout(timer)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [methodsData, isConfigComplete, isSimulating, selectedMethods])
 
   // ========== Handlers ==========
 
@@ -682,73 +605,55 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
   }, [variableDimensions, isMultiSelectMode, paramIntersection, availableParams])
 
   const handleRunSimulation = useCallback(async (methodId: string) => {
+    const selection = lastLoadedSelection.current
     // 开始模拟
     setMethodsData(prev => ({
       ...prev,
       [methodId]: { ...prev[methodId], isSimulating: true, simulationProgress: 0, errorMessage: undefined }
     }))
 
-    console.log(`[MethodCompare] 开始模拟: methodId=${methodId}, params=`, {
-      beta: fixedValues.beta ?? DEFAULT_VALUES.beta,
-      eta: fixedValues.eta ?? DEFAULT_VALUES.eta,
-      gamma: fixedValues.gamma ?? DEFAULT_VALUES.gamma,
-      n: fixedValues.n ?? DEFAULT_VALUES.n,
-      rep: fixedValues.rep ?? DEFAULT_VALUES.rep,
-      seed: fixedValues.seed ?? DEFAULT_VALUES.seed
-    })
-
     try {
-      const res = await fetch('/api/studies/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          methodId,
-          params: {
-            beta: fixedValues.beta ?? DEFAULT_VALUES.beta,
-            eta: fixedValues.eta ?? DEFAULT_VALUES.eta,
-            gamma: fixedValues.gamma ?? DEFAULT_VALUES.gamma,
-            n: fixedValues.n ?? DEFAULT_VALUES.n,
-            rep: fixedValues.rep ?? DEFAULT_VALUES.rep,
-            seed: fixedValues.seed ?? DEFAULT_VALUES.seed
-          }
-        })
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        console.log(`[MethodCompare] 模拟成功: methodId=${methodId}, rows=${data.rows?.length || 0}`)
-        setMethodsData(prev => ({
-          ...prev,
-          [methodId]: {
-            ...prev[methodId],
-            csvData: data.rows || [],
-            needsSimulation: false,
-            isSimulating: false,
-            simulationProgress: 100
-          }
-        }))
-      } else {
-        const errorData = await res.json().catch(() => ({}))
-        const errorMsg = errorData.error || errorData.detail || `HTTP ${res.status}: ${res.statusText}`
-        console.error(`[MethodCompare] 模拟失败: methodId=${methodId}`, errorMsg)
-        setMethodsData(prev => ({
-          ...prev,
-          [methodId]: { ...prev[methodId], isSimulating: false, simulationProgress: 0, errorMessage: errorMsg }
-        }))
-      }
-    } catch (err: any) {
-      const errorMsg = err.message || String(err)
-      console.error(`[MethodCompare] 模拟异常: methodId=${methodId}`, errorMsg)
+      const rows = await requestMethodComparisonSimulation(methodId, currentParams)
+      if (lastLoadedSelection.current !== selection) return
       setMethodsData(prev => ({
         ...prev,
-        [methodId]: { ...prev[methodId], isSimulating: false, simulationProgress: 0, errorMessage: errorMsg }
+        [methodId]: {
+          ...prev[methodId],
+          csvData: rows,
+          needsSimulation: false,
+          isSimulating: false,
+          simulationProgress: 100
+        }
+      }))
+    } catch (error) {
+      if (lastLoadedSelection.current !== selection) return
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`[MethodCompare] 模拟失败: methodId=${methodId}`, error)
+      setMethodsData(prev => ({
+        ...prev,
+        [methodId]: { ...prev[methodId], isSimulating: false, simulationProgress: 0, errorMessage }
       }))
     }
-  }, [fixedValues])
+  }, [currentParams])
+
+  // 只自动启动尚未尝试的组合。失败的组合可手动重试。
+  useEffect(() => {
+    if (!allChunkInfoLoaded || !isConfigComplete || isMultiSelectMode || isSimulating) return
+    const pending = selectedMethods.filter(methodId => {
+      const data = methodsData[methodId]
+      return data?.needsSimulation && !data.errorMessage
+    })
+    if (pending.length === 0) return
+
+    const timer = setTimeout(() => {
+      void Promise.all(pending.map(handleRunSimulation))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [allChunkInfoLoaded, isConfigComplete, isMultiSelectMode, isSimulating, selectedMethods, methodsData, handleRunSimulation])
 
   // 批量模拟所有需要模拟的方法
   const handleRunAllSimulations = useCallback(async () => {
-    if (!isConfigComplete) return
+    if (!isConfigComplete || isMultiSelectMode) return
 
     // 并行模拟所有需要模拟的方法
     const methodsToSimulate = selectedMethods.filter(methodId => {
@@ -760,7 +665,7 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
 
     // 并行执行所有模拟
     await Promise.all(methodsToSimulate.map(methodId => handleRunSimulation(methodId)))
-  }, [isConfigComplete, selectedMethods, methodsData, handleRunSimulation])
+  }, [isConfigComplete, isMultiSelectMode, selectedMethods, methodsData, handleRunSimulation])
 
   // ========== Render ==========
 
@@ -835,7 +740,7 @@ export default function MethodCompareViewer({ currentMethodId }: MethodCompareVi
         </div>
         <button
           onClick={handleRunAllSimulations}
-          disabled={!isConfigComplete || !needsSimulation || isSimulating}
+          disabled={!isConfigComplete || isMultiSelectMode || !needsSimulation || isSimulating}
           className={cn(
             "flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all",
             isConfigComplete && needsSimulation && !isSimulating

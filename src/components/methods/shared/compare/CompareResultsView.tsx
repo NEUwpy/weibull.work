@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react'
 import { Loader2, AlertTriangle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { MethodComparisonRow as SimulationRow } from '@/lib/method-comparison'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts'
@@ -34,22 +35,6 @@ function getMethodColor(methodId: string, index: number): string {
 }
 
 // ============ Types ============
-
-interface SimulationRow {
-  beta_true: number
-  eta_true: number
-  gamma?: number
-  sample_size: number
-  offset_value?: number
-  sim_id: number
-  est_beta: number | null
-  est_eta: number | null
-  est_gamma: number | null
-  bias_beta: number | null
-  bias_eta: number | null
-  bias_gamma: number | null
-  r_squared: number | null
-}
 
 interface MethodData {
   methodId: string

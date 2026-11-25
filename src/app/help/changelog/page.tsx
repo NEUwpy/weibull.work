@@ -73,7 +73,7 @@ export default function StatusPage() {
     <div className="bg-white p-10 max-[767px]:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-10">
       <div>
         <h1 className="text-2xl font-black text-slate-900 mb-2">功能模块完成状态</h1>
-        <p className="text-slate-500">共 {methods.length} 个参数估计方法。程序流程与适用范围证据分别在「计算过程」和「结果分析」中查看。</p>
+        <p className="text-slate-500">共 {methods.length} 个参数估计方法。程序流程见「计算过程」，工作簿见「结果分析」，已登记的历史分片可在「方法对比」查阅。</p>
       </div>
 
       {/* 汇总 */}

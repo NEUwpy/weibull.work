@@ -1,42 +1,16 @@
-# 方法示例通用仿真程序
+# 旧示例仿真工具
 
-> 当前状态（2026-06）：本文件描述的是旧的“每个方法一个 simulate.py”的适用范围分片生成流程。该流程仍用于兼容旧 `public/studies/*` 数据。新的蒙特卡洛、真值抽样、API 现场模拟和实验产物保存，应优先阅读并使用 `python/studies/common/README.md`。
-> 新实验不要复制 `mdm/mle/wmle/simulate.py`；应走 `python/studies/common/{sample.py, runner.py, simulation.py, experiment.py, metrics.py}`。
+这份说明用于维护旧适用范围示例的 `simulate.py`。新实验、真值抽样和 API 现场模拟使用[统一蒙特卡洛流水线](common/README.md)。网页查看登记批次见[结果分析开发说明](../../docs/development/applicability.md#现行工作簿入口)，旧 CSV 的位置和接口见[外部运行数据](../../docs/data/README.md#旧研究分片)。
 
-## 概述
+## 查看旧示例状态
 
-本目录包含各参数估计方法的通用仿真脚本，用于生成蒙特卡洛模拟数据。
+在软件仓根目录执行下列命令查看 [MLE demo1](../../public/studies/mle/demo1/config.md)。旧工具按方法和示例读取仓内 YAML 配置，结果写入[外部数据根](../../docs/data/README.md#当前目录与读取)。本仓跟踪的示例配置可在 [public/studies](../../public/studies/README.md) 查找。
 
-## 目录结构
-
-```
-python/studies/
-├── README.md           # 本说明文档
-├── mdm/                # MDM 方法
-│   └── simulate.py     # MDM 通用仿真脚本
-├── wmle/               # WMLE 方法（待添加）
-│   └── simulate.py
-└── ...                 # 其他方法
+```powershell
+.\python\.venv\Scripts\python.exe -X utf8 .\python\studies\mle\simulate.py demo1 --status
 ```
 
-## 使用方法
-
-### 基本用法
-
-```bash
-cd python/studies/mdm
-python simulate.py <study_id>
-```
-
-例如：
-```bash
-python simulate.py demo1
-```
-
-### 前置条件
-
-1. 配置文件位于 `public/studies/mdm/<study_id>/config.md`
-2. 配置文件必须包含 YAML front matter，定义参数和仿真设置
+复跑旧示例前先核对原配置、算法版本和外部输出目录。下面保留 MDM 的配置结构与输出字段，供解释既有记录。
 
 ## 配置文件格式
 
@@ -192,27 +166,6 @@ params:
 }
 ```
 
-## 设计原则
-
-### 1. 配置驱动
-
-所有仿真参数从 `config.md` 读取，不在代码中硬编码。
-
-### 2. 通用复用
-
-一个方法维护一个 `simulate.py`，通过参数配置支持多种示例场景。
-
-### 3. 与前端一致
-
-配置格式与前端 `UniversalStudyViewer` 组件一致，实现前后端参数共享。
-
-## 添加新示例
-
-1. 在 `public/studies/mdm/` 下创建新目录（如 `demo2/`）
-2. 创建 `config.md` 配置文件
-3. 运行仿真：`python simulate.py demo2`
-4. 在前端选择新示例即可展示
-
 ## 故障排查
 
 ### 常见问题
@@ -223,7 +176,7 @@ params:
 
 2. **无解记录过多**
    - 检查偏移量 `process` 设置是否合理
-   - 尝试增加 `gammaSteps` 提高精度
+   - 按原配置核对 `gammaSteps` 和求解器版本
 
 3. **运行时间过长**
    - 减少 `mcRuns` 进行快速测试

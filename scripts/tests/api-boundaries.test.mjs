@@ -126,3 +126,31 @@ test('simulation proxy preserves backend rejection and rejects missing params', 
   assert.equal((await route.POST({ json: async () => ({ methodId: 'mdm' }) })).status, 400)
   assert.equal((await route.POST({ json: async () => ({ methodId: 'mdm', params: { beta: 2, eta: 1, n: 7 } }) })).status, 429)
 })
+
+test('method comparison sends the selected MDM offset through the proxy and checks the actual offset', async () => {
+  let forwarded
+  let actualOffset = 0.24
+  const route = loadRoute('src/app/api/studies/simulate/route.ts', {}, {
+    fetch: async (_url, options) => {
+      forwarded = JSON.parse(options.body)
+      return { ok: true, json: async () => ({ rows: [{ offset_value: actualOffset }], count: 1, success: true }) }
+    },
+  })
+  const { requestMethodComparisonSimulation } = loadServerModule('src/lib/method-comparison.ts', {}, {
+    fetch: async (url, options) => {
+      assert.equal(url, '/api/studies/simulate')
+      return route.POST({ json: async () => JSON.parse(options.body) })
+    },
+  })
+  const params = { beta: 2, eta: 100, gamma: 5, n: 7, rep: 1, seed: 0, offset: 0.24, step: 60 }
+
+  assert.deepEqual(await requestMethodComparisonSimulation('mdm', params), [{ offset_value: 0.24 }])
+  assert.deepEqual(forwarded, { method: 'mdm', beta: 2, eta: 100, gamma: 5, n: 7, rep: 1, seed: 0, offset: 0.24 })
+
+  actualOffset = 0.1
+  await assert.rejects(requestMethodComparisonSimulation('mdm', params), /偏移量与所选值 0\.24 不一致/)
+
+  actualOffset = null
+  await requestMethodComparisonSimulation('mle', params)
+  assert.equal(Object.hasOwn(forwarded, 'offset'), false)
+})

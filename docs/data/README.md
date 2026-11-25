@@ -8,7 +8,7 @@
 
 | 外部目录 | 用途 | 浏览器地址 |
 |---|---|---|
-| `public/studies/` | 供现有方法对比使用的[旧研究分片](../development/applicability.md#旧分片数据) | `/studies/...csv`、`/studies/...json`及`/api/studies/.../chunks` |
+| `public/studies/` | 供现有方法对比使用的[旧研究分片](#旧研究分片) | `/studies/...csv`、`/studies/...json`及`/api/studies/.../chunks` |
 | `public/ai/data/` | AI页面展示数据 | `/ai/data/...csv`、`/ai/data/...json` |
 | `public/case-studies/` | 方法案例结果 | `/case-studies/...csv`、`/case-studies/...json` |
 | `literature-source/` | 本机JSON书票，选择100论文与400书籍 | 由`WEIBULL_LIBRARY_ROOT`显式选择，详见[文献库入口](../library/README.md) |
@@ -19,11 +19,27 @@
 
 读取层只公开上述结果命名空间的CSV/JSON，阻止目录穿越及指向模型/私人目录的符号链接。数据根缺失返回503，合法命名空间内不存在的单个文件返回404。Python生成程序通过`python/data_paths.py`写入同一`<数据根>/public`层级；版本化的Markdown配置和产品模型继续在软件仓。
 
+## 旧研究分片
+
+软件仓的 `public/studies/` 保存版本化的示例配置和说明。分片 CSV 及其索引在外部数据根的 `public/studies/{methodId}/chunks/`，兼容按示例读取的 `public/studies/{methodId}/{studyId}/chunks/`。方法对比读取方法级分片。结果分析读取[登记的工作簿](#research00-工作簿登记2026-11-02)。
+
+| 接口 | 返回 |
+|---|---|
+| `GET /api/studies/{methodId}/chunks` | 方法级 CSV 文件名、按文件名解析的参数值及文件总数 |
+| `GET /api/studies/{methodId}/{studyId}/chunks` | 指定旧示例的 CSV 文件名、解析出的参数值及文件总数 |
+| `GET /studies/{methodId}/chunks/{filename}` | 方法级原始 CSV，旧示例地址可在 `chunks` 前带 `{studyId}` |
+
+列表响应的字段为 `chunks`、`parsedParams` 和 `total`。示例文件名 `b2_e1000_g1000_n7_d0.1_rep1000_seed42_step60.csv` 中，`b`、`e`、`g` 分别记录形状、尺度和位置，`n` 为样本量，`rep` 为重复次数，`seed` 为种子。MDM 的偏移量在文件名和列表响应中使用 `d`，在 CSV 中使用 `offset_value`。`step` 记录旧分片的迭代步长。
+
+每个方法级 CSV 分片保存一个参数组合的模拟结果。`beta_true`、`eta_true`、可选的 `gamma` 记录真值，`sample_size` 和 `sim_id` 记录样本量和组号。`est_beta`、`est_eta`、`est_gamma` 保存估计，`bias_beta`、`bias_eta`、`bias_gamma` 保存估计减真值的差，`r_squared` 保存拟合优度。缺失值及 `NaN` 按空值读取。
+
+旧生成器的配置和查看命令见[旧示例仿真工具](../../python/studies/README.md)，新实验使用[统一蒙特卡洛流水线](../../python/studies/common/README.md)。
+
 ## 备份与发布边界
 
 2026-11-01 的数据清理时点、原有资料迁移说明见[架构决策 AD-14](../../06-A-架构决策.md#ad-14-轻软件仓外部数据与-json-书票2026-10-28)。清理前备份、逐文件 SHA-256 清单、恢复位置及旧协作记录在 `D:/weibull-backups/software-cleanup-20261101`。需要切换旧 Git 检出时，按[维护指南的 Git 前提](../../03-维护.md#v40-基线与历史切换的-git-前提)办理。
 
-外部资料随相应版本的索引和配置交付。挂载方案、资料包待接事项及上线验收以[新版发布流程](../../03-维护.md#新版发布流程)为准。
+外部资料随相应版本的索引和配置交付。数据根的挂载与上线验收见[NAS 源库部署](../../03-维护.md#nas-源库部署)。
 
 
 ## Research00 工作簿登记（2026-11-02）
@@ -40,7 +56,7 @@
 
 工具核对原Excel、结果矩阵及冻结依赖哈希，生成`manifest.json`和`workbook.json`并复制原Excel/代码输入快照。已登记文件不同则中止，不覆盖历史；不会抽样或重新拟合。网页无上传，只按已登记ID读取，文件变化校验失败，不能自动回退到现算法。
 
-新实验自动保存完整样本并登记网页索引的进度见[待办](../../04-目标与待办.md#打通新实验的数据保存与网页登记)。部署时同步索引对应批次，挂载见[维护指南](../../03-维护.md#新版发布流程)。
+新实验自动保存完整样本并登记网页索引的进度见[待办](../../04-目标与待办.md#打通新实验的数据保存与网页登记)。部署时同步索引对应批次，挂载见[NAS 源库部署](../../03-维护.md#nas-源库部署)。
 
 工作簿仅通过计算记录编号关联[独立计算记录集](#计算记录)。载入时核对每组样本、编号、估计值和设置，不在工作簿适配层构造计算过程。
 

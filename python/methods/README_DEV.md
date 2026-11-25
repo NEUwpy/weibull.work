@@ -43,22 +43,21 @@ return [beta, eta, gamma, r_squared, converged]
 | **beta** | $\beta$ | 形状参数 (Shape) | 斜率，必须 > 0 |
 | **eta** | $\eta$ | 尺度参数 (Scale) | 特征寿命，必须 > 0 |
 | **gamma** | $\gamma$ | 位置参数 (Location) | 失效阈值，通常 >= 0 |
-| **r_squared** | $R^2$ | 拟合优度 | 0.0 - 1.0 之间 |
+| **r_squared** | $R^2$ | 拟合优度 | 基类计算上限为 1，可为负值 |
 | **converged** | — | 方法成功标记 | 失败不补入默认参数 |
 
 ---
 
 ## 3. 基类工具 (WeibullBase Utilities)
 
-`WeibullBase` (在 `../base.py` 中) 提供了一些常用的数学工具，请优先使用以保持一致性：
+优先使用 [`WeibullBase`](../base.py) 的数学工具，保持计算口径一致。
 
 - **`self._median_ranks()`**
-  - 计算贝纳德中位秩 (Benard's Median Ranks)。
-  - 返回: NumPy 数组 (F值)。
+  - 按 `rank_method` 计算中位秩。默认 `bernard` 使用 Bernard 近似，`exact` 使用逆不完全 Beta 函数计算精确中位秩。
+  - 返回失效概率 $F$ 的 NumPy 数组。
 
 - **`self._calculate_r2(beta, eta, gamma)`**
-  - 标准化的 R² 计算函数。
-  - 在你算出参数后，直接调用此方法计算拟合优度。
+  - 在威布尔概率图坐标下计算 $1-SS_{res}/SS_{tot}$。保留计算所得的负值。
 
 ---
 

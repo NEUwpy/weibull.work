@@ -11,7 +11,6 @@ from methods.mmle import MMLE
 from methods.mmle_ch import MMLE as MMLE_CH
 from methods.lre import LRE
 from methods.lse import LSE
-from methods.mps import MPS
 from methods.mm import MM
 from methods.wmle import WMLE
 from methods.mdm import MDM
@@ -20,7 +19,7 @@ from methods.mdm import MDM
 # 有独立实现的方法
 # ============================================================
 IMPLEMENTED = {
-    "mle": MLE, "mmle": MMLE, "mmle_ch": MMLE_CH, "mps": MPS, "wmle": WMLE,
+    "mle": MLE, "mmle": MMLE, "mmle_ch": MMLE_CH, "wmle": WMLE,
     "lse": LSE, "mdm": MDM, "lre": LRE,
     "mm": MM,
 }
@@ -40,7 +39,7 @@ ALIASES = {
 # 前端有定义但后端尚未实现的方法
 # ============================================================
 NOT_IMPLEMENTED = {
-    "pwm", "grey", "bayesian",
+    "mps", "pwm", "grey", "bayesian",
     "construct_stat", "mve", "lsf",
     "ai", "pso", "svr", "ann",
 }

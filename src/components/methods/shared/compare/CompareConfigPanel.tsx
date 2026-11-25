@@ -18,7 +18,7 @@ const SIM_CONFIG_DEFINITIONS = [
 ]
 
 const CALC_CONFIG_DEFINITIONS = [
-  { id: 'step', name: '迭代步长', symbol: 'step', chunkKey: 'step' },
+  { id: 'step', name: '历史分片步长', symbol: 'step', chunkKey: 'step' },
 ]
 
 // 样式常量
