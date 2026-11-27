@@ -9,6 +9,7 @@
 | 方法目录、建设状态或展示流程 | 按[生成缓存](../05-状态.md#生成缓存)更新或校验方法状态。解析与推导使用 `npm run test:method-status` |
 | Python 算法或 API | [后端回归测试](../python/tests/README.md)。前端 API 调用也变更时，另查应用回归 |
 | 版本钩子或版本检查 | `node --test scripts/tests/update-version.test.mjs` |
+| NAS 切换前核对候选版本与外部资料 | [NAS 发布预检](../03-维护.md#nas-发布预检) |
 
 ## 文档检查
 

@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react'
 import { Loader2, AlertTriangle, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { MethodComparisonRow as SimulationRow } from '@/lib/method-comparison'
+import { summarizeMethodComparison, type MethodComparisonStatistics } from '@/lib/method-comparison-statistics'
 import type { MethodComparisonResult, MethodComparisonState } from '@/lib/method-comparison-loader'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
@@ -35,40 +35,6 @@ function getMethodColor(methodId: string, index: number): string {
   return fallbackColors[index % fallbackColors.length]
 }
 
-// ============ Types ============
-
-interface StatsResult {
-  key: string
-  keyLabel: string
-  count: number
-  valid_count: number
-  beta_true: number
-  eta_true: number
-  gamma: number
-  est_beta_mean: number | null
-  est_eta_mean: number | null
-  est_gamma_mean: number | null
-  bias_beta_mean: number | null
-  bias_eta_mean: number | null
-  bias_gamma_mean: number | null
-  est_beta_std: number | null
-  est_eta_std: number | null
-  est_gamma_std: number | null
-  est_beta_min: number | null
-  est_beta_max: number | null
-  est_eta_min: number | null
-  est_eta_max: number | null
-  est_gamma_min: number | null
-  est_gamma_max: number | null
-  est_beta_p005: number | null
-  est_beta_p995: number | null
-  est_eta_p005: number | null
-  est_eta_p995: number | null
-  est_gamma_p005: number | null
-  est_gamma_p995: number | null
-  [key: string]: number | string | null | undefined
-}
-
 // ============ Constants ============
 
 const EST_PARAM_COLORS = {
@@ -84,70 +50,6 @@ const METHOD_COLORS: Record<string, string> = {
 }
 
 // ============ Utility Functions ============
-
-function calcStats(data: SimulationRow[]): StatsResult | null {
-  if (data.length === 0) return null
-
-  const validRows = data.filter(r => r.est_beta !== null && r.est_eta !== null)
-  const betaTrue = data[0].beta_true
-  const etaTrue = data[0].eta_true
-  const gamma = data[0].gamma ?? 1000
-
-  const calc = (values: (number | null)[]) => {
-    const nums = values.filter((v): v is number => v !== null)
-    if (nums.length === 0) return { mean: null, std: null, min: null, max: null, p005: null, p995: null }
-
-    const sorted = [...nums].sort((a, b) => a - b)
-    const n = sorted.length
-    const mean = nums.reduce((a, b) => a + b, 0) / n
-    const std = Math.sqrt(nums.reduce((s, v) => s + (v - mean) ** 2, 0) / n)
-
-    const quantile = (q: number) => {
-      const pos = (n - 1) * q
-      const base = Math.floor(pos)
-      return sorted[base + 1] !== undefined
-        ? sorted[base] + (pos - base) * (sorted[base + 1] - sorted[base])
-        : sorted[base]
-    }
-
-    return { mean, std, min: sorted[0], max: sorted[n - 1], p005: quantile(0.005), p995: quantile(0.995) }
-  }
-
-  const betaStats = calc(validRows.map(r => r.est_beta))
-  const etaStats = calc(validRows.map(r => r.est_eta))
-  const gammaStats = calc(validRows.map(r => r.est_gamma))
-
-  return {
-    key: 'all',
-    keyLabel: '全部',
-    count: data.length,
-    valid_count: validRows.length,
-    beta_true: betaTrue,
-    eta_true: etaTrue,
-    gamma,
-    est_beta_mean: betaStats.mean,
-    est_eta_mean: etaStats.mean,
-    est_gamma_mean: gammaStats.mean,
-    bias_beta_mean: betaStats.mean !== null ? betaStats.mean - betaTrue : null,
-    bias_eta_mean: etaStats.mean !== null ? etaStats.mean - etaTrue : null,
-    bias_gamma_mean: gammaStats.mean !== null ? gammaStats.mean - gamma : null,
-    est_beta_std: betaStats.std,
-    est_eta_std: etaStats.std,
-    est_gamma_std: gammaStats.std,
-    est_beta_min: betaStats.min,
-    est_beta_max: betaStats.max,
-    est_eta_min: etaStats.min,
-    est_eta_max: etaStats.max,
-    est_gamma_min: gammaStats.min,
-    est_gamma_max: gammaStats.max,
-    est_beta_p005: betaStats.p005,
-    est_beta_p995: betaStats.p995,
-    est_eta_p005: etaStats.p005,
-    est_eta_p995: etaStats.p995,
-    est_gamma_p005: gammaStats.p005,
-    est_gamma_p995: gammaStats.p995
-  }
-}
 
 const fmt = (v: number | null | undefined, d = 2) => {
   if (v === null || v === undefined) return '—'
@@ -194,20 +96,16 @@ function computeKDE(values: number[], bandwidth?: number, minX?: number) {
 
 // 多方法对比密度图组件
 function CompareDensityChart({
-  methodsData,
+  statsMap,
   selectedMethods,
   paramId,
-  trueValue,
-  fixedValues
+  trueValue
 }: {
-  methodsData: Record<string, MethodComparisonState>
+  statsMap: Record<string, MethodComparisonStatistics | null>
   selectedMethods: string[]
   paramId: 'beta' | 'eta' | 'gamma'
-  trueValue: number
-  fixedValues: Record<string, number>
+  trueValue: number | null
 }) {
-  const estKey = `est_${paramId}`
-
   // 计算每个方法的 KDE 数据
   const kdeResults = useMemo(() => {
     const results: Array<{
@@ -215,20 +113,15 @@ function CompareDensityChart({
       methodName: string
       color: string
       kdePoints: Array<{ x: number; y: number }>
-      validCount: number
+      count: number
     }> = []
 
     selectedMethods.forEach((methodId, index) => {
-      const result = methodsData[methodId]?.result
-      if (result?.status !== 'ready') return
+      const values = statsMap[methodId]?.parameters[paramId].values
+      if (!values?.length) return
 
-      const values = result.rows
-        .map(row => row[estKey as keyof SimulationRow] as number | null)
-        .filter((v): v is number => v !== null && v !== undefined)
-
-      if (values.length === 0) return
-
-      const kdePoints = computeKDE(values, undefined, paramId === 'gamma' ? 0 : undefined).points
+      const nonnegativeGamma = paramId === 'gamma' && values.every(value => value >= 0)
+      const kdePoints = computeKDE(values, undefined, nonnegativeGamma ? 0 : undefined).points
       const methodInfo = {
         mle: { name: 'MLE' },
         wmle: { name: 'WMLE' },
@@ -247,18 +140,18 @@ function CompareDensityChart({
         methodName: methodInfo.name,
         color: getMethodColor(methodId, index),
         kdePoints,
-        validCount: values.length
+        count: values.length
       })
     })
 
     return results
-  }, [methodsData, selectedMethods, estKey, paramId])
+  }, [statsMap, selectedMethods, paramId])
 
   // 找出所有 x 轴范围的并集
   const xDomain = useMemo(() => {
     if (kdeResults.length === 0) return [0, 1]
-    let min = Infinity
-    let max = -Infinity
+    let min = trueValue ?? Infinity
+    let max = trueValue ?? -Infinity
     kdeResults.forEach(r => {
       r.kdePoints.forEach(p => {
         if (p.x < min) min = p.x
@@ -266,12 +159,12 @@ function CompareDensityChart({
       })
     })
     return [min, max]
-  }, [kdeResults])
+  }, [kdeResults, trueValue])
 
   if (kdeResults.length === 0) {
     return (
       <div className="h-[300px] flex items-center justify-center text-slate-400">
-        无有效数据，请先运行模拟
+        没有可绘制的估计值
       </div>
     )
   }
@@ -294,13 +187,13 @@ function CompareDensityChart({
               style={{ backgroundColor: r.color }}
             ></span>
             <span className="text-slate-700 font-medium">{r.methodName}</span>
-            <span className="text-slate-400">({r.validCount})</span>
+            <span className="text-slate-400">({r.count})</span>
           </span>
         ))}
-        <span className="flex items-center gap-1.5 ml-2 border-l pl-4 border-slate-200">
+        {trueValue !== null && <span className="flex items-center gap-1.5 ml-2 border-l pl-4 border-slate-200">
           <span className="w-4 h-0.5 bg-red-500 inline-block" style={{ borderStyle: 'dashed' }}></span>
           <span className="text-slate-600">真实值 ({trueValue})</span>
-        </span>
+        </span>}
       </div>
 
       {/* 图表 */}
@@ -325,12 +218,12 @@ function CompareDensityChart({
               formatter={(v: number) => v.toFixed(4)}
               labelFormatter={(l) => `${paramSymbol}: ${Number(l).toFixed(paramId === 'beta' ? 3 : 1)}`}
             />
-            <ReferenceLine
+            {trueValue !== null && <ReferenceLine
               x={trueValue}
               stroke="#ef4444"
               strokeDasharray="6 4"
               strokeWidth={2}
-            />
+            />}
             {kdeResults.map(r => (
               <Line
                 key={r.methodId}
@@ -350,7 +243,7 @@ function CompareDensityChart({
       {/* 说明 */}
       <p className="text-center text-xs text-slate-500 mt-3">
         使用高斯核密度估计 (KDE) 展示各方法 {paramSymbol} 估计值的分布。
-        <span className="text-red-500 font-medium ml-1">红色虚线</span>为真实参数值。
+        {trueValue !== null && <span className="ml-1">红色虚线为各批次共有的真值。</span>}
       </p>
     </>
   )
@@ -368,7 +261,7 @@ function MethodColumn({
 }: {
   methodId: string
   result: MethodComparisonResult
-  stats: StatsResult | null
+  stats: MethodComparisonStatistics | null
   displayOptions: { mean: boolean; biasMean: boolean; std: boolean; ci99: boolean }
   paramSelection: { beta: boolean; eta: boolean; gamma: boolean }
   onRetry: (methodId: string) => void
@@ -438,7 +331,9 @@ function MethodColumn({
           <span className="text-xs font-mono text-slate-500">{methodInfo.shortName}</span>
         </div>
         <p className="text-xs text-slate-400 mt-1">
-          {stats.valid_count} / {stats.count} 有效结果
+          {stats.failures === null
+            ? <>{stats.includedCount} / {stats.count} 条记录有完整估计值 · 有效率未核验</>
+            : <>{stats.includedCount} / {stats.count} 有效 · 失败 {stats.failures} 次（{(100 * stats.failures / stats.count).toFixed(1)}%）</>}
         </p>
         <p className="text-xs text-slate-500 mt-1" title={result.source === 'archive' ? result.filename : undefined}>
           {result.source === 'archive' ? '历史分片' : '现场模拟'}
@@ -458,48 +353,25 @@ function MethodColumn({
             </tr>
           </thead>
           <tbody>
-            {selectedParams.includes('beta') && (
-              <tr className="border-b border-slate-100">
-                <td className={cn("py-1.5 px-2 font-bold text-center", EST_PARAM_COLORS.beta.text)}>β</td>
-                <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{stats.beta_true}</td>
-                {displayOptions.mean && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_beta_mean, 4)}</td>}
-                {displayOptions.biasMean && (
-                  <td className={cn(
-                    "py-1.5 px-2 font-mono text-right",
-                    (stats.bias_beta_mean ?? 0) > 0 ? 'text-red-600' : 'text-blue-600'
-                  )}>{fmt(stats.bias_beta_mean, 4)}</td>
-                )}
-                {displayOptions.std && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_beta_std, 4)}</td>}
-              </tr>
-            )}
-            {selectedParams.includes('eta') && (
-              <tr className="border-b border-slate-100">
-                <td className={cn("py-1.5 px-2 font-bold text-center", EST_PARAM_COLORS.eta.text)}>η</td>
-                <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{stats.eta_true}</td>
-                {displayOptions.mean && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_eta_mean, 2)}</td>}
-                {displayOptions.biasMean && (
-                  <td className={cn(
-                    "py-1.5 px-2 font-mono text-right",
-                    (stats.bias_eta_mean ?? 0) > 0 ? 'text-red-600' : 'text-blue-600'
-                  )}>{fmt(stats.bias_eta_mean, 2)}</td>
-                )}
-                {displayOptions.std && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_eta_std, 2)}</td>}
-              </tr>
-            )}
-            {selectedParams.includes('gamma') && (
-              <tr className="border-b border-slate-100">
-                <td className={cn("py-1.5 px-2 font-bold text-center", EST_PARAM_COLORS.gamma.text)}>γ</td>
-                <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{stats.gamma}</td>
-                {displayOptions.mean && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_gamma_mean, 2)}</td>}
-                {displayOptions.biasMean && (
-                  <td className={cn(
-                    "py-1.5 px-2 font-mono text-right",
-                    (stats.bias_gamma_mean ?? 0) > 0 ? 'text-red-600' : 'text-blue-600'
-                  )}>{fmt(stats.bias_gamma_mean, 2)}</td>
-                )}
-                {displayOptions.std && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(stats.est_gamma_std, 2)}</td>}
-              </tr>
-            )}
+            {selectedParams.map(key => {
+              const summary = stats.parameters[key]
+              const digits = key === 'beta' ? 4 : 2
+              const label = { beta: 'β', eta: 'η', gamma: 'γ' }[key]
+              return (
+                <tr key={key} className="border-b border-slate-100">
+                  <td className={cn("py-1.5 px-2 font-bold text-center", EST_PARAM_COLORS[key].text)}>{label}</td>
+                  <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{summary.truth ?? '—'}</td>
+                  {displayOptions.mean && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(summary.mean, digits)}</td>}
+                  {displayOptions.biasMean && (
+                    <td className={cn(
+                      "py-1.5 px-2 font-mono text-right",
+                      (summary.bias ?? 0) > 0 ? 'text-red-600' : 'text-blue-600'
+                    )}>{fmt(summary.bias, digits)}</td>
+                  )}
+                  {displayOptions.std && <td className="py-1.5 px-2 font-mono text-slate-700 text-right">{fmt(summary.sd, digits)}</td>}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -512,40 +384,38 @@ function MethodColumn({
 interface CompareResultsViewProps {
   selectedMethods: string[]
   methodsData: Record<string, MethodComparisonState>
-  variableDimensions: string[]
   displayOptions: { mean: boolean; biasMean: boolean; std: boolean; ci99: boolean }
   paramSelection: { beta: boolean; eta: boolean; gamma: boolean }
   setParamSelection: (v: { beta: boolean; eta: boolean; gamma: boolean }) => void
   densityTab: 'beta' | 'eta' | 'gamma'
   setDensityTab: (v: 'beta' | 'eta' | 'gamma') => void
-  fixedValues: Record<string, number>
   onRetry: (methodId: string) => void
 }
 
 export default function CompareResultsView({
   selectedMethods,
   methodsData,
-  variableDimensions,
   displayOptions,
   paramSelection,
   setParamSelection,
   densityTab,
   setDensityTab,
-  fixedValues,
   onRetry
 }: CompareResultsViewProps) {
   // 计算各方法统计
   const statsMap = useMemo(() => {
-    const map: Record<string, StatsResult | null> = {}
+    const map: Record<string, MethodComparisonStatistics | null> = {}
     for (const methodId of selectedMethods) {
       const result = methodsData[methodId]?.result
-      map[methodId] = result?.status === 'ready' ? calcStats(result.rows) : null
+      map[methodId] = result?.status === 'ready' ? summarizeMethodComparison(result) : null
     }
     return map
   }, [selectedMethods, methodsData])
 
-  // 检查是否有有效数据
-  const hasValidData = selectedMethods.some(methodId => methodsData[methodId]?.result.status === 'ready')
+  const shownStats = Object.values(statsMap).filter(stats => stats !== null)
+  const hasResults = shownStats.length > 0
+  const firstTruth = shownStats[0]?.parameters[densityTab].truth ?? null
+  const commonTruth = shownStats.every(stats => stats.parameters[densityTab].truth === firstTruth) ? firstTruth : null
 
   // 选中的参数列表
   const selectedParams = Object.entries(paramSelection)
@@ -596,7 +466,7 @@ export default function CompareResultsView({
       </div>
 
       {/* 概率密度分布图 - 多方法对比 */}
-      {hasValidData && selectedParams.length > 0 && (
+      {hasResults && selectedParams.length > 0 && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">参数估计值概率密度分布对比</h3>
@@ -620,17 +490,16 @@ export default function CompareResultsView({
           </div>
 
           <CompareDensityChart
-            methodsData={methodsData}
+            statsMap={statsMap}
             selectedMethods={selectedMethods}
             paramId={densityTab}
-            trueValue={fixedValues[densityTab] ?? (densityTab === 'beta' ? 2.0 : densityTab === 'eta' ? 1000 : 1000)}
-            fixedValues={fixedValues}
+            trueValue={commonTruth}
           />
         </div>
       )}
 
       {/* 数据来源表格 */}
-      {hasValidData && (
+      {hasResults && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="text-base font-semibold text-slate-700">数据来源</p>

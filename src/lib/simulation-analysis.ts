@@ -117,10 +117,10 @@ export async function requestSimulation(
     body: JSON.stringify({ methodId, params }),
     signal,
   })
-  const payload = await response.json()
+  const payload = await response.json().catch(() => null)
   if (!response.ok) {
     if (response.status === 429) throw new Error('计算服务繁忙，请稍后重新运行')
-    throw new Error(typeof payload.error === 'string' ? payload.error : '模拟请求失败，请重新运行')
+    throw new Error(typeof payload?.error === 'string' ? payload.error : '模拟请求失败，请重新运行')
   }
   return parseSimulationBatch(payload, input)
 }

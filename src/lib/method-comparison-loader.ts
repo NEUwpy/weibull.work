@@ -1,4 +1,5 @@
 import { requestMethodComparisonSimulation, type MethodComparisonParams, type MethodComparisonRow } from './method-comparison'
+import type { SimulationBatch } from './simulation-analysis'
 
 export interface MethodComparisonCatalog {
   chunks: string[]
@@ -19,7 +20,7 @@ export type MethodComparisonResult =
   | { status: 'waiting-for-parameters' | 'missing' | 'waiting-for-simulation' | 'simulating' }
   | { status: 'error'; stage: LoadStage; message: string }
   | { status: 'ready'; source: 'archive'; filename: string; rows: MethodComparisonRow[] }
-  | { status: 'ready'; source: 'simulation'; rows: MethodComparisonRow[] }
+  | ({ status: 'ready'; source: 'simulation' } & SimulationBatch)
 
 export interface MethodComparisonState {
   selectionKey: string
@@ -67,7 +68,7 @@ export function initialMethodComparisonParams(catalog: MethodComparisonCatalog):
     ?? {}
 }
 
-function parseArchiveRows(text: string): MethodComparisonRow[] {
+function parseArchiveRows(text: string, params: MethodComparisonParams): MethodComparisonRow[] {
   const [header, ...lines] = text.trim().split(/\r?\n/)
   const columns = new Map(header.split(',').map((name, index) => [name, index]))
   return lines.filter(Boolean).map(line => {
@@ -78,9 +79,17 @@ function parseArchiveRows(text: string): MethodComparisonRow[] {
       const number = Number(value)
       return Number.isFinite(number) ? number : null
     }
+    // The requested archive filename encodes these settings. Some early CSV files omit gamma.
+    const beta = read('beta_true') ?? params.beta
+    const eta = read('eta_true') ?? params.eta
+    const gamma = read('gamma') ?? params.gamma
+    const n = read('sample_size') ?? params.n
+    if (beta !== params.beta || eta !== params.eta || gamma !== params.gamma || n !== params.n) {
+      throw new Error('历史分片的真值或样本量与文件名不一致。')
+    }
     return {
-      beta_true: read('beta_true') ?? 0, eta_true: read('eta_true') ?? 0, gamma: read('gamma') ?? undefined,
-      sample_size: read('sample_size') ?? 0, offset_value: read('offset_value') ?? undefined, sim_id: read('sim_id') ?? 0,
+      beta_true: beta, eta_true: eta, gamma,
+      sample_size: n, offset_value: read('offset_value') ?? undefined, sim_id: read('sim_id') ?? 0,
       est_beta: read('est_beta'), est_eta: read('est_eta'), est_gamma: read('est_gamma'),
       bias_beta: read('bias_beta'), bias_eta: read('bias_eta'), bias_gamma: read('bias_gamma'), r_squared: read('r_squared')
     }
@@ -141,8 +150,8 @@ export function createMethodComparisonLoader(
     clearTimeout(entry.simulationTimer)
     publish(entry, { status: 'simulating' })
     try {
-      const rows = await requestMethodComparisonSimulation(entry.methodId, entry.selection.params, entry.request.signal, request)
-      publish(entry, { status: 'ready', source: 'simulation', rows })
+      const batch = await requestMethodComparisonSimulation(entry.methodId, entry.selection.params, entry.request.signal, request)
+      publish(entry, { status: 'ready', source: 'simulation', ...batch })
     } catch (error) {
       fail(entry, 'simulation', error)
     }
@@ -173,7 +182,7 @@ export function createMethodComparisonLoader(
       const url = `/studies/${encodeURIComponent(entry.methodId.toLowerCase())}/chunks/${encodeURIComponent(filename)}`
       const response = await request(url, { signal: entry.request.signal })
       if (!response.ok) throw new Error(`无法读取历史分片（HTTP ${response.status}）。`)
-      const rows = parseArchiveRows(await response.text())
+      const rows = parseArchiveRows(await response.text(), entry.selection.params)
       if (rows.length === 0) throw new Error('历史分片没有结果记录。')
       publish(entry, { status: 'ready', source: 'archive', filename, rows })
     } catch (error) {

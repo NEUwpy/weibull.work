@@ -8,7 +8,15 @@ const shard = offset => `b2_e1000_g1000_n7_d${offset}_rep2_seed42_step60.csv`
 const mleShard = 'b2_e1000_g1000_n7_rep2_seed42_step60.csv'
 const catalog = chunks => Response.json({ chunks, parsedParams: {}, total: chunks.length })
 const archive = beta => new Response(`beta_true,eta_true,sample_size,sim_id,est_beta,est_eta\n2,1000,7,1,${beta},900`)
-const simulation = offset => Response.json({ rows: [{ offset_value: offset, est_beta: 1.5 }] })
+const simulation = offset => Response.json({
+  rows: [1, 2].map(id => ({ method_id: 'mdm', beta_true: 2, eta_true: 1000, gamma: 1000, sample_size: 7,
+    sim_id: id, offset_value: offset, est_beta: 1.5, est_eta: 900, est_gamma: 1000, status: id === 1 ? 'success' : 'failure' })),
+  metrics: {
+    n_total: 2, n_valid: 1, n_failure: 1,
+    param_standard: Object.fromEntries(['beta', 'eta', 'gamma'].map(key => [key,
+      { absolute: { n: 1, bias: 0, sd: 0, rmse: 0, mae: 0 } }])),
+  },
+})
 const tick = () => new Promise(resolve => setImmediate(resolve))
 
 function deferred() {
@@ -58,6 +66,7 @@ test('bootstrap and stable selections share one catalog and one archive request'
   assert.equal(f.result('mdm').source, 'archive')
   assert.equal(f.result('mdm').filename, shard(0.1))
   assert.equal(f.result('mdm').rows[0].est_beta, 2)
+  assert.equal(f.result('mdm').rows[0].gamma, 1000)
 })
 
 test('a late archive body cannot overwrite a later selection even if fetch ignores abort', async t => {
@@ -117,6 +126,8 @@ test('missing fixed combinations simulate once, failed simulations retry, and va
   f.loader.retry('mdm')
   await tick()
   assert.equal(f.result('mdm').source, 'simulation')
+  assert.equal(f.result('mdm').metrics.n_valid, 1)
+  assert.equal(f.result('mdm').rows[1].status, 'failure')
   f.loader.select(['mdm'], { ...current, multiple: true })
   await tick()
   assert.equal(f.result('mdm').status, 'missing')

@@ -247,13 +247,11 @@ function CurrentMethodComparison({ currentMethodId }: MethodCompareViewerProps) 
       <CompareResultsView
         selectedMethods={selectedMethods}
         methodsData={methodsData}
-        variableDimensions={variableDimensions}
         displayOptions={displayOptions}
         paramSelection={paramSelection}
         setParamSelection={setParamSelection}
         densityTab={densityTab}
         setDensityTab={setDensityTab}
-        fixedValues={selection.params}
         onRetry={handleRetry}
       />
     </div>

@@ -130,10 +130,16 @@ test('simulation proxy preserves backend rejection and rejects missing params', 
 test('method comparison sends the selected MDM offset through the proxy and checks the actual offset', async () => {
   let forwarded
   let actualOffset = 0.24
+  const absolute = { n: 1, bias: 0, sd: 0, rmse: 0, mae: 0 }
   const route = loadRoute('src/app/api/studies/simulate/route.ts', {}, {
     fetch: async (_url, options) => {
       forwarded = JSON.parse(options.body)
-      return { ok: true, json: async () => ({ rows: [{ offset_value: actualOffset }], count: 1, success: true }) }
+      return { ok: true, json: async () => ({
+        rows: [{ method_id: forwarded.method, beta_true: 2, eta_true: 100, gamma: 5, sample_size: 7,
+          sim_id: 1, offset_value: actualOffset, est_beta: 2, est_eta: 100, est_gamma: 5, status: 'success' }],
+        count: 1, success: true, metrics: { n_total: 1, n_valid: 1, n_failure: 0,
+          param_standard: { beta: { absolute }, eta: { absolute }, gamma: { absolute } } },
+      }) }
     },
   })
   const { requestMethodComparisonSimulation } = loadServerModule('src/lib/method-comparison.ts', {}, {
@@ -143,14 +149,17 @@ test('method comparison sends the selected MDM offset through the proxy and chec
     },
   })
   const params = { beta: 2, eta: 100, gamma: 5, n: 7, rep: 1, seed: 0, offset: 0.24, step: 60 }
+  const signal = new AbortController().signal
 
-  assert.deepEqual(await requestMethodComparisonSimulation('mdm', params), [{ offset_value: 0.24 }])
+  const batch = await requestMethodComparisonSimulation('mdm', params, signal)
+  assert.equal(batch.rows[0].offset_value, 0.24)
+  assert.equal(batch.metrics.n_valid, 1)
   assert.deepEqual(forwarded, { method: 'mdm', beta: 2, eta: 100, gamma: 5, n: 7, rep: 1, seed: 0, offset: 0.24 })
 
   actualOffset = 0.1
-  await assert.rejects(requestMethodComparisonSimulation('mdm', params), /偏移量与所选值 0\.24 不一致/)
+  await assert.rejects(requestMethodComparisonSimulation('mdm', params, signal), /与请求不一致/)
 
   actualOffset = null
-  await requestMethodComparisonSimulation('mle', params)
+  await requestMethodComparisonSimulation('mle', params, signal)
   assert.equal(Object.hasOwn(forwarded, 'offset'), false)
 })
